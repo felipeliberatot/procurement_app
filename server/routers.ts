@@ -46,6 +46,17 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteUser(input.id)),
+    importBatch: protectedProcedure
+      .input(z.object({
+        users: z.array(z.object({
+          name: z.string().min(1),
+          email: z.string().optional(),
+          phone: z.string().optional(),
+          department: z.string().optional(),
+          procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin"]),
+        }))
+      }))
+      .mutation(({ input }) => db.importUsersBatch(input.users)),
   }),
 
   // ─── Cost Centers ──────────────────────────────────────────────────────────

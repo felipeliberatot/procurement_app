@@ -121,6 +121,61 @@ export async function upsertUserByAdmin(data: {
   }
 }
 
+export async function importUsersBatch(rows: Array<{
+  name: string;
+  email?: string;
+  phone?: string;
+  department?: string;
+  procurementRole: string;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  let imported = 0;
+  let errors: Array<{ row: number; message: string }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      // Use email as unique key for upsert; if no email, always insert
+      if (row.email) {
+        const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, row.email)).limit(1);
+        if (existing.length > 0) {
+          await db.update(users).set({
+            name: row.name,
+            phone: row.phone ?? null,
+            department: row.department ?? null,
+            procurementRole: row.procurementRole as User["procurementRole"],
+          }).where(eq(users.email, row.email));
+        } else {
+          await db.insert(users).values({
+            openId: `import_${Date.now()}_${i}`,
+            name: row.name,
+            email: row.email,
+            phone: row.phone ?? null,
+            department: row.department ?? null,
+            procurementRole: row.procurementRole as User["procurementRole"],
+            active: true,
+            lastSignedIn: new Date(),
+          });
+        }
+      } else {
+        await db.insert(users).values({
+          openId: `import_${Date.now()}_${i}`,
+          name: row.name,
+          phone: row.phone ?? null,
+          department: row.department ?? null,
+          procurementRole: row.procurementRole as User["procurementRole"],
+          active: true,
+          lastSignedIn: new Date(),
+        });
+      }
+      imported++;
+    } catch (err: any) {
+      errors.push({ row: i + 1, message: err.message ?? "Erro desconhecido" });
+    }
+  }
+  return { imported, errors };
+}
+
 export async function toggleUserActive(id: number, active: boolean) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -163,6 +218,32 @@ export async function deleteCostCenter(id: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(costCenters).set({ active: false }).where(eq(costCenters.id, id));
+}
+
+export async function importCostCentersBatch(rows: Array<{
+  code: string;
+  name: string;
+  responsible?: string;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  let imported = 0;
+  const errors: Array<{ row: number; message: string }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const existing = await db.select({ id: costCenters.id }).from(costCenters).where(eq(costCenters.code, row.code)).limit(1);
+      if (existing.length > 0) {
+        await db.update(costCenters).set({ name: row.name, responsible: row.responsible ?? null }).where(eq(costCenters.code, row.code));
+      } else {
+        await db.insert(costCenters).values({ code: row.code, name: row.name, responsible: row.responsible ?? null });
+      }
+      imported++;
+    } catch (err: any) {
+      errors.push({ row: i + 1, message: err.message ?? "Erro desconhecido" });
+    }
+  }
+  return { imported, errors };
 }
 
 // ─── Assets ───────────────────────────────────────────────────────────────────

@@ -112,3 +112,47 @@
 - [x] Campos: nome, e-mail, WhatsApp, departamento, papel, ativo/inativo
 - [x] Validação de campos obrigatórios
 - [x] Feedback de sucesso/erro nas ações
+
+## Importação CSV de Usuários
+- [ ] Rota tRPC users.importBatch para inserção em lote
+- [ ] Função de banco para upsert em lote (por e-mail como chave)
+- [ ] Modal de importação CSV com 3 etapas: upload → prévia → confirmação
+- [ ] Geração e download do template CSV com colunas corretas
+- [ ] Parser de CSV no cliente (sem dependência externa)
+- [ ] Validação de cada linha (campos obrigatórios, papéis válidos)
+- [ ] Tela de prévia com tabela de dados e indicadores de erro por linha
+- [ ] Feedback de resultado (X importados, Y com erro)
+- [ ] Botão "Importar CSV" na aba de Usuários (apenas admin)
+
+## Importação CSV de Centros de Custo
+- [ ] Função de banco importCostCentersBatch (upsert por código)
+- [ ] Rota tRPC costCenters.importBatch
+- [ ] Template CSV de centros de custo com colunas: codigo, nome, responsavel
+- [ ] Modal de importação CSV integrado na aba Centros de Custo
+- [ ] Validação e prévia antes de confirmar importação
+
+## Importação CSV de Bens
+- [ ] Função de banco importAssetsBatch (upsert por código)
+- [ ] Rota tRPC assets.importBatch
+- [ ] Template CSV de bens com colunas: codigo, descricao, categoria, localizacao
+- [ ] Modal de importação CSV integrado na aba Bens
+- [ ] Componente CsvImportModal reutilizável para as 3 entidades
+
+## Vinculação de Aprovadores por Nível
+- [ ] Seção "Responsável por Aprovações" no card de usuário na aba Cadastros
+- [ ] Exibir quais etapas do fluxo cada usuário cobre (Gerente, Controladoria, Diretoria, Financeiro)
+- [ ] Painel de resumo dos aprovadores: mostrar quem está vinculado a cada nível
+- [ ] Alerta visual quando um nível de aprovação não tem responsável cadastrado
+- [ ] Importação CSV para centros de custo e bens
+
+## Aprovação via WhatsApp (fluxo completo)
+- [ ] Webhook Express POST /api/whatsapp/webhook para receber mensagens
+- [ ] Tabela whatsappSessions no banco para rastrear tokens de aprovação
+- [ ] Geração de token único por solicitação+etapa para validar resposta
+- [ ] Mensagem enviada ao aprovador com: resumo da solicitação, instruções APROVAR ou REJEITAR motivo
+- [ ] Parser de resposta: detectar APROVAR ou REJEITAR <motivo> na mensagem recebida
+- [ ] Processamento automático: chamar approveRequest ou rejectRequest ao receber resposta válida
+- [ ] Notificação ao solicitante após aprovação/rejeição via WhatsApp
+- [ ] Rota tRPC whatsapp.getWebhookUrl para exibir URL do webhook no app
+- [ ] Tela de configuração do webhook no app (Perfil > Integração WhatsApp)
+- [ ] Suporte a Z-API, Twilio e Meta Business API
