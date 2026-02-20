@@ -88,3 +88,27 @@
 - [x] Estados vazios (empty states)
 - [x] Feedback háptico nas ações
 - [x] TypeScript sem erros (0 errors)
+
+## Aprovação via WhatsApp (nova funcionalidade)
+- [ ] Webhook POST /api/whatsapp/webhook para receber mensagens dos aprovadores
+- [ ] Verificação de token do webhook (GET /api/whatsapp/webhook)
+- [ ] Parser de mensagens: APROVAR, REJEITAR <motivo>, DETALHES
+- [ ] Sessão de contexto: mapear número de telefone → solicitação pendente
+- [ ] Tabela whatsapp_sessions no banco para rastrear contexto de aprovação
+- [ ] Mensagens com instruções claras de resposta rápida
+- [ ] Confirmação de ação via WhatsApp (feedback ao aprovador)
+- [ ] Rota tRPC para listar sessões WhatsApp ativas (admin)
+- [ ] Tela de configuração do webhook no app
+- [ ] Tela de status da integração WhatsApp com logs
+
+## Cadastro de Usuários (nova aba dedicada)
+- [x] Rota tRPC users.list (com busca e filtro por papel)
+- [x] Rota tRPC users.create (admin cria usuário manualmente)
+- [x] Rota tRPC users.update (editar nome, papel, telefone, departamento, status)
+- [x] Rota tRPC users.delete (desativar usuário)
+- [x] Tela de listagem de usuários com busca e filtro por papel
+- [x] Card de usuário com avatar, nome, papel e status
+- [x] Tela de formulário de criação/edição de usuário
+- [x] Campos: nome, e-mail, WhatsApp, departamento, papel, ativo/inativo
+- [x] Validação de campos obrigatórios
+- [x] Feedback de sucesso/erro nas ações

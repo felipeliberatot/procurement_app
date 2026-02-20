@@ -33,13 +33,19 @@ export const appRouter = router({
       .input(z.object({
         id: z.number().optional(),
         name: z.string().min(1),
-        email: z.string().email().optional(),
+        email: z.string().email().optional().or(z.literal("")),
         procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin"]),
         department: z.string().optional(),
         phone: z.string().optional(),
         active: z.boolean().optional(),
       }))
       .mutation(({ input }) => db.upsertUserByAdmin(input)),
+    toggleActive: protectedProcedure
+      .input(z.object({ id: z.number(), active: z.boolean() }))
+      .mutation(({ input }) => db.toggleUserActive(input.id, input.active)),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => db.deleteUser(input.id)),
   }),
 
   // ─── Cost Centers ──────────────────────────────────────────────────────────

@@ -121,6 +121,19 @@ export async function upsertUserByAdmin(data: {
   }
 }
 
+export async function toggleUserActive(id: number, active: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ active }).where(eq(users.id, id));
+}
+
+export async function deleteUser(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Soft delete: desativar o usuário em vez de remover do banco
+  await db.update(users).set({ active: false }).where(eq(users.id, id));
+}
+
 // ─── Cost Centers ─────────────────────────────────────────────────────────────
 
 export async function listCostCenters() {
