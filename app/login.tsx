@@ -37,7 +37,7 @@ export default function LoginScreen() {
             />
           </View>
           <View className="items-center gap-2">
-            <Text className="text-3xl font-bold text-foreground">CompraFácil</Text>
+            <Text className="text-3xl font-bold text-foreground">Compras CGS Agrícola</Text>
             <Text className="text-base text-muted text-center leading-relaxed">
               Sistema de Gestão de Compras{"\n"}Empresariais
             </Text>
