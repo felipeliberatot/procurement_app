@@ -1,22 +1,36 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  boolean,
+  decimal,
+  int,
+  mysqlEnum,
+  mysqlTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/mysql-core";
 
-/**
- * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
- */
+// ─── Users ────────────────────────────────────────────────────────────────────
+
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
   role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  procurementRole: mysqlEnum("procurementRole", [
+    "solicitante",
+    "gerente",
+    "controladoria",
+    "diretoria",
+    "financeiro",
+    "admin",
+  ])
+    .default("solicitante")
+    .notNull(),
+  department: varchar("department", { length: 128 }),
+  phone: varchar("phone", { length: 32 }), // WhatsApp number
+  active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
@@ -25,4 +39,138 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+// ─── Cost Centers ─────────────────────────────────────────────────────────────
+
+export const costCenters = mysqlTable("costCenters", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  responsible: varchar("responsible", { length: 128 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CostCenter = typeof costCenters.$inferSelect;
+export type InsertCostCenter = typeof costCenters.$inferInsert;
+
+// ─── Assets / Bens ────────────────────────────────────────────────────────────
+
+export const assets = mysqlTable("assets", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  description: varchar("description", { length: 255 }).notNull(),
+  category: varchar("category", { length: 64 }),
+  location: varchar("location", { length: 128 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Asset = typeof assets.$inferSelect;
+export type InsertAsset = typeof assets.$inferInsert;
+
+// ─── Purchase Requests ────────────────────────────────────────────────────────
+
+export const purchaseRequests = mysqlTable("purchaseRequests", {
+  id: int("id").autoincrement().primaryKey(),
+  requestNumber: varchar("requestNumber", { length: 32 }).notNull().unique(),
+
+  // Requester info
+  requesterId: int("requesterId").notNull(),
+  requesterName: varchar("requesterName", { length: 128 }).notNull(),
+  department: varchar("department", { length: 128 }).notNull(),
+  costCenterId: int("costCenterId"),
+  costCenterCode: varchar("costCenterCode", { length: 32 }),
+  application: varchar("application", { length: 255 }).notNull(),
+
+  // Priority / urgency
+  urgencyLevel: mysqlEnum("urgencyLevel", ["normal", "urgente", "emergencial"])
+    .default("normal")
+    .notNull(),
+
+  // Content
+  observations: text("observations"),
+  totalEstimatedValue: decimal("totalEstimatedValue", { precision: 14, scale: 2 }),
+
+  // Workflow status
+  status: mysqlEnum("status", [
+    "rascunho",
+    "aguardando_gerente",
+    "aguardando_orcamento",
+    "aguardando_controladoria",
+    "aguardando_diretoria",
+    "aguardando_ordem_compra",
+    "aguardando_financeiro",
+    "concluida",
+    "rejeitada",
+    "cancelada",
+  ])
+    .default("aguardando_gerente")
+    .notNull(),
+
+  // Step-specific data
+  budgetFileUrl: text("budgetFileUrl"),   // PDF orçamento
+  purchaseOrderNumber: varchar("purchaseOrderNumber", { length: 64 }),
+  paymentInfo: text("paymentInfo"),
+
+  // Deadline tracking
+  deadlineAt: timestamp("deadlineAt"),       // Overall deadline based on urgency
+  stepDeadlineAt: timestamp("stepDeadlineAt"), // 48h deadline for current approver
+
+  // Timestamps
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PurchaseRequest = typeof purchaseRequests.$inferSelect;
+export type InsertPurchaseRequest = typeof purchaseRequests.$inferInsert;
+
+// ─── Request Items ────────────────────────────────────────────────────────────
+
+export const requestItems = mysqlTable("requestItems", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull(),
+  description: varchar("description", { length: 255 }).notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit: varchar("unit", { length: 32 }).default("un").notNull(),
+  unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }),
+  totalPrice: decimal("totalPrice", { precision: 14, scale: 2 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type RequestItem = typeof requestItems.$inferSelect;
+export type InsertRequestItem = typeof requestItems.$inferInsert;
+
+// ─── Approval History ─────────────────────────────────────────────────────────
+
+export const approvalHistory = mysqlTable("approvalHistory", {
+  id: int("id").autoincrement().primaryKey(),
+  requestId: int("requestId").notNull(),
+  userId: int("userId").notNull(),
+  userName: varchar("userName", { length: 128 }),
+  step: mysqlEnum("step", [
+    "criacao",
+    "gerente",
+    "orcamento",
+    "controladoria",
+    "diretoria",
+    "ordem_compra",
+    "financeiro",
+  ]).notNull(),
+  action: mysqlEnum("action", [
+    "criada",
+    "aprovada",
+    "rejeitada",
+    "orcamento_anexado",
+    "ordem_emitida",
+    "pagamento_realizado",
+    "cancelada",
+    "reaberta",
+  ]).notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ApprovalHistory = typeof approvalHistory.$inferSelect;
+export type InsertApprovalHistory = typeof approvalHistory.$inferInsert;

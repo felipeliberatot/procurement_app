@@ -8,23 +8,44 @@ import { OpaqueColorValue, type StyleProp, type TextStyle } from "react-native";
 type IconMapping = Record<SymbolViewProps["name"], ComponentProps<typeof MaterialIcons>["name"]>;
 type IconSymbolName = keyof typeof MAPPING;
 
-/**
- * Add your SF Symbols to Material Icons mappings here.
- * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
- * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
- */
 const MAPPING = {
+  // Navigation
   "house.fill": "home",
+  "doc.text.fill": "description",
+  "checkmark.seal.fill": "verified",
+  "folder.fill": "folder",
+  "person.fill": "person",
+  // Actions
+  "plus": "add",
   "paperplane.fill": "send",
-  "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  "chevron.left.forwardslash.chevron.right": "code",
+  "arrow.left": "arrow-back",
+  "xmark": "close",
+  "checkmark": "check",
+  "pencil": "edit",
+  "trash.fill": "delete",
+  "ellipsis": "more-horiz",
+  // Status
+  "clock.fill": "schedule",
+  "bell.fill": "notifications",
+  "exclamationmark.triangle.fill": "warning",
+  "info.circle.fill": "info",
+  // Search & Filter
+  "magnifyingglass": "search",
+  "line.3.horizontal.decrease": "filter-list",
+  // Files
+  "doc.fill": "insert-drive-file",
+  "arrow.up.doc.fill": "upload-file",
+  // Misc
+  "building.2.fill": "business",
+  "cart.fill": "shopping-cart",
+  "dollarsign.circle.fill": "attach-money",
+  "chart.bar.fill": "bar-chart",
+  "gear": "settings",
+  "phone.fill": "phone",
 } as IconMapping;
 
-/**
- * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.
- * This ensures a consistent look across platforms, and optimal resource usage.
- * Icon `name`s are based on SF Symbols and require manual mapping to Material Icons.
- */
 export function IconSymbol({
   name,
   size = 24,
