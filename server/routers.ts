@@ -46,6 +46,16 @@ export const appRouter = router({
       }))
       .mutation(async ({ ctx, input }) => {
         const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";
+        const callerId = ctx.user.id;
+        // Non-masters can only edit their own profile, and only specific fields
+        if (!callerIsMaster) {
+          if (!input.id || input.id !== callerId) {
+            throw new Error("Apenas usuários master podem criar ou editar outros usuários.");
+          }
+          // Non-master editing own profile: only password is allowed (handled via resetPassword route)
+          // Block any attempt to change name, email, role, approvalLevel, active status
+          throw new Error("Para alterar sua senha, use a opção de redefinição de senha.");
+        }
         // Only masters can assign or change the 'master' approval level
         if (input.approvalLevel === "master" && !callerIsMaster) {
           throw new Error("Apenas usuários master podem atribuir o nível master.");

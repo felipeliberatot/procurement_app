@@ -176,6 +176,18 @@ export async function upsertUserByAdmin(data: {
     const bcrypt = await import("bcryptjs");
     finalPasswordHash = await bcrypt.hash(data.password, 10);
   }
+  // Check for duplicate email
+  if (data.email && data.email.trim() !== "") {
+    const emailConflict = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, data.email.trim()))
+      .limit(1);
+    if (emailConflict.length > 0 && emailConflict[0].id !== data.id) {
+      throw new Error("Este e-mail já está sendo usado por outro cadastro.");
+    }
+  }
+
   if (data.id) {
     // UPDATE existing user
     await db.update(users).set({

@@ -237,6 +237,7 @@ function UserFormModal({
   isMasterCaller,
   onResetPassword,
   isResettingPassword,
+  passwordOnlyMode,
 }: {
   visible: boolean;
   user: any | null;
@@ -246,6 +247,8 @@ function UserFormModal({
   isMasterCaller?: boolean;
   onResetPassword?: (userId: number, newPassword: string) => void;
   isResettingPassword?: boolean;
+  /** When true, only the password reset section is shown (non-master editing own profile) */
+  passwordOnlyMode?: boolean;
 }) {
   const colors = useColors();
   const isEditing = !!user?.id;
@@ -369,12 +372,20 @@ function UserFormModal({
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
+          {/* Modo somente-senha: não-master editando o próprio perfil */}
+          {passwordOnlyMode ? (
+            <View style={{ backgroundColor: `${colors.primary}10`, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: `${colors.primary}30`, marginBottom: 4 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>🔒 Alterar Senha</Text>
+              <Text style={{ fontSize: 12, color: colors.muted }}>
+                Como usuário não-master, você só pode alterar sua própria senha. Para editar outras informações, solicite ao administrador.
+              </Text>
+            </View>
+          ) : (
+          <>
           {/* Seção principal: campos solicitados */}
           <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 }}>
             Informações Pessoais
           </Text>
-
-          {/* Nome */}
           <View>
             <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
               Nome Completo *
@@ -818,6 +829,8 @@ function UserFormModal({
                 thumbColor={active ? ROLE_COLORS[role] : colors.muted}
               />
             </View>
+          )}
+          </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1607,8 +1620,8 @@ export default function RegistersScreen() {
                   </View>
                 </ScrollView>
 
-                {/* Add user button + Export CSV */}
-                {isAuthenticated && (
+                {/* Add user button + Export CSV — master only */}
+                {isMaster && (
                   <View style={{ flexDirection: "row", gap: 8 }}>
                     <TouchableOpacity
                       onPress={handleNewUser}
@@ -1828,21 +1841,25 @@ export default function RegistersScreen() {
                         <Text style={{ fontSize: 9, fontWeight: "700", color: "#7C3AED" }}>MASTER</Text>
                       </View>
                     )}
-                    {/* Edit button */}
-                    <Pressable
-                      onPress={() => handleEditUser(item)}
-                      style={({ pressed }) => ({
-                        opacity: pressed ? 0.6 : 1,
-                        backgroundColor: `${colors.primary}15`,
-                        borderRadius: 8,
-                        paddingHorizontal: 8,
-                        paddingVertical: 4,
-                        borderWidth: 1,
-                        borderColor: `${colors.primary}30`,
-                      })}
-                    >
-                      <Text style={{ fontSize: 11, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
-                    </Pressable>
+                    {/* Edit button: master can edit anyone; non-master can only edit themselves (password only) */}
+                    {(isMaster || (user as any)?.id === (item as any).id) && (
+                      <Pressable
+                        onPress={() => handleEditUser(item)}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.6 : 1,
+                          backgroundColor: `${colors.primary}15`,
+                          borderRadius: 8,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderWidth: 1,
+                          borderColor: `${colors.primary}30`,
+                        })}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: "700", color: colors.primary }}>
+                          {isMaster ? "✏️ Editar" : "🔒 Minha Senha"}
+                        </Text>
+                      </Pressable>
+                    )}
                     {(isAdmin || isMaster) && (
                       <Pressable
                         onPress={() => handleToggleActive(item)}
@@ -2093,6 +2110,7 @@ export default function RegistersScreen() {
         isMasterCaller={isMaster}
         onResetPassword={(userId, newPassword) => resetPassword.mutate({ userId, newPassword })}
         isResettingPassword={resetPassword.isPending}
+        passwordOnlyMode={!isMaster && !!editingUser && (user as any)?.id === editingUser?.id}
       />
       <PinVerificationModal
         visible={showPinModal}
