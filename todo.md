@@ -220,3 +220,7 @@
 - [x] Campo de observação obrigatório para solicitações urgentes e emergenciais
 - [x] Solicitações urgentes/emergenciais: aprovadas diretamente pela diretoria (pula gerente)
 - [x] Bug: WhatsApp corrigido no perfil (busca usuário completo via trpc.auth.me, não cache local)
+
+## Filtro por Urgência e Notificação WhatsApp no Cadastro
+- [x] Chips de filtro por urgência (Emergencial, Urgente, Normal) na tela de Solicitações
+- [x] Notificação via WhatsApp ao cadastrar novo usuário (além do e-mail de boas-vindas)

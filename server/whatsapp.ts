@@ -426,6 +426,34 @@ export async function notifyApproverActionConfirmation(opts: {
   return sendWhatsAppMessage(opts.approverPhone, message);
 }
 
+// ─── Notificação de novo usuário cadastrado ─────────────────────────────────
+
+export async function notifyNewUserRegistration(opts: {
+  userPhone: string;
+  userName: string;
+  userEmail?: string;
+  jobTitle?: string;
+  registeredByName: string;
+}) {
+  const message = [
+    `👋 *Bem-vindo ao CompraFácil — CGS Agrícola!*`,
+    ``,
+    `Olá, *${opts.userName}*!`,
+    ``,
+    `Sua conta foi criada no sistema de gestão de compras da CGS Agrícola.`,
+    ``,
+    opts.jobTitle ? `*Cargo:* ${opts.jobTitle}` : null,
+    opts.userEmail ? `*E-mail:* ${opts.userEmail}` : null,
+    `*Cadastrado por:* ${opts.registeredByName}`,
+    ``,
+    `Acesse o app para configurar sua conta e começar a usar o sistema.`,
+    ``,
+    `📱 *CompraFácil — CGS Agrícola*`,
+  ].filter(Boolean).join("\n");
+
+  return sendWhatsAppMessage(opts.userPhone, message);
+}
+
 // ─── Webhook URL helper ───────────────────────────────────────────────────────
 
 export function getWebhookUrl(): string {

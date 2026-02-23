@@ -28,17 +28,27 @@ const FILTER_TABS = [
   { key: "cancelada", label: "Canceladas" },
 ];
 
+const URGENCY_FILTERS = [
+  { key: "all", label: "Todas", color: "bg-surface border-border", textColor: "text-muted" },
+  { key: "emergencial", label: "🔴 Emergencial", color: "bg-error border-error", textColor: "text-white" },
+  { key: "urgente", label: "🟡 Urgente", color: "bg-warning border-warning", textColor: "text-white" },
+  { key: "normal", label: "🟢 Normal", color: "bg-success border-success", textColor: "text-white" },
+];
+
 export default function RequestsScreen() {
   const { isAuthenticated } = useAuth();
   const [activeFilter, setActiveFilter] = useState("all");
+  const [activeUrgency, setActiveUrgency] = useState("all");
 
   const { data: requests, isLoading, refetch, isRefetching } = trpc.requests.myRequests.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
-  const filtered = (requests ?? []).filter((r) =>
-    activeFilter === "all" ? true : r.status === activeFilter
-  );
+  const filtered = (requests ?? []).filter((r) => {
+    const statusMatch = activeFilter === "all" ? true : r.status === activeFilter;
+    const urgencyMatch = activeUrgency === "all" ? true : r.urgencyLevel === activeUrgency;
+    return statusMatch && urgencyMatch;
+  });
 
   return (
     <ScreenContainer>
@@ -55,8 +65,9 @@ export default function RequestsScreen() {
         <Text className="text-sm text-muted">{filtered.length} solicitação{filtered.length !== 1 ? "ões" : ""}</Text>
       </View>
 
+      {/* Filtro por status */}
       <View className="border-b border-border">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8 }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
           {FILTER_TABS.map((tab) => (
             <Pressable key={tab.key} onPress={() => setActiveFilter(tab.key)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
               <View className={`px-3 py-1.5 rounded-full border ${activeFilter === tab.key ? "bg-primary border-primary" : "bg-surface border-border"}`}>
@@ -64,6 +75,24 @@ export default function RequestsScreen() {
               </View>
             </Pressable>
           ))}
+        </ScrollView>
+      </View>
+
+      {/* Filtro por urgência */}
+      <View className="border-b border-border bg-background">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
+          {URGENCY_FILTERS.map((uf) => {
+            const isActive = activeUrgency === uf.key;
+            const inactiveStyle = "bg-surface border-border";
+            const inactiveText = "text-muted";
+            return (
+              <Pressable key={uf.key} onPress={() => setActiveUrgency(uf.key)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                <View className={`px-3 py-1.5 rounded-full border ${isActive ? uf.color : inactiveStyle}`}>
+                  <Text className={`text-xs font-semibold ${isActive ? uf.textColor : inactiveText}`}>{uf.label}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -81,7 +110,11 @@ export default function RequestsScreen() {
           ListEmptyComponent={
             <EmptyState
               title="Nenhuma solicitação"
-              description={activeFilter === "all" ? "Toque em '+ Nova' para criar sua primeira solicitação de compra." : "Nenhuma solicitação com este status."}
+              description={
+                activeFilter !== "all" || activeUrgency !== "all"
+                  ? "Nenhuma solicitação com esses filtros."
+                  : "Toque em '+ Nova' para criar sua primeira solicitação de compra."
+              }
               icon="📋"
             />
           }

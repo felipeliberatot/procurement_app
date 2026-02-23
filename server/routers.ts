@@ -70,6 +70,21 @@ export const appRouter = router({
             console.warn("[Email] Welcome email failed (non-critical):", e);
           }
         }
+        // Send WhatsApp welcome notification for new users with phone
+        if (!input.id && input.phone) {
+          try {
+            const { notifyNewUserRegistration } = await import("./whatsapp");
+            await notifyNewUserRegistration({
+              userPhone: input.phone,
+              userName: input.name,
+              userEmail: input.email || undefined,
+              jobTitle: input.jobTitle || undefined,
+              registeredByName: (ctx.user as any)?.name || "Administrador",
+            });
+          } catch (e) {
+            console.warn("[WhatsApp] Welcome notification failed (non-critical):", e);
+          }
+        }
         return result;
       }),
     toggleActive: protectedProcedure
