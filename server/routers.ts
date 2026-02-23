@@ -274,6 +274,41 @@ export const appRouter = router({
       ),
   }),
 
+
+  // ─── Units / Unidades ─────────────────────────────────────────────────────────
+  units: router({
+    list: protectedProcedure.query(() => db.listUnits()),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        code: z.string().min(1),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        responsibleName: z.string().optional(),
+        responsiblePhone: z.string().optional(),
+      }))
+      .mutation(({ input }) => db.createUnit(input)),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        code: z.string().optional(),
+        address: z.string().optional(),
+        city: z.string().optional(),
+        state: z.string().optional(),
+        responsibleName: z.string().optional(),
+        responsiblePhone: z.string().optional(),
+        active: z.boolean().optional(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...data } = input;
+        return db.updateUnit(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => db.deleteUnit(input.id)),
+  }),
   // ─── Malotes ─────────────────────────────────────────────────────────────────
   malotes: router({
     list: protectedProcedure.query(() => db.listMalotes()),

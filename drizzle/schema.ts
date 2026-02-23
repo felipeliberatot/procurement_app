@@ -254,3 +254,20 @@ export const maloteItems = mysqlTable("maloteItems", {
 
 export type MaloteItem = typeof maloteItems.$inferSelect;
 export type InsertMaloteItem = typeof maloteItems.$inferInsert;
+
+// ─── Units / Unidades ─────────────────────────────────────────────────────────
+export const units = mysqlTable("units", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 150 }).notNull(),
+  code: varchar("code", { length: 30 }).notNull().unique(),
+  address: varchar("address", { length: 255 }),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  responsibleName: varchar("responsibleName", { length: 150 }),
+  responsiblePhone: varchar("responsiblePhone", { length: 32 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Unit = typeof units.$inferSelect;
+export type InsertUnit = typeof units.$inferInsert;

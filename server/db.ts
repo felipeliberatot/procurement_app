@@ -829,12 +829,24 @@ export async function sendMalote(opts: {
 }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // Buscar dados do malote antes de atualizar
+  const [malote] = await db.select().from(malotes).where(eq(malotes.id, opts.maloteId)).limit(1);
   await db.update(malotes).set({
     status: "enviado",
     sentAt: new Date(),
     sentById: opts.sentById,
     sentByName: opts.sentByName,
   }).where(eq(malotes.id, opts.maloteId));
+  // Notificar responsável da unidade de destino via WhatsApp
+  if (malote) {
+    try {
+      const [destUnit] = await db.select().from(units).where(eq(units.name, malote.destinationUnit)).limit(1);
+      if (destUnit?.responsiblePhone) {
+        const msg = `📦 *Malote ${malote.maloteCode} enviado!*\n\nOrigem: ${malote.originUnit}\nDestino: ${malote.destinationUnit}\nEnviado por: ${opts.sentByName}\n\nO malote está a caminho. Confirme o recebimento no app CGS quando chegar.`;
+        await WA.sendSimpleWhatsApp(destUnit.responsiblePhone, msg);
+      }
+    } catch (_) { /* silently ignore WhatsApp errors */ }
+  }
 }
 
 export async function receiveMalote(opts: {
@@ -873,6 +885,8 @@ export async function receiveMalote(opts: {
   }
 
   const hasReturn = opts.itemReceipts.some(i => i.receiptStatus === "devolvido");
+  // Buscar dados do malote antes de atualizar
+  const [maloteForNotif] = await db.select().from(malotes).where(eq(malotes.id, opts.maloteId)).limit(1);
   await db.update(malotes).set({
     status: hasReturn ? "devolvido" : "recebido",
     receivedAt: new Date(),
@@ -880,6 +894,20 @@ export async function receiveMalote(opts: {
     receivedByName: opts.receivedByName,
     receiptNotes: opts.receiptNotes,
   }).where(eq(malotes.id, opts.maloteId));
+  // Notificar responsável da unidade de origem via WhatsApp
+  if (maloteForNotif) {
+    try {
+      const [originUnit] = await db.select().from(units).where(eq(units.name, maloteForNotif.originUnit)).limit(1);
+      if (originUnit?.responsiblePhone) {
+        const devolvidos = opts.itemReceipts.filter(i => i.receiptStatus === "devolvido").length;
+        const recebidos = opts.itemReceipts.filter(i => i.receiptStatus === "recebido").length;
+        const statusEmoji = hasReturn ? "⚠️" : "✅";
+        let msg = `${statusEmoji} *Malote ${maloteForNotif.maloteCode} ${hasReturn ? "recebido com devoluções" : "recebido com sucesso"}!*\n\nOrigem: ${maloteForNotif.originUnit}\nDestino: ${maloteForNotif.destinationUnit}\nRecebido por: ${opts.receivedByName}\n\n✅ Recebidos: ${recebidos}${hasReturn ? `\n🔄 Devolvidos: ${devolvidos}\n\nAs solicitações devolvidas foram reabertas para novo atendimento.` : ""}`;
+        if (opts.receiptNotes) msg += `\n\nObservação: ${opts.receiptNotes}`;
+        await WA.sendSimpleWhatsApp(originUnit.responsiblePhone, msg);
+      }
+    } catch (_) { /* silently ignore WhatsApp errors */ }
+  }
 }
 
 export async function getMaloteStats(): Promise<{ abertos: number; enviados: number; recebidos: number }> {
@@ -909,4 +937,44 @@ export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; r
     .from(purchaseRequests)
     .where(eq(purchaseRequests.status, "concluida"));
   return concluded.filter(r => !inMaloteIds.has(r.id));
+}
+
+// ─── Units / Unidades ─────────────────────────────────────────────────────────
+import { units, type Unit } from "../drizzle/schema";
+
+export async function listUnits(): Promise<Unit[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(units).where(eq(units.active, true)).orderBy(units.name);
+}
+
+export async function createUnit(data: {
+  name: string; code: string; address?: string; city?: string;
+  state?: string; responsibleName?: string; responsiblePhone?: string;
+}): Promise<{ id: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(units).values({
+    name: data.name, code: data.code.toUpperCase(),
+    address: data.address ?? null, city: data.city ?? null,
+    state: data.state ?? null, responsibleName: data.responsibleName ?? null,
+    responsiblePhone: data.responsiblePhone ?? null,
+  });
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return { id: insertId };
+}
+
+export async function updateUnit(id: number, data: Partial<{
+  name: string; code: string; address: string; city: string;
+  state: string; responsibleName: string; responsiblePhone: string; active: boolean;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(units).set(data).where(eq(units.id, id));
+}
+
+export async function deleteUnit(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(units).set({ active: false }).where(eq(units.id, id));
 }

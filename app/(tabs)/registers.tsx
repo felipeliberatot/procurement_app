@@ -24,7 +24,7 @@ import {
   View,
 } from "react-native";
 
-type Tab = "users" | "costcenters" | "assets";
+type Tab = "users" | "costcenters" | "assets" | "units";
 
 const ROLES: ProcurementRole[] = [
   "solicitante",
@@ -911,8 +911,84 @@ function AssetModal({
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// ─── Unit Form Modal ─────────────────────────────────────────────────────────
+function UnitFormModal({
+  visible, unit, onClose, onSave, isSaving,
+}: {
+  visible: boolean;
+  unit: any | null;
+  onClose: () => void;
+  onSave: (data: { name: string; code: string; address?: string; city?: string; state?: string; responsibleName?: string; responsiblePhone?: string }) => void;
+  isSaving: boolean;
+}) {
+  const colors = useColors();
+  const isEditing = !!unit?.id;
+  const [name, setName] = React.useState(unit?.name ?? "");
+  const [code, setCode] = React.useState(unit?.code ?? "");
+  const [address, setAddress] = React.useState(unit?.address ?? "");
+  const [city, setCity] = React.useState(unit?.city ?? "");
+  const [state, setState] = React.useState(unit?.state ?? "");
+  const [responsibleName, setResponsibleName] = React.useState(unit?.responsibleName ?? "");
+  const [responsiblePhone, setResponsiblePhone] = React.useState(unit?.responsiblePhone ?? "");
 
+  React.useEffect(() => {
+    setName(unit?.name ?? "");
+    setCode(unit?.code ?? "");
+    setAddress(unit?.address ?? "");
+    setCity(unit?.city ?? "");
+    setState(unit?.state ?? "");
+    setResponsibleName(unit?.responsibleName ?? "");
+    setResponsiblePhone(unit?.responsiblePhone ?? "");
+  }, [unit]);
+
+  const handleSave = () => {
+    if (!name.trim() || !code.trim()) {
+      Alert.alert("Campos obrigatórios", "Nome e código são obrigatórios.");
+      return;
+    }
+    onSave({
+      name: name.trim(), code: code.trim(),
+      address: address.trim() || undefined, city: city.trim() || undefined,
+      state: state.trim() || undefined, responsibleName: responsibleName.trim() || undefined,
+      responsiblePhone: responsiblePhone.trim() || undefined,
+    });
+  };
+
+  const inputStyle = {
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground,
+  };
+  const labelStyle = { color: colors.foreground, fontSize: 13, fontWeight: "600" as const, marginBottom: 6 };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <TouchableOpacity onPress={onClose} disabled={isSaving}>
+            <Text style={{ color: colors.primary, fontSize: 15 }}>Cancelar</Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>{isEditing ? "Editar Unidade" : "Nova Unidade"}</Text>
+          <TouchableOpacity onPress={handleSave} disabled={isSaving}>
+            {isSaving ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "700" }}>Salvar</Text>}
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
+          <View><Text style={labelStyle}>Nome da Unidade *</Text><TextInput value={name} onChangeText={setName} placeholder="Ex: Fazenda São João" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+          <View><Text style={labelStyle}>Código *</Text><TextInput value={code} onChangeText={setCode} placeholder="Ex: FSJ, MATRIZ, FILIAL01" placeholderTextColor={colors.muted} autoCapitalize="characters" style={inputStyle} returnKeyType="next" /></View>
+          <View><Text style={labelStyle}>Endereço</Text><TextInput value={address} onChangeText={setAddress} placeholder="Rua, número, bairro" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flex: 2 }}><Text style={labelStyle}>Cidade</Text><TextInput value={city} onChangeText={setCity} placeholder="Cidade" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+            <View style={{ flex: 1 }}><Text style={labelStyle}>Estado</Text><TextInput value={state} onChangeText={setState} placeholder="MT" placeholderTextColor={colors.muted} autoCapitalize="characters" maxLength={2} style={inputStyle} returnKeyType="next" /></View>
+          </View>
+          <View><Text style={labelStyle}>Responsável</Text><TextInput value={responsibleName} onChangeText={setResponsibleName} placeholder="Nome do responsável" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+          <View><Text style={labelStyle}>Telefone do Responsável</Text><TextInput value={responsiblePhone} onChangeText={setResponsiblePhone} placeholder="+55 66 99999-9999" placeholderTextColor={colors.muted} keyboardType="phone-pad" style={inputStyle} returnKeyType="done" /></View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function RegistersScreen() {
   const { isAuthenticated, user } = useAuth();
   const colors = useColors();
@@ -922,6 +998,8 @@ export default function RegistersScreen() {
   const [showCCModal, setShowCCModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showUnitModal, setShowUnitModal] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<any>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
@@ -941,6 +1019,9 @@ export default function RegistersScreen() {
     enabled: isAuthenticated,
   });
   const { data: assetsList, isLoading: assetsLoading } = trpc.assets.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const { data: unitsList, isLoading: unitsLoading } = trpc.units.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
@@ -986,7 +1067,7 @@ export default function RegistersScreen() {
     onError: (e) => Alert.alert("Erro", e.message),
   });
 
-  const createAsset = trpc.assets.create.useMutation({
+   const createAsset = trpc.assets.create.useMutation({
     onSuccess: () => {
       utils.assets.list.invalidate();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -994,11 +1075,29 @@ export default function RegistersScreen() {
     },
     onError: (e) => Alert.alert("Erro", e.message),
   });
-
+  const createUnitMutation = trpc.units.create.useMutation({
+    onSuccess: () => {
+      utils.units.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowUnitModal(false);
+      setEditingUnit(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+  const updateUnitMutation = trpc.units.update.useMutation({
+    onSuccess: () => {
+      utils.units.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowUnitModal(false);
+      setEditingUnit(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
   const TABS: Array<{ key: Tab; label: string; icon: string; count?: number }> = [
     { key: "users", label: "Usuários", icon: "👥", count: usersList?.length },
     { key: "costcenters", label: "Centros de Custo", icon: "🏢", count: costCentersList?.length },
     { key: "assets", label: "Bens", icon: "📦", count: assetsList?.length },
+    { key: "units", label: "Unidades", icon: "🏭", count: unitsList?.length },
   ];
 
   // Require PIN verification before sensitive master actions
@@ -1751,6 +1850,63 @@ export default function RegistersScreen() {
         </View>
       )}
 
+      {/* ── Units Tab ── */}
+      {activeTab === "units" && (
+        <View style={{ flex: 1 }}>
+          {(isAdmin || isMaster) && (
+            <View style={{ padding: 12 }}>
+              <TouchableOpacity
+                onPress={() => { setEditingUnit(null); setShowUnitModal(true); }}
+                style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+              >
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova Unidade</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <FlatList
+            data={unitsList ?? []}
+            keyExtractor={(item) => String(item.id)}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              unitsLoading ? (
+                <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+              ) : (
+                <View style={{ alignItems: "center", marginTop: 60 }}>
+                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🏭</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>Nenhuma unidade cadastrada</Text>
+                  <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Cadastre as unidades para usar nos malotes</Text>
+                </View>
+              )
+            }
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => { if (isAdmin || isMaster) { setEditingUnit(item); setShowUnitModal(true); } }}
+                activeOpacity={0.7}
+              >
+                <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 14, marginBottom: 10 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                    <View style={{ backgroundColor: colors.primary + "20", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{item.code}</Text>
+                    </View>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: item.active ? "#22C55E" : "#EF4444" }} />
+                  </View>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginTop: 4 }}>{item.name}</Text>
+                  {(item.city || item.state) && (
+                    <Text style={{ fontSize: 12, color: colors.muted, marginTop: 3 }}>📍 {[item.city, item.state].filter(Boolean).join(" - ")}</Text>
+                  )}
+                  {item.address && (
+                    <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{item.address}</Text>
+                  )}
+                  {item.responsibleName && (
+                    <Text style={{ fontSize: 12, color: colors.muted, marginTop: 3 }}>👤 {item.responsibleName}{item.responsiblePhone ? ` · ${item.responsiblePhone}` : ""}</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      )}
       {/* Modals */}
       <CostCenterModal
         visible={showCCModal}
@@ -1782,6 +1938,19 @@ export default function RegistersScreen() {
         }}
         title="Verificar PIN Master"
         subtitle="Digite seu PIN para confirmar a ação administrativa"
+      />
+      <UnitFormModal
+        visible={showUnitModal}
+        unit={editingUnit}
+        onClose={() => { setShowUnitModal(false); setEditingUnit(null); }}
+        onSave={(data) => {
+          if (editingUnit?.id) {
+            updateUnitMutation.mutate({ id: editingUnit.id, ...data });
+          } else {
+            createUnitMutation.mutate(data);
+          }
+        }}
+        isSaving={createUnitMutation.isPending || updateUnitMutation.isPending}
       />
     </ScreenContainer>
   );
