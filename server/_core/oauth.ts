@@ -1,7 +1,6 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import { SignJWT } from "jose";
 import { getUserByOpenId, linkUserByEmail, upsertUser, getUserByEmailForLogin } from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
@@ -170,18 +169,11 @@ export function registerOAuthRoutes(app: Express) {
         res.status(401).json({ error: "E-mail ou senha incorretos" });
         return;
       }
-      // Gerar token JWT interno
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? "cgs_agro_secret_2025");
-      const token = await new SignJWT({
-        sub: String(user.id),
-        email: user.email ?? "",
-        openId: user.openId,
-        loginMethod: "password",
-      })
-        .setProtectedHeader({ alg: "HS256" })
-        .setIssuedAt()
-        .setExpirationTime("365d")
-        .sign(secret);
+      // Gerar token usando sdk.createSessionToken (mesmo cookieSecret do authenticateRequest)
+      const token = await sdk.createSessionToken(user.openId, {
+        expiresInMs: ONE_YEAR_MS,
+        name: user.name ?? "",
+      });
       const cookieOptions = getSessionCookieOptions(req);
       res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
       res.json({
