@@ -7,6 +7,8 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { registerWhatsAppWebhook } from "../whatsapp-webhook";
+import { registerCronJobs } from "../cron";
+import { runDailyReport } from "../daily-report";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -62,6 +64,18 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  // ── Manual trigger for daily report (admin use only) ──────────────────────
+  app.post("/api/admin/daily-report", async (_req, res) => {
+    console.log("[Admin] Manual daily report triggered via API");
+    try {
+      await runDailyReport();
+      res.json({ ok: true, message: "Relatório diário enviado com sucesso." });
+    } catch (err) {
+      console.error("[Admin] Daily report error:", err);
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
   app.use(
     "/api/trpc",
     createExpressMiddleware({
@@ -79,6 +93,8 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
+    // Register cron jobs after server is up
+    registerCronJobs();
   });
 }
 

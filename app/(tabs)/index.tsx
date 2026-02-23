@@ -113,6 +113,17 @@ export default function DashboardScreen() {
                 </View>
               </View>
             )}
+            {(stats.expiringSoon ?? 0) > 0 && (
+              <View className="bg-error/20 border-2 border-error rounded-2xl p-3 mb-3 flex-row items-center gap-3">
+                <Text className="text-2xl">⏰</Text>
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-error">
+                    {stats.expiringSoon} prazo{(stats.expiringSoon ?? 0) > 1 ? "s" : ""} vencendo em 24h!
+                  </Text>
+                  <Text className="text-xs text-muted">Ação imediata necessária</Text>
+                </View>
+              </View>
+            )}
           </View>
         ) : null}
 

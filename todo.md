@@ -224,3 +224,14 @@
 ## Filtro por Urgência e Notificação WhatsApp no Cadastro
 - [x] Chips de filtro por urgência (Emergencial, Urgente, Normal) na tela de Solicitações
 - [x] Notificação via WhatsApp ao cadastrar novo usuário (além do e-mail de boas-vindas)
+
+## Dashboard Urgência e Relatório Diário
+- [x] Contador de solicitações urgentes/emergenciais pendentes no dashboard (card com destaque vermelho/amarelo)
+- [x] Card de prazos vencendo em 24h no dashboard
+- [x] Função no servidor para buscar solicitações com prazo vencendo nas próximas 24h
+- [x] Função sendDailyDeadlineReport no whatsapp.ts
+- [ ] Instalar node-cron para agendamento do relatório diário
+- [ ] Criar serviço de relatório diário no servidor (buscar solicitações com prazo crítico)
+- [ ] Envio de e-mail HTML do relatório para todos os usuários ativos
+- [ ] Envio de WhatsApp do relatório para todos os usuários com telefone cadastrado
+- [ ] Cron job agendado para 7h da manhã todos os dias

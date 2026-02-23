@@ -189,6 +189,11 @@ async function sendWhatsAppMessage(to: string, message: string): Promise<boolean
   }
 }
 
+// ─── Simple message send (exported for daily report) ──────────────────────────
+export async function sendSimpleWhatsApp(phone: string, message: string): Promise<boolean> {
+  return sendWhatsAppMessage(phone, message);
+}
+
 // ─── Approval notification (with token for webhook reply) ─────────────────────
 
 export async function notifyApproverWithToken(opts: {
@@ -452,6 +457,80 @@ export async function notifyNewUserRegistration(opts: {
   ].filter(Boolean).join("\n");
 
   return sendWhatsAppMessage(opts.userPhone, message);
+}
+
+// ─── Relatório Diário de Prazos ─────────────────────────────────────────────
+export async function sendDailyDeadlineReport(opts: {
+  masterPhone: string;
+  masterName: string;
+  expiringSoon: Array<{
+    requestNumber: string;
+    requesterName: string;
+    application: string;
+    urgencyLevel: string;
+    deadlineAt: Date;
+    status: string;
+  }>;
+  alreadyExpired: Array<{
+    requestNumber: string;
+    requesterName: string;
+    application: string;
+    urgencyLevel: string;
+    deadlineAt: Date;
+    status: string;
+  }>;
+}) {
+  const URGENCY_EMOJI: Record<string, string> = {
+    emergencial: "\uD83D\uDD34",
+    urgente: "\uD83D\uDFE1",
+    normal: "\uD83D\uDFE2",
+  };
+  const STATUS_LABELS: Record<string, string> = {
+    aguardando_gerente: "Aguard. Gerente",
+    aguardando_orcamento: "Aguard. Or\u00e7amento",
+    aguardando_controladoria: "Aguard. Controladoria",
+    aguardando_diretoria: "Aguard. Diretoria",
+    aguardando_ordem_compra: "Aguard. Ordem de Compra",
+    aguardando_financeiro: "Aguard. Financeiro",
+  };
+
+  const formatItem = (r: (typeof opts.expiringSoon)[0]) => {
+    const emoji = URGENCY_EMOJI[r.urgencyLevel] ?? "\u26AA";
+    const deadline = r.deadlineAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" } as any);
+    const step = STATUS_LABELS[r.status] ?? r.status;
+    return `${emoji} *${r.requestNumber}* \u2014 ${r.application.substring(0, 30)}\n   Solicitante: ${r.requesterName} | Etapa: ${step}\n   \u23f1 Prazo: ${deadline}`;
+  };
+
+  const lines: string[] = [
+    `\uD83D\uDCCA *Relat\u00f3rio Di\u00e1rio de Compras \u2014 CGS Agr\u00edcola*`,
+    ``,
+    `Ol\u00e1, *${opts.masterName}*! Aqui est\u00e1 o resumo de hoje:`,
+    ``,
+  ];
+
+  if (opts.alreadyExpired.length > 0) {
+    lines.push(`\uD83D\uDEA8 *PRAZOS VENCIDOS (${opts.alreadyExpired.length})*`);
+    opts.alreadyExpired.slice(0, 5).forEach(r => lines.push(formatItem(r)));
+    if (opts.alreadyExpired.length > 5) lines.push(`   ... e mais ${opts.alreadyExpired.length - 5} solicita\u00e7\u00e3o(\u00f5es)`);
+    lines.push(``);
+  }
+
+  if (opts.expiringSoon.length > 0) {
+    lines.push(`\u23F0 *VENCEM NAS PR\u00d3XIMAS 24H (${opts.expiringSoon.length})*`);
+    opts.expiringSoon.slice(0, 5).forEach(r => lines.push(formatItem(r)));
+    if (opts.expiringSoon.length > 5) lines.push(`   ... e mais ${opts.expiringSoon.length - 5} solicita\u00e7\u00e3o(\u00f5es)`);
+    lines.push(``);
+  }
+
+  if (opts.expiringSoon.length === 0 && opts.alreadyExpired.length === 0) {
+    lines.push(`\u2705 *Nenhuma solicita\u00e7\u00e3o com prazo cr\u00edtico hoje!*`);
+    lines.push(`Todas as solicita\u00e7\u00f5es est\u00e3o dentro do prazo.`);
+    lines.push(``);
+  }
+
+  lines.push(`\uD83D\uDCF1 *CompraF\u00e1cil \u2014 CGS Agr\u00edcola*`);
+
+  return sendWhatsAppMessage(opts.masterPhone, lines.join("\n"));
 }
 
 // ─── Webhook URL helper ───────────────────────────────────────────────────────

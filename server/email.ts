@@ -115,3 +115,223 @@ export async function sendWelcomeEmail(params: {
     return false;
   }
 }
+
+// ─── Daily Report Email ───────────────────────────────────────────────────────
+
+export interface DailyReportRequest {
+  requestNumber: string;
+  requesterName: string;
+  department: string;
+  application: string;
+  urgencyLevel: string;
+  status: string;
+  deadlineAt: Date | null;
+  totalEstimatedValue: string | null;
+  createdAt: Date;
+}
+
+function urgencyLabel(level: string): string {
+  if (level === "emergencial") return "🔴 Emergencial";
+  if (level === "urgente") return "🟡 Urgente";
+  return "🟢 Normal";
+}
+
+function statusLabel(status: string): string {
+  const map: Record<string, string> = {
+    aguardando_gerente: "Aguardando Gerente",
+    aguardando_orcamento: "Aguardando Orçamento",
+    aguardando_controladoria: "Aguardando Controladoria",
+    aguardando_diretoria: "Aguardando Diretoria",
+    aguardando_ordem_compra: "Aguardando Ordem de Compra",
+    aguardando_financeiro: "Aguardando Financeiro",
+    concluida: "Concluída",
+    rejeitada: "Rejeitada",
+    cancelada: "Cancelada",
+  };
+  return map[status] ?? status;
+}
+
+function formatDeadline(date: Date | null): string {
+  if (!date) return "—";
+  return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+function formatCurrency(value: string | null): string {
+  if (!value) return "—";
+  const num = parseFloat(value);
+  return isNaN(num) ? "—" : num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function buildRequestRow(req: DailyReportRequest, highlight: boolean): string {
+  const bg = highlight ? "#FEF2F2" : "#ffffff";
+  const border = highlight ? "2px solid #EF4444" : "1px solid #E5E7EB";
+  const badge = highlight ? `<span style="background:#EF4444;color:#fff;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;">⚠️ PRAZO CRÍTICO</span>` : "";
+  return `
+  <tr style="background:${bg};border:${border};">
+    <td style="padding:10px 12px;font-size:13px;font-weight:700;color:#0a7ea4;">${req.requestNumber}</td>
+    <td style="padding:10px 12px;font-size:13px;">${req.requesterName}</td>
+    <td style="padding:10px 12px;font-size:13px;">${req.department}</td>
+    <td style="padding:10px 12px;font-size:13px;">${req.application}</td>
+    <td style="padding:10px 12px;font-size:12px;">${urgencyLabel(req.urgencyLevel)}</td>
+    <td style="padding:10px 12px;font-size:12px;">${statusLabel(req.status)}</td>
+    <td style="padding:10px 12px;font-size:12px;">${formatDeadline(req.deadlineAt)} ${badge}</td>
+    <td style="padding:10px 12px;font-size:13px;text-align:right;">${formatCurrency(req.totalEstimatedValue)}</td>
+  </tr>`;
+}
+
+function buildTable(requests: DailyReportRequest[], criticalIds: Set<string>): string {
+  if (requests.length === 0) return `<p style="color:#687076;font-size:14px;font-style:italic;">Nenhuma solicitação nesta categoria.</p>`;
+  const rows = requests.map(r => buildRequestRow(r, criticalIds.has(r.requestNumber))).join("");
+  return `
+  <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:8px;">
+    <thead>
+      <tr style="background:#f5f5f5;">
+        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Nº</th>
+        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Solicitante</th>
+        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Depto</th>
+        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Finalidade</th>
+        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Urgência</th>
+        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Status</th>
+        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Prazo</th>
+        <th style="padding:8px 12px;text-align:right;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Valor Est.</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+export async function sendDailyReportEmail(params: {
+  toEmail: string;
+  toName: string;
+  openRequests: DailyReportRequest[];
+  completedToday: DailyReportRequest[];
+  criticalRequests: DailyReportRequest[];
+  date: string;
+}): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) return false;
+
+  const criticalIds = new Set(params.criticalRequests.map(r => r.requestNumber));
+  const totalOpen = params.openRequests.length;
+  const totalCritical = params.criticalRequests.length;
+  const totalCompleted = params.completedToday.length;
+
+  const criticalBanner = totalCritical > 0
+    ? `<tr><td style="background:#FEF2F2;border:2px solid #EF4444;border-radius:8px;padding:16px 20px;margin-bottom:24px;">
+        <p style="margin:0;color:#DC2626;font-size:15px;font-weight:700;">⚠️ ATENÇÃO: ${totalCritical} solicitação(ões) com prazo vencendo nas próximas 24 horas!</p>
+        <p style="margin:4px 0 0;color:#DC2626;font-size:13px;">Verifique as linhas destacadas em vermelho nas tabelas abaixo.</p>
+       </td></tr>`
+    : "";
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Relatório Diário — ${params.date}</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="700" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:#0a7ea4;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agropecuária</h1>
+              <p style="margin:6px 0 0;color:#e0f4fb;font-size:14px;">Relatório Diário de Compras — ${params.date}</p>
+            </td>
+          </tr>
+          <!-- Summary -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <p style="margin:0 0 8px;color:#11181C;font-size:16px;font-weight:700;">Olá, ${params.toName}!</p>
+              <p style="margin:0 0 20px;color:#687076;font-size:14px;">Aqui está o resumo das solicitações de compra de hoje.</p>
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td align="center" style="background:#EFF6FF;border-radius:8px;padding:16px;width:33%;">
+                    <p style="margin:0;font-size:28px;font-weight:700;color:#0a7ea4;">${totalOpen}</p>
+                    <p style="margin:4px 0 0;font-size:12px;color:#687076;">Em Aberto</p>
+                  </td>
+                  <td width="12"></td>
+                  <td align="center" style="background:#FEF2F2;border-radius:8px;padding:16px;width:33%;">
+                    <p style="margin:0;font-size:28px;font-weight:700;color:#DC2626;">${totalCritical}</p>
+                    <p style="margin:4px 0 0;font-size:12px;color:#687076;">Prazo Crítico (24h)</p>
+                  </td>
+                  <td width="12"></td>
+                  <td align="center" style="background:#F0FDF4;border-radius:8px;padding:16px;width:33%;">
+                    <p style="margin:0;font-size:28px;font-weight:700;color:#16A34A;">${totalCompleted}</p>
+                    <p style="margin:4px 0 0;font-size:12px;color:#687076;">Concluídas Hoje</p>
+                  </td>
+                </tr>
+              </table>
+              ${criticalBanner}
+            </td>
+          </tr>
+          <!-- Open Requests -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <h3 style="margin:0 0 12px;color:#11181C;font-size:15px;border-left:4px solid #0a7ea4;padding-left:10px;">
+                📋 Solicitações em Aberto (${totalOpen})
+              </h3>
+              ${buildTable(params.openRequests, criticalIds)}
+            </td>
+          </tr>
+          <!-- Completed Today -->
+          <tr>
+            <td style="padding:24px 32px;">
+              <h3 style="margin:0 0 12px;color:#11181C;font-size:15px;border-left:4px solid #16A34A;padding-left:10px;">
+                ✅ Concluídas Hoje (${totalCompleted})
+              </h3>
+              ${buildTable(params.completedToday, new Set())}
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f5f5f5;padding:16px 32px;text-align:center;border-top:1px solid #E5E7EB;">
+              <p style="margin:0;color:#9BA1A6;font-size:12px;">
+                Relatório gerado automaticamente em ${params.date} às 07:00 · CGS Agropecuária<br/>
+                Não responda a este e-mail.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`.trim();
+
+  const textLines = [
+    `Relatório Diário de Compras — ${params.date}`,
+    `Olá, ${params.toName}!`,
+    ``,
+    `📊 RESUMO:`,
+    `  Em Aberto: ${totalOpen}`,
+    `  Prazo Crítico (24h): ${totalCritical}`,
+    `  Concluídas Hoje: ${totalCompleted}`,
+    ``,
+    totalCritical > 0 ? `⚠️ ATENÇÃO: ${totalCritical} solicitação(ões) com prazo vencendo nas próximas 24 horas!\n` : "",
+    `📋 SOLICITAÇÕES EM ABERTO:`,
+    ...params.openRequests.map(r => `  [${criticalIds.has(r.requestNumber) ? "⚠️ CRÍTICO" : "      "}] ${r.requestNumber} | ${r.requesterName} | ${statusLabel(r.status)} | Prazo: ${formatDeadline(r.deadlineAt)}`),
+    ``,
+    `✅ CONCLUÍDAS HOJE:`,
+    ...params.completedToday.map(r => `  ${r.requestNumber} | ${r.requesterName} | ${formatCurrency(r.totalEstimatedValue)}`),
+  ].join("\n");
+
+  try {
+    await transporter.sendMail({
+      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+      to: params.toEmail,
+      subject: `📊 Relatório Diário de Compras — ${params.date}${totalCritical > 0 ? ` ⚠️ ${totalCritical} prazo(s) crítico(s)` : ""}`,
+      html,
+      text: textLines,
+    });
+    console.log(`[Email] Daily report sent to ${params.toEmail}`);
+    return true;
+  } catch (err) {
+    console.error(`[Email] Failed to send daily report to ${params.toEmail}:`, err);
+    return false;
+  }
+}
