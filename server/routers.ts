@@ -56,7 +56,21 @@ export const appRouter = router({
             throw new Error("Apenas usuários master podem editar outro usuário master.");
           }
         }
-        return db.upsertUserByAdmin(input);
+        const result = await db.upsertUserByAdmin(input);
+        // Send welcome email for new users (no id = new user)
+        if (!input.id && input.email) {
+          try {
+            const { sendWelcomeEmail } = await import("./email");
+            await sendWelcomeEmail({
+              toEmail: input.email,
+              toName: input.name,
+              jobTitle: input.jobTitle,
+            });
+          } catch (e) {
+            console.warn("[Email] Welcome email failed (non-critical):", e);
+          }
+        }
+        return result;
       }),
     toggleActive: protectedProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
@@ -201,6 +215,25 @@ export const appRouter = router({
       .mutation(({ ctx, input }) =>
         db.attachBudget(input.requestId, ctx.user.id, ctx.user.name ?? "Usuário", input.fileUrl)
       ),
+
+    // Upload PDF as base64, store in S3, return public URL
+    uploadFile: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        fileName: z.string(),
+        base64: z.string(), // base64-encoded file content
+        mimeType: z.string().default("application/pdf"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { storagePut } = await import("./storage");
+        const buffer = Buffer.from(input.base64, "base64");
+        const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const key = `budgets/${input.requestId}/${Date.now()}_${safeName}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        // Attach the budget URL to the request
+        await db.attachBudget(input.requestId, ctx.user.id, ctx.user.name ?? "Usuário", url);
+        return { url };
+      }),
   }),
 
   // ─── Approvals ─────────────────────────────────────────────────────────────

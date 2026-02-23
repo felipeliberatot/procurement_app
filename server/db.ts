@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, gte, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   approvalHistory,
@@ -143,6 +143,7 @@ export async function upsertUserByAdmin(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   if (data.id) {
+    // UPDATE existing user
     await db.update(users).set({
       name: data.name,
       email: data.email ?? null,
@@ -153,6 +154,25 @@ export async function upsertUserByAdmin(data: {
       approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
       active: data.active ?? true,
     }).where(eq(users.id, data.id));
+    return { id: data.id };
+  } else {
+    // INSERT new user (pre-registered, no OAuth yet)
+    // Use email as unique key if provided; generate a placeholder openId
+    const openId = `admin_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
+    const result = await db.insert(users).values({
+      openId,
+      name: data.name,
+      email: data.email || null,
+      procurementRole: data.procurementRole as User["procurementRole"],
+      department: data.department ?? null,
+      phone: data.phone ?? null,
+      jobTitle: data.jobTitle ?? null,
+      approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
+      active: data.active ?? true,
+      lastSignedIn: new Date(),
+    });
+    const insertId = (result as any)[0]?.insertId ?? 0;
+    return { id: insertId };
   }
 }
 
@@ -313,13 +333,14 @@ export async function deleteAsset(id: number) {
 
 // ─── Purchase Requests ────────────────────────────────────────────────────────
 
-function generateRequestNumber(): string {
+async function generateRequestNumber(db: Awaited<ReturnType<typeof getDb>>): Promise<string> {
   const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const d = String(now.getDate()).padStart(2, "0");
-  const rand = Math.floor(Math.random() * 9000) + 1000;
-  return `REQ-${y}${m}${d}-${rand}`;
+  const year = now.getFullYear();
+  // Count existing requests this year to generate sequential code
+  const startOfYear = new Date(year, 0, 1);
+  const [{ count }] = await db!.select({ count: sql<number>`COUNT(*)` }).from(purchaseRequests).where(gte(purchaseRequests.createdAt, startOfYear));
+  const seq = String((Number(count) + 1)).padStart(4, "0");
+  return `SOL-${year}-${seq}`;
 }
 
 function getDeadlineDate(urgencyLevel: string): Date {
@@ -350,7 +371,7 @@ export async function createPurchaseRequest(
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  const requestNumber = generateRequestNumber();
+  const requestNumber = await generateRequestNumber(db);
   const deadlineAt = getDeadlineDate(input.urgencyLevel);
   const stepDeadlineAt = getStepDeadline();
 
@@ -373,7 +394,8 @@ export async function createPurchaseRequest(
     urgencyLevel: input.urgencyLevel,
     observations: input.observations ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
-    status: "aguardando_gerente",
+    // Urgentes e emergenciais vão direto para aprovação da Diretoria
+    status: (input.urgencyLevel === "urgente" || input.urgencyLevel === "emergencial") ? "aguardando_diretoria" : "aguardando_gerente",
     deadlineAt,
     stepDeadlineAt,
   });
@@ -406,7 +428,11 @@ export async function createPurchaseRequest(
 
   // Notify approvers via WhatsApp
   try {
-    const approvers = await db.select().from(users).where(eq(users.procurementRole, "gerente" as any));
+    const isUrgent = input.urgencyLevel === "urgente" || input.urgencyLevel === "emergencial";
+    // Urgentes/emergenciais vão direto para Diretoria; normais vão para Gerente
+    const approverRole = isUrgent ? "diretoria" : "gerente";
+    const stepLabel = isUrgent ? "Diretoria" : "Gerente de Unidade";
+    const approvers = await db.select().from(users).where(eq(users.procurementRole, approverRole as any));
     for (const approver of approvers) {
       if (approver.phone) {
         await WA.notifyNewRequest({
@@ -418,7 +444,7 @@ export async function createPurchaseRequest(
           application: input.application,
           urgencyLevel: input.urgencyLevel,
           department: input.department,
-          stepLabel: "Gerente de Unidade",
+          stepLabel,
         });
       }
     }

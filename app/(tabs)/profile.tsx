@@ -4,7 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -19,14 +19,27 @@ import type { ProcurementRole } from "@/shared/types";
 import { ROLE_LABELS } from "@/shared/types";
 
 export default function ProfileScreen() {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, logout: authLogout } = useAuth();
   const colors = useColors();
   const utils = trpc.useUtils();
 
-  const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
-  const [phone, setPhone] = useState((user as any)?.phone ?? "");
-  const [department, setDepartment] = useState((user as any)?.department ?? "");
+  // Fetch full user data from server (includes phone, department, etc.)
+  const { data: fullUser, isLoading: userLoading } = trpc.auth.me.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  const userRole = (fullUser as any)?.procurementRole as ProcurementRole ?? "solicitante";
+  const [phone, setPhone] = useState("");
+  const [department, setDepartment] = useState("");
   const [saved, setSaved] = useState(false);
+
+  // Sync form fields when fullUser data arrives
+  useEffect(() => {
+    if (fullUser) {
+      setPhone((fullUser as any).phone ?? "");
+      setDepartment((fullUser as any).department ?? "");
+    }
+  }, [fullUser]);
 
   const updateProfile = trpc.users.updateProfile.useMutation({
     onSuccess: () => {
@@ -38,9 +51,10 @@ export default function ProfileScreen() {
     onError: (e) => Alert.alert("Erro", e.message),
   });
 
-  const logout = trpc.auth.logout.useMutation({
-    onSuccess: () => router.replace("/login" as any),
-  });
+  const handleLogout = async () => {
+    await authLogout();
+    router.replace("/login" as any);
+  };
 
   const handleSave = () => {
     updateProfile.mutate({
@@ -61,14 +75,17 @@ export default function ProfileScreen() {
           <View className="items-center mb-6">
             <View className="w-20 h-20 rounded-full bg-primary/10 items-center justify-center mb-3">
               <Text className="text-3xl font-bold text-primary">
-                {(user?.name ?? "?")[0].toUpperCase()}
+                {((fullUser as any)?.name ?? "?")[0].toUpperCase()}
               </Text>
             </View>
-            <Text className="text-lg font-bold text-foreground">{user?.name ?? "—"}</Text>
-            <Text className="text-sm text-muted">{user?.email}</Text>
+            <Text className="text-lg font-bold text-foreground">{(fullUser as any)?.name ?? "—"}</Text>
+            <Text className="text-sm text-muted">{(fullUser as any)?.email}</Text>
             <View className="mt-2 bg-primary/10 px-3 py-1 rounded-full">
               <Text className="text-xs text-primary font-semibold">{ROLE_LABELS[userRole]}</Text>
             </View>
+            {(fullUser as any)?.jobTitle && (
+              <Text className="text-xs text-muted mt-1">{(fullUser as any).jobTitle}</Text>
+            )}
           </View>
 
           {/* Campos editáveis */}
@@ -102,7 +119,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             onPress={handleSave}
-            disabled={updateProfile.isPending}
+            disabled={updateProfile.isPending || userLoading}
             className="bg-primary rounded-2xl py-4 items-center mb-4"
             style={{ opacity: updateProfile.isPending ? 0.7 : 1 }}
           >
@@ -163,7 +180,7 @@ export default function ProfileScreen() {
           <TouchableOpacity
             onPress={() => Alert.alert("Sair", "Deseja sair da sua conta?", [
               { text: "Cancelar", style: "cancel" },
-              { text: "Sair", style: "destructive", onPress: () => logout.mutate() },
+              { text: "Sair", style: "destructive", onPress: handleLogout },
             ])}
             className="border border-error/30 rounded-2xl py-4 items-center"
           >

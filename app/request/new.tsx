@@ -91,6 +91,14 @@ export default function NewRequestScreen() {
   const handleSubmit = () => {
     if (!department.trim()) { Alert.alert("Campo obrigatório", "Informe o departamento."); return; }
     if (!application.trim()) { Alert.alert("Campo obrigatório", "Informe a aplicação/finalidade."); return; }
+    // Observação obrigatória para urgentes e emergenciais
+    if ((urgency === "urgente" || urgency === "emergencial") && !observations.trim()) {
+      Alert.alert(
+        "Campo obrigatório",
+        `Para solicitações ${urgency === "emergencial" ? "emergenciais" : "urgentes"}, é obrigatório descrever o motivo no campo Observações.`
+      );
+      return;
+    }
     const validItems = items.filter((i) => i.description.trim());
     if (validItems.length === 0) { Alert.alert("Campo obrigatório", "Adicione ao menos um item com descrição."); return; }
 
@@ -277,16 +285,29 @@ export default function NewRequestScreen() {
 
           {/* Observações */}
           <View className="mb-6">
-            <Text className="text-sm font-semibold text-foreground mb-1">Observações</Text>
+            <View className="flex-row items-center gap-1 mb-1">
+              <Text className="text-sm font-semibold text-foreground">Observações</Text>
+              {(urgency === "urgente" || urgency === "emergencial") && (
+                <Text className="text-error text-sm font-bold"> * obrigatório</Text>
+              )}
+            </View>
+            {(urgency === "urgente" || urgency === "emergencial") && (
+              <View className="bg-warning/10 border border-warning/30 rounded-xl px-3 py-2 mb-2 flex-row items-center gap-2">
+                <Text className="text-base">⚠️</Text>
+                <Text className="text-xs text-warning flex-1">
+                  Descreva o motivo da urgência. Esta solicitação será encaminhada diretamente à Diretoria.
+                </Text>
+              </View>
+            )}
             <TextInput
               value={observations}
               onChangeText={setObservations}
-              placeholder="Informações adicionais, especificações técnicas..."
+              placeholder={(urgency === "urgente" || urgency === "emergencial") ? "Descreva o motivo da urgência..." : "Informações adicionais, especificações técnicas..."}
               placeholderTextColor={colors.muted}
               className="bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground"
               multiline
               numberOfLines={4}
-              style={{ minHeight: 100, textAlignVertical: "top" }}
+              style={{ minHeight: 100, textAlignVertical: "top", borderColor: (urgency === "urgente" || urgency === "emergencial") && !observations.trim() ? colors.warning : undefined }}
             />
           </View>
 

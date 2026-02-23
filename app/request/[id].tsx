@@ -5,6 +5,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import * as DocumentPicker from "expo-document-picker";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
@@ -97,6 +99,11 @@ export default function RequestDetailScreen() {
     onError: (e) => Alert.alert("Erro", e.message),
   });
 
+  const uploadFileMutation = trpc.requests.uploadFile.useMutation({
+    onSuccess: () => { invalidateAll(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); Alert.alert("✅ PDF anexado com sucesso!", "O orçamento já está disponível para visualização."); },
+    onError: (e) => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); Alert.alert("Erro ao anexar", e.message); },
+  });
+
   if (isLoading) {
     return (
       <ScreenContainer>
@@ -148,13 +155,24 @@ export default function RequestDetailScreen() {
 
   const handlePickBudget = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf" });
+      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
       if (result.canceled) return;
       const file = result.assets[0];
       setBudgetFileName(file.name);
-      // Upload via URL (simulated — in production, upload to S3 first)
-      uploadBudgetMutation.mutate({ requestId: request.id, fileUrl: file.uri });
-    } catch { Alert.alert("Erro", "Não foi possível selecionar o arquivo."); }
+      // Read file as base64 and upload to S3 via server
+      const base64 = await FileSystem.readAsStringAsync(file.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+      uploadFileMutation.mutate({
+        requestId: request.id,
+        fileName: file.name,
+        base64,
+        mimeType: file.mimeType ?? "application/pdf",
+      });
+    } catch (err) {
+      console.error("[PDF Upload]", err);
+      Alert.alert("Erro", "Não foi possível selecionar ou ler o arquivo.");
+    }
   };
 
   const handleIssueOrder = () => {
@@ -230,13 +248,19 @@ export default function RequestDetailScreen() {
           )}
 
           {request.budgetFileUrl && (
-            <View className="bg-success/10 border border-success/30 rounded-2xl p-4 mb-4 flex-row items-center gap-3">
-              <Text className="text-2xl">📄</Text>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-success">Orçamento Anexado</Text>
-                <Text className="text-xs text-muted" numberOfLines={1}>{request.budgetFileUrl}</Text>
+            <Pressable
+              onPress={() => Linking.openURL(request.budgetFileUrl!)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            >
+              <View className="bg-success/10 border border-success/30 rounded-2xl p-4 mb-4 flex-row items-center gap-3">
+                <Text className="text-2xl">📄</Text>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-success">Orçamento Anexado</Text>
+                  <Text className="text-xs text-muted" numberOfLines={1}>Toque para visualizar o PDF</Text>
+                </View>
+                <Text className="text-primary text-xs font-semibold">👁 Ver</Text>
               </View>
-            </View>
+            </Pressable>
           )}
 
           <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
@@ -276,12 +300,21 @@ export default function RequestDetailScreen() {
               {currentStatus === "aguardando_orcamento" && (
                 <View className="mb-3">
                   <Text className="text-xs text-muted mb-2">Anexe o PDF do orçamento obtido</Text>
-                  <TouchableOpacity onPress={handlePickBudget} disabled={uploadBudgetMutation.isPending}
-                    className="flex-row items-center justify-center gap-2 border-2 border-dashed border-primary/40 rounded-xl py-4">
-                    {uploadBudgetMutation.isPending ? <ActivityIndicator size="small" /> : (
+                  <TouchableOpacity
+                    onPress={handlePickBudget}
+                    disabled={uploadFileMutation.isPending || uploadBudgetMutation.isPending}
+                    className="flex-row items-center justify-center gap-2 border-2 border-dashed border-primary/40 rounded-xl py-4"
+                    style={{ opacity: uploadFileMutation.isPending ? 0.6 : 1 }}
+                  >
+                    {uploadFileMutation.isPending ? (
+                      <><ActivityIndicator size="small" /><Text className="text-primary text-sm ml-2">Enviando PDF...</Text></>
+                    ) : (
                       <><Text className="text-2xl">📎</Text><Text className="text-primary font-semibold text-sm">{budgetFileName ?? "Selecionar PDF do Orçamento"}</Text></>
                     )}
                   </TouchableOpacity>
+                  {budgetFileName && !uploadFileMutation.isPending && (
+                    <Text className="text-xs text-success text-center mt-1">✅ {budgetFileName} selecionado</Text>
+                  )}
                 </View>
               )}
 

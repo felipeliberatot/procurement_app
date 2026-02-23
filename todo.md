@@ -209,3 +209,14 @@
 - [x] Deletar usuários sem nome do banco de dados
 - [x] Corrigir visibilidade do botão "+ Novo Usuário" na aba Cadastros
 - [x] Formulário de cadastro com campos: nome, e-mail, WhatsApp, cargo e nível de aprovação
+
+## Correções e Novas Funcionalidades (Lote 2)
+- [x] Bug: salvar usuário cadastrado não está funcionando (corrigido: INSERT adicionado ao upsertUserByAdmin)
+- [x] Envio de e-mail de boas-vindas ao cadastrar usuário (SMTP cgs.agr.br configurado)
+- [x] Anexo PDF na etapa de cotação com upload real para S3 e visualização dentro da solicitação
+- [x] Código único por solicitação (formato SOL-AAAA-NNNN, sequencial anual)
+- [x] Bug: sair da conta (logout) corrigido (usa authLogout do useAuth)
+- [x] Typo: corrigido "emergencialis" para "emergenciais" no dashboard
+- [x] Campo de observação obrigatório para solicitações urgentes e emergenciais
+- [x] Solicitações urgentes/emergenciais: aprovadas diretamente pela diretoria (pula gerente)
+- [x] Bug: WhatsApp corrigido no perfil (busca usuário completo via trpc.auth.me, não cache local)

@@ -96,7 +96,7 @@ export default function DashboardScreen() {
                 <Text className="text-2xl">🔴</Text>
                 <View className="flex-1">
                   <Text className="text-sm font-bold text-error">
-                    {stats.emergency} Emergencial{(stats.emergency ?? 0) > 1 ? "is" : ""}
+                    {stats.emergency} Emergencial{(stats.emergency ?? 0) > 1 ? "ais" : ""}
                   </Text>
                   <Text className="text-xs text-muted">Prazo: 1 dia — ação imediata necessária</Text>
                 </View>
