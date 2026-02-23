@@ -29,18 +29,20 @@ type Tab = "users" | "costcenters" | "assets" | "units";
 const ROLES: ProcurementRole[] = [
   "solicitante",
   "gerente",
+  "orcamento",
   "controladoria",
   "diretoria",
   "financeiro",
   "admin",
 ];
 
-type ApprovalLevel = "nenhum" | "gerente" | "controladoria" | "diretoria" | "financeiro" | "master";
+type ApprovalLevel = "nenhum" | "gerente" | "controladoria" | "orcamento" | "diretoria" | "financeiro" | "master";
 
 const APPROVAL_LEVELS: Array<{ key: ApprovalLevel; label: string; description: string; color: string }> = [
   { key: "nenhum", label: "Nenhum", description: "Não participa do fluxo de aprovação", color: "#9CA3AF" },
   { key: "gerente", label: "Gerente de Unidade", description: "Aprova na 1ª etapa do fluxo", color: "#0EA5E9" },
   { key: "controladoria", label: "Controladoria", description: "Aprova na 3ª etapa (plano orçamentário)", color: "#F59E0B" },
+  { key: "orcamento", label: "Orçamento", description: "Aprova orçamentos com upload de PDF", color: "#8B5CF6" },
   { key: "diretoria", label: "Diretoria", description: "Aprova na 4ª etapa do fluxo", color: "#EF4444" },
   { key: "financeiro", label: "Financeiro", description: "Confirma pagamento na etapa final", color: "#10B981" },
   { key: "master", label: "Master", description: "Acesso total: gerencia usuários e configurações do sistema", color: "#7C3AED" },
@@ -49,6 +51,7 @@ const APPROVAL_LEVELS: Array<{ key: ApprovalLevel; label: string; description: s
 const ROLE_COLORS: Record<ProcurementRole, string> = {
   solicitante: "#6366F1",
   gerente: "#0EA5E9",
+  orcamento: "#8B5CF6",
   controladoria: "#F59E0B",
   diretoria: "#EF4444",
   financeiro: "#10B981",
@@ -251,6 +254,8 @@ function UserFormModal({
   const [role, setRole] = useState<ProcurementRole>(user?.procurementRole ?? "solicitante");
   const [approvalLevel, setApprovalLevel] = useState<ApprovalLevel>(user?.approvalLevel ?? "nenhum");
   const [active, setActive] = useState(user?.active !== false);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Reset when user changes
   React.useEffect(() => {
@@ -262,11 +267,16 @@ function UserFormModal({
     setRole(user?.procurementRole ?? "solicitante");
     setApprovalLevel(user?.approvalLevel ?? "nenhum");
     setActive(user?.active !== false);
+    setPassword("");
   }, [user]);
 
   const handleSave = () => {
     if (!name.trim()) {
       Alert.alert("Campo obrigatório", "O nome do usuário é obrigatório.");
+      return;
+    }
+    if (!isEditing && !password.trim()) {
+      Alert.alert("Campo obrigatório", "Defina uma senha para o novo usuário.");
       return;
     }
     onSave({
@@ -279,6 +289,7 @@ function UserFormModal({
       procurementRole: role,
       approvalLevel,
       active,
+      password: password.trim() || undefined,
     });
   };
 
@@ -421,6 +432,32 @@ function UserFormModal({
               }}
               returnKeyType="next"
             />
+          </View>
+
+          {/* Senha */}
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+              {isEditing ? "Nova Senha (deixe em branco para manter)" : "Senha *"}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                placeholder={isEditing ? "Nova senha (opcional)" : "Mínimo 6 caracteres"}
+                placeholderTextColor={colors.muted}
+                secureTextEntry={!showPassword}
+                style={{ flex: 1, fontSize: 14, color: colors.foreground }}
+                returnKeyType="next"
+              />
+              <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={{ paddingLeft: 8 }}>
+                <Text style={{ fontSize: 16 }}>{showPassword ? "🙈" : "👁"}</Text>
+              </TouchableOpacity>
+            </View>
+            {!isEditing && (
+              <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
+                O usuário usará esta senha para acessar o sistema
+              </Text>
+            )}
           </View>
 
           {/* Separador */}
@@ -1455,6 +1492,7 @@ export default function RegistersScreen() {
                   {[
                     { key: "master", label: "Master", icon: "⭐", color: "#7C3AED" },
                     { key: "gerente", label: "Gerente", icon: "🏢", color: "#0EA5E9" },
+                    { key: "orcamento", label: "Orçamento", icon: "📋", color: "#8B5CF6" },
                     { key: "controladoria", label: "Controladoria", icon: "📊", color: "#F59E0B" },
                     { key: "diretoria", label: "Diretoria", icon: "🏆", color: "#EF4444" },
                     { key: "financeiro", label: "Financeiro", icon: "💰", color: "#10B981" },

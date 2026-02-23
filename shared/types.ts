@@ -25,6 +25,7 @@ export type RequestStatus =
 export type ProcurementRole =
   | "solicitante"
   | "gerente"
+  | "orcamento"
   | "controladoria"
   | "diretoria"
   | "financeiro"
@@ -79,6 +80,7 @@ export const STATUS_LABELS: Record<RequestStatus, string> = {
 export const ROLE_LABELS: Record<ProcurementRole, string> = {
   solicitante: "Solicitante",
   gerente: "Gerente de Unidade",
+  orcamento: "Orçamento",
   controladoria: "Controladoria",
   diretoria: "Diretoria",
   financeiro: "Financeiro",

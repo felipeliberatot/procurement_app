@@ -1,0 +1,1030 @@
+{
+  "query": "SELECT id, name, email FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '';",
+  "rows": [
+    {
+      "id": "360039",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360040",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360041",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360042",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360043",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360044",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360045",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360046",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360047",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360048",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360049",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "360050",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390002",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390003",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390004",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390005",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390006",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390007",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390008",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390009",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390010",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390011",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390012",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390013",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390014",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390015",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390016",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390017",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390018",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390019",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390020",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390021",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390022",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390023",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390024",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390025",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390026",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390027",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390028",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390029",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390030",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390031",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390032",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390033",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390034",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390035",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390036",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390037",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390038",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390039",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390040",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390041",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390042",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390043",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390044",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390045",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390046",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390047",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390048",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390049",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390050",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390051",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390052",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390053",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390054",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390055",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390056",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390057",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390058",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390059",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390060",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390061",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390062",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390063",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390064",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390065",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390066",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390067",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390068",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390069",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390070",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390071",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390072",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390073",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390074",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390075",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390076",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390077",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390078",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390079",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390080",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390081",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "390082",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420001",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420002",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420003",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420004",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420005",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420006",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420007",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420008",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420009",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420010",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420011",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420012",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420013",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420014",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420015",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420016",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420017",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420018",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420019",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420020",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420021",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420022",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420023",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420024",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420025",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "420026",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450001",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450002",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450003",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450004",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450005",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450006",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450007",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450008",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450009",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450010",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450011",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450012",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450013",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450014",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450015",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450016",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450017",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450018",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450019",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450020",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450021",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450022",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450023",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450024",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450025",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450026",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450027",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450028",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450029",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450030",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450031",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450032",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450033",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450034",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450036",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450037",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450038",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450040",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450041",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450042",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450043",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450044",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450045",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450046",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "450047",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480001",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480002",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480004",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480005",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480006",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480007",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480008",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480009",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480010",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480011",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480012",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480013",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480014",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "480015",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "510002",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "540001",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "540002",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "540003",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "540004",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570002",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570003",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570004",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570005",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570006",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570007",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570008",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570010",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570011",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570013",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570014",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570015",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570016",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570017",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570018",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570019",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570020",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570021",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570022",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570023",
+      "name": "NULL",
+      "email": "NULL"
+    },
+    {
+      "id": "570024",
+      "name": "NULL",
+      "email": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\n360039\tNULL\tNULL\n360040\tNULL\tNULL\n360041\tNULL\tNULL\n360042\tNULL\tNULL\n360043\tNULL\tNULL\n360044\tNULL\tNULL\n360045\tNULL\tNULL\n360046\tNULL\tNULL\n360047\tNULL\tNULL\n360048\tNULL\tNULL\n360049\tNULL\tNULL\n360050\tNULL\tNULL\n390002\tNULL\tNULL\n390003\tNULL\tNULL\n390004\tNULL\tNULL\n390005\tNULL\tNULL\n390006\tNULL\tNULL\n390007\tNULL\tNULL\n390008\tNULL\tNULL\n390009\tNULL\tNULL\n390010\tNULL\tNULL\n390011\tNULL\tNULL\n390012\tNULL\tNULL\n390013\tNULL\tNULL\n390014\tNULL\tNULL\n390015\tNULL\tNULL\n390016\tNULL\tNULL\n390017\tNULL\tNULL\n390018\tNULL\tNULL\n390019\tNULL\tNULL\n390020\tNULL\tNULL\n390021\tNULL\tNULL\n390022\tNULL\tNULL\n390023\tNULL\tNULL\n390024\tNULL\tNULL\n390025\tNULL\tNULL\n390026\tNULL\tNULL\n390027\tNULL\tNULL\n390028\tNULL\tNULL\n390029\tNULL\tNULL\n390030\tNULL\tNULL\n390031\tNULL\tNULL\n390032\tNULL\tNULL\n390033\tNULL\tNULL\n390034\tNULL\tNULL\n390035\tNULL\tNULL\n390036\tNULL\tNULL\n390037\tNULL\tNULL\n390038\tNULL\tNULL\n390039\tNULL\tNULL\n390040\tNULL\tNULL\n390041\tNULL\tNULL\n390042\tNULL\tNULL\n390043\tNULL\tNULL\n390044\tNULL\tNULL\n390045\tNULL\tNULL\n390046\tNULL\tNULL\n390047\tNULL\tNULL\n390048\tNULL\tNULL\n390049\tNULL\tNULL\n390050\tNULL\tNULL\n390051\tNULL\tNULL\n390052\tNULL\tNULL\n390053\tNULL\tNULL\n390054\tNULL\tNULL\n390055\tNULL\tNULL\n390056\tNULL\tNULL\n390057\tNULL\tNULL\n390058\tNULL\tNULL\n390059\tNULL\tNULL\n390060\tNULL\tNULL\n390061\tNULL\tNULL\n390062\tNULL\tNULL\n390063\tNULL\tNULL\n390064\tNULL\tNULL\n390065\tNULL\tNULL\n390066\tNULL\tNULL\n390067\tNULL\tNULL\n390068\tNULL\tNULL\n390069\tNULL\tNULL\n390070\tNULL\tNULL\n390071\tNULL\tNULL\n390072\tNULL\tNULL\n390073\tNULL\tNULL\n390074\tNULL\tNULL\n390075\tNULL\tNULL\n390076\tNULL\tNULL\n390077\tNULL\tNULL\n390078\tNULL\tNULL\n390079\tNULL\tNULL\n390080\tNULL\tNULL\n390081\tNULL\tNULL\n390082\tNULL\tNULL\n420001\tNULL\tNULL\n420002\tNULL\tNULL\n420003\tNULL\tNULL\n420004\tNULL\tNULL\n420005\tNULL\tNULL\n420006\tNULL\tNULL\n420007\tNULL\tNULL\n420008\tNULL\tNULL\n420009\tNULL\tNULL\n420010\tNULL\tNULL\n420011\tNULL\tNULL\n420012\tNULL\tNULL\n420013\tNULL\tNULL\n420014\tNULL\tNULL\n420015\tNULL\tNULL\n420016\tNULL\tNULL\n420017\tNULL\tNULL\n420018\tNULL\tNULL\n420019\tNULL\tNULL\n420020\tNULL\tNULL\n420021\tNULL\tNULL\n420022\tNULL\tNULL\n420023\tNULL\tNULL\n420024\tNULL\tNULL\n420025\tNULL\tNULL\n420026\tNULL\tNULL\n450001\tNULL\tNULL\n450002\tNULL\tNULL\n450003\tNULL\tNULL\n450004\tNULL\tNULL\n450005\tNULL\tNULL\n450006\tNULL\tNULL\n450007\tNULL\tNULL\n450008\tNULL\tNULL\n450009\tNULL\tNULL\n450010\tNULL\tNULL\n450011\tNULL\tNULL\n450012\tNULL\tNULL\n450013\tNULL\tNULL\n450014\tNULL\tNULL\n450015\tNULL\tNULL\n450016\tNULL\tNULL\n450017\tNULL\tNULL\n450018\tNULL\tNULL\n450019\tNULL\tNULL\n450020\tNULL\tNULL\n450021\tNULL\tNULL\n450022\tNULL\tNULL\n450023\tNULL\tNULL\n450024\tNULL\tNULL\n450025\tNULL\tNULL\n450026\tNULL\tNULL\n450027\tNULL\tNULL\n450028\tNULL\tNULL\n450029\tNULL\tNULL\n450030\tNULL\tNULL\n450031\tNULL\tNULL\n450032\tNULL\tNULL\n450033\tNULL\tNULL\n450034\tNULL\tNULL\n450036\tNULL\tNULL\n450037\tNULL\tNULL\n450038\tNULL\tNULL\n450040\tNULL\tNULL\n450041\tNULL\tNULL\n450042\tNULL\tNULL\n450043\tNULL\tNULL\n450044\tNULL\tNULL\n450045\tNULL\tNULL\n450046\tNULL\tNULL\n450047\tNULL\tNULL\n480001\tNULL\tNULL\n480002\tNULL\tNULL\n480004\tNULL\tNULL\n480005\tNULL\tNULL\n480006\tNULL\tNULL\n480007\tNULL\tNULL\n480008\tNULL\tNULL\n480009\tNULL\tNULL\n480010\tNULL\tNULL\n480011\tNULL\tNULL\n480012\tNULL\tNULL\n480013\tNULL\tNULL\n480014\tNULL\tNULL\n480015\tNULL\tNULL\n510002\tNULL\tNULL\n540001\tNULL\tNULL\n540002\tNULL\tNULL\n540003\tNULL\tNULL\n540004\tNULL\tNULL\n570002\tNULL\tNULL\n570003\tNULL\tNULL\n570004\tNULL\tNULL\n570005\tNULL\tNULL\n570006\tNULL\tNULL\n570007\tNULL\tNULL\n570008\tNULL\tNULL\n570010\tNULL\tNULL\n570011\tNULL\tNULL\n570013\tNULL\tNULL\n570014\tNULL\tNULL\n570015\tNULL\tNULL\n570016\tNULL\tNULL\n570017\tNULL\tNULL\n570018\tNULL\tNULL\n570019\tNULL\tNULL\n570020\tNULL\tNULL\n570021\tNULL\tNULL\n570022\tNULL\tNULL\n570023\tNULL\tNULL\n570024\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 354
+}

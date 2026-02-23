@@ -22,6 +22,7 @@ export const users = mysqlTable("users", {
   procurementRole: mysqlEnum("procurementRole", [
     "solicitante",
     "gerente",
+    "orcamento",
     "controladoria",
     "diretoria",
     "financeiro",
@@ -36,11 +37,13 @@ export const users = mysqlTable("users", {
     "nenhum",
     "gerente",
     "controladoria",
+    "orcamento",
     "diretoria",
     "financeiro",
     "master",
   ]).default("nenhum").notNull(),
   pinHash: varchar("pinHash", { length: 255 }), // Hashed PIN for master quick access
+  passwordHash: varchar("passwordHash", { length: 255 }), // Hashed password for email+password login
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

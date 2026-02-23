@@ -12,6 +12,7 @@ import { ROLE_LABELS } from "@/shared/types";
 const ROLE_DESCRIPTIONS: Record<ProcurementRole, string> = {
   solicitante: "Você não tem pendências de aprovação.",
   gerente: "Solicitações aguardando sua aprovação como Gerente de Unidade.",
+  orcamento: "Solicitações aguardando anexo de orçamento (PDF).",
   controladoria: "Solicitações aguardando aprovação da Controladoria.",
   diretoria: "Solicitações aguardando aprovação da Diretoria.",
   financeiro: "Solicitações aguardando Ordem de Compra ou Pagamento.",

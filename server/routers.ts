@@ -28,7 +28,7 @@ export const appRouter = router({
         department: z.string().optional(),
         phone: z.string().optional(),
         jobTitle: z.string().optional(),
-        approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "diretoria", "financeiro", "master"]).optional(),
+        approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"]).optional(),
       }))
       .mutation(({ ctx, input }) => db.updateUserProfile(ctx.user.id, input)),
     upsertByAdmin: protectedProcedure
@@ -40,8 +40,9 @@ export const appRouter = router({
         department: z.string().optional(),
         phone: z.string().optional(),
         jobTitle: z.string().optional(),
-        approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "diretoria", "financeiro", "master"]).optional(),
+        approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"]).optional(),
         active: z.boolean().optional(),
+        password: z.string().min(6).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";

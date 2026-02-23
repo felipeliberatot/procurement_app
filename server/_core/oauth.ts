@@ -1,6 +1,8 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
-import { getUserByOpenId, linkUserByEmail, upsertUser } from "../db";
+import bcrypt from "bcryptjs";
+import { SignJWT } from "jose";
+import { getUserByOpenId, linkUserByEmail, upsertUser, getUserByEmailForLogin } from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 
@@ -143,6 +145,60 @@ export function registerOAuthRoutes(app: Express) {
     } catch (error) {
       console.error("[OAuth] Mobile exchange failed", error);
       res.status(500).json({ error: "OAuth mobile exchange failed" });
+    }
+  });
+
+  // ─── Login com E-mail e Senha ────────────────────────────────────────────────
+  app.post("/api/auth/login", async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body as { email?: string; password?: string };
+      if (!email || !password) {
+        res.status(400).json({ error: "E-mail e senha são obrigatórios" });
+        return;
+      }
+      const user = await getUserByEmailForLogin(email.toLowerCase().trim());
+      if (!user || !user.active) {
+        res.status(401).json({ error: "E-mail ou senha incorretos" });
+        return;
+      }
+      if (!user.passwordHash) {
+        res.status(401).json({ error: "Usuário sem senha definida. Solicite ao administrador." });
+        return;
+      }
+      const valid = await bcrypt.compare(password, user.passwordHash);
+      if (!valid) {
+        res.status(401).json({ error: "E-mail ou senha incorretos" });
+        return;
+      }
+      // Gerar token JWT interno
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? "cgs_agro_secret_2025");
+      const token = await new SignJWT({
+        sub: String(user.id),
+        email: user.email ?? "",
+        openId: user.openId,
+        loginMethod: "password",
+      })
+        .setProtectedHeader({ alg: "HS256" })
+        .setIssuedAt()
+        .setExpirationTime("365d")
+        .sign(secret);
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+      res.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          openId: user.openId,
+          name: user.name,
+          email: user.email,
+          loginMethod: "password",
+          lastSignedIn: new Date().toISOString(),
+        },
+      });
+    } catch (error) {
+      console.error("[Auth] /api/auth/login failed:", error);
+      res.status(500).json({ error: "Erro interno ao fazer login" });
     }
   });
 

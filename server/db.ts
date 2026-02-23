@@ -138,6 +138,19 @@ export async function updateUserProfile(
   await db.update(users).set(update).where(eq(users.id, userId));
 }
 
+export async function getUserByEmailForLogin(email: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result[0] ?? null;
+}
+
+export async function updateUserPassword(userId: number, passwordHash: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(users).set({ passwordHash }).where(eq(users.id, userId));
+}
+
 export async function upsertUserByAdmin(data: {
   id?: number;
   name: string;
@@ -148,9 +161,17 @@ export async function upsertUserByAdmin(data: {
   jobTitle?: string;
   approvalLevel?: string;
   active?: boolean;
+  passwordHash?: string;
+  password?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // Hash password if provided as plain text
+  let finalPasswordHash = data.passwordHash;
+  if (data.password) {
+    const bcrypt = await import("bcryptjs");
+    finalPasswordHash = await bcrypt.hash(data.password, 10);
+  }
   if (data.id) {
     // UPDATE existing user
     await db.update(users).set({
@@ -162,6 +183,7 @@ export async function upsertUserByAdmin(data: {
       jobTitle: data.jobTitle ?? null,
       approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
       active: data.active ?? true,
+      ...(finalPasswordHash !== undefined ? { passwordHash: finalPasswordHash } : {}),
     }).where(eq(users.id, data.id));
     return { id: data.id };
   } else {
@@ -179,6 +201,7 @@ export async function upsertUserByAdmin(data: {
       approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
       active: data.active ?? true,
       lastSignedIn: new Date(),
+      ...(finalPasswordHash !== undefined ? { passwordHash: finalPasswordHash } : {}),
     });
     const insertId = (result as any)[0]?.insertId ?? 0;
     return { id: insertId };
@@ -489,6 +512,7 @@ export async function getPendingRequestsForUser(role: string) {
 
   const statusMap: Record<string, string> = {
     gerente: "aguardando_gerente",
+    orcamento: "aguardando_orcamento",
     controladoria: "aguardando_controladoria",
     diretoria: "aguardando_diretoria",
     financeiro: "aguardando_financeiro",

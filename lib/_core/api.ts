@@ -116,6 +116,24 @@ export async function exchangeOAuthCode(
   };
 }
 
+// Login com e-mail e senha
+export async function loginWithPassword(email: string, password: string): Promise<{
+  success: boolean;
+  token?: string;
+  user?: { id: number; openId: string; name: string | null; email: string | null; loginMethod: string | null; lastSignedIn: string };
+  error?: string;
+}> {
+  try {
+    const result = await apiCall<any>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    return result;
+  } catch (error: any) {
+    return { success: false, error: error?.message ?? "Erro ao fazer login" };
+  }
+}
+
 // Logout
 export async function logout(): Promise<void> {
   await apiCall<void>("/api/auth/logout", {
