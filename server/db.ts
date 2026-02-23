@@ -581,11 +581,14 @@ export async function approveRequest(
       const nextRole = nextRoleMap[flow.nextStatus];
       if (nextRole && req) {
         const nextApprovers = await db.select().from(users).where(eq(users.procurementRole, nextRole as any));
+        const items = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+        const itemsForMsg = items.map(it => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
         for (const approver of nextApprovers) {
           if (approver.phone) {
-            await WA.notifyNewRequest({
+            await WA.notifyApproverWithToken({
               approverPhone: approver.phone,
               approverName: approver.name ?? "Aprovador",
+              approverId: approver.id,
               requestNumber: req.requestNumber,
               requestId,
               requesterName: req.requesterName,
@@ -593,6 +596,9 @@ export async function approveRequest(
               urgencyLevel: req.urgencyLevel,
               department: req.department,
               stepLabel: STEP_LABELS_SERVER[flow.nextStatus] ?? flow.nextStatus,
+              step: nextRole,
+              items: itemsForMsg,
+              totalValue: req.totalEstimatedValue ?? undefined,
             });
           }
         }

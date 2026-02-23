@@ -174,3 +174,27 @@ export const approvalHistory = mysqlTable("approvalHistory", {
 
 export type ApprovalHistory = typeof approvalHistory.$inferSelect;
 export type InsertApprovalHistory = typeof approvalHistory.$inferInsert;
+
+// ─── WhatsApp Sessions ────────────────────────────────────────────────────────
+// Tracks pending approval tokens sent via WhatsApp so the webhook can
+// match an incoming reply to the correct request + step.
+
+export const whatsappSessions = mysqlTable("whatsappSessions", {
+  id: int("id").autoincrement().primaryKey(),
+  token: varchar("token", { length: 64 }).notNull().unique(), // secure random token
+  requestId: int("requestId").notNull(),
+  requestNumber: varchar("requestNumber", { length: 32 }).notNull(),
+  approverPhone: varchar("approverPhone", { length: 32 }).notNull(), // normalized E.164
+  approverId: int("approverId").notNull(),
+  approverName: varchar("approverName", { length: 128 }),
+  step: varchar("step", { length: 64 }).notNull(), // e.g. "gerente"
+  status: mysqlEnum("status", ["pending", "approved", "rejected", "expired"])
+    .default("pending")
+    .notNull(),
+  expiresAt: timestamp("expiresAt").notNull(), // 48h from creation
+  resolvedAt: timestamp("resolvedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type WhatsappSession = typeof whatsappSessions.$inferSelect;
+export type InsertWhatsappSession = typeof whatsappSessions.$inferInsert;

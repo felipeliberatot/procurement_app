@@ -146,14 +146,14 @@ export default function ProfileScreen() {
 
           {/* WhatsApp Setup */}
           <TouchableOpacity
-            onPress={() => router.push("/whatsapp-setup" as any)}
+            onPress={() => router.push("/whatsapp-config" as any)}
             className="bg-surface border border-border rounded-2xl py-4 px-4 flex-row items-center justify-between mb-4"
           >
             <View className="flex-row items-center gap-3">
               <Text className="text-xl">💬</Text>
               <View>
                 <Text className="text-sm font-semibold text-foreground">Integração WhatsApp</Text>
-                <Text className="text-xs text-muted">Configurar notificações</Text>
+                <Text className="text-xs text-muted">Configurar aprovações via WhatsApp</Text>
               </View>
             </View>
             <Text className="text-muted">→</Text>

@@ -84,6 +84,7 @@ export default function RootLayout() {
             <Stack.Screen name="request/[id]" />
             <Stack.Screen name="oauth/callback" />
             <Stack.Screen name="whatsapp-setup" />
+            <Stack.Screen name="whatsapp-config" />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>
