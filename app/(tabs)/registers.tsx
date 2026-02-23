@@ -7,7 +7,7 @@ import { ROLE_LABELS } from "@/shared/types";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -54,6 +54,174 @@ const ROLE_COLORS: Record<ProcurementRole, string> = {
   financeiro: "#10B981",
   admin: "#8B5CF6",
 };
+
+// ─── PIN Verification Modal ─────────────────────────────────────────────────
+
+function PinVerificationModal({
+  visible,
+  onClose,
+  onSuccess,
+  title = "Verificar PIN Master",
+  subtitle = "Digite seu PIN para confirmar a ação",
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  title?: string;
+  subtitle?: string;
+}) {
+  const colors = useColors();
+  const verifyPin = trpc.users.verifyPin.useMutation();
+  const [pin, setPin] = useState("");
+  const [error, setError] = useState("");
+  const [isVerifying, setIsVerifying] = useState(false);
+  const inputRef = useRef<any>(null);
+
+  const handleClose = useCallback(() => {
+    setPin("");
+    setError("");
+    onClose();
+  }, [onClose]);
+
+  const handleVerify = useCallback(async () => {
+    if (!pin.trim()) {
+      setError("Digite o PIN.");
+      return;
+    }
+    setIsVerifying(true);
+    setError("");
+    try {
+      const result = await verifyPin.mutateAsync({ pin: pin.trim() });
+      if (result.valid) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setPin("");
+        setError("");
+        onSuccess();
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        setError("PIN incorreto. Tente novamente.");
+        setPin("");
+      }
+    } catch (e: any) {
+      setError(e.message ?? "Erro ao verificar PIN.");
+    } finally {
+      setIsVerifying(false);
+    }
+  }, [pin, verifyPin, onSuccess]);
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0,0,0,0.5)", padding: 24 }}
+      >
+        <View
+          style={{
+            backgroundColor: colors.background,
+            borderRadius: 20,
+            padding: 24,
+            width: "100%",
+            maxWidth: 360,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.25,
+            shadowRadius: 16,
+            elevation: 10,
+          }}
+        >
+          {/* Header */}
+          <View style={{ alignItems: "center", marginBottom: 20 }}>
+            <View style={{
+              width: 56, height: 56, borderRadius: 28,
+              backgroundColor: "#7C3AED20",
+              alignItems: "center", justifyContent: "center",
+              marginBottom: 12,
+            }}>
+              <Text style={{ fontSize: 28 }}>🔐</Text>
+            </View>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: colors.foreground, textAlign: "center" }}>
+              {title}
+            </Text>
+            <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center", marginTop: 4 }}>
+              {subtitle}
+            </Text>
+          </View>
+
+          {/* PIN Input */}
+          <View style={{ marginBottom: 16 }}>
+            <TextInput
+              ref={inputRef}
+              value={pin}
+              onChangeText={(v) => { setPin(v); setError(""); }}
+              placeholder="Digite o PIN"
+              placeholderTextColor={colors.muted}
+              secureTextEntry
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleVerify}
+              style={{
+                backgroundColor: colors.surface,
+                borderWidth: error ? 1.5 : 1,
+                borderColor: error ? colors.error : colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 14,
+                fontSize: 18,
+                color: colors.foreground,
+                textAlign: "center",
+                letterSpacing: 4,
+              }}
+            />
+            {error ? (
+              <Text style={{ color: colors.error, fontSize: 12, marginTop: 6, textAlign: "center" }}>
+                {error}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Buttons */}
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={{
+                flex: 1,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingVertical: 13,
+                alignItems: "center",
+              }}
+            >
+              <Text style={{ color: colors.muted, fontWeight: "600", fontSize: 14 }}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleVerify}
+              disabled={isVerifying || !pin.trim()}
+              style={{
+                flex: 1,
+                backgroundColor: isVerifying || !pin.trim() ? "#7C3AED80" : "#7C3AED",
+                borderRadius: 12,
+                paddingVertical: 13,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              {isVerifying ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : null}
+              <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
+                {isVerifying ? "Verificando..." : "Confirmar"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
 
 // ─── User Form Modal ──────────────────────────────────────────────────────────
 
@@ -743,6 +911,8 @@ export default function RegistersScreen() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Filters for users tab
   const [userSearch, setUserSearch] = useState("");
@@ -819,6 +989,16 @@ export default function RegistersScreen() {
     { key: "assets", label: "Bens", icon: "📦", count: assetsList?.length },
   ];
 
+  // Require PIN verification before sensitive master actions
+  const requirePin = useCallback((action: () => void) => {
+    if (!isMaster) {
+      action();
+      return;
+    }
+    setPendingAction(() => action);
+    setShowPinModal(true);
+  }, [isMaster]);
+
   const handleEditUser = (u: any) => {
     if (!isAdmin && !isMaster) return;
     // Non-masters cannot edit master users
@@ -826,13 +1006,17 @@ export default function RegistersScreen() {
       Alert.alert("Acesso Restrito", "Apenas usuários master podem editar outro usuário master.");
       return;
     }
-    setEditingUser(u);
-    setShowUserModal(true);
+    requirePin(() => {
+      setEditingUser(u);
+      setShowUserModal(true);
+    });
   };
 
   const handleNewUser = () => {
-    setEditingUser(null);
-    setShowUserModal(true);
+    requirePin(() => {
+      setEditingUser(null);
+      setShowUserModal(true);
+    });
   };
 
   const handleToggleActive = (u: any) => {
@@ -852,7 +1036,7 @@ export default function RegistersScreen() {
 
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExportCSV = async () => {
+  const handleExportCSV = () => requirePin(async () => {
     if (!usersList || usersList.length === 0) {
       Alert.alert("Exportar CSV", "Nenhum usuário para exportar.");
       return;
@@ -922,7 +1106,7 @@ export default function RegistersScreen() {
     } finally {
       setIsExporting(false);
     }
-  };
+  });
 
   return (
     <ScreenContainer>
@@ -1573,6 +1757,19 @@ export default function RegistersScreen() {
         onSave={(data) => saveUser.mutate(data)}
         isSaving={saveUser.isPending}
         isMasterCaller={isMaster}
+      />
+      <PinVerificationModal
+        visible={showPinModal}
+        onClose={() => { setShowPinModal(false); setPendingAction(null); }}
+        onSuccess={() => {
+          setShowPinModal(false);
+          if (pendingAction) {
+            pendingAction();
+            setPendingAction(null);
+          }
+        }}
+        title="Verificar PIN Master"
+        subtitle="Digite seu PIN para confirmar a ação administrativa"
       />
     </ScreenContainer>
   );

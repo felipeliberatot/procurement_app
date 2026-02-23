@@ -39,6 +39,7 @@ export const users = mysqlTable("users", {
     "financeiro",
     "master",
   ]).default("nenhum").notNull(),
+  pinHash: varchar("pinHash", { length: 255 }), // Hashed PIN for master quick access
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

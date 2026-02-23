@@ -196,3 +196,11 @@
 - [x] Função de geração de CSV com campos: nome, e-mail, WhatsApp, cargo, nível de aprovação, perfil de acesso, departamento, status
 - [x] Botão "Exportar CSV" visível apenas para o usuário master na aba Usuários
 - [x] Compartilhar o arquivo gerado via share sheet nativo do dispositivo
+
+## PIN de Acesso Rápido (Master)
+- [x] Adicionar coluna `pinHash` na tabela users do banco
+- [x] Salvar PIN `cgs@2026` do Felipe com hash bcrypt
+- [x] Rota tRPC `users.verifyPin` para verificar o PIN
+- [x] Rota tRPC `users.updatePin` para o master alterar o PIN
+- [x] Modal de verificação de PIN no app (teclado numérico/alfanumérico)
+- [x] Proteger ações administrativas sensíveis com verificação de PIN

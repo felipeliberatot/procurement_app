@@ -82,6 +82,24 @@ export const appRouter = router({
         }))
       }))
       .mutation(({ input }) => db.importUsersBatch(input.users)),
+    verifyPin: protectedProcedure
+      .input(z.object({ pin: z.string().min(1) }))
+      .mutation(async ({ ctx, input }) => {
+        const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";
+        if (!callerIsMaster) throw new Error("Apenas usuários master podem usar o PIN.");
+        const valid = await db.verifyMasterPin(ctx.user.id, input.pin);
+        return { valid };
+      }),
+    updatePin: protectedProcedure
+      .input(z.object({ currentPin: z.string().min(1), newPin: z.string().min(4) }))
+      .mutation(async ({ ctx, input }) => {
+        const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";
+        if (!callerIsMaster) throw new Error("Apenas usuários master podem alterar o PIN.");
+        const valid = await db.verifyMasterPin(ctx.user.id, input.currentPin);
+        if (!valid) throw new Error("PIN atual incorreto.");
+        await db.updateMasterPin(ctx.user.id, input.newPin);
+        return { success: true };
+      }),
   }),
 
   // ─── Cost Centers ──────────────────────────────────────────────────────────

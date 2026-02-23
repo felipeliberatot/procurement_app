@@ -666,3 +666,30 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
     comment,
   });
 }
+
+// ─── Master PIN ───────────────────────────────────────────────────────────────
+
+import bcrypt from "bcryptjs";
+
+/**
+ * Verifies the master PIN for a given user ID.
+ * Returns true if the PIN matches the stored hash.
+ */
+export async function verifyMasterPin(userId: number, pin: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const [user] = await db.select({ pinHash: users.pinHash }).from(users).where(eq(users.id, userId)).limit(1);
+  if (!user?.pinHash) return false;
+  return bcrypt.compare(pin, user.pinHash);
+}
+
+/**
+ * Updates the master PIN for a given user ID.
+ * Hashes the new PIN with bcrypt before storing.
+ */
+export async function updateMasterPin(userId: number, newPin: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const hash = await bcrypt.hash(newPin, 12);
+  await db.update(users).set({ pinHash: hash }).where(eq(users.id, userId));
+}
