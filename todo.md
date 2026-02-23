@@ -182,3 +182,12 @@
 ## Vinculação de Login por E-mail
 - [x] Implementar match por e-mail no login OAuth: se o e-mail do OAuth coincidir com um usuário pré-cadastrado, atualizar o openId para vincular a conta
 - [x] Preservar dados do usuário pré-cadastrado (cargo, nível de aprovação, departamento) ao vincular
+
+## Proteção do Nível Master e Painel de Aprovadores
+- [x] Servidor: bloquear alteração de approvalLevel para 'master' por usuários não-master
+- [x] Servidor: bloquear edição de usuário master por usuários não-master
+- [x] App: ocultar opção 'Master' no seletor de nível de aprovação para não-masters
+- [x] App: bloquear edição de usuário master por não-masters (card não abre modal)
+- [x] Painel visual de aprovadores por nível na aba Usuários
+- [x] Painel mostra quem está em cada nível (Gerente, Controladoria, Diretoria, Financeiro, Master)
+- [x] Alerta visual quando um nível não tem responsável cadastrado

@@ -43,10 +43,31 @@ export const appRouter = router({
         approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "diretoria", "financeiro", "master"]).optional(),
         active: z.boolean().optional(),
       }))
-      .mutation(({ input }) => db.upsertUserByAdmin(input)),
+      .mutation(async ({ ctx, input }) => {
+        const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";
+        // Only masters can assign or change the 'master' approval level
+        if (input.approvalLevel === "master" && !callerIsMaster) {
+          throw new Error("Apenas usuários master podem atribuir o nível master.");
+        }
+        // Only masters can edit another master user
+        if (input.id) {
+          const target = await db.getUserById(input.id);
+          if (target?.approvalLevel === "master" && !callerIsMaster) {
+            throw new Error("Apenas usuários master podem editar outro usuário master.");
+          }
+        }
+        return db.upsertUserByAdmin(input);
+      }),
     toggleActive: protectedProcedure
       .input(z.object({ id: z.number(), active: z.boolean() }))
-      .mutation(({ input }) => db.toggleUserActive(input.id, input.active)),
+      .mutation(async ({ ctx, input }) => {
+        const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";
+        const target = await db.getUserById(input.id);
+        if (target?.approvalLevel === "master" && !callerIsMaster) {
+          throw new Error("Apenas usuários master podem ativar/desativar outro usuário master.");
+        }
+        return db.toggleUserActive(input.id, input.active);
+      }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteUser(input.id)),

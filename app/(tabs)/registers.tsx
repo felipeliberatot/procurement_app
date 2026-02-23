@@ -61,12 +61,14 @@ function UserFormModal({
   onClose,
   onSave,
   isSaving,
+  isMasterCaller,
 }: {
   visible: boolean;
   user: any | null;
   onClose: () => void;
   onSave: (data: any) => void;
   isSaving: boolean;
+  isMasterCaller?: boolean;
 }) {
   const colors = useColors();
   const isEditing = !!user?.id;
@@ -282,7 +284,7 @@ function UserFormModal({
               Define em qual etapa do fluxo de compras este usuário pode aprovar
             </Text>
             <View style={{ gap: 8 }}>
-              {APPROVAL_LEVELS.map((level) => {
+              {APPROVAL_LEVELS.filter(l => isMasterCaller || l.key !== "master").map((level) => {
                 const selected = approvalLevel === level.key;
                 return (
                   <Pressable
@@ -817,6 +819,11 @@ export default function RegistersScreen() {
 
   const handleEditUser = (u: any) => {
     if (!isAdmin && !isMaster) return;
+    // Non-masters cannot edit master users
+    if (u?.approvalLevel === "master" && !isMaster) {
+      Alert.alert("Acesso Restrito", "Apenas usuários master podem editar outro usuário master.");
+      return;
+    }
     setEditingUser(u);
     setShowUserModal(true);
   };
@@ -1037,6 +1044,66 @@ export default function RegistersScreen() {
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Approval Levels Panel */}
+          {usersList && usersList.length > 0 && (
+            <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                Painel de Aprovadores
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {[
+                    { key: "master", label: "Master", icon: "⭐", color: "#7C3AED" },
+                    { key: "gerente", label: "Gerente", icon: "🏢", color: "#0EA5E9" },
+                    { key: "controladoria", label: "Controladoria", icon: "📊", color: "#F59E0B" },
+                    { key: "diretoria", label: "Diretoria", icon: "🏆", color: "#EF4444" },
+                    { key: "financeiro", label: "Financeiro", icon: "💰", color: "#10B981" },
+                  ].map((lvl) => {
+                    const responsible = usersList.filter(
+                      (u) => (u as any).approvalLevel === lvl.key && (u as any).active !== false
+                    );
+                    const isEmpty = responsible.length === 0;
+                    return (
+                      <View
+                        key={lvl.key}
+                        style={{
+                          backgroundColor: isEmpty ? `${colors.error}10` : `${lvl.color}12`,
+                          borderWidth: 1,
+                          borderColor: isEmpty ? `${colors.error}40` : `${lvl.color}30`,
+                          borderRadius: 12,
+                          padding: 10,
+                          minWidth: 120,
+                          maxWidth: 160,
+                        }}
+                      >
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                          <Text style={{ fontSize: 14 }}>{lvl.icon}</Text>
+                          <Text style={{ fontSize: 11, fontWeight: "700", color: isEmpty ? colors.error : lvl.color }}>
+                            {lvl.label}
+                          </Text>
+                        </View>
+                        {isEmpty ? (
+                          <Text style={{ fontSize: 10, color: colors.error, fontWeight: "600" }}>
+                            ⚠️ Sem responsável
+                          </Text>
+                        ) : (
+                          responsible.slice(0, 2).map((u) => (
+                            <Text key={(u as any).id} style={{ fontSize: 10, color: colors.foreground, marginBottom: 1 }} numberOfLines={1}>
+                              • {(u as any).name ?? (u as any).email ?? "—"}
+                            </Text>
+                          ))
+                        )}
+                        {responsible.length > 2 && (
+                          <Text style={{ fontSize: 10, color: colors.muted }}>+{responsible.length - 2} mais</Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+          )}
 
           {/* Results count */}
           <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
@@ -1398,6 +1465,7 @@ export default function RegistersScreen() {
         onClose={() => { setShowUserModal(false); setEditingUser(null); }}
         onSave={(data) => saveUser.mutate(data)}
         isSaving={saveUser.isPending}
+        isMasterCaller={isMaster}
       />
     </ScreenContainer>
   );
