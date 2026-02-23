@@ -129,38 +129,30 @@ export default function DashboardScreen() {
               </View>
             )}
 
-            {/* Malotes */}
-            {maloteStats && (maloteStats.abertos > 0 || maloteStats.enviados > 0) && (
-              <TouchableOpacity
-                onPress={() => router.push("/(tabs)/malotes" as any)}
-                className="bg-surface border border-border rounded-2xl p-3 mb-3"
-              >
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-sm font-bold text-foreground">📦 Malotes</Text>
-                  <Text className="text-xs text-primary font-semibold">Ver todos →</Text>
+            {/* Malotes — sempre visível */}
+            <TouchableOpacity
+              onPress={() => router.push("/(tabs)/malotes" as any)}
+              className="bg-surface border border-border rounded-2xl p-3 mb-3"
+            >
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-sm font-bold text-foreground">📦 Malotes</Text>
+                <Text className="text-xs text-primary font-semibold">Ver todos →</Text>
+              </View>
+              <View className="flex-row gap-3">
+                <View className="flex-1 bg-blue-500/10 rounded-xl p-2 items-center">
+                  <Text className="text-lg font-bold text-blue-500">{maloteStats?.abertos ?? 0}</Text>
+                  <Text className="text-xs text-muted">Abertos</Text>
                 </View>
-                <View className="flex-row gap-3">
-                  {maloteStats.abertos > 0 && (
-                    <View className="flex-1 bg-blue-500/10 rounded-xl p-2 items-center">
-                      <Text className="text-lg font-bold text-blue-500">{maloteStats.abertos}</Text>
-                      <Text className="text-xs text-muted">Abertos</Text>
-                    </View>
-                  )}
-                  {maloteStats.enviados > 0 && (
-                    <View className="flex-1 bg-warning/10 rounded-xl p-2 items-center">
-                      <Text className="text-lg font-bold text-warning">{maloteStats.enviados}</Text>
-                      <Text className="text-xs text-muted">Em Trânsito</Text>
-                    </View>
-                  )}
-                  {maloteStats.recebidos > 0 && (
-                    <View className="flex-1 bg-success/10 rounded-xl p-2 items-center">
-                      <Text className="text-lg font-bold text-success">{maloteStats.recebidos}</Text>
-                      <Text className="text-xs text-muted">Recebidos</Text>
-                    </View>
-                  )}
+                <View className="flex-1 bg-warning/10 rounded-xl p-2 items-center">
+                  <Text className="text-lg font-bold text-warning">{maloteStats?.enviados ?? 0}</Text>
+                  <Text className="text-xs text-muted">Em Trânsito</Text>
                 </View>
-              </TouchableOpacity>
-            )}
+                <View className="flex-1 bg-success/10 rounded-xl p-2 items-center">
+                  <Text className="text-lg font-bold text-success">{maloteStats?.recebidos ?? 0}</Text>
+                  <Text className="text-xs text-muted">Recebidos</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
           </View>
         ) : null}
 

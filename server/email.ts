@@ -36,7 +36,11 @@ export async function sendWelcomeEmail(params: {
   const transporter = getTransporter();
   if (!transporter) return false;
 
-  const loginUrl = params.loginUrl ?? "https://procurement.cgs.agr.br";
+  // Usa APP_URL (configurável via secret) ou EXPO_WEB_PREVIEW_URL como fallback
+  const loginUrl = params.loginUrl
+    ?? process.env.APP_URL
+    ?? process.env.EXPO_WEB_PREVIEW_URL
+    ?? "https://procurement.cgs.agr.br";
 
   const html = `
 <!DOCTYPE html>
