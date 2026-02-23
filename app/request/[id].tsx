@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -22,13 +23,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RequestStatus, ProcurementRole } from "@/shared/types";
 import { STEP_LABELS } from "@/shared/types";
 
 const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
   rascunho: ["solicitante", "admin"],
   aguardando_gerente: ["gerente", "admin"],
-  aguardando_orcamento: ["solicitante", "admin"],
+  aguardando_orcamento: ["solicitante", "admin", "orcamento"],
   aguardando_controladoria: ["controladoria", "admin"],
   aguardando_diretoria: ["diretoria", "admin"],
   aguardando_ordem_compra: ["financeiro", "admin"],
@@ -37,6 +39,13 @@ const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
   rejeitada: ["solicitante", "admin"],
   cancelada: [],
 };
+
+// Etapas que têm apenas aprovação (sem rejeição direta) ou ação especial
+const STATUS_APPROVE_ONLY: RequestStatus[] = [
+  "aguardando_orcamento",
+  "aguardando_ordem_compra",
+  "aguardando_financeiro",
+];
 
 function formatCurrency(value?: string | null): string {
   if (!value) return "—";
@@ -52,16 +61,221 @@ function formatDate(date: Date | string): string {
   });
 }
 
+// ─── Modal de Rejeição ────────────────────────────────────────────────────────
+function RejectModal({
+  visible,
+  onClose,
+  onConfirm,
+  isLoading,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: (comment: string) => void;
+  isLoading: boolean;
+}) {
+  const colors = useColors();
+  const [reason, setReason] = useState("");
+
+  const handleConfirm = () => {
+    if (!reason.trim()) {
+      Alert.alert("Motivo obrigatório", "Informe o motivo da rejeição para continuar.");
+      return;
+    }
+    onConfirm(reason.trim());
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: colors.background }}>
+        {/* Header */}
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <TouchableOpacity onPress={onClose} disabled={isLoading}>
+            <Text style={{ color: colors.primary, fontSize: 15 }}>Cancelar</Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>Rejeitar Solicitação</Text>
+          <View style={{ width: 60 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+          <View style={{ backgroundColor: `${colors.error}10`, borderWidth: 1, borderColor: `${colors.error}30`, borderRadius: 16, padding: 16, flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+            <Text style={{ fontSize: 24 }}>⚠️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14, marginBottom: 4 }}>Atenção</Text>
+              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+                A solicitação voltará para o solicitante corrigir. Informe claramente o motivo para que ele possa ajustar e reenviar.
+              </Text>
+            </View>
+          </View>
+
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", marginBottom: 8 }}>
+              Motivo da Rejeição *
+            </Text>
+            <TextInput
+              value={reason}
+              onChangeText={setReason}
+              placeholder="Descreva o motivo da rejeição..."
+              placeholderTextColor={colors.muted}
+              multiline
+              numberOfLines={5}
+              style={{
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 14,
+                color: colors.foreground,
+                minHeight: 120,
+                textAlignVertical: "top",
+              }}
+              autoFocus
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={handleConfirm}
+            disabled={isLoading || !reason.trim()}
+            style={{
+              backgroundColor: reason.trim() ? colors.error : colors.border,
+              borderRadius: 14,
+              paddingVertical: 16,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+              opacity: isLoading ? 0.7 : 1,
+            }}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Text style={{ fontSize: 18 }}>❌</Text>
+                <Text style={{ color: reason.trim() ? "white" : colors.muted, fontWeight: "700", fontSize: 15 }}>
+                  Confirmar Rejeição
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ─── Modal de Aprovação com comentário opcional ───────────────────────────────
+function ApproveModal({
+  visible,
+  onClose,
+  onConfirm,
+  isLoading,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: (comment: string) => void;
+  isLoading: boolean;
+}) {
+  const colors = useColors();
+  const [comment, setComment] = useState("");
+
+  const handleConfirm = () => {
+    onConfirm(comment.trim());
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <TouchableOpacity onPress={onClose} disabled={isLoading}>
+            <Text style={{ color: colors.primary, fontSize: 15 }}>Cancelar</Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>Aprovar Solicitação</Text>
+          <View style={{ width: 60 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+          <View style={{ backgroundColor: `${colors.success}10`, borderWidth: 1, borderColor: `${colors.success}30`, borderRadius: 16, padding: 16, flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+            <Text style={{ fontSize: 24 }}>✅</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.success, fontWeight: "700", fontSize: 14, marginBottom: 4 }}>Confirmar Aprovação</Text>
+              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+                A solicitação avançará para a próxima etapa do fluxo de compras.
+              </Text>
+            </View>
+          </View>
+
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", marginBottom: 8 }}>
+              Comentário (opcional)
+            </Text>
+            <TextInput
+              value={comment}
+              onChangeText={setComment}
+              placeholder="Adicione um comentário à aprovação..."
+              placeholderTextColor={colors.muted}
+              multiline
+              numberOfLines={4}
+              style={{
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 14,
+                color: colors.foreground,
+                minHeight: 100,
+                textAlignVertical: "top",
+              }}
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={handleConfirm}
+            disabled={isLoading}
+            style={{
+              backgroundColor: colors.success,
+              borderRadius: 14,
+              paddingVertical: 16,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+              opacity: isLoading ? 0.7 : 1,
+            }}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Text style={{ fontSize: 18 }}>✅</Text>
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>
+                  Confirmar Aprovação
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ─── Tela Principal ───────────────────────────────────────────────────────────
 export default function RequestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, isAuthenticated } = useAuth();
   const colors = useColors();
   const utils = trpc.useUtils();
+  const insets = useSafeAreaInsets();
 
-  const [comment, setComment] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [paymentInfo, setPaymentInfo] = useState("");
   const [budgetFileName, setBudgetFileName] = useState<string | null>(null);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
   const requestId = parseInt(id ?? "0");
 
@@ -85,23 +299,36 @@ export default function RequestDetailScreen() {
   };
 
   const approveMutation = trpc.approvals.approve.useMutation({
-    onSuccess: () => { invalidateAll(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); setComment(""); },
-    onError: (e) => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); Alert.alert("Erro", e.message); },
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowApproveModal(false);
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro", e.message);
+    },
   });
 
   const rejectMutation = trpc.approvals.reject.useMutation({
-    onSuccess: () => { invalidateAll(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); setComment(""); },
-    onError: (e) => Alert.alert("Erro", e.message),
-  });
-
-  const uploadBudgetMutation = trpc.requests.uploadBudget.useMutation({
-    onSuccess: () => { invalidateAll(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); Alert.alert("✅ Orçamento anexado!"); },
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setShowRejectModal(false);
+    },
     onError: (e) => Alert.alert("Erro", e.message),
   });
 
   const uploadFileMutation = trpc.requests.uploadFile.useMutation({
-    onSuccess: () => { invalidateAll(); Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); Alert.alert("✅ PDF anexado com sucesso!", "O orçamento já está disponível para visualização."); },
-    onError: (e) => { Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error); Alert.alert("Erro ao anexar", e.message); },
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ PDF anexado com sucesso!", "O orçamento já está disponível para visualização.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao anexar", e.message);
+    },
   });
 
   if (isLoading) {
@@ -134,24 +361,12 @@ export default function RequestDetailScreen() {
   const isRejected = currentStatus === "rejeitada";
   const isCancelled = currentStatus === "cancelada";
   const isDone = currentStatus === "concluida";
+  const isApproveOnly = STATUS_APPROVE_ONLY.includes(currentStatus);
 
-  const handleApprove = () => {
-    Alert.alert("Confirmar Aprovação", "Deseja aprovar esta solicitação?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Aprovar",
-        onPress: () => approveMutation.mutate({ requestId: request.id, comment: comment || undefined }),
-      },
-    ]);
-  };
-
-  const handleReject = () => {
-    if (!comment.trim()) { Alert.alert("Motivo obrigatório", "Informe o motivo da rejeição."); return; }
-    Alert.alert("Confirmar Rejeição", "A solicitação voltará para o solicitante corrigir em até 48h.", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Rejeitar", style: "destructive", onPress: () => rejectMutation.mutate({ requestId: request.id, comment }) },
-    ]);
-  };
+  // Determina se deve mostrar botões fixos de aprovar/rejeitar
+  const showFixedButtons = canAct && !isDone && !isCancelled && !isRejected && !isApproveOnly;
+  const showFixedApproveOnly = canAct && !isDone && !isCancelled && isApproveOnly;
+  const bottomBarHeight = 80 + (insets.bottom > 0 ? insets.bottom : 16);
 
   const handlePickBudget = async () => {
     try {
@@ -159,7 +374,6 @@ export default function RequestDetailScreen() {
       if (result.canceled) return;
       const file = result.assets[0];
       setBudgetFileName(file.name);
-      // Read file as base64 and upload to S3 via server
       const base64 = await FileSystem.readAsStringAsync(file.uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
@@ -177,17 +391,24 @@ export default function RequestDetailScreen() {
 
   const handleIssueOrder = () => {
     if (!orderNumber.trim()) { Alert.alert("Campo obrigatório", "Informe o número da ordem de compra."); return; }
-    approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: orderNumber, comment: comment || undefined });
+    Alert.alert("Confirmar", `Emitir Ordem de Compra ${orderNumber}?`, [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: orderNumber }) },
+    ]);
   };
 
   const handleFinalize = () => {
     if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe as informações de pagamento."); return; }
-    approveMutation.mutate({ requestId: request.id, paymentInfo, comment: comment || undefined });
+    Alert.alert("Confirmar Pagamento", "Confirmar que o pagamento foi realizado?", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, paymentInfo }) },
+    ]);
   };
 
   return (
     <ScreenContainer>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        {/* Header */}
         <View className="flex-row items-center px-5 py-4 border-b border-border">
           <Pressable onPress={() => router.back()} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
             <Text className="text-primary text-base">← Voltar</Text>
@@ -195,17 +416,64 @@ export default function RequestDetailScreen() {
           <Text className="flex-1 text-center text-base font-bold text-foreground" numberOfLines={1}>
             {request.requestNumber}
           </Text>
-          <View style={{ width: 60 }} />
+          {canAct && !isDone && !isCancelled ? (
+            <View style={{ width: 60, alignItems: "flex-end" }}>
+              <View style={{ backgroundColor: `${colors.warning}20`, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 3 }}>
+                <Text style={{ fontSize: 10, color: colors.warning, fontWeight: "700" }}>PENDENTE</Text>
+              </View>
+            </View>
+          ) : (
+            <View style={{ width: 60 }} />
+          )}
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
-
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            padding: 20,
+            paddingBottom: (showFixedButtons || showFixedApproveOnly) ? bottomBarHeight + 20 : 40,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Status badges */}
           <View className="flex-row items-center gap-2 mb-4 flex-wrap">
             <StatusBadge status={currentStatus} />
             <UrgencyBadge level={request.urgencyLevel as any} />
             {request.deadlineAt && <DeadlineTimer deadline={request.deadlineAt} />}
           </View>
 
+          {/* Banner de ação pendente */}
+          {canAct && !isDone && !isCancelled && (
+            <View style={{
+              backgroundColor: `${colors.warning}12`,
+              borderWidth: 1.5,
+              borderColor: `${colors.warning}50`,
+              borderRadius: 14,
+              padding: 14,
+              marginBottom: 16,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+            }}>
+              <Text style={{ fontSize: 22 }}>⏳</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: colors.warning, fontWeight: "700", fontSize: 13 }}>
+                  Ação necessária
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                  {currentStatus === "aguardando_gerente" && "Esta solicitação aguarda sua aprovação como Gerente."}
+                  {currentStatus === "aguardando_orcamento" && "Anexe o PDF do orçamento para avançar."}
+                  {currentStatus === "aguardando_controladoria" && "Esta solicitação aguarda aprovação da Controladoria."}
+                  {currentStatus === "aguardando_diretoria" && "Esta solicitação aguarda aprovação da Diretoria."}
+                  {currentStatus === "aguardando_ordem_compra" && "Emita a Ordem de Compra para avançar."}
+                  {currentStatus === "aguardando_financeiro" && "Confirme o pagamento para concluir."}
+                  {isRejected && "Corrija e reenvie esta solicitação."}
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Informações principais */}
           <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
             <Text className="text-lg font-bold text-foreground mb-2">{request.application}</Text>
             <View className="gap-1.5">
@@ -230,6 +498,7 @@ export default function RequestDetailScreen() {
             )}
           </View>
 
+          {/* Itens */}
           {request.items && request.items.length > 0 && (
             <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
               <Text className="text-sm font-bold text-foreground mb-3">Itens Solicitados</Text>
@@ -247,6 +516,7 @@ export default function RequestDetailScreen() {
             </View>
           )}
 
+          {/* PDF de orçamento */}
           {request.budgetFileUrl && (
             <Pressable
               onPress={() => Linking.openURL(request.budgetFileUrl!)}
@@ -263,11 +533,13 @@ export default function RequestDetailScreen() {
             </Pressable>
           )}
 
+          {/* Fluxo de aprovação */}
           <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
             <Text className="text-sm font-bold text-foreground mb-4">Fluxo de Aprovação</Text>
             <ApprovalTimeline currentStatus={currentStatus} />
           </View>
 
+          {/* Histórico */}
           {history && history.length > 0 && (
             <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
               <Text className="text-sm font-bold text-foreground mb-3">Histórico</Text>
@@ -293,85 +565,195 @@ export default function RequestDetailScreen() {
             </View>
           )}
 
+          {/* Ações especiais inline (orçamento / ordem / financeiro) */}
           {canAct && !isDone && !isCancelled && (
-            <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-              <Text className="text-sm font-bold text-foreground mb-3">Ação Necessária</Text>
+            <>
+              {/* Reenvio após rejeição */}
+              {isRejected && (
+                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+                  <Text className="text-sm font-bold text-foreground mb-3">Reenviar Solicitação</Text>
+                  <TouchableOpacity
+                    onPress={() => approveMutation.mutate({ requestId: request.id, comment: "Solicitação corrigida e reenviada" })}
+                    disabled={approveMutation.isPending}
+                    style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: approveMutation.isPending ? 0.7 : 1 }}
+                  >
+                    {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Reenviar para Aprovação</Text>}
+                  </TouchableOpacity>
+                </View>
+              )}
 
+              {/* Etapa de orçamento */}
               {currentStatus === "aguardando_orcamento" && (
-                <View className="mb-3">
-                  <Text className="text-xs text-muted mb-2">Anexe o PDF do orçamento obtido</Text>
+                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+                  <Text className="text-sm font-bold text-foreground mb-1">Anexar Orçamento</Text>
+                  <Text className="text-xs text-muted mb-3">Selecione o PDF do orçamento obtido</Text>
                   <TouchableOpacity
                     onPress={handlePickBudget}
-                    disabled={uploadFileMutation.isPending || uploadBudgetMutation.isPending}
-                    className="flex-row items-center justify-center gap-2 border-2 border-dashed border-primary/40 rounded-xl py-4"
-                    style={{ opacity: uploadFileMutation.isPending ? 0.6 : 1 }}
+                    disabled={uploadFileMutation.isPending}
+                    style={{
+                      flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+                      borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}60`,
+                      borderRadius: 12, paddingVertical: 20,
+                      opacity: uploadFileMutation.isPending ? 0.6 : 1,
+                    }}
                   >
                     {uploadFileMutation.isPending ? (
-                      <><ActivityIndicator size="small" /><Text className="text-primary text-sm ml-2">Enviando PDF...</Text></>
+                      <><ActivityIndicator size="small" /><Text style={{ color: colors.primary, fontSize: 14, marginLeft: 8 }}>Enviando PDF...</Text></>
                     ) : (
-                      <><Text className="text-2xl">📎</Text><Text className="text-primary font-semibold text-sm">{budgetFileName ?? "Selecionar PDF do Orçamento"}</Text></>
+                      <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{budgetFileName ?? "Selecionar PDF do Orçamento"}</Text></>
                     )}
                   </TouchableOpacity>
                   {budgetFileName && !uploadFileMutation.isPending && (
-                    <Text className="text-xs text-success text-center mt-1">✅ {budgetFileName} selecionado</Text>
+                    <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName} enviado</Text>
                   )}
                 </View>
               )}
 
+              {/* Etapa de ordem de compra */}
               {currentStatus === "aguardando_ordem_compra" && (
-                <View className="mb-3">
-                  <Text className="text-xs text-muted mb-1">Número da Ordem de Compra</Text>
-                  <TextInput value={orderNumber} onChangeText={setOrderNumber} placeholder="Ex: OC-2024-001"
-                    placeholderTextColor={colors.muted} className="bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground mb-2" returnKeyType="done" />
-                  <TouchableOpacity onPress={handleIssueOrder} disabled={approveMutation.isPending}
-                    className="bg-primary rounded-xl py-3 items-center" style={{ opacity: approveMutation.isPending ? 0.7 : 1 }}>
-                    {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold">Emitir Ordem de Compra</Text>}
+                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+                  <Text className="text-sm font-bold text-foreground mb-1">Emitir Ordem de Compra</Text>
+                  <Text className="text-xs text-muted mb-3">Informe o número da ordem gerada no sistema</Text>
+                  <TextInput
+                    value={orderNumber}
+                    onChangeText={setOrderNumber}
+                    placeholder="Ex: OC-2024-001"
+                    placeholderTextColor={colors.muted}
+                    style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground, marginBottom: 12 }}
+                    returnKeyType="done"
+                    onSubmitEditing={handleIssueOrder}
+                  />
+                  <TouchableOpacity
+                    onPress={handleIssueOrder}
+                    disabled={approveMutation.isPending || !orderNumber.trim()}
+                    style={{ backgroundColor: orderNumber.trim() ? colors.primary : colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: approveMutation.isPending ? 0.7 : 1 }}
+                  >
+                    {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text style={{ color: orderNumber.trim() ? "white" : colors.muted, fontWeight: "700" }}>Emitir Ordem de Compra</Text>}
                   </TouchableOpacity>
                 </View>
               )}
 
+              {/* Etapa financeira */}
               {currentStatus === "aguardando_financeiro" && (
-                <View className="mb-3">
-                  <Text className="text-xs text-muted mb-1">Informações de Pagamento</Text>
-                  <TextInput value={paymentInfo} onChangeText={setPaymentInfo} placeholder="Banco, agência, data do pagamento..."
-                    placeholderTextColor={colors.muted} className="bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground mb-2"
-                    multiline numberOfLines={3} style={{ minHeight: 80, textAlignVertical: "top" }} />
-                  <TouchableOpacity onPress={handleFinalize} disabled={approveMutation.isPending}
-                    className="bg-success rounded-xl py-3 items-center" style={{ opacity: approveMutation.isPending ? 0.7 : 1 }}>
-                    {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold">Confirmar Pagamento</Text>}
+                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+                  <Text className="text-sm font-bold text-foreground mb-1">Confirmar Pagamento</Text>
+                  <Text className="text-xs text-muted mb-3">Informe os dados do pagamento realizado</Text>
+                  <TextInput
+                    value={paymentInfo}
+                    onChangeText={setPaymentInfo}
+                    placeholder="Banco, agência, data do pagamento..."
+                    placeholderTextColor={colors.muted}
+                    multiline
+                    numberOfLines={3}
+                    style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground, minHeight: 80, textAlignVertical: "top", marginBottom: 12 }}
+                  />
+                  <TouchableOpacity
+                    onPress={handleFinalize}
+                    disabled={approveMutation.isPending || !paymentInfo.trim()}
+                    style={{ backgroundColor: paymentInfo.trim() ? colors.success : colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: approveMutation.isPending ? 0.7 : 1 }}
+                  >
+                    {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text style={{ color: paymentInfo.trim() ? "white" : colors.muted, fontWeight: "700" }}>Confirmar Pagamento</Text>}
                   </TouchableOpacity>
                 </View>
               )}
-
-              {isRejected && (
-                <TouchableOpacity onPress={() => approveMutation.mutate({ requestId: request.id, comment: "Solicitação corrigida e reenviada" })}
-                  disabled={approveMutation.isPending} className="bg-primary rounded-xl py-3 items-center" style={{ opacity: approveMutation.isPending ? 0.7 : 1 }}>
-                  {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold">Reenviar para Aprovação</Text>}
-                </TouchableOpacity>
-              )}
-
-              {!isRejected && currentStatus !== "aguardando_orcamento" && currentStatus !== "aguardando_ordem_compra" && currentStatus !== "aguardando_financeiro" && (
-                <>
-                  <TextInput value={comment} onChangeText={setComment}
-                    placeholder="Comentário (obrigatório para rejeição)"
-                    placeholderTextColor={colors.muted} className="bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground mb-3"
-                    multiline numberOfLines={3} style={{ minHeight: 80, textAlignVertical: "top" }} />
-                  <View className="flex-row gap-3">
-                    <TouchableOpacity onPress={handleReject} disabled={rejectMutation.isPending || approveMutation.isPending}
-                      className="flex-1 bg-error/10 border border-error/30 rounded-xl py-3 items-center" style={{ opacity: rejectMutation.isPending ? 0.7 : 1 }}>
-                      {rejectMutation.isPending ? <ActivityIndicator color="red" /> : <Text className="text-error font-bold">Rejeitar</Text>}
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={handleApprove} disabled={approveMutation.isPending || rejectMutation.isPending}
-                      className="flex-1 bg-success rounded-xl py-3 items-center" style={{ opacity: approveMutation.isPending ? 0.7 : 1 }}>
-                      {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold">Aprovar</Text>}
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
-            </View>
+            </>
           )}
         </ScrollView>
+
+        {/* ─── Barra de ações fixa na parte inferior ─── */}
+        {showFixedButtons && (
+          <View style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 16,
+            backgroundColor: colors.background,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            flexDirection: "row",
+            gap: 12,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 8,
+          }}>
+            {/* Botão Rejeitar */}
+            <TouchableOpacity
+              onPress={() => setShowRejectModal(true)}
+              disabled={rejectMutation.isPending || approveMutation.isPending}
+              style={{
+                flex: 1,
+                backgroundColor: `${colors.error}15`,
+                borderWidth: 1.5,
+                borderColor: `${colors.error}50`,
+                borderRadius: 14,
+                paddingVertical: 14,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+              }}
+            >
+              {rejectMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.error} />
+              ) : (
+                <>
+                  <Text style={{ fontSize: 16 }}>❌</Text>
+                  <Text style={{ color: colors.error, fontWeight: "700", fontSize: 15 }}>Rejeitar</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            {/* Botão Aprovar */}
+            <TouchableOpacity
+              onPress={() => setShowApproveModal(true)}
+              disabled={approveMutation.isPending || rejectMutation.isPending}
+              style={{
+                flex: 2,
+                backgroundColor: colors.success,
+                borderRadius: 14,
+                paddingVertical: 14,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 6,
+                shadowColor: colors.success,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 6,
+                elevation: 4,
+              }}
+            >
+              {approveMutation.isPending ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Text style={{ fontSize: 16 }}>✅</Text>
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Aprovar</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
+
+      {/* Modais */}
+      <ApproveModal
+        visible={showApproveModal}
+        onClose={() => setShowApproveModal(false)}
+        onConfirm={(comment) => approveMutation.mutate({ requestId: request.id, comment: comment || undefined })}
+        isLoading={approveMutation.isPending}
+      />
+      <RejectModal
+        visible={showRejectModal}
+        onClose={() => setShowRejectModal(false)}
+        onConfirm={(comment) => rejectMutation.mutate({ requestId: request.id, comment })}
+        isLoading={rejectMutation.isPending}
+      />
     </ScreenContainer>
   );
 }

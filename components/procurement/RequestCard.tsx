@@ -1,6 +1,7 @@
 import React from "react";
-import { Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
 import { StatusBadge, UrgencyBadge, DeadlineTimer } from "./Badges";
+import { useColors } from "@/hooks/use-colors";
 import type { RequestStatus, UrgencyLevel } from "@/shared/types";
 
 interface RequestCardProps {
@@ -16,6 +17,13 @@ interface RequestCardProps {
     createdAt: Date | string;
   };
   onPress: () => void;
+  /** Se fornecido, exibe botões de ação rápida Aprovar/Rejeitar no card */
+  onApprove?: () => void;
+  onReject?: () => void;
+  isApproving?: boolean;
+  isRejecting?: boolean;
+  /** Quando true, mostra apenas o botão Aprovar (etapas sem rejeição direta) */
+  approveOnly?: boolean;
 }
 
 function formatCurrency(value?: string | null): string {
@@ -25,36 +33,133 @@ function formatCurrency(value?: string | null): string {
   return num.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-export function RequestCard({ request, onPress }: RequestCardProps) {
+export function RequestCard({
+  request,
+  onPress,
+  onApprove,
+  onReject,
+  isApproving,
+  isRejecting,
+  approveOnly,
+}: RequestCardProps) {
+  const colors = useColors();
+  const showActions = !!onApprove;
+
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
     >
-      <View className="bg-surface border border-border rounded-2xl p-4 mb-3">
-        <View className="flex-row items-start justify-between mb-2">
-          <View className="flex-1 mr-2">
-            <Text className="text-xs text-muted font-mono">{request.requestNumber}</Text>
-            <Text className="text-sm font-semibold text-foreground mt-0.5" numberOfLines={2}>
-              {request.application}
-            </Text>
-            <Text className="text-xs text-muted mt-0.5">{request.department}</Text>
+      <View
+        style={{
+          backgroundColor: colors.surface,
+          borderWidth: showActions ? 1.5 : 1,
+          borderColor: showActions ? `${colors.warning}50` : colors.border,
+          borderRadius: 16,
+          marginBottom: 12,
+          overflow: "hidden",
+        }}
+      >
+        {/* Faixa de destaque para cards com ação pendente */}
+        {showActions && (
+          <View style={{ backgroundColor: `${colors.warning}15`, paddingHorizontal: 14, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text style={{ fontSize: 12 }}>⏳</Text>
+            <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "700" }}>AGUARDANDO SUA AÇÃO</Text>
           </View>
-          <StatusBadge status={request.status as RequestStatus} />
-        </View>
-        <View className="flex-row items-center justify-between mt-2 pt-2 border-t border-border">
-          <View className="flex-row items-center gap-2">
-            <UrgencyBadge level={request.urgencyLevel as UrgencyLevel} />
-            {request.deadlineAt && (
-              <DeadlineTimer deadline={request.deadlineAt} />
-            )}
+        )}
+
+        <View style={{ padding: 14 }}>
+          {/* Cabeçalho */}
+          <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={{ fontSize: 11, color: colors.muted, fontFamily: "monospace" }}>{request.requestNumber}</Text>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginTop: 2 }} numberOfLines={2}>
+                {request.application}
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{request.department}</Text>
+            </View>
+            <StatusBadge status={request.status as RequestStatus} />
           </View>
-          <View className="items-end">
-            <Text className="text-xs text-muted">Valor est.</Text>
-            <Text className="text-sm font-bold text-foreground">
-              {formatCurrency(request.totalEstimatedValue)}
-            </Text>
+
+          {/* Rodapé com urgência e valor */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTopWidth: 0.5, borderTopColor: colors.border }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <UrgencyBadge level={request.urgencyLevel as UrgencyLevel} />
+              {request.deadlineAt && <DeadlineTimer deadline={request.deadlineAt} />}
+            </View>
+            <View style={{ alignItems: "flex-end" }}>
+              <Text style={{ fontSize: 11, color: colors.muted }}>Valor est.</Text>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
+                {formatCurrency(request.totalEstimatedValue)}
+              </Text>
+            </View>
           </View>
+
+          {/* Botões de ação rápida */}
+          {showActions && (
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+              {/* Botão Rejeitar — só aparece quando não é approveOnly */}
+              {!approveOnly && (
+                <TouchableOpacity
+                  onPress={(e) => { e.stopPropagation?.(); onReject?.(); }}
+                  disabled={isRejecting || isApproving}
+                  style={{
+                    flex: 1,
+                    backgroundColor: `${colors.error}12`,
+                    borderWidth: 1.5,
+                    borderColor: `${colors.error}40`,
+                    borderRadius: 10,
+                    paddingVertical: 10,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 5,
+                    opacity: (isRejecting || isApproving) ? 0.6 : 1,
+                  }}
+                >
+                  {isRejecting ? (
+                    <ActivityIndicator size="small" color={colors.error} />
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 14 }}>❌</Text>
+                      <Text style={{ color: colors.error, fontWeight: "700", fontSize: 13 }}>Rejeitar</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+
+              {/* Botão Aprovar */}
+              <TouchableOpacity
+                onPress={(e) => { e.stopPropagation?.(); onApprove?.(); }}
+                disabled={isApproving || isRejecting}
+                style={{
+                  flex: approveOnly ? 1 : 2,
+                  backgroundColor: colors.success,
+                  borderRadius: 10,
+                  paddingVertical: 10,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 5,
+                  opacity: (isApproving || isRejecting) ? 0.6 : 1,
+                  shadowColor: colors.success,
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 4,
+                  elevation: 2,
+                }}
+              >
+                {isApproving ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 14 }}>✅</Text>
+                    <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>Aprovar</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </View>
     </Pressable>
