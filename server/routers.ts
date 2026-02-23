@@ -297,6 +297,79 @@ export const appRouter = router({
       ),
   }),
 
+  // ─── WhatsApp Configuration ────────────────────────────────────────────────
+  whatsapp: router({
+    status: protectedProcedure.query(async () => {
+      const { getProviderInfo, isConfigured } = await import("./whatsapp");
+      return getProviderInfo();
+    }),
+
+    testSend: protectedProcedure
+      .input(z.object({
+        phone: z.string().min(8),
+        message: z.string().min(1).optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { sendSimpleWhatsApp } = await import("./whatsapp");
+        const msg = input.message ?? `✅ Teste de notificação CGS Agrícola\n\nOlá, *${ctx.user.name ?? "Usuário"}*!\n\nSua integração com WhatsApp está funcionando corretamente.\n\n_Sistema de Compras CGS Agrícola_`;
+        const ok = await sendSimpleWhatsApp(input.phone, msg);
+        if (!ok) throw new Error("Falha ao enviar mensagem. Verifique as configurações do provedor.");
+        return { success: true };
+      }),
+
+    notifyApproversNow: protectedProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        // Manually re-trigger notifications for a pending request
+        const [req] = await (await db.getDb() as any)
+          .select()
+          .from((await import("../drizzle/schema")).purchaseRequests)
+          .where((await import("drizzle-orm")).eq((await import("../drizzle/schema")).purchaseRequests.id, input.requestId))
+          .limit(1);
+        if (!req) throw new Error("Solicitação não encontrada");
+
+        const { notifyApproverWithToken } = await import("./whatsapp");
+        const { users } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const dbConn = await db.getDb();
+        if (!dbConn) throw new Error("Database not available");
+
+        const roleMap: Record<string, string> = {
+          aguardando_gerente: "gerente",
+          aguardando_orcamento: "orcamento",
+          aguardando_controladoria: "controladoria",
+          aguardando_diretoria: "diretoria",
+          aguardando_ordem_compra: "financeiro",
+          aguardando_financeiro: "financeiro",
+        };
+        const role = roleMap[req.status];
+        if (!role) throw new Error("Solicitação não está em etapa pendente de aprovação");
+
+        const approvers = await dbConn.select().from(users).where(eq(users.procurementRole, role as any));
+        let sent = 0;
+        for (const approver of approvers) {
+          if (approver.phone) {
+            await notifyApproverWithToken({
+              approverPhone: approver.phone,
+              approverName: approver.name ?? "Aprovador",
+              approverId: approver.id,
+              requestNumber: req.requestNumber,
+              requestId: req.id,
+              requesterName: req.requesterName,
+              application: req.application,
+              urgencyLevel: req.urgencyLevel,
+              department: req.department,
+              stepLabel: role,
+              step: role,
+              totalValue: req.totalEstimatedValue ?? undefined,
+            });
+            sent++;
+          }
+        }
+        return { sent, approversFound: approvers.length };
+      }),
+  }),
+
 
   // ─── Units / Unidades ─────────────────────────────────────────────────────────
   units: router({

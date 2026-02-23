@@ -676,6 +676,7 @@ export async function approveRequest(
       }
       // Notify next approvers
       const nextRoleMap: Record<string, string> = {
+        aguardando_orcamento: "orcamento",
         aguardando_controladoria: "controladoria",
         aguardando_diretoria: "diretoria",
         aguardando_ordem_compra: "financeiro",
@@ -735,6 +736,27 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
     action: "rejeitada",
     comment,
   });
+
+  // Notify requester of rejection via WhatsApp
+  try {
+    const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+    if (req) {
+      const [requester] = await db.select().from(users).where(eq(users.id, req.requesterId)).limit(1);
+      if (requester?.phone) {
+        await WA.notifyRejection({
+          requesterPhone: requester.phone,
+          requesterName: requester.name ?? "Solicitante",
+          requestNumber: req.requestNumber,
+          requestId,
+          rejectorName: user.name ?? "Aprovador",
+          stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
+          comment,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[WhatsApp] Failed to send rejection notification:", e);
+  }
 }
 
 // ─── Master PIN ───────────────────────────────────────────────────────────────

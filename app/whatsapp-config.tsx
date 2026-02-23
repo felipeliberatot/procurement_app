@@ -7,9 +7,12 @@ import {
   Linking,
   Alert,
   StyleSheet,
+  TextInput,
+  ActivityIndicator,
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
 import { router } from "expo-router";
 
 const PROVIDERS = [
@@ -67,10 +70,22 @@ const PROVIDERS = [
 export default function WhatsAppConfigScreen() {
   const colors = useColors();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
-  // Status is determined by environment variables (configured server-side)
-  const isConfigured = false; // Will be true when WHATSAPP_API_URL and WHATSAPP_API_TOKEN are set
-  const provider = "não configurado";
-  const webhookUrl = "";
+  const [testPhone, setTestPhone] = useState("");
+
+  // Fetch real status from server
+  const { data: waStatus, isLoading: isLoadingStatus } = trpc.whatsapp.status.useQuery();
+  const isConfigured = waStatus?.configured ?? false;
+  const provider = waStatus?.provider ?? "não configurado";
+  const webhookUrl = waStatus?.webhookUrl ?? "";
+
+  const testMutation = trpc.whatsapp.testSend.useMutation({
+    onSuccess: () => {
+      Alert.alert("✅ Mensagem enviada!", `Mensagem de teste enviada para ${testPhone}. Verifique o WhatsApp.`);
+    },
+    onError: (e) => {
+      Alert.alert("❌ Falha no envio", e.message);
+    },
+  });
 
   const handleOpenProvider = (url: string) => {
     Linking.openURL(url);
@@ -231,6 +246,63 @@ export default function WhatsAppConfigScreen() {
             </View>
           ))}
         </View>
+
+        {/* Test Send */}
+        {isConfigured && (
+          <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+            <Text style={[styles.sectionTitle, { color: colors.foreground }]}>🧪 Testar Envio</Text>
+            <Text style={[styles.envDesc, { color: colors.muted }]}>
+              Envie uma mensagem de teste para verificar se a integração está funcionando.
+            </Text>
+            <TextInput
+              value={testPhone}
+              onChangeText={setTestPhone}
+              placeholder="Ex: 65999999999 ou +5565999999999"
+              placeholderTextColor={colors.muted}
+              keyboardType="phone-pad"
+              returnKeyType="done"
+              style={{
+                backgroundColor: colors.background,
+                borderWidth: 1,
+                borderColor: testPhone.trim() ? colors.primary : colors.border,
+                borderRadius: 10,
+                paddingHorizontal: 14,
+                paddingVertical: 11,
+                fontSize: 14,
+                color: colors.foreground,
+                marginBottom: 12,
+              }}
+            />
+            <TouchableOpacity
+              onPress={() => {
+                if (!testPhone.trim()) {
+                  Alert.alert("Campo obrigatório", "Informe o número de telefone.");
+                  return;
+                }
+                testMutation.mutate({ phone: testPhone.trim() });
+              }}
+              disabled={testMutation.isPending}
+              style={{
+                backgroundColor: testPhone.trim() ? colors.primary : colors.border,
+                borderRadius: 10,
+                paddingVertical: 13,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+                opacity: testMutation.isPending ? 0.7 : 1,
+              }}
+            >
+              {testMutation.isPending ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={{ color: testPhone.trim() ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
+                  📤 Enviar Mensagem de Teste
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Tip */}
         <View style={[styles.tipCard, { backgroundColor: "#eff6ff", borderColor: "#bfdbfe" }]}>
