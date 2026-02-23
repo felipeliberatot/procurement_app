@@ -255,14 +255,27 @@ class SDKServer {
     if (!user) {
       try {
         const userInfo = await this.getUserInfoWithJwt(sessionCookie ?? "");
-        await db.upsertUser({
-          openId: userInfo.openId,
-          name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
-          lastSignedIn: signedInAt,
-        });
-        user = await db.getUserByOpenId(userInfo.openId);
+
+        // Try to link by email first (for pre-registered users like master accounts)
+        if (userInfo.email) {
+          const linked = await db.linkUserByEmail(userInfo.openId, userInfo.email);
+          if (linked) {
+            console.log(`[Auth] Email-linked user found for ${userInfo.email}, fetching by new openId`);
+            user = await db.getUserByOpenId(userInfo.openId);
+          }
+        }
+
+        // If still no user, create a new one from OAuth info
+        if (!user) {
+          await db.upsertUser({
+            openId: userInfo.openId,
+            name: userInfo.name || null,
+            email: userInfo.email ?? null,
+            loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+            lastSignedIn: signedInAt,
+          });
+          user = await db.getUserByOpenId(userInfo.openId);
+        }
       } catch (error) {
         console.error("[Auth] Failed to sync user from OAuth:", error);
         throw ForbiddenError("Failed to sync user info");

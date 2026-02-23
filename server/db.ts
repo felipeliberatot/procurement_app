@@ -70,6 +70,35 @@ export async function getUserByOpenId(openId: string) {
   return result[0];
 }
 
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  return result[0];
+}
+
+/**
+ * Links a pre-registered user (created manually) to an OAuth login by matching email.
+ * If a user with the same email exists but a different openId, updates the openId to the OAuth one.
+ * Returns true if a link was performed, false otherwise.
+ */
+export async function linkUserByEmail(oauthOpenId: string, email: string): Promise<boolean> {
+  const db = await getDb();
+  if (!db || !email) return false;
+
+  // Find existing user with this email but different openId
+  const existing = await getUserByEmail(email);
+  if (!existing || existing.openId === oauthOpenId) return false;
+
+  // Update the openId to the OAuth one, preserving all other data
+  console.log(`[Auth] Linking pre-registered user '${existing.name}' (${email}) to OAuth openId: ${oauthOpenId}`);
+  await db.update(users)
+    .set({ openId: oauthOpenId, updatedAt: new Date() })
+    .where(eq(users.id, existing.id));
+
+  return true;
+}
+
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export async function listUsers() {

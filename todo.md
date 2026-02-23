@@ -178,3 +178,7 @@
 - [x] Master pode criar novos usuários diretamente no app
 - [x] Master pode editar cargo e nível de aprovação de qualquer usuário
 - [x] Indicador visual de usuário master no card e no perfil (badge roxo ⭐ MASTER)
+
+## Vinculação de Login por E-mail
+- [x] Implementar match por e-mail no login OAuth: se o e-mail do OAuth coincidir com um usuário pré-cadastrado, atualizar o openId para vincular a conta
+- [x] Preservar dados do usuário pré-cadastrado (cargo, nível de aprovação, departamento) ao vincular

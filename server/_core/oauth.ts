@@ -1,6 +1,6 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
-import { getUserByOpenId, upsertUser } from "../db";
+import { getUserByOpenId, linkUserByEmail, upsertUser } from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 
@@ -21,6 +21,24 @@ async function syncUser(userInfo: {
   }
 
   const lastSignedIn = new Date();
+
+  // Try to link by email first (for pre-registered users like master accounts)
+  // If a user with the same email exists with a different openId, update the openId
+  if (userInfo.email) {
+    const linked = await linkUserByEmail(userInfo.openId, userInfo.email);
+    if (linked) {
+      console.log(`[Auth] Pre-registered user linked by email: ${userInfo.email}`);
+      // Update lastSignedIn and name for the newly linked user
+      await upsertUser({
+        openId: userInfo.openId,
+        name: userInfo.name || null,
+        lastSignedIn,
+      });
+      const linked_user = await getUserByOpenId(userInfo.openId);
+      if (linked_user) return linked_user;
+    }
+  }
+
   await upsertUser({
     openId: userInfo.openId,
     name: userInfo.name || null,
