@@ -8,12 +8,14 @@ import {
   Alert,
   ActivityIndicator,
   StyleSheet,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { SignaturePad } from "@/components/signature-pad";
 
 type ItemReceipt = {
   itemId: number;
@@ -29,6 +31,7 @@ export default function MaloteReceiptScreen() {
   const utils = trpc.useUtils();
 
   const { data, isLoading } = trpc.malotes.getById.useQuery({ id: maloteId });
+
   const receiveMutation = trpc.malotes.receive.useMutation({
     onSuccess: () => {
       utils.malotes.list.invalidate();
@@ -42,6 +45,8 @@ export default function MaloteReceiptScreen() {
 
   const [receiptNotes, setReceiptNotes] = useState("");
   const [itemReceipts, setItemReceipts] = useState<Record<number, ItemReceipt>>({});
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [showSignaturePad, setShowSignaturePad] = useState(false);
 
   const setItemStatus = (itemId: number, status: "recebido" | "devolvido") => {
     setItemReceipts((prev) => ({
@@ -53,7 +58,12 @@ export default function MaloteReceiptScreen() {
   const setItemNotes = (itemId: number, notes: string) => {
     setItemReceipts((prev) => ({
       ...prev,
-      [itemId]: { ...prev[itemId], itemId, receiptStatus: prev[itemId]?.receiptStatus ?? "recebido", receiptNotes: notes },
+      [itemId]: {
+        ...prev[itemId],
+        itemId,
+        receiptStatus: prev[itemId]?.receiptStatus ?? "recebido",
+        receiptNotes: notes,
+      },
     }));
   };
 
@@ -62,16 +72,23 @@ export default function MaloteReceiptScreen() {
       Alert.alert("Atenção", "Este malote não possui itens.");
       return;
     }
-
-    // Verifica se todos os itens foram apontados
     const unappointed = data.items.filter((item) => !itemReceipts[item.id]);
     if (unappointed.length > 0) {
-      Alert.alert("Atenção", `Apontar o status de todos os ${data.items.length} item(s) antes de confirmar.`);
+      Alert.alert("Atenção", `Aponte o status de todos os ${data.items.length} item(s) antes de confirmar.`);
       return;
     }
-
+    if (!signatureData) {
+      Alert.alert(
+        "Assinatura Obrigatória",
+        "É necessário coletar a assinatura do responsável pelo recebimento.",
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Assinar Agora", onPress: () => setShowSignaturePad(true) },
+        ]
+      );
+      return;
+    }
     const hasReturn = Object.values(itemReceipts).some((r) => r.receiptStatus === "devolvido");
-
     Alert.alert(
       "Confirmar Recebimento",
       hasReturn
@@ -85,6 +102,7 @@ export default function MaloteReceiptScreen() {
             receiveMutation.mutate({
               maloteId,
               receiptNotes,
+              signatureData: signatureData ?? undefined,
               itemReceipts: Object.values(itemReceipts),
             }),
         },
@@ -127,12 +145,15 @@ export default function MaloteReceiptScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* Instrução */}
         <View style={[styles.infoBox, { backgroundColor: "#3B82F622", borderColor: "#3B82F6" }]}>
           <IconSymbol name="info.circle.fill" size={18} color="#3B82F6" />
           <Text style={[styles.infoText, { color: "#3B82F6" }]}>
-            Marque cada item como Recebido ou Devolvido. Itens devolvidos terão suas solicitações reabertas automaticamente.
+            Marque cada item como Recebido ou Devolvido e colete a assinatura do responsável.
           </Text>
         </View>
 
@@ -157,7 +178,6 @@ export default function MaloteReceiptScreen() {
               </Text>
               <Text style={[styles.itemReq, { color: colors.muted }]}>Solicitante: {item.requesterName}</Text>
 
-              {/* Botões de status */}
               <View style={styles.statusRow}>
                 <TouchableOpacity
                   style={[
@@ -186,7 +206,6 @@ export default function MaloteReceiptScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Motivo da devolução */}
               {isDevolvido && (
                 <TextInput
                   style={[styles.notesInput, { color: colors.foreground, borderColor: "#EF4444", backgroundColor: colors.background }]}
@@ -214,14 +233,66 @@ export default function MaloteReceiptScreen() {
           multiline
           numberOfLines={3}
         />
+
+        {/* ─── Assinatura Digital ─── */}
+        <Text style={[styles.sectionTitle, { color: colors.foreground, marginTop: 20 }]}>
+          Assinatura Digital do Responsável
+        </Text>
+        <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 12 }}>
+          Obrigatória para confirmar o recebimento. O responsável deve assinar abaixo.
+        </Text>
+
+        {signatureData ? (
+          <View style={[styles.signaturePreviewBox, { borderColor: "#22C55E", backgroundColor: colors.surface }]}>
+            <View style={[styles.signaturePreviewHeader, { borderBottomColor: "#22C55E33" }]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <IconSymbol name="checkmark.seal.fill" size={16} color="#22C55E" />
+                <Text style={{ color: "#22C55E", fontSize: 13, fontWeight: "600" }}>Assinatura coletada</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => { setSignatureData(null); setShowSignaturePad(true); }}
+              >
+                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>Refazer</Text>
+              </TouchableOpacity>
+            </View>
+            <Image
+              source={{ uri: signatureData }}
+              style={styles.signaturePreviewImage}
+              resizeMode="contain"
+            />
+          </View>
+        ) : showSignaturePad ? (
+          <View style={[styles.signaturePadBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+            <SignaturePad
+              height={180}
+              onSave={(svg) => {
+                setSignatureData(svg);
+                setShowSignaturePad(false);
+              }}
+              onClear={() => setSignatureData(null)}
+            />
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.signatureOpenBtn, { borderColor: colors.primary, backgroundColor: colors.surface }]}
+            onPress={() => setShowSignaturePad(true)}
+            activeOpacity={0.8}
+          >
+            <IconSymbol name="pencil" size={22} color={colors.primary} />
+            <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "600", marginLeft: 8 }}>
+              Coletar Assinatura
+            </Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Botão de confirmar */}
       <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
         <TouchableOpacity
-          style={[styles.confirmBtn, { backgroundColor: colors.primary }]}
+          style={[styles.confirmBtn, { backgroundColor: signatureData ? colors.primary : colors.border }]}
           onPress={handleConfirm}
           activeOpacity={0.85}
+          disabled={receiveMutation.isPending}
         >
           {receiveMutation.isPending ? (
             <ActivityIndicator color="#fff" />
@@ -258,7 +329,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
   },
   infoText: { flex: 1, fontSize: 13, lineHeight: 18 },
-  sectionTitle: { fontSize: 15, fontWeight: "600", marginBottom: 10 },
+  sectionTitle: { fontSize: 15, fontWeight: "600", marginBottom: 6 },
   itemCard: {
     borderRadius: 12,
     padding: 14,
@@ -285,6 +356,38 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 14,
     minHeight: 60,
+  },
+  signatureOpenBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 18,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+  },
+  signaturePadBox: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  signaturePreviewBox: {
+    borderRadius: 12,
+    borderWidth: 1.5,
+    overflow: "hidden",
+  },
+  signaturePreviewHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  signaturePreviewImage: {
+    width: "100%",
+    height: 120,
+    backgroundColor: "#fff",
   },
   footer: {
     position: "absolute",

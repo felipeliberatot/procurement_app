@@ -854,6 +854,7 @@ export async function receiveMalote(opts: {
   receivedById: number;
   receivedByName: string;
   receiptNotes: string;
+  signatureData?: string;
   itemReceipts: Array<{ itemId: number; receiptStatus: "recebido" | "devolvido"; receiptNotes?: string }>;
 }): Promise<void> {
   const db = await getDb();
@@ -885,14 +886,16 @@ export async function receiveMalote(opts: {
   }
 
   const hasReturn = opts.itemReceipts.some(i => i.receiptStatus === "devolvido");
+  const finalStatus = hasReturn ? "devolvido" : "recebido";
   // Buscar dados do malote antes de atualizar
   const [maloteForNotif] = await db.select().from(malotes).where(eq(malotes.id, opts.maloteId)).limit(1);
   await db.update(malotes).set({
-    status: hasReturn ? "devolvido" : "recebido",
+    status: finalStatus,
     receivedAt: new Date(),
     receivedById: opts.receivedById,
     receivedByName: opts.receivedByName,
     receiptNotes: opts.receiptNotes,
+    signatureData: opts.signatureData ?? null,
   }).where(eq(malotes.id, opts.maloteId));
   // Notificar responsável da unidade de origem via WhatsApp
   if (maloteForNotif) {

@@ -365,6 +365,7 @@ export const appRouter = router({
       .input(z.object({
         maloteId: z.number(),
         receiptNotes: z.string().default(""),
+        signatureData: z.string().optional(),
         itemReceipts: z.array(z.object({
           itemId: z.number(),
           receiptStatus: z.enum(["recebido", "devolvido"]),
@@ -377,6 +378,7 @@ export const appRouter = router({
           receivedById: ctx.user.id,
           receivedByName: ctx.user.name ?? "Usuário",
           receiptNotes: input.receiptNotes,
+          signatureData: input.signatureData,
           itemReceipts: input.itemReceipts,
         })
       ),
