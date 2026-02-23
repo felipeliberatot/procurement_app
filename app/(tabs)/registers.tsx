@@ -4,7 +4,9 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import type { ProcurementRole } from "@/shared/types";
 import { ROLE_LABELS } from "@/shared/types";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
+import * as Sharing from "expo-sharing";
 import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -848,6 +850,80 @@ export default function RegistersScreen() {
     );
   };
 
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportCSV = async () => {
+    if (!usersList || usersList.length === 0) {
+      Alert.alert("Exportar CSV", "Nenhum usuário para exportar.");
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      // Build CSV content
+      const headers = ["Nome", "E-mail", "WhatsApp", "Cargo", "Nível de Aprovação", "Perfil de Acesso", "Departamento", "Status"];
+      const approvalLabel: Record<string, string> = {
+        nenhum: "Nenhum",
+        gerente: "Gerente de Unidade",
+        controladoria: "Controladoria",
+        diretoria: "Diretoria",
+        financeiro: "Financeiro",
+        master: "Master",
+      };
+      const rows = usersList.map((u: any) => [
+        u.name ?? "",
+        u.email ?? "",
+        u.phone ?? "",
+        u.jobTitle ?? "",
+        approvalLabel[u.approvalLevel ?? "nenhum"] ?? (u.approvalLevel ?? "Nenhum"),
+        ROLE_LABELS[u.procurementRole as ProcurementRole] ?? (u.procurementRole ?? ""),
+        u.department ?? "",
+        u.active !== false ? "Ativo" : "Inativo",
+      ]);
+
+      const escape = (val: string) => `"${String(val).replace(/"/g, '""')}"`;
+      const csvContent = [
+        headers.map(escape).join(","),
+        ...rows.map((row) => row.map(escape).join(",")),
+      ].join("\n");
+
+      if (Platform.OS === "web") {
+        // Web: trigger download via anchor element
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+      } else {
+        // Native: write file and share
+        const fileName = `usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
+        const fileUri = (FileSystem.documentDirectory ?? "") + fileName;
+        await FileSystem.writeAsStringAsync(fileUri, "\uFEFF" + csvContent, {
+          encoding: FileSystem.EncodingType.UTF8,
+        });
+        const available = await Sharing.isAvailableAsync();
+        if (!available) {
+          Alert.alert("Erro", "Compartilhamento não disponível neste dispositivo.");
+          return;
+        }
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "text/csv",
+          dialogTitle: "Exportar lista de usuários",
+          UTI: "public.comma-separated-values-text",
+        });
+      }
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (err) {
+      console.error("[CSV Export] Error:", err);
+      Alert.alert("Erro", "Não foi possível exportar o CSV.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <ScreenContainer>
       {/* Header */}
@@ -1027,21 +1103,52 @@ export default function RegistersScreen() {
               </View>
             </ScrollView>
 
-            {/* Add user button (admin or master) */}
+            {/* Add user button + Export CSV (admin or master) */}
             {(isAdmin || isMaster) && (
-              <TouchableOpacity
-                onPress={handleNewUser}
-                style={{
-                  backgroundColor: colors.primary,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                }}
-              >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
-                  + Novo Usuário
-                </Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={handleNewUser}
+                  style={{
+                    flex: 1,
+                    backgroundColor: colors.primary,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: "center",
+                  }}
+                >
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
+                    + Novo Usuário
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Export CSV — master only */}
+                {isMaster && (
+                  <TouchableOpacity
+                    onPress={handleExportCSV}
+                    disabled={isExporting}
+                    style={{
+                      backgroundColor: isExporting ? colors.surface : "#7C3AED",
+                      borderRadius: 12,
+                      paddingVertical: 12,
+                      paddingHorizontal: 16,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexDirection: "row",
+                      gap: 6,
+                      opacity: isExporting ? 0.6 : 1,
+                    }}
+                  >
+                    {isExporting ? (
+                      <ActivityIndicator size="small" color="white" />
+                    ) : (
+                      <Text style={{ fontSize: 16 }}>📄</Text>
+                    )}
+                    <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>
+                      {isExporting ? "Exportando..." : "CSV"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
           </View>
 

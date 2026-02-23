@@ -191,3 +191,8 @@
 - [x] Painel visual de aprovadores por nível na aba Usuários
 - [x] Painel mostra quem está em cada nível (Gerente, Controladoria, Diretoria, Financeiro, Master)
 - [x] Alerta visual quando um nível não tem responsável cadastrado
+
+## Exportação CSV de Usuários (Master)
+- [x] Função de geração de CSV com campos: nome, e-mail, WhatsApp, cargo, nível de aprovação, perfil de acesso, departamento, status
+- [x] Botão "Exportar CSV" visível apenas para o usuário master na aba Usuários
+- [x] Compartilhar o arquivo gerado via share sheet nativo do dispositivo
