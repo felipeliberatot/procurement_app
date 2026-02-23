@@ -1361,201 +1361,200 @@ export default function RegistersScreen() {
       {/* ── Users Tab ── */}
       {activeTab === "users" && (
         <View style={{ flex: 1 }}>
-          {/* Search + Add */}
-          <View style={{ padding: 12, gap: 8 }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                paddingVertical: 10,
-                gap: 8,
-              }}
-            >
-              <Text style={{ fontSize: 16 }}>🔍</Text>
-              <TextInput
-                value={userSearch}
-                onChangeText={setUserSearch}
-                placeholder="Buscar por nome, e-mail ou departamento..."
-                placeholderTextColor={colors.muted}
-                style={{ flex: 1, fontSize: 13, color: colors.foreground }}
-                returnKeyType="search"
-              />
-              {userSearch.length > 0 && (
-                <Pressable onPress={() => setUserSearch("")} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-                  <Text style={{ color: colors.muted, fontSize: 18 }}>×</Text>
-                </Pressable>
-              )}
-            </View>
-
-            {/* Role filter chips */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -4 }}>
-              <View style={{ flexDirection: "row", gap: 6, paddingHorizontal: 4 }}>
-                {([{ key: "all", label: "Todos" }, ...ROLES.map((r) => ({ key: r, label: ROLE_LABELS[r] }))] as Array<{ key: string; label: string }>).map(
-                  (item) => {
-                    const selected = roleFilter === item.key;
-                    const roleColor =
-                      item.key === "all" ? colors.primary : ROLE_COLORS[item.key as ProcurementRole];
-                    return (
-                      <Pressable
-                        key={item.key}
-                        onPress={() => setRoleFilter(item.key as ProcurementRole | "all")}
-                        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                      >
-                        <View
-                          style={{
-                            paddingHorizontal: 12,
-                            paddingVertical: 6,
-                            borderRadius: 20,
-                            backgroundColor: selected ? roleColor : colors.surface,
-                            borderWidth: 1,
-                            borderColor: selected ? roleColor : colors.border,
-                          }}
-                        >
-                          <Text
-                            style={{
-                              fontSize: 12,
-                              fontWeight: "600",
-                              color: selected ? "white" : colors.muted,
-                            }}
-                          >
-                            {item.label}
-                          </Text>
-                        </View>
-                      </Pressable>
-                    );
-                  }
-                )}
-              </View>
-            </ScrollView>
-
-            {/* Add user button + Export CSV (visible to all authenticated users; PIN required for master) */}
-            {isAuthenticated && (
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <TouchableOpacity
-                  onPress={handleNewUser}
-                  style={{
-                    flex: 1,
-                    backgroundColor: colors.primary,
-                    borderRadius: 12,
-                    paddingVertical: 12,
-                    alignItems: "center",
-                  }}
-                >
-                  <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
-                    + Novo Usuário
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Export CSV — master only */}
-                {isMaster && (
-                  <TouchableOpacity
-                    onPress={handleExportCSV}
-                    disabled={isExporting}
-                    style={{
-                      backgroundColor: isExporting ? colors.surface : "#7C3AED",
-                      borderRadius: 12,
-                      paddingVertical: 12,
-                      paddingHorizontal: 16,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexDirection: "row",
-                      gap: 6,
-                      opacity: isExporting ? 0.6 : 1,
-                    }}
-                  >
-                    {isExporting ? (
-                      <ActivityIndicator size="small" color="white" />
-                    ) : (
-                      <Text style={{ fontSize: 16 }}>📄</Text>
-                    )}
-                    <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>
-                      {isExporting ? "Exportando..." : "CSV"}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-          </View>
-
-          {/* Approval Levels Panel */}
-          {usersList && usersList.length > 0 && (
-            <View style={{ paddingHorizontal: 12, paddingBottom: 8 }}>
-              <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                Painel de Aprovadores
-              </Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={{ flexDirection: "row", gap: 8 }}>
-                  {[
-                    { key: "master", label: "Master", icon: "⭐", color: "#7C3AED" },
-                    { key: "gerente", label: "Gerente", icon: "🏢", color: "#0EA5E9" },
-                    { key: "orcamento", label: "Orçamento", icon: "📋", color: "#8B5CF6" },
-                    { key: "controladoria", label: "Controladoria", icon: "📊", color: "#F59E0B" },
-                    { key: "diretoria", label: "Diretoria", icon: "🏆", color: "#EF4444" },
-                    { key: "financeiro", label: "Financeiro", icon: "💰", color: "#10B981" },
-                  ].map((lvl) => {
-                    const responsible = usersList.filter(
-                      (u) => (u as any).approvalLevel === lvl.key && (u as any).active !== false
-                    );
-                    const isEmpty = responsible.length === 0;
-                    return (
-                      <View
-                        key={lvl.key}
-                        style={{
-                          backgroundColor: isEmpty ? `${colors.error}10` : `${lvl.color}12`,
-                          borderWidth: 1,
-                          borderColor: isEmpty ? `${colors.error}40` : `${lvl.color}30`,
-                          borderRadius: 12,
-                          padding: 10,
-                          minWidth: 120,
-                          maxWidth: 160,
-                        }}
-                      >
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                          <Text style={{ fontSize: 14 }}>{lvl.icon}</Text>
-                          <Text style={{ fontSize: 11, fontWeight: "700", color: isEmpty ? colors.error : lvl.color }}>
-                            {lvl.label}
-                          </Text>
-                        </View>
-                        {isEmpty ? (
-                          <Text style={{ fontSize: 10, color: colors.error, fontWeight: "600" }}>
-                            ⚠️ Sem responsável
-                          </Text>
-                        ) : (
-                          responsible.slice(0, 2).map((u) => (
-                            <Text key={(u as any).id} style={{ fontSize: 10, color: colors.foreground, marginBottom: 1 }} numberOfLines={1}>
-                              • {(u as any).name ?? (u as any).email ?? "—"}
-                            </Text>
-                          ))
-                        )}
-                        {responsible.length > 2 && (
-                          <Text style={{ fontSize: 10, color: colors.muted }}>+{responsible.length - 2} mais</Text>
-                        )}
-                      </View>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Results count */}
-          <View style={{ paddingHorizontal: 16, paddingBottom: 4 }}>
-            <Text style={{ fontSize: 12, color: colors.muted }}>
-              {filteredUsers.length} usuário{filteredUsers.length !== 1 ? "s" : ""} encontrado{filteredUsers.length !== 1 ? "s" : ""}
-            </Text>
-          </View>
-
-          {/* List */}
+          {/* List with header containing search/filters/buttons */}
           <FlatList
             data={filteredUsers}
             keyExtractor={(item) => String(item.id)}
             contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <View style={{ gap: 8, paddingTop: 12, paddingBottom: 4 }}>
+                {/* Search bar */}
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 12,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ fontSize: 16 }}>🔍</Text>
+                  <TextInput
+                    value={userSearch}
+                    onChangeText={setUserSearch}
+                    placeholder="Buscar por nome, e-mail ou departamento..."
+                    placeholderTextColor={colors.muted}
+                    style={{ flex: 1, fontSize: 13, color: colors.foreground }}
+                    returnKeyType="search"
+                  />
+                  {userSearch.length > 0 && (
+                    <Pressable onPress={() => setUserSearch("")} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                      <Text style={{ color: colors.muted, fontSize: 18 }}>×</Text>
+                    </Pressable>
+                  )}
+                </View>
+
+                {/* Role filter chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -4 }}>
+                  <View style={{ flexDirection: "row", gap: 6, paddingHorizontal: 4 }}>
+                    {([{ key: "all", label: "Todos" }, ...ROLES.map((r) => ({ key: r, label: ROLE_LABELS[r] }))] as Array<{ key: string; label: string }>).map(
+                      (item) => {
+                        const selected = roleFilter === item.key;
+                        const roleColor =
+                          item.key === "all" ? colors.primary : ROLE_COLORS[item.key as ProcurementRole];
+                        return (
+                          <Pressable
+                            key={item.key}
+                            onPress={() => setRoleFilter(item.key as ProcurementRole | "all")}
+                            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                          >
+                            <View
+                              style={{
+                                paddingHorizontal: 12,
+                                paddingVertical: 6,
+                                borderRadius: 20,
+                                backgroundColor: selected ? roleColor : colors.surface,
+                                borderWidth: 1,
+                                borderColor: selected ? roleColor : colors.border,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: "600",
+                                  color: selected ? "white" : colors.muted,
+                                }}
+                              >
+                                {item.label}
+                              </Text>
+                            </View>
+                          </Pressable>
+                        );
+                      }
+                    )}
+                  </View>
+                </ScrollView>
+
+                {/* Add user button + Export CSV */}
+                {isAuthenticated && (
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <TouchableOpacity
+                      onPress={handleNewUser}
+                      style={{
+                        flex: 1,
+                        backgroundColor: colors.primary,
+                        borderRadius: 12,
+                        paddingVertical: 12,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
+                        + Novo Usuário
+                      </Text>
+                    </TouchableOpacity>
+
+                    {/* Export CSV — master only */}
+                    {isMaster && (
+                      <TouchableOpacity
+                        onPress={handleExportCSV}
+                        disabled={isExporting}
+                        style={{
+                          backgroundColor: isExporting ? colors.surface : "#7C3AED",
+                          borderRadius: 12,
+                          paddingVertical: 12,
+                          paddingHorizontal: 16,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexDirection: "row",
+                          gap: 6,
+                          opacity: isExporting ? 0.6 : 1,
+                        }}
+                      >
+                        {isExporting ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <Text style={{ fontSize: 16 }}>📄</Text>
+                        )}
+                        <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>
+                          {isExporting ? "Exportando..." : "CSV"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {/* Approval Levels Panel */}
+                {usersList && usersList.length > 0 && (
+                  <View style={{ paddingBottom: 4 }}>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Painel de Aprovadores
+                    </Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={{ flexDirection: "row", gap: 8 }}>
+                        {[
+                          { key: "master", label: "Master", icon: "⭐", color: "#7C3AED" },
+                          { key: "gerente", label: "Gerente", icon: "🏢", color: "#0EA5E9" },
+                          { key: "orcamento", label: "Orçamento", icon: "📋", color: "#8B5CF6" },
+                          { key: "controladoria", label: "Controladoria", icon: "📊", color: "#F59E0B" },
+                          { key: "diretoria", label: "Diretoria", icon: "🏆", color: "#EF4444" },
+                          { key: "financeiro", label: "Financeiro", icon: "💰", color: "#10B981" },
+                        ].map((lvl) => {
+                          const responsible = usersList.filter(
+                            (u) => (u as any).approvalLevel === lvl.key && (u as any).active !== false
+                          );
+                          const isEmpty = responsible.length === 0;
+                          return (
+                            <View
+                              key={lvl.key}
+                              style={{
+                                backgroundColor: isEmpty ? `${colors.error}10` : `${lvl.color}12`,
+                                borderWidth: 1,
+                                borderColor: isEmpty ? `${colors.error}40` : `${lvl.color}30`,
+                                borderRadius: 12,
+                                padding: 10,
+                                minWidth: 120,
+                                maxWidth: 160,
+                              }}
+                            >
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                                <Text style={{ fontSize: 14 }}>{lvl.icon}</Text>
+                                <Text style={{ fontSize: 11, fontWeight: "700", color: isEmpty ? colors.error : lvl.color }}>
+                                  {lvl.label}
+                                </Text>
+                              </View>
+                              {isEmpty ? (
+                                <Text style={{ fontSize: 10, color: colors.error, fontWeight: "600" }}>
+                                  ⚠️ Sem responsável
+                                </Text>
+                              ) : (
+                                responsible.slice(0, 2).map((u) => (
+                                  <Text key={(u as any).id} style={{ fontSize: 10, color: colors.foreground, marginBottom: 1 }} numberOfLines={1}>
+                                    • {(u as any).name ?? (u as any).email ?? "—"}
+                                  </Text>
+                                ))
+                              )}
+                              {responsible.length > 2 && (
+                                <Text style={{ fontSize: 10, color: colors.muted }}>+{responsible.length - 2} mais</Text>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    </ScrollView>
+                  </View>
+                )}
+
+                {/* Results count */}
+                <Text style={{ fontSize: 12, color: colors.muted, paddingBottom: 4 }}>
+                  {filteredUsers.length} usuário{filteredUsers.length !== 1 ? "s" : ""} encontrado{filteredUsers.length !== 1 ? "s" : ""}
+                </Text>
+              </View>
+            }
             ListEmptyComponent={
               usersLoading ? (
                 <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
@@ -1577,154 +1576,118 @@ export default function RegistersScreen() {
               const roleColor = ROLE_COLORS[(item as any).procurementRole as ProcurementRole] ?? colors.primary;
               const isActive = (item as any).active !== false;
               return (
-                <Pressable
-                  onPress={() => handleEditUser(item)}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.75 : 1 })}
+                <View
+                  style={{
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 16,
+                    padding: 14,
+                    marginBottom: 10,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                    opacity: isActive ? 1 : 0.6,
+                  }}
                 >
+                  {/* Avatar */}
                   <View
                     style={{
-                      backgroundColor: colors.surface,
-                      borderWidth: 1,
-                      borderColor: colors.border,
-                      borderRadius: 16,
-                      padding: 14,
-                      marginBottom: 10,
-                      flexDirection: "row",
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      backgroundColor: `${roleColor}20`,
                       alignItems: "center",
-                      gap: 12,
-                      opacity: isActive ? 1 : 0.6,
+                      justifyContent: "center",
+                      borderWidth: 2,
+                      borderColor: `${roleColor}40`,
                     }}
                   >
-                    {/* Avatar */}
-                    <View
-                      style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: `${roleColor}20`,
-                        alignItems: "center",
-                        justifyContent: "center",
-                        borderWidth: 2,
-                        borderColor: `${roleColor}40`,
-                      }}
-                    >
+                    <Text style={{ fontSize: 18, fontWeight: "800", color: roleColor }}>
+                      {(item.name ?? "?")[0].toUpperCase()}
+                    </Text>
+                  </View>
+
+                  {/* Info */}
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       <Text
-                        style={{ fontSize: 18, fontWeight: "800", color: roleColor }}
+                        style={{ fontSize: 14, fontWeight: "700", color: colors.foreground, flexShrink: 1 }}
+                        numberOfLines={1}
                       >
-                        {(item.name ?? "?")[0].toUpperCase()}
+                        {item.name ?? "Sem nome"}
                       </Text>
-                    </View>
-
-                    {/* Info */}
-                      <View style={{ flex: 1, gap: 2 }}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                          <Text
-                            style={{
-                              fontSize: 14,
-                              fontWeight: "700",
-                              color: colors.foreground,
-                              flexShrink: 1,
-                            }}
-                            numberOfLines={1}
-                          >
-                            {item.name ?? "Sem nome"}
-                          </Text>
-                          {!isActive && (
-                            <View
-                              style={{
-                                backgroundColor: colors.border,
-                                borderRadius: 6,
-                                paddingHorizontal: 6,
-                                paddingVertical: 1,
-                              }}
-                            >
-                              <Text style={{ fontSize: 10, color: colors.muted, fontWeight: "600" }}>
-                                INATIVO
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                        {/* Cargo */}
-                        {(item as any).jobTitle && (
-                          <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }} numberOfLines={1}>
-                            {(item as any).jobTitle}
-                          </Text>
-                        )}
-                        {item.email && (
-                          <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>
-                            {item.email}
-                          </Text>
-                        )}
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
-                          {(item as any).department && (
-                            <Text style={{ fontSize: 11, color: colors.muted }}>
-                              🏢 {(item as any).department}
-                            </Text>
-                          )}
-                          {(item as any).phone && (
-                            <Text style={{ fontSize: 11, color: colors.muted }}>
-                              📱 {(item as any).phone}
-                            </Text>
-                          )}
-                          {(item as any).approvalLevel && (item as any).approvalLevel !== "nenhum" && (item as any).approvalLevel !== "master" && (
-                            <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>
-                              ✓ Aprova: {APPROVAL_LEVELS.find(l => l.key === (item as any).approvalLevel)?.label ?? (item as any).approvalLevel}
-                            </Text>
-                          )}
-                        </View>
-                      </View>
-
-                    {/* Role badge + actions */}
-                    <View style={{ alignItems: "flex-end", gap: 6 }}>
-                      <View
-                        style={{
-                          backgroundColor: `${roleColor}15`,
-                          borderRadius: 8,
-                          paddingHorizontal: 8,
-                          paddingVertical: 3,
-                          borderWidth: 1,
-                          borderColor: `${roleColor}30`,
-                        }}
-                      >
-                        <Text
-                          style={{ fontSize: 11, fontWeight: "700", color: roleColor }}
-                        >
-                          {ROLE_LABELS[(item as any).procurementRole as ProcurementRole] ?? "—"}
-                        </Text>
-                      </View>
-                      {/* Master badge */}
-                      {(item as any).approvalLevel === "master" && (
-                        <View style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 2,
-                          backgroundColor: "#7C3AED20",
-                          borderRadius: 8,
-                          paddingHorizontal: 6,
-                          paddingVertical: 2,
-                          borderWidth: 1,
-                          borderColor: "#7C3AED40",
-                        }}>
-                          <Text style={{ fontSize: 9 }}>⭐</Text>
-                          <Text style={{ fontSize: 9, fontWeight: "700", color: "#7C3AED" }}>MASTER</Text>
+                      {!isActive && (
+                        <View style={{ backgroundColor: colors.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 1 }}>
+                          <Text style={{ fontSize: 10, color: colors.muted, fontWeight: "600" }}>INATIVO</Text>
                         </View>
                       )}
-                      {(isAdmin || isMaster) && (
-                        <Pressable
-                          onPress={(e) => {
-                            e.stopPropagation?.();
-                            handleToggleActive(item);
-                          }}
-                          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-                        >
-                          <Text style={{ fontSize: 11, color: isActive ? colors.error : colors.success }}>
-                            {isActive ? "Desativar" : "Ativar"}
-                          </Text>
-                        </Pressable>
+                    </View>
+                    {(item as any).jobTitle && (
+                      <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }} numberOfLines={1}>
+                        {(item as any).jobTitle}
+                      </Text>
+                    )}
+                    {item.email && (
+                      <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>
+                        {item.email}
+                      </Text>
+                    )}
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+                      {(item as any).department && (
+                        <Text style={{ fontSize: 11, color: colors.muted }}>🏢 {(item as any).department}</Text>
+                      )}
+                      {(item as any).phone && (
+                        <Text style={{ fontSize: 11, color: colors.muted }}>📱 {(item as any).phone}</Text>
+                      )}
+                      {(item as any).approvalLevel && (item as any).approvalLevel !== "nenhum" && (item as any).approvalLevel !== "master" && (
+                        <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>
+                          ✓ Aprova: {APPROVAL_LEVELS.find(l => l.key === (item as any).approvalLevel)?.label ?? (item as any).approvalLevel}
+                        </Text>
                       )}
                     </View>
                   </View>
-                </Pressable>
+
+                  {/* Right side: role badge + edit + toggle */}
+                  <View style={{ alignItems: "flex-end", gap: 6 }}>
+                    <View style={{ backgroundColor: `${roleColor}15`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: `${roleColor}30` }}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: roleColor }}>
+                        {ROLE_LABELS[(item as any).procurementRole as ProcurementRole] ?? "—"}
+                      </Text>
+                    </View>
+                    {(item as any).approvalLevel === "master" && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "#7C3AED20", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: "#7C3AED40" }}>
+                        <Text style={{ fontSize: 9 }}>⭐</Text>
+                        <Text style={{ fontSize: 9, fontWeight: "700", color: "#7C3AED" }}>MASTER</Text>
+                      </View>
+                    )}
+                    {/* Edit button */}
+                    <Pressable
+                      onPress={() => handleEditUser(item)}
+                      style={({ pressed }) => ({
+                        opacity: pressed ? 0.6 : 1,
+                        backgroundColor: `${colors.primary}15`,
+                        borderRadius: 8,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
+                        borderWidth: 1,
+                        borderColor: `${colors.primary}30`,
+                      })}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
+                    </Pressable>
+                    {(isAdmin || isMaster) && (
+                      <Pressable
+                        onPress={() => handleToggleActive(item)}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                      >
+                        <Text style={{ fontSize: 11, color: isActive ? colors.error : colors.success }}>
+                          {isActive ? "Desativar" : "Ativar"}
+                        </Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
               );
             }}
           />

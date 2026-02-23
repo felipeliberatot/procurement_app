@@ -141,8 +141,12 @@ export async function updateUserProfile(
 export async function getUserByEmailForLogin(email: string) {
   const db = await getDb();
   if (!db) return null;
-  const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-  return result[0] ?? null;
+  // Get all users with this email (there may be duplicates from import)
+  const result = await db.select().from(users).where(eq(users.email, email));
+  if (result.length === 0) return null;
+  // Prefer the user with a password hash set
+  const withPassword = result.find((u) => u.passwordHash);
+  return withPassword ?? result[0];
 }
 
 export async function updateUserPassword(userId: number, passwordHash: string) {
