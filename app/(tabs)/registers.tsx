@@ -588,6 +588,7 @@ function UserFormModal({
                         <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
                           {r === "solicitante" && "Cria solicitações de compra"}
                           {r === "gerente" && "Aprova na 1ª etapa do fluxo"}
+                          {r === "orcamento" && "Anexa PDF de orçamento na 2ª etapa"}
                           {r === "controladoria" && "Aprova na 3ª etapa (plano orçamentário)"}
                           {r === "diretoria" && "Aprova na 4ª etapa do fluxo"}
                           {r === "financeiro" && "Confirma pagamento na etapa final"}
