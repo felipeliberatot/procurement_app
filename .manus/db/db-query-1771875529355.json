@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, name, email, procurementRole, approvalLevel, active, passwordHash IS NOT NULL as hasPassword, LEFT(passwordHash, 20) as hashPreview FROM users WHERE approvalLevel = 'master' OR procurementRole = 'admin' ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, procurementRole, approvalLevel, active, passwordHash IS NOT NULL as hasPassword, LEFT(passwordHash, 20) as hashPreview FROM users WHERE approvalLevel = 'master' OR procurementRole = 'admin' ORDER BY id;",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "admin",
+      "approvalLevel": "master",
+      "active": "1",
+      "hasPassword": "0",
+      "hashPreview": "NULL"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br",
+      "procurementRole": "admin",
+      "approvalLevel": "master",
+      "active": "1",
+      "hasPassword": "0",
+      "hashPreview": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tprocurementRole\tapprovalLevel\tactive\thasPassword\thashPreview\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tadmin\tmaster\t1\t0\tNULL\n480003\tRafael da Silva Liberato\trafael@cgs.agr.br\tadmin\tmaster\t1\t0\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 523
+}

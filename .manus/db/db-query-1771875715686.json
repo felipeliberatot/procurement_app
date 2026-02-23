@@ -1,0 +1,52 @@
+{
+  "query": "SELECT id, name, email, approvalLevel, active FROM users WHERE name LIKE '%Felipe%' OR email LIKE '%felipe%' ORDER BY approvalLevel DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, approvalLevel, active FROM users WHERE name LIKE '%Felipe%' OR email LIKE '%felipe%' ORDER BY approvalLevel DESC;",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "master",
+      "active": "1"
+    },
+    {
+      "id": "390001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1"
+    },
+    {
+      "id": "450035",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1"
+    },
+    {
+      "id": "510001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1"
+    },
+    {
+      "id": "570001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1"
+    },
+    {
+      "id": "570054",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tapprovalLevel\tactive\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tmaster\t1\n390001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\n450035\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\n510001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\n570001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\n570054\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\n",
+  "stderr": "",
+  "execution_time_ms": 372
+}

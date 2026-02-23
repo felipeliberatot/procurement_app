@@ -1,0 +1,541 @@
+{
+  "query": "SELECT id, name, email, approvalLevel, procurementRole, active, passwordHash IS NOT NULL as hasPassword FROM users WHERE active = 1 ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, approvalLevel, procurementRole, active, passwordHash IS NOT NULL as hasPassword FROM users WHERE active = 1 ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Rafael  Liberato",
+      "email": "rafael.liberato@ymail.com",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "master",
+      "procurementRole": "admin",
+      "active": "1",
+      "hasPassword": "1"
+    },
+    {
+      "id": "390001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "450035",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "450039",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "approvalLevel": "diretoria",
+      "procurementRole": "diretoria",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br",
+      "approvalLevel": "master",
+      "procurementRole": "admin",
+      "active": "1",
+      "hasPassword": "1"
+    },
+    {
+      "id": "510001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570009",
+      "name": "Jose Valter Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "approvalLevel": "financeiro",
+      "procurementRole": "financeiro",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570012",
+      "name": "Karina Silva",
+      "email": "karina.silva@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570025",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570026",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570027",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570028",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570029",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570030",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570031",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570032",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570033",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570034",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570035",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570036",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570037",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570038",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570039",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570040",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570041",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570042",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570043",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570044",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570045",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570046",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570047",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570048",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570049",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570050",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570051",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570052",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570053",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570054",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570055",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570056",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570057",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570058",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570059",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570060",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570061",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570062",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570063",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570064",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570065",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570066",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570067",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570068",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570069",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570070",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570071",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570072",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    },
+    {
+      "id": "570073",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "procurementRole": "solicitante",
+      "active": "1",
+      "hasPassword": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tapprovalLevel\tprocurementRole\tactive\thasPassword\n1\tRafael  Liberato\trafael.liberato@ymail.com\tnenhum\tsolicitante\t1\t0\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tmaster\tadmin\t1\t1\n390001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\tsolicitante\t1\t0\n450035\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\tsolicitante\t1\t0\n450039\tWacksan Sampaio\twacksan@cgs.agr.br\tdiretoria\tdiretoria\t1\t0\n480003\tRafael da Silva Liberato\trafael@cgs.agr.br\tmaster\tadmin\t1\t1\n510001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\tsolicitante\t1\t0\n570001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\tsolicitante\t1\t0\n570009\tJose Valter Liberato\tjose.liberato@cgs.agr.br\tfinanceiro\tfinanceiro\t1\t0\n570012\tKarina Silva\tkarina.silva@cgs.agr.br\tnenhum\tsolicitante\t1\t0\n570025\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570026\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570027\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570028\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570029\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570030\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570031\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570032\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570033\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570034\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570035\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570036\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570037\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570038\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570039\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570040\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570041\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570042\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570043\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570044\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570045\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570046\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570047\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570048\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570049\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570050\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570051\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570052\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570053\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570054\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\tsolicitante\t1\t0\n570055\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570056\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570057\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570058\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570059\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570060\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570061\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570062\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570063\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570064\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570065\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570066\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570067\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570068\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570069\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570070\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570071\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570072\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n570073\tNULL\tNULL\tnenhum\tsolicitante\t1\t0\n",
+  "stderr": "",
+  "execution_time_ms": 386
+}
