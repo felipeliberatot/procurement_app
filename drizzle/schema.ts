@@ -37,6 +37,7 @@ export const users = mysqlTable("users", {
     "controladoria",
     "diretoria",
     "financeiro",
+    "master",
   ]).default("nenhum").notNull(),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

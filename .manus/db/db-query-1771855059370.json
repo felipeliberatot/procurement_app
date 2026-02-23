@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE users MODIFY COLUMN approvalLevel ENUM('nenhum','gerente','controladoria','diretoria','financeiro','master') NOT NULL DEFAULT 'nenhum';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute ALTER TABLE users MODIFY COLUMN approvalLevel ENUM('nenhum','gerente','controladoria','diretoria','financeiro','master') NOT NULL DEFAULT 'nenhum';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 193
+}

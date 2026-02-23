@@ -169,3 +169,12 @@
 - [x] Adicionar campo "Cargo" no formulário de cadastro/edição de usuário
 - [x] Adicionar campo "Nível de Aprovação" no formulário com opções: Nenhum, Gerente, Controladoria, Diretoria, Financeiro
 - [x] Exibir cargo e nível de aprovação no card de usuário na listagem
+
+## Usuário Master e Gerenciamento de Usuários
+- [x] Adicionar nível de aprovação 'master' ao ENUM approvalLevel no schema e banco
+- [x] Atualizar rotas tRPC para aceitar 'master' como approvalLevel
+- [x] Criar usuário master Felipe Tagami Liberato no banco de dados
+- [x] Interface exclusiva do master no app: tela de gerenciamento de usuários
+- [x] Master pode criar novos usuários diretamente no app
+- [x] Master pode editar cargo e nível de aprovação de qualquer usuário
+- [x] Indicador visual de usuário master no card e no perfil (badge roxo ⭐ MASTER)

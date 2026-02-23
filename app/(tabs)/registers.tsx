@@ -33,7 +33,7 @@ const ROLES: ProcurementRole[] = [
   "admin",
 ];
 
-type ApprovalLevel = "nenhum" | "gerente" | "controladoria" | "diretoria" | "financeiro";
+type ApprovalLevel = "nenhum" | "gerente" | "controladoria" | "diretoria" | "financeiro" | "master";
 
 const APPROVAL_LEVELS: Array<{ key: ApprovalLevel; label: string; description: string; color: string }> = [
   { key: "nenhum", label: "Nenhum", description: "Não participa do fluxo de aprovação", color: "#9CA3AF" },
@@ -41,6 +41,7 @@ const APPROVAL_LEVELS: Array<{ key: ApprovalLevel; label: string; description: s
   { key: "controladoria", label: "Controladoria", description: "Aprova na 3ª etapa (plano orçamentário)", color: "#F59E0B" },
   { key: "diretoria", label: "Diretoria", description: "Aprova na 4ª etapa do fluxo", color: "#EF4444" },
   { key: "financeiro", label: "Financeiro", description: "Confirma pagamento na etapa final", color: "#10B981" },
+  { key: "master", label: "Master", description: "Acesso total: gerencia usuários e configurações do sistema", color: "#7C3AED" },
 ];
 
 const ROLE_COLORS: Record<ProcurementRole, string> = {
@@ -745,6 +746,7 @@ export default function RegistersScreen() {
 
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
   const isAdmin = userRole === "admin";
+  const isMaster = (user as any)?.approvalLevel === "master";
 
   const { data: usersList, isLoading: usersLoading } = trpc.users.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -814,7 +816,7 @@ export default function RegistersScreen() {
   ];
 
   const handleEditUser = (u: any) => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isMaster) return;
     setEditingUser(u);
     setShowUserModal(true);
   };
@@ -851,12 +853,35 @@ export default function RegistersScreen() {
           borderBottomColor: colors.border,
         }}
       >
-        <Text style={{ fontSize: 24, fontWeight: "800", color: colors.foreground }}>
-          Cadastros
-        </Text>
-        {!isAdmin && (
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <Text style={{ fontSize: 24, fontWeight: "800", color: colors.foreground }}>
+            Cadastros
+          </Text>
+          {isMaster && (
+            <View style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 4,
+              backgroundColor: "#7C3AED20",
+              borderRadius: 20,
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderWidth: 1,
+              borderColor: "#7C3AED40",
+            }}>
+              <Text style={{ fontSize: 12 }}>⭐</Text>
+              <Text style={{ fontSize: 11, fontWeight: "700", color: "#7C3AED" }}>MASTER</Text>
+            </View>
+          )}
+        </View>
+        {!isAdmin && !isMaster && (
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
             Apenas administradores podem criar ou editar registros
+          </Text>
+        )}
+        {isMaster && (
+          <Text style={{ fontSize: 12, color: "#7C3AED", marginTop: 2 }}>
+            Acesso master — gerencie usuários, cargos e níveis de aprovação
           </Text>
         )}
       </View>
@@ -995,8 +1020,8 @@ export default function RegistersScreen() {
               </View>
             </ScrollView>
 
-            {/* Add user button (admin only) */}
-            {isAdmin && (
+            {/* Add user button (admin or master) */}
+            {(isAdmin || isMaster) && (
               <TouchableOpacity
                 onPress={handleNewUser}
                 style={{
@@ -1136,7 +1161,7 @@ export default function RegistersScreen() {
                               📱 {(item as any).phone}
                             </Text>
                           )}
-                          {(item as any).approvalLevel && (item as any).approvalLevel !== "nenhum" && (
+                          {(item as any).approvalLevel && (item as any).approvalLevel !== "nenhum" && (item as any).approvalLevel !== "master" && (
                             <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>
                               ✓ Aprova: {APPROVAL_LEVELS.find(l => l.key === (item as any).approvalLevel)?.label ?? (item as any).approvalLevel}
                             </Text>
@@ -1162,7 +1187,24 @@ export default function RegistersScreen() {
                           {ROLE_LABELS[(item as any).procurementRole as ProcurementRole] ?? "—"}
                         </Text>
                       </View>
-                      {isAdmin && (
+                      {/* Master badge */}
+                      {(item as any).approvalLevel === "master" && (
+                        <View style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 2,
+                          backgroundColor: "#7C3AED20",
+                          borderRadius: 8,
+                          paddingHorizontal: 6,
+                          paddingVertical: 2,
+                          borderWidth: 1,
+                          borderColor: "#7C3AED40",
+                        }}>
+                          <Text style={{ fontSize: 9 }}>⭐</Text>
+                          <Text style={{ fontSize: 9, fontWeight: "700", color: "#7C3AED" }}>MASTER</Text>
+                        </View>
+                      )}
+                      {(isAdmin || isMaster) && (
                         <Pressable
                           onPress={(e) => {
                             e.stopPropagation?.();
