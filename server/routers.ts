@@ -130,6 +130,28 @@ export const appRouter = router({
         await db.updateMasterPin(ctx.user.id, input.newPin);
         return { success: true };
       }),
+    resetPassword: protectedProcedure
+      .input(z.object({
+        userId: z.number(),
+        newPassword: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Only admins and masters can reset passwords
+        const callerRole = (ctx.user as any)?.procurementRole;
+        const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";
+        const isAdmin = callerRole === "admin" || callerIsMaster;
+        if (!isAdmin) throw new Error("Apenas administradores podem redefinir senhas.");
+        // Masters can reset any user; admins cannot reset master users
+        const target = await db.getUserById(input.userId);
+        if (!target) throw new Error("Usuário não encontrado.");
+        if (target.approvalLevel === "master" && !callerIsMaster) {
+          throw new Error("Apenas usuários master podem redefinir a senha de outro master.");
+        }
+        const bcrypt = await import("bcryptjs");
+        const passwordHash = await bcrypt.hash(input.newPassword, 10);
+        await db.updateUserPassword(input.userId, passwordHash);
+        return { success: true };
+      }),
   }),
 
   // ─── Cost Centers ──────────────────────────────────────────────────────────

@@ -235,6 +235,8 @@ function UserFormModal({
   onSave,
   isSaving,
   isMasterCaller,
+  onResetPassword,
+  isResettingPassword,
 }: {
   visible: boolean;
   user: any | null;
@@ -242,6 +244,8 @@ function UserFormModal({
   onSave: (data: any) => void;
   isSaving: boolean;
   isMasterCaller?: boolean;
+  onResetPassword?: (userId: number, newPassword: string) => void;
+  isResettingPassword?: boolean;
 }) {
   const colors = useColors();
   const isEditing = !!user?.id;
@@ -256,6 +260,11 @@ function UserFormModal({
   const [active, setActive] = useState(user?.active !== false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  // Reset password section (edit mode only)
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Reset when user changes
   React.useEffect(() => {
@@ -268,7 +277,40 @@ function UserFormModal({
     setApprovalLevel(user?.approvalLevel ?? "nenhum");
     setActive(user?.active !== false);
     setPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
   }, [user]);
+
+  const handleResetPassword = () => {
+    if (!newPassword.trim()) {
+      Alert.alert("Campo obrigatório", "Digite a nova senha.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert("Senha muito curta", "A senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert("Senhas não conferem", "A confirmação de senha não corresponde à nova senha.");
+      return;
+    }
+    Alert.alert(
+      "Redefinir Senha",
+      `Deseja redefinir a senha de ${user?.name ?? "este usuário"}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Redefinir",
+          style: "destructive",
+          onPress: () => {
+            onResetPassword?.(user.id, newPassword);
+            setNewPassword("");
+            setConfirmPassword("");
+          },
+        },
+      ]
+    );
+  };
 
   const handleSave = () => {
     if (!name.trim()) {
@@ -434,31 +476,148 @@ function UserFormModal({
             />
           </View>
 
-          {/* Senha */}
-          <View>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
-              {isEditing ? "Nova Senha (deixe em branco para manter)" : "Senha *"}
-            </Text>
-            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
-              <TextInput
-                value={password}
-                onChangeText={setPassword}
-                placeholder={isEditing ? "Nova senha (opcional)" : "Mínimo 6 caracteres"}
-                placeholderTextColor={colors.muted}
-                secureTextEntry={!showPassword}
-                style={{ flex: 1, fontSize: 14, color: colors.foreground }}
-                returnKeyType="next"
-              />
-              <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={{ paddingLeft: 8 }}>
-                <Text style={{ fontSize: 16 }}>{showPassword ? "🙈" : "👁"}</Text>
-              </TouchableOpacity>
-            </View>
-            {!isEditing && (
+          {/* Senha — novo usuário: campo simples; editando: seção dedicada */}
+          {!isEditing ? (
+            <View>
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                Senha *
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Mínimo 6 caracteres"
+                  placeholderTextColor={colors.muted}
+                  secureTextEntry={!showPassword}
+                  style={{ flex: 1, fontSize: 14, color: colors.foreground }}
+                  returnKeyType="next"
+                />
+                <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={{ paddingLeft: 8 }}>
+                  <Text style={{ fontSize: 16 }}>{showPassword ? "🙈" : "👁"}</Text>
+                </TouchableOpacity>
+              </View>
               <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
                 O usuário usará esta senha para acessar o sistema
               </Text>
-            )}
-          </View>
+            </View>
+          ) : (
+            <View
+              style={{
+                backgroundColor: `${colors.warning}10`,
+                borderWidth: 1,
+                borderColor: `${colors.warning}40`,
+                borderRadius: 16,
+                padding: 16,
+                gap: 12,
+              }}
+            >
+              {/* Header da seção */}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={{ fontSize: 18 }}>🔐</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground }}>
+                    Redefinir Senha
+                  </Text>
+                  <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
+                    Deixe em branco para manter a senha atual
+                  </Text>
+                </View>
+              </View>
+
+              {/* Nova senha */}
+              <View>
+                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600", marginBottom: 6 }}>
+                  Nova Senha
+                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12 }}>
+                  <TextInput
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="Mínimo 6 caracteres"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry={!showNewPassword}
+                    style={{ flex: 1, fontSize: 14, color: colors.foreground }}
+                    returnKeyType="next"
+                  />
+                  <TouchableOpacity onPress={() => setShowNewPassword(v => !v)} style={{ paddingLeft: 8 }}>
+                    <Text style={{ fontSize: 16 }}>{showNewPassword ? "🙈" : "👁"}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Confirmar senha */}
+              <View>
+                <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600", marginBottom: 6 }}>
+                  Confirmar Nova Senha
+                </Text>
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: confirmPassword && confirmPassword !== newPassword ? colors.error : colors.border,
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                }}>
+                  <TextInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Repita a nova senha"
+                    placeholderTextColor={colors.muted}
+                    secureTextEntry={!showConfirmPassword}
+                    style={{ flex: 1, fontSize: 14, color: colors.foreground }}
+                    returnKeyType="done"
+                    onSubmitEditing={handleResetPassword}
+                  />
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(v => !v)} style={{ paddingLeft: 8 }}>
+                    <Text style={{ fontSize: 16 }}>{showConfirmPassword ? "🙈" : "👁"}</Text>
+                  </TouchableOpacity>
+                </View>
+                {confirmPassword.length > 0 && confirmPassword !== newPassword && (
+                  <Text style={{ color: colors.error, fontSize: 11, marginTop: 4 }}>
+                    As senhas não conferem
+                  </Text>
+                )}
+                {confirmPassword.length > 0 && confirmPassword === newPassword && newPassword.length >= 6 && (
+                  <Text style={{ color: colors.success, fontSize: 11, marginTop: 4 }}>
+                    ✓ Senhas conferem
+                  </Text>
+                )}
+              </View>
+
+              {/* Botão de redefinir */}
+              <TouchableOpacity
+                onPress={handleResetPassword}
+                disabled={isResettingPassword || !newPassword || newPassword !== confirmPassword}
+                style={{
+                  backgroundColor: newPassword && newPassword === confirmPassword && newPassword.length >= 6
+                    ? colors.warning
+                    : colors.border,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                  opacity: isResettingPassword ? 0.7 : 1,
+                }}
+              >
+                {isResettingPassword ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={{ fontSize: 16 }}>🔐</Text>
+                )}
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: "700",
+                  color: newPassword && newPassword === confirmPassword && newPassword.length >= 6 ? "white" : colors.muted,
+                }}>
+                  {isResettingPassword ? "Redefinindo..." : "Redefinir Senha"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Separador */}
           <View style={{ height: 0.5, backgroundColor: colors.border, marginVertical: 4 }} />
@@ -1094,6 +1253,14 @@ export default function RegistersScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
     onError: (e) => Alert.alert("Erro", e.message),
+  });
+
+  const resetPassword = trpc.users.resetPassword.useMutation({
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Senha redefinida", "A nova senha foi salva com sucesso.");
+    },
+    onError: (e) => Alert.alert("Erro ao redefinir senha", e.message),
   });
 
   const createCC = trpc.costCenters.create.useMutation({
@@ -1924,6 +2091,8 @@ export default function RegistersScreen() {
         onSave={(data) => saveUser.mutate(data)}
         isSaving={saveUser.isPending}
         isMasterCaller={isMaster}
+        onResetPassword={(userId, newPassword) => resetPassword.mutate({ userId, newPassword })}
+        isResettingPassword={resetPassword.isPending}
       />
       <PinVerificationModal
         visible={showPinModal}
