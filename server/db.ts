@@ -205,9 +205,8 @@ export async function createCostCenter(data: { code: string; name: string; respo
     name: data.name,
     responsible: data.responsible ?? null,
   });
-  return (result as unknown as { insertId: number }).insertId;
+  return (result as unknown as [{ insertId: number }])[0].insertId;
 }
-
 export async function updateCostCenter(id: number, data: Partial<{ code: string; name: string; responsible: string; active: boolean }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -263,9 +262,8 @@ export async function createAsset(data: { code: string; description: string; cat
     category: data.category ?? null,
     location: data.location ?? null,
   });
-  return (result as unknown as { insertId: number }).insertId;
+  return (result as unknown as [{ insertId: number }])[0].insertId;
 }
-
 export async function updateAsset(id: number, data: Partial<{ code: string; description: string; category: string; location: string; active: boolean }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -345,7 +343,7 @@ export async function createPurchaseRequest(
     stepDeadlineAt,
   });
 
-  const insertId = (result as unknown as { insertId: number }).insertId;
+  const insertId = (result as unknown as [{ insertId: number }])[0].insertId;
 
   // Insert items
   for (const item of input.items) {

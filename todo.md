@@ -156,3 +156,6 @@
 - [ ] Rota tRPC whatsapp.getWebhookUrl para exibir URL do webhook no app
 - [ ] Tela de configuração do webhook no app (Perfil > Integração WhatsApp)
 - [ ] Suporte a Z-API, Twilio e Meta Business API
+
+## Bugs Corrigidos
+- [x] Bug: insert de requestItems falha — requestId inserido como 'default' em vez do ID real (corrigido: result[0].insertId)
