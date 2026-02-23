@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS units (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  name VARCHAR(150) NOT NULL,\n  code VARCHAR(30) NOT NULL UNIQUE,\n  address VARCHAR(255) NULL,\n  city VARCHAR(100) NULL,\n  state VARCHAR(50) NULL,\n  responsibleName VARCHAR(150) NULL,\n  responsiblePhone VARCHAR(32) NULL,\n  active TINYINT(1) NOT NULL DEFAULT 1,\n  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute CREATE TABLE IF NOT EXISTS units (\n  id INT AUTO_INCREMENT PRIMARY KEY,\n  name VARCHAR(150) NOT NULL,\n  code VARCHAR(30) NOT NULL UNIQUE,\n  address VARCHAR(255) NULL,\n  city VARCHAR(100) NULL,\n  state VARCHAR(50) NULL,\n  responsibleName VARCHAR(150) NULL,\n  responsiblePhone VARCHAR(32) NULL,\n  active TINYINT(1) NOT NULL DEFAULT 1,\n  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  updatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1176
+}
