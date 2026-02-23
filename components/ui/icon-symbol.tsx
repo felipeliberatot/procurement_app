@@ -15,6 +15,7 @@ const MAPPING = {
   "checkmark.seal.fill": "verified",
   "folder.fill": "folder",
   "person.fill": "person",
+  "shippingbox.fill": "inventory",
   // Actions
   "plus": "add",
   "paperplane.fill": "send",

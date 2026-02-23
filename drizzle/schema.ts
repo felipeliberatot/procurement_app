@@ -186,25 +186,71 @@ export type ApprovalHistory = typeof approvalHistory.$inferSelect;
 export type InsertApprovalHistory = typeof approvalHistory.$inferInsert;
 
 // ─── WhatsApp Sessions ────────────────────────────────────────────────────────
-// Tracks pending approval tokens sent via WhatsApp so the webhook can
-// match an incoming reply to the correct request + step.
 
 export const whatsappSessions = mysqlTable("whatsappSessions", {
   id: int("id").autoincrement().primaryKey(),
-  token: varchar("token", { length: 64 }).notNull().unique(), // secure random token
+  token: varchar("token", { length: 64 }).notNull().unique(),
   requestId: int("requestId").notNull(),
   requestNumber: varchar("requestNumber", { length: 32 }).notNull(),
-  approverPhone: varchar("approverPhone", { length: 32 }).notNull(), // normalized E.164
+  approverPhone: varchar("approverPhone", { length: 32 }).notNull(),
   approverId: int("approverId").notNull(),
   approverName: varchar("approverName", { length: 128 }),
-  step: varchar("step", { length: 64 }).notNull(), // e.g. "gerente"
+  step: varchar("step", { length: 64 }).notNull(),
   status: mysqlEnum("status", ["pending", "approved", "rejected", "expired"])
     .default("pending")
     .notNull(),
-  expiresAt: timestamp("expiresAt").notNull(), // 48h from creation
+  expiresAt: timestamp("expiresAt").notNull(),
   resolvedAt: timestamp("resolvedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export type WhatsappSession = typeof whatsappSessions.$inferSelect;
 export type InsertWhatsappSession = typeof whatsappSessions.$inferInsert;
+
+// ─── Malotes ──────────────────────────────────────────────────────────────────
+
+export const malotes = mysqlTable("malotes", {
+  id: int("id").autoincrement().primaryKey(),
+  maloteCode: varchar("maloteCode", { length: 20 }).notNull().unique(),
+  status: mysqlEnum("status", ["aberto", "enviado", "recebido", "devolvido"])
+    .default("aberto")
+    .notNull(),
+  originUnit: varchar("originUnit", { length: 100 }).notNull(),
+  destinationUnit: varchar("destinationUnit", { length: 100 }).notNull(),
+  createdById: int("createdById").notNull(),
+  createdByName: varchar("createdByName", { length: 255 }).notNull(),
+  sentAt: timestamp("sentAt"),
+  sentById: int("sentById"),
+  sentByName: varchar("sentByName", { length: 255 }),
+  receivedAt: timestamp("receivedAt"),
+  receivedById: int("receivedById"),
+  receivedByName: varchar("receivedByName", { length: 255 }),
+  receiptNotes: text("receiptNotes"),
+  returnReason: text("returnReason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Malote = typeof malotes.$inferSelect;
+export type InsertMalote = typeof malotes.$inferInsert;
+
+// ─── Malote Items ─────────────────────────────────────────────────────────────
+
+export const maloteItems = mysqlTable("maloteItems", {
+  id: int("id").autoincrement().primaryKey(),
+  maloteId: int("maloteId").notNull(),
+  requestId: int("requestId").notNull(),
+  requestCode: varchar("requestCode", { length: 20 }).notNull(),
+  requesterName: varchar("requesterName", { length: 255 }).notNull(),
+  application: varchar("application", { length: 255 }).notNull(),
+  addedById: int("addedById").notNull(),
+  addedByName: varchar("addedByName", { length: 255 }).notNull(),
+  receiptStatus: mysqlEnum("receiptStatus", ["pendente", "recebido", "devolvido"])
+    .default("pendente")
+    .notNull(),
+  receiptNotes: text("receiptNotes"),
+  addedAt: timestamp("addedAt").defaultNow().notNull(),
+});
+
+export type MaloteItem = typeof maloteItems.$inferSelect;
+export type InsertMaloteItem = typeof maloteItems.$inferInsert;

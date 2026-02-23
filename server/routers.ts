@@ -273,6 +273,81 @@ export const appRouter = router({
         db.rejectRequest(input.requestId, ctx.user, input.comment)
       ),
   }),
+
+  // ─── Malotes ─────────────────────────────────────────────────────────────────
+  malotes: router({
+    list: protectedProcedure.query(() => db.listMalotes()),
+    stats: protectedProcedure.query(() => db.getMaloteStats()),
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(({ input }) => db.getMaloteWithItems(input.id)),
+    readyRequests: protectedProcedure.query(() => db.getRequestsReadyForMalote()),
+    create: protectedProcedure
+      .input(z.object({
+        originUnit: z.string().min(1),
+        destinationUnit: z.string().min(1),
+      }))
+      .mutation(({ ctx, input }) =>
+        db.createMalote({
+          originUnit: input.originUnit,
+          destinationUnit: input.destinationUnit,
+          createdById: ctx.user.id,
+          createdByName: ctx.user.name ?? "Usuário",
+        })
+      ),
+    addRequest: protectedProcedure
+      .input(z.object({
+        maloteId: z.number(),
+        requestId: z.number(),
+        requestCode: z.string(),
+        requesterName: z.string(),
+        application: z.string(),
+      }))
+      .mutation(({ ctx, input }) =>
+        db.addRequestToMalote({
+          maloteId: input.maloteId,
+          requestId: input.requestId,
+          requestCode: input.requestCode,
+          requesterName: input.requesterName,
+          application: input.application,
+          addedById: ctx.user.id,
+          addedByName: ctx.user.name ?? "Usuário",
+        })
+      ),
+    removeRequest: protectedProcedure
+      .input(z.object({ maloteItemId: z.number() }))
+      .mutation(({ input }) => db.removeRequestFromMalote(input.maloteItemId)),
+    send: protectedProcedure
+      .input(z.object({ maloteId: z.number() }))
+      .mutation(({ ctx, input }) =>
+        db.sendMalote({
+          maloteId: input.maloteId,
+          sentById: ctx.user.id,
+          sentByName: ctx.user.name ?? "Usuário",
+        })
+      ),
+    receive: protectedProcedure
+      .input(z.object({
+        maloteId: z.number(),
+        receiptNotes: z.string().default(""),
+        itemReceipts: z.array(z.object({
+          itemId: z.number(),
+          receiptStatus: z.enum(["recebido", "devolvido"]),
+          receiptNotes: z.string().optional(),
+        })),
+      }))
+      .mutation(({ ctx, input }) =>
+        db.receiveMalote({
+          maloteId: input.maloteId,
+          receivedById: ctx.user.id,
+          receivedByName: ctx.user.name ?? "Usuário",
+          receiptNotes: input.receiptNotes,
+          itemReceipts: input.itemReceipts,
+        })
+      ),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
+
+// ─── Malotes ────────────────────────────────────────────────────────────────

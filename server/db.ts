@@ -726,3 +726,187 @@ export async function updateMasterPin(userId: number, newPin: string): Promise<v
   const hash = await bcrypt.hash(newPin, 12);
   await db.update(users).set({ pinHash: hash }).where(eq(users.id, userId));
 }
+
+// ─── Malotes ──────────────────────────────────────────────────────────────────
+import { malotes, maloteItems, type Malote, type MaloteItem } from "../drizzle/schema";
+
+/** Gera código único de malote: MAL-AAAA-NNNN */
+async function generateMaloteCode(): Promise<string> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const year = new Date().getFullYear();
+  const prefix = `MAL-${year}-`;
+  const [row] = await db
+    .select({ maloteCode: malotes.maloteCode })
+    .from(malotes)
+    .where(sql`maloteCode LIKE ${prefix + "%"}`)
+    .orderBy(desc(malotes.id))
+    .limit(1);
+  let next = 1;
+  if (row) {
+    const parts = row.maloteCode.split("-");
+    next = parseInt(parts[parts.length - 1] ?? "0", 10) + 1;
+  }
+  return `${prefix}${String(next).padStart(4, "0")}`;
+}
+
+export async function createMalote(opts: {
+  originUnit: string;
+  destinationUnit: string;
+  createdById: number;
+  createdByName: string;
+}): Promise<Malote> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const maloteCode = await generateMaloteCode();
+  const result = await db.insert(malotes).values({
+    maloteCode,
+    status: "aberto",
+    originUnit: opts.originUnit,
+    destinationUnit: opts.destinationUnit,
+    createdById: opts.createdById,
+    createdByName: opts.createdByName,
+  });
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  const [malote] = await db.select().from(malotes).where(eq(malotes.id, insertId)).limit(1);
+  return malote;
+}
+
+export async function listMalotes(): Promise<Malote[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(malotes).orderBy(desc(malotes.createdAt));
+}
+
+export async function getMaloteWithItems(maloteId: number): Promise<{ malote: Malote; items: MaloteItem[] } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [malote] = await db.select().from(malotes).where(eq(malotes.id, maloteId)).limit(1);
+  if (!malote) return null;
+  const items = await db.select().from(maloteItems).where(eq(maloteItems.maloteId, maloteId));
+  return { malote, items };
+}
+
+export async function addRequestToMalote(opts: {
+  maloteId: number;
+  requestId: number;
+  requestCode: string;
+  requesterName: string;
+  application: string;
+  addedById: number;
+  addedByName: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db
+    .select()
+    .from(maloteItems)
+    .where(eq(maloteItems.requestId, opts.requestId))
+    .limit(1);
+  if (existing.length > 0) throw new Error("Solicitação já está em um malote.");
+  await db.insert(maloteItems).values({
+    maloteId: opts.maloteId,
+    requestId: opts.requestId,
+    requestCode: opts.requestCode,
+    requesterName: opts.requesterName,
+    application: opts.application,
+    addedById: opts.addedById,
+    addedByName: opts.addedByName,
+    receiptStatus: "pendente",
+  });
+}
+
+export async function removeRequestFromMalote(maloteItemId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(maloteItems).where(eq(maloteItems.id, maloteItemId));
+}
+
+export async function sendMalote(opts: {
+  maloteId: number;
+  sentById: number;
+  sentByName: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(malotes).set({
+    status: "enviado",
+    sentAt: new Date(),
+    sentById: opts.sentById,
+    sentByName: opts.sentByName,
+  }).where(eq(malotes.id, opts.maloteId));
+}
+
+export async function receiveMalote(opts: {
+  maloteId: number;
+  receivedById: number;
+  receivedByName: string;
+  receiptNotes: string;
+  itemReceipts: Array<{ itemId: number; receiptStatus: "recebido" | "devolvido"; receiptNotes?: string }>;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  for (const item of opts.itemReceipts) {
+    await db.update(maloteItems).set({
+      receiptStatus: item.receiptStatus,
+      receiptNotes: item.receiptNotes ?? null,
+    }).where(eq(maloteItems.id, item.itemId));
+
+    if (item.receiptStatus === "devolvido") {
+      const [mi] = await db.select().from(maloteItems).where(eq(maloteItems.id, item.itemId)).limit(1);
+      if (mi) {
+        await db.update(purchaseRequests).set({
+          status: "aguardando_gerente",
+          stepDeadlineAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        }).where(eq(purchaseRequests.id, mi.requestId));
+        await db.insert(approvalHistory).values({
+          requestId: mi.requestId,
+          userId: opts.receivedById,
+          userName: opts.receivedByName,
+          step: "gerente" as any,
+          action: "reaberta" as any,
+          comment: `Item devolvido no malote. Motivo: ${item.receiptNotes ?? "não informado"}`,
+        });
+      }
+    }
+  }
+
+  const hasReturn = opts.itemReceipts.some(i => i.receiptStatus === "devolvido");
+  await db.update(malotes).set({
+    status: hasReturn ? "devolvido" : "recebido",
+    receivedAt: new Date(),
+    receivedById: opts.receivedById,
+    receivedByName: opts.receivedByName,
+    receiptNotes: opts.receiptNotes,
+  }).where(eq(malotes.id, opts.maloteId));
+}
+
+export async function getMaloteStats(): Promise<{ abertos: number; enviados: number; recebidos: number }> {
+  const db = await getDb();
+  if (!db) return { abertos: 0, enviados: 0, recebidos: 0 };
+  const all = await db.select({ status: malotes.status }).from(malotes);
+  return {
+    abertos: all.filter(m => m.status === "aberto").length,
+    enviados: all.filter(m => m.status === "enviado").length,
+    recebidos: all.filter(m => m.status === "recebido").length,
+  };
+}
+
+export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; requestNumber: string; requesterName: string; application: string; department: string }>> {
+  const db = await getDb();
+  if (!db) return [];
+  const inMalote = await db.select({ requestId: maloteItems.requestId }).from(maloteItems);
+  const inMaloteIds = new Set(inMalote.map(i => i.requestId));
+  const concluded = await db
+    .select({
+      id: purchaseRequests.id,
+      requestNumber: purchaseRequests.requestNumber,
+      requesterName: purchaseRequests.requesterName,
+      application: purchaseRequests.application,
+      department: purchaseRequests.department,
+    })
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.status, "concluida"));
+  return concluded.filter(r => !inMaloteIds.has(r.id));
+}
