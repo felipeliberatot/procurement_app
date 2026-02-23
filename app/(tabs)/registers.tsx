@@ -967,13 +967,13 @@ function UnitFormModal({
           <TouchableOpacity onPress={onClose} disabled={isSaving}>
             <Text style={{ color: colors.primary, fontSize: 15 }}>Cancelar</Text>
           </TouchableOpacity>
-          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>{isEditing ? "Editar Unidade" : "Nova Unidade"}</Text>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>{isEditing ? "Editar Fazenda" : "Nova Fazenda"}</Text>
           <TouchableOpacity onPress={handleSave} disabled={isSaving}>
             {isSaving ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "700" }}>Salvar</Text>}
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
-          <View><Text style={labelStyle}>Nome da Unidade *</Text><TextInput value={name} onChangeText={setName} placeholder="Ex: Fazenda São João" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+          <View><Text style={labelStyle}>Nome da Fazenda/Unidade *</Text><TextInput value={name} onChangeText={setName} placeholder="Ex: Fazenda São João" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
           <View><Text style={labelStyle}>Código *</Text><TextInput value={code} onChangeText={setCode} placeholder="Ex: FSJ, MATRIZ, FILIAL01" placeholderTextColor={colors.muted} autoCapitalize="characters" style={inputStyle} returnKeyType="next" /></View>
           <View><Text style={labelStyle}>Endereço</Text><TextInput value={address} onChangeText={setAddress} placeholder="Rua, número, bairro" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
           <View style={{ flexDirection: "row", gap: 10 }}>
@@ -1097,7 +1097,7 @@ export default function RegistersScreen() {
     { key: "users", label: "Usuários", icon: "👥", count: usersList?.length },
     { key: "costcenters", label: "Centros de Custo", icon: "🏢", count: costCentersList?.length },
     { key: "assets", label: "Bens", icon: "📦", count: assetsList?.length },
-    { key: "units", label: "Unidades", icon: "🏭", count: unitsList?.length },
+    { key: "units", label: "Fazendas", icon: "🌾", count: unitsList?.length },
   ];
 
   // Require PIN verification before sensitive master actions
@@ -1265,19 +1265,17 @@ export default function RegistersScreen() {
       </View>
 
       {/* Tab Selector */}
-      <View
-        style={{
-          flexDirection: "row",
-          borderBottomWidth: 0.5,
-          borderBottomColor: colors.border,
-        }}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }}
+        contentContainerStyle={{ flexDirection: "row" }}
       >
         {TABS.map((tab) => (
           <Pressable
             key={tab.key}
             onPress={() => setActiveTab(tab.key)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, flex: 1 })}
-          >
+            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, minWidth: 80 })}>
             <View
               style={{
                 alignItems: "center",
@@ -1321,8 +1319,7 @@ export default function RegistersScreen() {
             </View>
           </Pressable>
         ))}
-      </View>
-
+      </ScrollView>
       {/* ── Users Tab ── */}
       {activeTab === "users" && (
         <View style={{ flex: 1 }}>
@@ -1859,7 +1856,7 @@ export default function RegistersScreen() {
                 onPress={() => { setEditingUnit(null); setShowUnitModal(true); }}
                 style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
               >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova Unidade</Text>
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova Fazenda</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1873,9 +1870,9 @@ export default function RegistersScreen() {
                 <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
               ) : (
                 <View style={{ alignItems: "center", marginTop: 60 }}>
-                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🏭</Text>
-                  <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>Nenhuma unidade cadastrada</Text>
-                  <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Cadastre as unidades para usar nos malotes</Text>
+                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🌾</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>Nenhuma fazenda cadastrada</Text>
+                  <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Cadastre as fazendas e escritórios para usar nos malotes</Text>
                 </View>
               )
             }
