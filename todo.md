@@ -159,3 +159,13 @@
 
 ## Bugs Corrigidos
 - [x] Bug: insert de requestItems falha — requestId inserido como 'default' em vez do ID real (corrigido: result[0].insertId)
+
+## Cadastro de Usuários — Cargo e Nível de Aprovação
+- [x] Adicionar coluna `jobTitle` (cargo) na tabela users do banco
+- [x] Adicionar coluna `approvalLevel` (nível de aprovação) na tabela users do banco
+- [x] Migrar banco de dados com as novas colunas
+- [x] Atualizar funções do servidor (upsertUserByAdmin, updateUserProfile) para incluir jobTitle e approvalLevel
+- [x] Atualizar rotas tRPC users.upsertByAdmin e users.updateProfile com os novos campos
+- [x] Adicionar campo "Cargo" no formulário de cadastro/edição de usuário
+- [x] Adicionar campo "Nível de Aprovação" no formulário com opções: Nenhum, Gerente, Controladoria, Diretoria, Financeiro
+- [x] Exibir cargo e nível de aprovação no card de usuário na listagem

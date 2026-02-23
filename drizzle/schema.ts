@@ -30,6 +30,14 @@ export const users = mysqlTable("users", {
     .notNull(),
   department: varchar("department", { length: 128 }),
   phone: varchar("phone", { length: 32 }), // WhatsApp number
+  jobTitle: varchar("jobTitle", { length: 128 }), // Cargo/título do usuário
+  approvalLevel: mysqlEnum("approvalLevel", [
+    "nenhum",
+    "gerente",
+    "controladoria",
+    "diretoria",
+    "financeiro",
+  ]).default("nenhum").notNull(),
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

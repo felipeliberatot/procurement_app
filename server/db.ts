@@ -87,7 +87,7 @@ export async function getUserById(id: number) {
 
 export async function updateUserProfile(
   userId: number,
-  data: { procurementRole?: string; department?: string; phone?: string }
+  data: { procurementRole?: string; department?: string; phone?: string; jobTitle?: string; approvalLevel?: string }
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -95,6 +95,8 @@ export async function updateUserProfile(
   if (data.procurementRole) update.procurementRole = data.procurementRole;
   if (data.department !== undefined) update.department = data.department;
   if (data.phone !== undefined) update.phone = data.phone;
+  if (data.jobTitle !== undefined) update.jobTitle = data.jobTitle;
+  if (data.approvalLevel !== undefined) update.approvalLevel = data.approvalLevel;
   await db.update(users).set(update).where(eq(users.id, userId));
 }
 
@@ -105,6 +107,8 @@ export async function upsertUserByAdmin(data: {
   procurementRole: string;
   department?: string;
   phone?: string;
+  jobTitle?: string;
+  approvalLevel?: string;
   active?: boolean;
 }) {
   const db = await getDb();
@@ -116,6 +120,8 @@ export async function upsertUserByAdmin(data: {
       procurementRole: data.procurementRole as User["procurementRole"],
       department: data.department ?? null,
       phone: data.phone ?? null,
+      jobTitle: data.jobTitle ?? null,
+      approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
       active: data.active ?? true,
     }).where(eq(users.id, data.id));
   }

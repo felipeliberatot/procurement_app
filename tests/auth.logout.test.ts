@@ -23,6 +23,8 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
     procurementRole: "solicitante",
     department: null,
     phone: null,
+    jobTitle: null,
+    approvalLevel: "nenhum",
     active: true,
     createdAt: new Date(),
     updatedAt: new Date(),

@@ -33,6 +33,16 @@ const ROLES: ProcurementRole[] = [
   "admin",
 ];
 
+type ApprovalLevel = "nenhum" | "gerente" | "controladoria" | "diretoria" | "financeiro";
+
+const APPROVAL_LEVELS: Array<{ key: ApprovalLevel; label: string; description: string; color: string }> = [
+  { key: "nenhum", label: "Nenhum", description: "Não participa do fluxo de aprovação", color: "#9CA3AF" },
+  { key: "gerente", label: "Gerente de Unidade", description: "Aprova na 1ª etapa do fluxo", color: "#0EA5E9" },
+  { key: "controladoria", label: "Controladoria", description: "Aprova na 3ª etapa (plano orçamentário)", color: "#F59E0B" },
+  { key: "diretoria", label: "Diretoria", description: "Aprova na 4ª etapa do fluxo", color: "#EF4444" },
+  { key: "financeiro", label: "Financeiro", description: "Confirma pagamento na etapa final", color: "#10B981" },
+];
+
 const ROLE_COLORS: Record<ProcurementRole, string> = {
   solicitante: "#6366F1",
   gerente: "#0EA5E9",
@@ -64,7 +74,9 @@ function UserFormModal({
   const [email, setEmail] = useState(user?.email ?? "");
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [department, setDepartment] = useState(user?.department ?? "");
+  const [jobTitle, setJobTitle] = useState(user?.jobTitle ?? "");
   const [role, setRole] = useState<ProcurementRole>(user?.procurementRole ?? "solicitante");
+  const [approvalLevel, setApprovalLevel] = useState<ApprovalLevel>(user?.approvalLevel ?? "nenhum");
   const [active, setActive] = useState(user?.active !== false);
 
   // Reset when user changes
@@ -73,7 +85,9 @@ function UserFormModal({
     setEmail(user?.email ?? "");
     setPhone(user?.phone ?? "");
     setDepartment(user?.department ?? "");
+    setJobTitle(user?.jobTitle ?? "");
     setRole(user?.procurementRole ?? "solicitante");
+    setApprovalLevel(user?.approvalLevel ?? "nenhum");
     setActive(user?.active !== false);
   }, [user]);
 
@@ -88,7 +102,9 @@ function UserFormModal({
       email: email.trim() || undefined,
       phone: phone.trim() || undefined,
       department: department.trim() || undefined,
+      jobTitle: jobTitle.trim() || undefined,
       procurementRole: role,
+      approvalLevel,
       active,
     });
   };
@@ -227,6 +243,99 @@ function UserFormModal({
               }}
               returnKeyType="next"
             />
+          </View>
+
+          {/* Cargo */}
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+              Cargo
+            </Text>
+            <TextInput
+              value={jobTitle}
+              onChangeText={setJobTitle}
+              placeholder="Ex: Analista de Compras, Gerente Agrícola..."
+              placeholderTextColor={colors.muted}
+              style={{
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 14,
+                color: colors.foreground,
+              }}
+              returnKeyType="next"
+            />
+            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
+              Título do cargo ou função do usuário na empresa
+            </Text>
+          </View>
+
+          {/* Nível de Aprovação */}
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 4 }}>
+              Nível de Aprovação
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 10 }}>
+              Define em qual etapa do fluxo de compras este usuário pode aprovar
+            </Text>
+            <View style={{ gap: 8 }}>
+              {APPROVAL_LEVELS.map((level) => {
+                const selected = approvalLevel === level.key;
+                return (
+                  <Pressable
+                    key={level.key}
+                    onPress={() => setApprovalLevel(level.key)}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        padding: 12,
+                        borderRadius: 12,
+                        borderWidth: 1.5,
+                        borderColor: selected ? level.color : colors.border,
+                        backgroundColor: selected ? `${level.color}15` : colors.surface,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          borderWidth: 2,
+                          borderColor: selected ? level.color : colors.border,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          marginRight: 12,
+                          backgroundColor: selected ? level.color : "transparent",
+                        }}
+                      >
+                        {selected && (
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "white" }} />
+                        )}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: "600",
+                            color: selected ? level.color : colors.foreground,
+                          }}
+                        >
+                          {level.label}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
+                          {level.description}
+                        </Text>
+                      </View>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
 
           {/* Papel / Perfil */}
@@ -977,52 +1086,63 @@ export default function RegistersScreen() {
                     </View>
 
                     {/* Info */}
-                    <View style={{ flex: 1, gap: 2 }}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "700",
-                            color: colors.foreground,
-                            flexShrink: 1,
-                          }}
-                          numberOfLines={1}
-                        >
-                          {item.name ?? "Sem nome"}
-                        </Text>
-                        {!isActive && (
-                          <View
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Text
                             style={{
-                              backgroundColor: colors.border,
-                              borderRadius: 6,
-                              paddingHorizontal: 6,
-                              paddingVertical: 1,
+                              fontSize: 14,
+                              fontWeight: "700",
+                              color: colors.foreground,
+                              flexShrink: 1,
                             }}
+                            numberOfLines={1}
                           >
-                            <Text style={{ fontSize: 10, color: colors.muted, fontWeight: "600" }}>
-                              INATIVO
+                            {item.name ?? "Sem nome"}
+                          </Text>
+                          {!isActive && (
+                            <View
+                              style={{
+                                backgroundColor: colors.border,
+                                borderRadius: 6,
+                                paddingHorizontal: 6,
+                                paddingVertical: 1,
+                              }}
+                            >
+                              <Text style={{ fontSize: 10, color: colors.muted, fontWeight: "600" }}>
+                                INATIVO
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        {/* Cargo */}
+                        {(item as any).jobTitle && (
+                          <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }} numberOfLines={1}>
+                            {(item as any).jobTitle}
+                          </Text>
+                        )}
+                        {item.email && (
+                          <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>
+                            {item.email}
+                          </Text>
+                        )}
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, flexWrap: "wrap" }}>
+                          {(item as any).department && (
+                            <Text style={{ fontSize: 11, color: colors.muted }}>
+                              🏢 {(item as any).department}
                             </Text>
-                          </View>
-                        )}
+                          )}
+                          {(item as any).phone && (
+                            <Text style={{ fontSize: 11, color: colors.muted }}>
+                              📱 {(item as any).phone}
+                            </Text>
+                          )}
+                          {(item as any).approvalLevel && (item as any).approvalLevel !== "nenhum" && (
+                            <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>
+                              ✓ Aprova: {APPROVAL_LEVELS.find(l => l.key === (item as any).approvalLevel)?.label ?? (item as any).approvalLevel}
+                            </Text>
+                          )}
+                        </View>
                       </View>
-                      {item.email && (
-                        <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>
-                          {item.email}
-                        </Text>
-                      )}
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2 }}>
-                        {(item as any).department && (
-                          <Text style={{ fontSize: 11, color: colors.muted }}>
-                            🏢 {(item as any).department}
-                          </Text>
-                        )}
-                        {(item as any).phone && (
-                          <Text style={{ fontSize: 11, color: colors.muted }}>
-                            📱 {(item as any).phone}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
 
                     {/* Role badge + actions */}
                     <View style={{ alignItems: "flex-end", gap: 6 }}>
