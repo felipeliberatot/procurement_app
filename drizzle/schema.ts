@@ -273,3 +273,25 @@ export const units = mysqlTable("units", {
 });
 export type Unit = typeof units.$inferSelect;
 export type InsertUnit = typeof units.$inferInsert;
+// ─── Malote Tags ──────────────────────────────────────────────────────────────
+export const maloteTags = mysqlTable("maloteTags", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 64 }).notNull(),
+  color: varchar("color", { length: 16 }).notNull().default("#6B7280"),
+  icon: varchar("icon", { length: 8 }).notNull().default("🏷️"),
+  category: mysqlEnum("category", ["prioridade", "tipo", "custom"]).notNull().default("custom"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type MaloteTag = typeof maloteTags.$inferSelect;
+export type InsertMaloteTag = typeof maloteTags.$inferInsert;
+
+// ─── Malote Tag Links ─────────────────────────────────────────────────────────
+export const maloteTagLinks = mysqlTable("maloteTagLinks", {
+  id: int("id").autoincrement().primaryKey(),
+  maloteId: int("maloteId").notNull(),
+  tagId: int("tagId").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+export type MaloteTagLink = typeof maloteTagLinks.$inferSelect;
+export type InsertMaloteTagLink = typeof maloteTagLinks.$inferInsert;

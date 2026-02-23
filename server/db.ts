@@ -5,9 +5,18 @@ import {
   assets,
   costCenters,
   InsertUser,
+  maloteItems,
+  maloteTagLinks,
+  maloteTags,
+  malotes,
   purchaseRequests,
   requestItems,
+  units,
   users,
+  type Malote,
+  type MaloteItem,
+  type MaloteTag,
+  type Unit,
   type User,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -728,7 +737,6 @@ export async function updateMasterPin(userId: number, newPin: string): Promise<v
 }
 
 // ─── Malotes ──────────────────────────────────────────────────────────────────
-import { malotes, maloteItems, type Malote, type MaloteItem } from "../drizzle/schema";
 
 /** Gera código único de malote: MAL-AAAA-NNNN */
 async function generateMaloteCode(): Promise<string> {
@@ -943,7 +951,6 @@ export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; r
 }
 
 // ─── Units / Unidades ─────────────────────────────────────────────────────────
-import { units, type Unit } from "../drizzle/schema";
 
 export async function listUnits(): Promise<Unit[]> {
   const db = await getDb();
@@ -980,4 +987,62 @@ export async function deleteUnit(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(units).set({ active: false }).where(eq(units.id, id));
+}
+
+// ─── Malote Tags ──────────────────────────────────────────────────────────────
+
+export async function listMaloteTags(): Promise<MaloteTag[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(maloteTags).where(eq(maloteTags.active, true)).orderBy(maloteTags.category, maloteTags.name);
+}
+
+export async function createMaloteTag(data: {
+  name: string;
+  color: string;
+  icon: string;
+  category: "prioridade" | "tipo" | "custom";
+}): Promise<{ id: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(maloteTags).values({
+    name: data.name,
+    color: data.color,
+    icon: data.icon,
+    category: data.category,
+  });
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return { id: insertId };
+}
+
+export async function updateMaloteTag(id: number, data: Partial<{
+  name: string; color: string; icon: string; active: boolean;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(maloteTags).set(data).where(eq(maloteTags.id, id));
+}
+
+export async function getMaloteTagsForMalote(maloteId: number): Promise<MaloteTag[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const links = await db
+    .select({ tag: maloteTags })
+    .from(maloteTagLinks)
+    .innerJoin(maloteTags, eq(maloteTagLinks.tagId, maloteTags.id))
+    .where(eq(maloteTagLinks.maloteId, maloteId));
+  return links.map(l => l.tag);
+}
+
+export async function setMaloteTags(maloteId: number, tagIds: number[]): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Remove existing links
+  await db.delete(maloteTagLinks).where(eq(maloteTagLinks.maloteId, maloteId));
+  // Insert new links
+  if (tagIds.length > 0) {
+    await db.insert(maloteTagLinks).values(
+      tagIds.map(tagId => ({ maloteId, tagId }))
+    );
+  }
 }
