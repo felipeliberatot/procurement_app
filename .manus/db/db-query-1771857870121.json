@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as total FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT COUNT(*) as total FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '';",
+  "rows": [
+    {
+      "total": "237"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n237\n",
+  "stderr": "",
+  "execution_time_ms": 143
+}

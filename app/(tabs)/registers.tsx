@@ -316,6 +316,11 @@ function UserFormModal({
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
+          {/* Seção principal: campos solicitados */}
+          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 }}>
+            Informações Pessoais
+          </Text>
+
           {/* Nome */}
           <View>
             <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
@@ -374,7 +379,7 @@ function UserFormModal({
             <TextInput
               value={phone}
               onChangeText={setPhone}
-              placeholder="+55 11 99999-9999"
+              placeholder="+55 66 99999-9999"
               placeholderTextColor={colors.muted}
               keyboardType="phone-pad"
               style={{
@@ -392,30 +397,6 @@ function UserFormModal({
             <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
               Número usado para notificações e aprovações via WhatsApp
             </Text>
-          </View>
-
-          {/* Departamento */}
-          <View>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
-              Departamento
-            </Text>
-            <TextInput
-              value={department}
-              onChangeText={setDepartment}
-              placeholder="Ex: Operações, TI, Financeiro..."
-              placeholderTextColor={colors.muted}
-              style={{
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 14,
-                color: colors.foreground,
-              }}
-              returnKeyType="next"
-            />
           </View>
 
           {/* Cargo */}
@@ -440,10 +421,13 @@ function UserFormModal({
               }}
               returnKeyType="next"
             />
-            <Text style={{ color: colors.muted, fontSize: 11, marginTop: 4 }}>
-              Título do cargo ou função do usuário na empresa
-            </Text>
           </View>
+
+          {/* Separador */}
+          <View style={{ height: 0.5, backgroundColor: colors.border, marginVertical: 4 }} />
+          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 }}>
+            Permissões e Acesso
+          </Text>
 
           {/* Nível de Aprovação */}
           <View>
@@ -578,6 +562,34 @@ function UserFormModal({
                 );
               })}
             </View>
+          </View>
+
+          {/* Departamento (opcional) */}
+          <View style={{ height: 0.5, backgroundColor: colors.border, marginVertical: 4 }} />
+          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8 }}>
+            Informações Adicionais (Opcional)
+          </Text>
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+              Departamento
+            </Text>
+            <TextInput
+              value={department}
+              onChangeText={setDepartment}
+              placeholder="Ex: Operações, TI, Financeiro..."
+              placeholderTextColor={colors.muted}
+              style={{
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 14,
+                color: colors.foreground,
+              }}
+              returnKeyType="done"
+            />
           </View>
 
           {/* Status ativo/inativo */}
@@ -1000,7 +1012,7 @@ export default function RegistersScreen() {
   }, [isMaster]);
 
   const handleEditUser = (u: any) => {
-    if (!isAdmin && !isMaster) return;
+    if (!isAuthenticated) return;
     // Non-masters cannot edit master users
     if (u?.approvalLevel === "master" && !isMaster) {
       Alert.alert("Acesso Restrito", "Apenas usuários master podem editar outro usuário master.");
@@ -1287,8 +1299,8 @@ export default function RegistersScreen() {
               </View>
             </ScrollView>
 
-            {/* Add user button + Export CSV (admin or master) */}
-            {(isAdmin || isMaster) && (
+            {/* Add user button + Export CSV (visible to all authenticated users; PIN required for master) */}
+            {isAuthenticated && (
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
                   onPress={handleNewUser}

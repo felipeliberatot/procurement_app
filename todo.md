@@ -204,3 +204,8 @@
 - [x] Rota tRPC `users.updatePin` para o master alterar o PIN
 - [x] Modal de verificação de PIN no app (teclado numérico/alfanumérico)
 - [x] Proteger ações administrativas sensíveis com verificação de PIN
+
+## Correções Aba Cadastros
+- [x] Deletar usuários sem nome do banco de dados
+- [x] Corrigir visibilidade do botão "+ Novo Usuário" na aba Cadastros
+- [x] Formulário de cadastro com campos: nome, e-mail, WhatsApp, cargo e nível de aprovação

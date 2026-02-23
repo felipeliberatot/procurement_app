@@ -1,0 +1,150 @@
+{
+  "query": "SELECT id, name, email, approvalLevel, LENGTH(name) as nameLen FROM users ORDER BY id LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, approvalLevel, LENGTH(name) as nameLen FROM users ORDER BY id LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Rafael  Liberato",
+      "email": "rafael.liberato@ymail.com",
+      "approvalLevel": "nenhum",
+      "nameLen": "16"
+    },
+    {
+      "id": "2",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "3",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "4",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "5",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "30001",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "30002",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "60001",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "60002",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "90001",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "90002",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120001",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120002",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120003",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120004",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120005",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120006",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120007",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120008",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    },
+    {
+      "id": "120009",
+      "name": "NULL",
+      "email": "NULL",
+      "approvalLevel": "nenhum",
+      "nameLen": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tapprovalLevel\tnameLen\n1\tRafael  Liberato\trafael.liberato@ymail.com\tnenhum\t16\n2\tNULL\tNULL\tnenhum\tNULL\n3\tNULL\tNULL\tnenhum\tNULL\n4\tNULL\tNULL\tnenhum\tNULL\n5\tNULL\tNULL\tnenhum\tNULL\n30001\tNULL\tNULL\tnenhum\tNULL\n30002\tNULL\tNULL\tnenhum\tNULL\n60001\tNULL\tNULL\tnenhum\tNULL\n60002\tNULL\tNULL\tnenhum\tNULL\n90001\tNULL\tNULL\tnenhum\tNULL\n90002\tNULL\tNULL\tnenhum\tNULL\n120001\tNULL\tNULL\tnenhum\tNULL\n120002\tNULL\tNULL\tnenhum\tNULL\n120003\tNULL\tNULL\tnenhum\tNULL\n120004\tNULL\tNULL\tnenhum\tNULL\n120005\tNULL\tNULL\tnenhum\tNULL\n120006\tNULL\tNULL\tnenhum\tNULL\n120007\tNULL\tNULL\tnenhum\tNULL\n120008\tNULL\tNULL\tnenhum\tNULL\n120009\tNULL\tNULL\tnenhum\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}
