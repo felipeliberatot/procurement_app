@@ -243,3 +243,4 @@
 - [x] Corrigir rejeição do fluxo 07: ao recusar comprovante, solicitação deve voltar para o solicitante (não para etapa 06)
 - [x] Notificar via WhatsApp cada aprovador na sua etapa correspondente (gerente, orçamento, controladoria, diretoria, financeiro, verificação final)
 - [x] Incluir link direto para a solicitação em todas as notificações WhatsApp
+- [x] Corrigir notificações WhatsApp para aprovadores: garantir que o número é buscado do perfil cadastrado (campo phone na tabela users)

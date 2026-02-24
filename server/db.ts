@@ -1,4 +1,4 @@
-import { desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   approvalHistory,
@@ -480,11 +480,20 @@ export async function createPurchaseRequest(
     // Urgentes/emergenciais vão direto para Diretoria; normais vão para Gerente
     const approverRole = isUrgent ? "diretoria" : "gerente";
     const stepLabel = isUrgent ? "Diretoria" : "Gerente de Unidade";
-    const approvers = await db.select().from(users).where(eq(users.procurementRole, approverRole as any));
+    const approvers = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.procurementRole, approverRole as any),
+        eq(users.active, true),
+      ));
+    console.log(`[WhatsApp] Nova solicitação: notificando aprovadores "${approverRole}": ${approvers.length} encontrado(s)`);
     for (const approver of approvers) {
-      if (approver.phone) {
+      const phoneRaw = approver.phone;
+      console.log(`[WhatsApp] Aprovador: ${approver.name} | phone raw: ${phoneRaw}`);
+      if (phoneRaw) {
         await WA.notifyNewRequest({
-          approverPhone: approver.phone,
+          approverPhone: phoneRaw,
           approverName: approver.name ?? "Aprovador",
           requestNumber,
           requestId: insertId,
@@ -494,6 +503,8 @@ export async function createPurchaseRequest(
           department: input.department,
           stepLabel,
         });
+      } else {
+        console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) não tem telefone cadastrado.`);
       }
     }
   } catch (e) {
@@ -717,11 +728,21 @@ export async function approveRequest(
     // ── Notificar o(s) aprovador(es) da próxima etapa ─────────────────────────
     const nextRole = nextRoleMap[flow.nextStatus];
     if (nextRole && req) {
-      const nextApprovers = await db.select().from(users).where(eq(users.procurementRole, nextRole as any));
+      // Buscar aprovadores ativos com o papel correto, usando o telefone do perfil cadastrado
+      const nextApprovers = await db
+        .select()
+        .from(users)
+        .where(and(
+          eq(users.procurementRole, nextRole as any),
+          eq(users.active, true),
+        ));
+      console.log(`[WhatsApp] Notificando aprovadores para etapa "${nextRole}": ${nextApprovers.length} encontrado(s)`);
       for (const approver of nextApprovers) {
-        if (approver.phone) {
+        const phoneRaw = approver.phone;
+        console.log(`[WhatsApp] Aprovador: ${approver.name} | phone raw: ${phoneRaw}`);
+        if (phoneRaw) {
           await WA.notifyApproverWithToken({
-            approverPhone: approver.phone,
+            approverPhone: phoneRaw,  // normalizePhone é chamado dentro de sendWhatsAppMessage
             approverName: approver.name ?? "Aprovador",
             approverId: approver.id,
             requestNumber: req.requestNumber,
@@ -735,6 +756,8 @@ export async function approveRequest(
             items: itemsForMsg,
             totalValue: req.totalEstimatedValue ?? undefined,
           });
+        } else {
+          console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) não tem telefone cadastrado.`);
         }
       }
     }
@@ -816,11 +839,20 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
         };
         const prevRole = prevRoleMap[prevStatus];
         if (prevRole && req) {
-          const prevApprovers = await db.select().from(users).where(eq(users.procurementRole, prevRole as any));
+          const prevApprovers = await db
+            .select()
+            .from(users)
+            .where(and(
+              eq(users.procurementRole, prevRole as any),
+              eq(users.active, true),
+            ));
+          console.log(`[WhatsApp] Notificando aprovadores (rejeição) para etapa "${prevRole}": ${prevApprovers.length} encontrado(s)`);
           for (const approver of prevApprovers) {
-            if (approver.phone) {
+            const phoneRaw = approver.phone;
+            console.log(`[WhatsApp] Aprovador (rejeição): ${approver.name} | phone raw: ${phoneRaw}`);
+            if (phoneRaw) {
               await WA.notifyApproverWithToken({
-                approverPhone: approver.phone,
+                approverPhone: phoneRaw,
                 approverName: approver.name ?? "Aprovador",
                 approverId: approver.id,
                 requestNumber: req.requestNumber,
@@ -834,6 +866,8 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
                 items: itemsForMsg,
                 totalValue: req.totalEstimatedValue ?? undefined,
               });
+            } else {
+              console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) não tem telefone cadastrado.`);
             }
           }
         }
