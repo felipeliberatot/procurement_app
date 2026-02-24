@@ -186,6 +186,8 @@ export const approvalHistory = mysqlTable("approvalHistory", {
     "orcamento_anexado",
     "ordem_emitida",
     "comprovante_anexado",
+    "comprovante_aprovado",
+    "comprovante_recusado",
     "pagamento_recusado",
     "pagamento_verificado",
     "nota_fiscal_anexada",
