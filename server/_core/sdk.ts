@@ -286,10 +286,14 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
+    // Atualizar apenas lastSignedIn — nunca criar novo registro aqui
+    // (a criação já foi feita acima com nome/email completos)
+    if (user.id) {
+      await db.upsertUser({
+        openId: user.openId,
+        lastSignedIn: signedInAt,
+      });
+    }
 
     return user;
   }

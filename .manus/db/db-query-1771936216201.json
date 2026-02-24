@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as restantes FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '';\n\nALTER TABLE users ADD UNIQUE INDEX idx_users_openId (openId);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT COUNT(*) as restantes FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '';\n\nALTER TABLE users ADD UNIQUE INDEX idx_users_openId (openId);",
+  "rows": [
+    {
+      "restantes": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "restantes\n0\n",
+  "stderr": "",
+  "execution_time_ms": 785
+}
