@@ -24,7 +24,7 @@ function getTransporter() {
   });
 }
 
-const FROM_NAME = process.env.SMTP_FROM_NAME ?? "CGS Agropecuária";
+const FROM_NAME = process.env.SMTP_FROM_NAME ?? "CGS Agrícola";
 const FROM_EMAIL = process.env.SMTP_USER ?? "noreply@cgs.agr.br";
 
 export async function sendWelcomeEmail(params: {
@@ -58,7 +58,7 @@ export async function sendWelcomeEmail(params: {
           <!-- Header -->
           <tr>
             <td style="background:#0a7ea4;padding:28px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agropecuária</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agrícola</h1>
               <p style="margin:6px 0 0;color:#e0f4fb;font-size:14px;">Sistema de Gestão de Compras</p>
             </td>
           </tr>
@@ -67,7 +67,7 @@ export async function sendWelcomeEmail(params: {
             <td style="padding:32px;">
               <h2 style="margin:0 0 8px;color:#11181C;font-size:18px;">Olá, ${params.toName}! 👋</h2>
               <p style="margin:0 0 16px;color:#687076;font-size:14px;line-height:1.6;">
-                Sua conta foi criada no <strong>Sistema de Gestão de Compras da CGS Agropecuária</strong>.
+                Sua conta foi criada no <strong>Sistema de Gestão de Compras da CGS Agrícola</strong>.
                 ${params.jobTitle ? `Você foi cadastrado como <strong>${params.jobTitle}</strong>.` : ""}
               </p>
               <p style="margin:0 0 24px;color:#687076;font-size:14px;line-height:1.6;">
@@ -108,9 +108,9 @@ export async function sendWelcomeEmail(params: {
     await transporter.sendMail({
       from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
       to: params.toEmail,
-      subject: "Bem-vindo ao Sistema de Compras — CGS Agropecuária",
+      subject: "Bem-vindo ao Sistema de Compras — CGS Agrícola",
       html,
-      text: `Olá, ${params.toName}!\n\nSua conta foi criada no Sistema de Gestão de Compras da CGS Agropecuária.\n\nAcesse: ${loginUrl}\n\nEm caso de dúvidas, entre em contato com o administrador.`,
+      text: `Olá, ${params.toName}!\n\nSua conta foi criada no Sistema de Gestão de Compras da CGS Agrícola.\n\nAcesse: ${loginUrl}\n\nEm caso de dúvidas, entre em contato com o administrador.`,
     });
     console.log(`[Email] Welcome email sent to ${params.toEmail}`);
     return true;
@@ -243,7 +243,7 @@ export async function sendDailyReportEmail(params: {
           <!-- Header -->
           <tr>
             <td style="background:#0a7ea4;padding:28px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agropecuária</h1>
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agrícola</h1>
               <p style="margin:6px 0 0;color:#e0f4fb;font-size:14px;">Relatório Diário de Compras — ${params.date}</p>
             </td>
           </tr>
@@ -295,7 +295,7 @@ export async function sendDailyReportEmail(params: {
           <tr>
             <td style="background:#f5f5f5;padding:16px 32px;text-align:center;border-top:1px solid #E5E7EB;">
               <p style="margin:0;color:#9BA1A6;font-size:12px;">
-                Relatório gerado automaticamente em ${params.date} às 07:00 · CGS Agropecuária<br/>
+                Relatório gerado automaticamente em ${params.date} às 07:00 · CGS Agrícola<br/>
                 Não responda a este e-mail.
               </p>
             </td>
