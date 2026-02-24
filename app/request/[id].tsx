@@ -431,14 +431,13 @@ export default function RequestDetailScreen() {
   };
 
   const handleIssueOrder = () => {
-    if (!orderNumber.trim()) { Alert.alert("Campo obrigatório", "Informe o número da Ordem de Compra."); return; }
     if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe os dados de pagamento antes de avançar."); return; }
     Alert.alert(
       "Confirmar Emissão de OC",
-      `Emitir OC ${orderNumber} com os dados de pagamento informados e avançar para o Financeiro?`,
+      "Confirmar os dados de pagamento e encaminhar ao Financeiro?",
       [
         { text: "Cancelar", style: "cancel" },
-        { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: orderNumber, paymentInfo }) },
+        { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", paymentInfo }) },
       ]
     );
   };
@@ -696,17 +695,6 @@ export default function RequestDetailScreen() {
                   <Text className="text-sm font-bold text-foreground mb-1">📋 Emissão de Ordem de Compra</Text>
                   <Text className="text-xs text-muted mb-4">Preencha os campos abaixo para emitir a OC e encaminhar ao Financeiro</Text>
 
-                  {/* Número da OC */}
-                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Número da OC *</Text>
-                  <TextInput
-                    value={orderNumber}
-                    onChangeText={setOrderNumber}
-                    placeholder="Ex: OC-2024-001"
-                    placeholderTextColor={colors.muted}
-                    style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: orderNumber.trim() ? colors.border : `${colors.error}60`, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground, marginBottom: 16 }}
-                    returnKeyType="next"
-                  />
-
                   {/* Dados de Pagamento */}
                   <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Dados de Pagamento *</Text>
                   <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe banco, agência, conta, tipo de pagamento, valor, data prevista, etc.</Text>
@@ -733,18 +721,18 @@ export default function RequestDetailScreen() {
                   />
 
                   {/* Indicador de campos obrigatórios */}
-                  {(!orderNumber.trim() || !paymentInfo.trim()) && (
+                  {!paymentInfo.trim() && (
                     <Text style={{ color: colors.error, fontSize: 11, marginBottom: 12, textAlign: "center" }}>
-                      * Preencha todos os campos obrigatórios para continuar
+                      * Preencha os dados de pagamento para continuar
                     </Text>
                   )}
 
                   {/* Botão Emitir OC */}
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending || !orderNumber.trim() || !paymentInfo.trim()}
+                    disabled={approveMutation.isPending || !paymentInfo.trim()}
                     style={{
-                      backgroundColor: (orderNumber.trim() && paymentInfo.trim()) ? colors.primary : colors.border,
+                      backgroundColor: paymentInfo.trim() ? colors.primary : colors.border,
                       borderRadius: 12,
                       paddingVertical: 14,
                       alignItems: "center",
@@ -759,7 +747,7 @@ export default function RequestDetailScreen() {
                       : (
                         <>
                           <Text style={{ fontSize: 16 }}>📤</Text>
-                          <Text style={{ color: (orderNumber.trim() && paymentInfo.trim()) ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
+                          <Text style={{ color: paymentInfo.trim() ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
                             Emitir OC e Enviar ao Financeiro
                           </Text>
                         </>
