@@ -52,7 +52,11 @@ export default function RequestsScreen() {
   });
 
   const filtered = (requests ?? []).filter((r) => {
-    const statusMatch = activeFilter === "all" ? true : r.status === activeFilter;
+    // "pending" é um filtro especial que agrupa todos os status "aguardando_*"
+    const statusMatch =
+      activeFilter === "all" ? true
+      : activeFilter === "pending" ? r.status.startsWith("aguardando")
+      : r.status === activeFilter;
     const urgencyMatch = activeUrgency === "all" ? true : r.urgencyLevel === activeUrgency;
     return statusMatch && urgencyMatch;
   });

@@ -96,7 +96,7 @@ export default function DashboardScreen() {
                 value={stats.pending ?? 0}
                 icon="⏳"
                 color="warning"
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "aguardando_gerente" } })}
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "pending" } })}
               />
               <MetricCard
                 label="Concluídas"
@@ -116,7 +116,7 @@ export default function DashboardScreen() {
               />
               <MetricCard
                 label="Canceladas"
-                value={stats.rejected ?? 0}
+                value={(stats as any).cancelled ?? 0}
                 icon="🚫"
                 color="muted"
                 onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "cancelada" } })}

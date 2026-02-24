@@ -575,8 +575,10 @@ export async function getDashboardStats(userId: number, role: string) {
 
   const pending = all.filter(r => r.status.startsWith("aguardando")).length;
   const approved = all.filter(r => r.status === "concluida").length;
-  const rejected = all.filter(r => r.status === "rejeitada" || r.status === "cancelada").length;
-   const urgent = all.filter(r => r.urgencyLevel === "urgente" && r.status.startsWith("aguardando")).length;
+  // Separar rejeitadas e canceladas corretamente
+  const rejected = all.filter(r => r.status === "rejeitada").length;
+  const cancelled = all.filter(r => r.status === "cancelada").length;
+  const urgent = all.filter(r => r.urgencyLevel === "urgente" && r.status.startsWith("aguardando")).length;
   const emergency = all.filter(r => r.urgencyLevel === "emergencial" && r.status.startsWith("aguardando")).length;
   const now = new Date();
   const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -586,7 +588,7 @@ export async function getDashboardStats(userId: number, role: string) {
     r.deadlineAt > now &&
     r.deadlineAt <= in24h
   ).length;
-  return { total: all.length, pending, approved, rejected, urgent, emergency, expiringSoon };
+  return { total: all.length, pending, approved, rejected, cancelled, urgent, emergency, expiringSoon };
 }
 
 export async function getApprovalHistory(requestId: number) {
