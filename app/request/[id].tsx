@@ -431,14 +431,20 @@ export default function RequestDetailScreen() {
   };
 
   const handleIssueOrder = () => {
-    if (!orderNumber.trim()) { Alert.alert("Campo obrigatório", "Informe o número da ordem de compra."); return; }
-    Alert.alert("Confirmar", `Emitir Ordem de Compra ${orderNumber}?`, [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: orderNumber }) },
-    ]);
+    if (!orderNumber.trim()) { Alert.alert("Campo obrigatório", "Informe o número da Ordem de Compra."); return; }
+    if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe os dados de pagamento antes de avançar."); return; }
+    Alert.alert(
+      "Confirmar Emissão de OC",
+      `Emitir OC ${orderNumber} com os dados de pagamento informados e avançar para o Financeiro?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: orderNumber, paymentInfo }) },
+      ]
+    );
   };
 
   const handleFinalize = () => {
+    // Mantido para compatibilidade — não usado diretamente na UI
     if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe as informações de pagamento."); return; }
     Alert.alert("Confirmar Dados de Pagamento", "Confirmar os dados de pagamento e avançar para o Financeiro?", [
       { text: "Cancelar", style: "cancel" },
@@ -684,26 +690,81 @@ export default function RequestDetailScreen() {
                 </View>
               )}
 
-              {/* Etapa de ordem de compra */}
+              {/* Etapa 06: Emissão de OC + Dados de Pagamento */}
               {currentStatus === "aguardando_ordem_compra" && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-                  <Text className="text-sm font-bold text-foreground mb-1">Emitir Ordem de Compra</Text>
-                  <Text className="text-xs text-muted mb-3">Informe o número da ordem gerada no sistema</Text>
+                  <Text className="text-sm font-bold text-foreground mb-1">📋 Emissão de Ordem de Compra</Text>
+                  <Text className="text-xs text-muted mb-4">Preencha os campos abaixo para emitir a OC e encaminhar ao Financeiro</Text>
+
+                  {/* Número da OC */}
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Número da OC *</Text>
                   <TextInput
                     value={orderNumber}
                     onChangeText={setOrderNumber}
                     placeholder="Ex: OC-2024-001"
                     placeholderTextColor={colors.muted}
-                    style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground, marginBottom: 12 }}
-                    returnKeyType="done"
-                    onSubmitEditing={handleIssueOrder}
+                    style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: orderNumber.trim() ? colors.border : `${colors.error}60`, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground, marginBottom: 16 }}
+                    returnKeyType="next"
                   />
+
+                  {/* Dados de Pagamento */}
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Dados de Pagamento *</Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe banco, agência, conta, tipo de pagamento, valor, data prevista, etc.</Text>
+                  <TextInput
+                    value={paymentInfo}
+                    onChangeText={setPaymentInfo}
+                    placeholder="Ex: Banco Bradesco, Ag. 1234-5, CC 00012345-6, Transferência, R$ 5.000,00, vencimento 30/03/2024..."
+                    placeholderTextColor={colors.muted}
+                    multiline
+                    numberOfLines={5}
+                    style={{
+                      backgroundColor: colors.background,
+                      borderWidth: 1,
+                      borderColor: paymentInfo.trim() ? colors.border : `${colors.error}60`,
+                      borderRadius: 12,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      fontSize: 14,
+                      color: colors.foreground,
+                      minHeight: 120,
+                      textAlignVertical: "top",
+                      marginBottom: 16,
+                    }}
+                  />
+
+                  {/* Indicador de campos obrigatórios */}
+                  {(!orderNumber.trim() || !paymentInfo.trim()) && (
+                    <Text style={{ color: colors.error, fontSize: 11, marginBottom: 12, textAlign: "center" }}>
+                      * Preencha todos os campos obrigatórios para continuar
+                    </Text>
+                  )}
+
+                  {/* Botão Emitir OC */}
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending || !orderNumber.trim()}
-                    style={{ backgroundColor: orderNumber.trim() ? colors.primary : colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: approveMutation.isPending ? 0.7 : 1 }}
+                    disabled={approveMutation.isPending || !orderNumber.trim() || !paymentInfo.trim()}
+                    style={{
+                      backgroundColor: (orderNumber.trim() && paymentInfo.trim()) ? colors.primary : colors.border,
+                      borderRadius: 12,
+                      paddingVertical: 14,
+                      alignItems: "center",
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      gap: 8,
+                      opacity: approveMutation.isPending ? 0.7 : 1,
+                    }}
                   >
-                    {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text style={{ color: orderNumber.trim() ? "white" : colors.muted, fontWeight: "700" }}>Emitir Ordem de Compra</Text>}
+                    {approveMutation.isPending
+                      ? <ActivityIndicator color="white" />
+                      : (
+                        <>
+                          <Text style={{ fontSize: 16 }}>📤</Text>
+                          <Text style={{ color: (orderNumber.trim() && paymentInfo.trim()) ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
+                            Emitir OC e Enviar ao Financeiro
+                          </Text>
+                        </>
+                      )
+                    }
                   </TouchableOpacity>
                 </View>
               )}
