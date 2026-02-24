@@ -26,6 +26,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -122,16 +123,28 @@ export default function LoginScreen() {
 
             <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: colors.surface }]}>
               <Text style={[styles.inputLabel, { color: colors.muted }]}>Senha</Text>
-              <TextInput
-                style={[styles.input, { color: colors.foreground }]}
-                value={password}
-                onChangeText={setPassword}
-                placeholder="••••••••"
-                placeholderTextColor={colors.muted}
-                secureTextEntry
-                returnKeyType="done"
-                onSubmitEditing={handleLogin}
-              />
+              <View style={styles.passwordRow}>
+                <TextInput
+                  style={[styles.input, styles.passwordInput, { color: colors.foreground }]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor={colors.muted}
+                  secureTextEntry={!showPassword}
+                  returnKeyType="done"
+                  onSubmitEditing={handleLogin}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword((v) => !v)}
+                  activeOpacity={0.6}
+                  style={styles.eyeButton}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={[styles.eyeIcon, { color: colors.muted }]}>
+                    {showPassword ? "🙈" : "👁"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {error && (
@@ -240,5 +253,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: "center",
     paddingBottom: 8,
+  },
+  passwordRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  passwordInput: {
+    flex: 1,
+  },
+  eyeButton: {
+    paddingLeft: 10,
+    paddingVertical: 2,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  eyeIcon: {
+    fontSize: 18,
   },
 });

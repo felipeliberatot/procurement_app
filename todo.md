@@ -246,3 +246,4 @@
 - [x] Corrigir notificações WhatsApp para aprovadores: garantir que o número é buscado do perfil cadastrado (campo phone na tabela users)
 - [x] Adicionar campo de telefone editável pelo usuário Master na tela de perfil/edição de usuários
 - [x] Adicionar botão "Testar envio WhatsApp" no card do usuário (apenas Master)
+- [x] Adicionar botão mostrar/ocultar senha na tela de login
