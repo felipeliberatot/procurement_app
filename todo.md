@@ -242,3 +242,4 @@
 - [x] Remover campo "Número da OC" da etapa 06 (deixar apenas Dados de Pagamento)
 - [x] Corrigir rejeição do fluxo 07: ao recusar comprovante, solicitação deve voltar para o solicitante (não para etapa 06)
 - [x] Notificar via WhatsApp cada aprovador na sua etapa correspondente (gerente, orçamento, controladoria, diretoria, financeiro, verificação final)
+- [x] Incluir link direto para a solicitação em todas as notificações WhatsApp

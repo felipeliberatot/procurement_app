@@ -149,6 +149,7 @@ export function registerWhatsAppWebhook(app: Express): void {
           approverPhone: normalizedPhone,
           approverName: session.approverName || "Aprovador",
           requestNumber: session.requestNumber,
+          requestId: session.requestId,
           action: "approved",
         });
 
@@ -162,6 +163,7 @@ export function registerWhatsAppWebhook(app: Express): void {
           approverPhone: normalizedPhone,
           approverName: session.approverName || "Aprovador",
           requestNumber: session.requestNumber,
+          requestId: session.requestId,
           action: "rejected",
           comment: reply.comment,
         });

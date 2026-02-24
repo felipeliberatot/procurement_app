@@ -385,6 +385,7 @@ export async function notifyAutoCancellation(opts: {
   requesterPhone: string;
   requesterName: string;
   requestNumber: string;
+  requestId?: number;
   reason: string;
 }) {
   const message = [
@@ -397,7 +398,10 @@ export async function notifyAutoCancellation(opts: {
     `*Motivo:* ${opts.reason}`,
     ``,
     `Se necessário, crie uma nova solicitação no app.`,
-  ].join("\n");
+    opts.requestId ? `` : null,
+    opts.requestId ? `🔗 Ver detalhes no app:` : null,
+    opts.requestId ? `${APP_BASE_URL}/request/${opts.requestId}` : null,
+  ].filter(Boolean).join("\n");
 
   return sendWhatsAppMessage(opts.requesterPhone, message);
 }
@@ -406,9 +410,14 @@ export async function notifyApproverActionConfirmation(opts: {
   approverPhone: string;
   approverName: string;
   requestNumber: string;
+  requestId?: number;
   action: "approved" | "rejected";
   comment?: string;
 }) {
+  const link = opts.requestId
+    ? [``, `🔗 Ver solicitação no app:`, `${APP_BASE_URL}/request/${opts.requestId}`]
+    : [];
+
   const message = opts.action === "approved"
     ? [
         `✅ *Aprovação registrada!*`,
@@ -416,6 +425,7 @@ export async function notifyApproverActionConfirmation(opts: {
         `Olá, *${opts.approverName}*!`,
         ``,
         `Sua aprovação da solicitação *${opts.requestNumber}* foi registrada com sucesso no sistema CGS Agrícola.`,
+        ...link,
       ].join("\n")
     : [
         `❌ *Rejeição registrada!*`,
@@ -426,6 +436,7 @@ export async function notifyApproverActionConfirmation(opts: {
         opts.comment ? `*Motivo informado:* ${opts.comment}` : "",
         ``,
         `O solicitante será notificado para realizar as correções.`,
+        ...link,
       ].filter(Boolean).join("\n");
 
   return sendWhatsAppMessage(opts.approverPhone, message);
