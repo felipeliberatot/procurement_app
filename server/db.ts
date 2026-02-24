@@ -1,4 +1,4 @@
-import { desc, eq, gte, sql } from "drizzle-orm";
+import { desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   approvalHistory,
@@ -526,15 +526,21 @@ export async function getPendingRequestsForUser(role: string) {
   const db = await getDb();
   if (!db) return [];
 
-  const statusMap: Record<string, string> = {
+  // Role orcamento responde por 3 etapas: orçamento, emissão de OC e verificação final
+  if (role === "orcamento") {
+    return db.select().from(purchaseRequests)
+      .where(inArray(purchaseRequests.status, ["aguardando_orcamento", "aguardando_ordem_compra", "aguardando_verificacao_compras"] as any[]))
+      .orderBy(purchaseRequests.urgencyLevel, purchaseRequests.deadlineAt);
+  }
+
+  const singleStatusMap: Record<string, string> = {
     gerente: "aguardando_gerente",
-    orcamento: "aguardando_orcamento",
     controladoria: "aguardando_controladoria",
     diretoria: "aguardando_diretoria",
-    financeiro: "aguardando_financeiro",
+    financeiro: "aguardando_comprovante_pagamento",
   };
 
-  const status = statusMap[role];
+  const status = singleStatusMap[role];
   if (!status) return [];
 
   return db.select().from(purchaseRequests)
@@ -691,9 +697,9 @@ export async function approveRequest(
         aguardando_orcamento: "orcamento",
         aguardando_controladoria: "controladoria",
         aguardando_diretoria: "diretoria",
-        aguardando_ordem_compra: "financeiro",
-        aguardando_comprovante_pagamento: "financeiro",
-        aguardando_verificacao_compras: "financeiro",
+        aguardando_ordem_compra: "orcamento",           // Fluxo 06: Emissão de OC → Orçamento
+        aguardando_comprovante_pagamento: "financeiro",  // Fluxo 07: Comprovante → Financeiro
+        aguardando_verificacao_compras: "orcamento",    // Fluxo 08: Verificação Final → Orçamento
       };
       const nextRole = nextRoleMap[flow.nextStatus];
       if (nextRole && req) {

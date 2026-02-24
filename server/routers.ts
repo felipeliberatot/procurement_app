@@ -390,8 +390,9 @@ export const appRouter = router({
           aguardando_orcamento: "orcamento",
           aguardando_controladoria: "controladoria",
           aguardando_diretoria: "diretoria",
-          aguardando_ordem_compra: "financeiro",
-          aguardando_financeiro: "financeiro",
+          aguardando_ordem_compra: "orcamento",           // Fluxo 06: Emissão de OC → Orçamento
+          aguardando_comprovante_pagamento: "financeiro",  // Fluxo 07: Comprovante → Financeiro
+          aguardando_verificacao_compras: "orcamento",    // Fluxo 08: Verificação Final → Orçamento
         };
         const role = roleMap[req.status];
         if (!role) throw new Error("Solicitação não está em etapa pendente de aprovação");
