@@ -115,7 +115,8 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
     "aguardando_controladoria",
     "aguardando_diretoria",
     "aguardando_ordem_compra",
-    "aguardando_financeiro",
+    "aguardando_comprovante_pagamento",
+    "aguardando_verificacao_compras",
     "concluida",
     "rejeitada",
     "cancelada",
@@ -126,7 +127,12 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   // Step-specific data
   budgetFileUrl: text("budgetFileUrl"),   // PDF orçamento
   purchaseOrderNumber: varchar("purchaseOrderNumber", { length: 64 }),
-  paymentInfo: text("paymentInfo"),
+  paymentInfo: text("paymentInfo"),        // Dados de pagamento inseridos pelo Compras
+  paymentProofUrl: text("paymentProofUrl"), // PDF comprovante de pagamento (Financeiro)
+  invoiceUrl: text("invoiceUrl"),           // PDF nota fiscal (Compras na verificação final)
+
+  // Malotes integration
+  isEnabledInMalotes: boolean("isEnabledInMalotes").default(false).notNull(), // Habilitado nos Malotes após OC finalizada
 
   // Deadline tracking
   deadlineAt: timestamp("deadlineAt"),       // Overall deadline based on urgency
@@ -171,6 +177,7 @@ export const approvalHistory = mysqlTable("approvalHistory", {
     "diretoria",
     "ordem_compra",
     "financeiro",
+    "verificacao_compras",
   ]).notNull(),
   action: mysqlEnum("action", [
     "criada",
@@ -178,7 +185,11 @@ export const approvalHistory = mysqlTable("approvalHistory", {
     "rejeitada",
     "orcamento_anexado",
     "ordem_emitida",
-    "pagamento_realizado",
+    "comprovante_anexado",
+    "pagamento_recusado",
+    "pagamento_verificado",
+    "nota_fiscal_anexada",
+    "oc_finalizada",
     "cancelada",
     "reaberta",
   ]).notNull(),

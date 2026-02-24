@@ -282,6 +282,47 @@ export const appRouter = router({
         await db.attachBudget(input.requestId, ctx.user.id, ctx.user.name ?? "Usuário", url);
         return { url };
       }),
+
+    // Upload comprovante de pagamento (Financeiro)
+    uploadPaymentProof: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        fileName: z.string(),
+        base64: z.string(),
+        mimeType: z.string().default("application/pdf"),
+      }))
+      .mutation(async ({ input }) => {
+        const { storagePut } = await import("./storage");
+        const buffer = Buffer.from(input.base64, "base64");
+        const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const key = `payment-proofs/${input.requestId}/${Date.now()}_${safeName}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        await db.attachPaymentProof(input.requestId, url);
+        return { url };
+      }),
+
+    // Upload nota fiscal (Compras - verificação final)
+    uploadInvoice: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        fileName: z.string(),
+        base64: z.string(),
+        mimeType: z.string().default("application/pdf"),
+      }))
+      .mutation(async ({ input }) => {
+        const { storagePut } = await import("./storage");
+        const buffer = Buffer.from(input.base64, "base64");
+        const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const key = `invoices/${input.requestId}/${Date.now()}_${safeName}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        await db.attachInvoice(input.requestId, url);
+        return { url };
+      }),
+
+    // Finalizar OC (Compras - encerra o fluxo e habilita nos Malotes)
+    finalizeOC: protectedProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(({ ctx, input }) => db.finalizeOC(input.requestId, ctx.user)),
   }),
 
   // ─── Approvals ─────────────────────────────────────────────────────────────

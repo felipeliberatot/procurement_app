@@ -601,21 +601,21 @@ export async function attachBudget(requestId: number, userId: number, userName: 
 // ─── Approvals ────────────────────────────────────────────────────────────────
 
 const STEP_FLOW: Record<string, { step: string; nextStatus: string; action: string }> = {
-  aguardando_gerente: { step: "gerente", nextStatus: "aguardando_orcamento", action: "aprovada" },
-  aguardando_orcamento: { step: "orcamento", nextStatus: "aguardando_controladoria", action: "aprovada" },
-  aguardando_controladoria: { step: "controladoria", nextStatus: "aguardando_diretoria", action: "aprovada" },
-  aguardando_diretoria: { step: "diretoria", nextStatus: "aguardando_ordem_compra", action: "aprovada" },
-  aguardando_ordem_compra: { step: "ordem_compra", nextStatus: "aguardando_financeiro", action: "ordem_emitida" },
-  aguardando_financeiro: { step: "financeiro", nextStatus: "concluida", action: "pagamento_realizado" },
+  aguardando_gerente:              { step: "gerente",      nextStatus: "aguardando_orcamento",              action: "aprovada" },
+  aguardando_orcamento:            { step: "orcamento",    nextStatus: "aguardando_controladoria",          action: "aprovada" },
+  aguardando_controladoria:        { step: "controladoria",nextStatus: "aguardando_diretoria",              action: "aprovada" },
+  aguardando_diretoria:            { step: "diretoria",    nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
+  aguardando_ordem_compra:         { step: "ordem_compra", nextStatus: "aguardando_comprovante_pagamento",  action: "ordem_emitida" },
+  aguardando_comprovante_pagamento:{ step: "financeiro",   nextStatus: "aguardando_verificacao_compras",   action: "comprovante_aprovado" },
 };
 
 const REJECT_FLOW: Record<string, string> = {
-  aguardando_gerente: "aguardando_gerente",
-  aguardando_orcamento: "aguardando_orcamento",
-  aguardando_controladoria: "aguardando_orcamento",
-  aguardando_diretoria: "aguardando_controladoria",
-  aguardando_ordem_compra: "aguardando_diretoria",
-  aguardando_financeiro: "aguardando_ordem_compra",
+  aguardando_gerente:              "aguardando_gerente",
+  aguardando_orcamento:            "aguardando_orcamento",
+  aguardando_controladoria:        "aguardando_orcamento",
+  aguardando_diretoria:            "aguardando_controladoria",
+  aguardando_ordem_compra:         "aguardando_diretoria",
+  aguardando_comprovante_pagamento:"aguardando_ordem_compra",
 };
 
 export async function approveRequest(
@@ -692,7 +692,8 @@ export async function approveRequest(
         aguardando_controladoria: "controladoria",
         aguardando_diretoria: "diretoria",
         aguardando_ordem_compra: "financeiro",
-        aguardando_financeiro: "financeiro",
+        aguardando_comprovante_pagamento: "financeiro",
+        aguardando_verificacao_compras: "financeiro",
       };
       const nextRole = nextRoleMap[flow.nextStatus];
       if (nextRole && req) {
@@ -768,6 +769,65 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
     }
   } catch (e) {
     console.warn("[WhatsApp] Failed to send rejection notification:", e);
+  }
+}
+
+// ─── Novas etapas do fluxo: Comprovante de Pagamento e Verificação Final ─────────
+
+export async function attachPaymentProof(requestId: number, fileUrl: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(purchaseRequests).set({ paymentProofUrl: fileUrl }).where(eq(purchaseRequests.id, requestId));
+}
+
+export async function attachInvoice(requestId: number, fileUrl: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(purchaseRequests).set({ invoiceUrl: fileUrl }).where(eq(purchaseRequests.id, requestId));
+}
+
+export async function finalizeOC(requestId: number, user: User): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+  if (!request) throw new Error("Solicitação não encontrada");
+  if (request.status !== "aguardando_verificacao_compras") throw new Error("Status inválido para finalizar OC");
+
+  // Marcar como concluída e habilitar nos Malotes
+  await db.update(purchaseRequests).set({
+    status: "concluida" as any,
+    isEnabledInMalotes: true,
+    stepDeadlineAt: null,
+  }).where(eq(purchaseRequests.id, requestId));
+
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: user.id,
+    userName: user.name ?? "Usuário",
+    step: "verificacao_compras" as any,
+    action: "oc_finalizada" as any,
+    comment: "Ordem de Compra finalizada. Nota fiscal verificada.",
+  });
+
+  // Notificar solicitante
+  try {
+    const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+    if (req) {
+      const [requester] = await db.select().from(users).where(eq(users.id, req.requesterId)).limit(1);
+      if (requester?.phone) {
+        await WA.notifyApproval({
+          requesterPhone: requester.phone,
+          requesterName: requester.name ?? "Solicitante",
+          requestNumber: req.requestNumber,
+          requestId,
+          approverName: user.name ?? "Compras",
+          stepLabel: "Verificação Final",
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[WhatsApp] Failed to send finalization notification:", e);
   }
 }
 

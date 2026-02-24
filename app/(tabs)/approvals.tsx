@@ -37,7 +37,8 @@ const ROLE_DESCRIPTIONS: Record<ProcurementRole, string> = {
 const APPROVE_ONLY_STATUSES: RequestStatus[] = [
   "aguardando_orcamento",
   "aguardando_ordem_compra",
-  "aguardando_financeiro",
+  "aguardando_comprovante_pagamento",
+  "aguardando_verificacao_compras",
 ];
 
 // ─── Modal de Rejeição Rápida ─────────────────────────────────────────────────

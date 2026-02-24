@@ -17,7 +17,8 @@ export type RequestStatus =
   | "aguardando_controladoria"
   | "aguardando_diretoria"
   | "aguardando_ordem_compra"
-  | "aguardando_financeiro"
+  | "aguardando_comprovante_pagamento"
+  | "aguardando_verificacao_compras"
   | "concluida"
   | "rejeitada"
   | "cancelada";
@@ -38,7 +39,8 @@ export type ApprovalStep =
   | "controladoria"
   | "diretoria"
   | "ordem_compra"
-  | "financeiro";
+  | "financeiro"
+  | "verificacao_compras";
 
 export type ApprovalAction =
   | "criada"
@@ -46,7 +48,11 @@ export type ApprovalAction =
   | "rejeitada"
   | "orcamento_anexado"
   | "ordem_emitida"
-  | "pagamento_realizado"
+  | "comprovante_anexado"
+  | "pagamento_recusado"
+  | "pagamento_verificado"
+  | "nota_fiscal_anexada"
+  | "oc_finalizada"
   | "cancelada"
   | "reaberta";
 
@@ -70,8 +76,9 @@ export const STATUS_LABELS: Record<RequestStatus, string> = {
   aguardando_orcamento: "Aguard. Orçamento",
   aguardando_controladoria: "Aguard. Controladoria",
   aguardando_diretoria: "Aguard. Diretoria",
-  aguardando_ordem_compra: "Aguard. Ordem de Compra",
-  aguardando_financeiro: "Aguard. Financeiro",
+  aguardando_ordem_compra: "Emissão de OC",
+  aguardando_comprovante_pagamento: "Aguard. Comprovante",
+  aguardando_verificacao_compras: "Verif. Compras",
   concluida: "Concluída",
   rejeitada: "Rejeitada",
   cancelada: "Cancelada",
@@ -93,8 +100,9 @@ export const STEP_LABELS: Record<ApprovalStep, string> = {
   orcamento: "Orçamento",
   controladoria: "Controladoria",
   diretoria: "Diretoria",
-  ordem_compra: "Ordem de Compra",
-  financeiro: "Financeiro",
+  ordem_compra: "Emissão de OC (Compras)",
+  financeiro: "Comprovante de Pagamento",
+  verificacao_compras: "Verificação Final (Compras)",
 };
 
 export const WORKFLOW_STEPS: Array<{
@@ -108,8 +116,9 @@ export const WORKFLOW_STEPS: Array<{
   { step: "orcamento", label: "Orçamento", status: "aguardando_orcamento" },
   { step: "controladoria", label: "Aprovação Controladoria", status: "aguardando_controladoria", role: "controladoria" },
   { step: "diretoria", label: "Aprovação Diretoria", status: "aguardando_diretoria", role: "diretoria" },
-  { step: "ordem_compra", label: "Ordem de Compra", status: "aguardando_ordem_compra", role: "financeiro" },
-  { step: "financeiro", label: "Pagamento", status: "aguardando_financeiro", role: "financeiro" },
+  { step: "ordem_compra", label: "Emissão de OC (Compras)", status: "aguardando_ordem_compra", role: "financeiro" },
+  { step: "financeiro", label: "Comprovante de Pagamento", status: "aguardando_comprovante_pagamento", role: "financeiro" },
+  { step: "verificacao_compras", label: "Verificação Final (Compras)", status: "aguardando_verificacao_compras", role: "financeiro" },
 ];
 
 export const STATUS_COLORS: Record<RequestStatus, "primary" | "warning" | "success" | "error" | "muted"> = {
@@ -119,7 +128,8 @@ export const STATUS_COLORS: Record<RequestStatus, "primary" | "warning" | "succe
   aguardando_controladoria: "warning",
   aguardando_diretoria: "warning",
   aguardando_ordem_compra: "warning",
-  aguardando_financeiro: "warning",
+  aguardando_comprovante_pagamento: "warning",
+  aguardando_verificacao_compras: "warning",
   concluida: "success",
   rejeitada: "error",
   cancelada: "muted",

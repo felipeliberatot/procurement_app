@@ -34,17 +34,19 @@ const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
   aguardando_controladoria: ["controladoria", "admin"],
   aguardando_diretoria: ["diretoria", "admin"],
   aguardando_ordem_compra: ["financeiro", "admin"],
-  aguardando_financeiro: ["financeiro", "admin"],
+  aguardando_comprovante_pagamento: ["financeiro", "admin"],
+  aguardando_verificacao_compras: ["financeiro", "admin"],
   concluida: [],
   rejeitada: ["solicitante", "admin"],
   cancelada: [],
 };
 
-// Etapas que têm apenas aprovação (sem rejeição direta) ou ação especial
+// Etapas que têm apenas ação especial (sem botões simples de aprovar/rejeitar)
 const STATUS_APPROVE_ONLY: RequestStatus[] = [
   "aguardando_orcamento",
   "aguardando_ordem_compra",
-  "aguardando_financeiro",
+  "aguardando_comprovante_pagamento",
+  "aguardando_verificacao_compras",
 ];
 
 function formatCurrency(value?: string | null): string {
@@ -274,8 +276,11 @@ export default function RequestDetailScreen() {
   const [orderNumber, setOrderNumber] = useState("");
   const [paymentInfo, setPaymentInfo] = useState("");
   const [budgetFileName, setBudgetFileName] = useState<string | null>(null);
+  const [paymentProofFileName, setPaymentProofFileName] = useState<string | null>(null);
+  const [invoiceFileName, setInvoiceFileName] = useState<string | null>(null);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showPaymentRejectModal, setShowPaymentRejectModal] = useState(false);
 
   const requestId = parseInt(id ?? "0");
 
@@ -328,6 +333,42 @@ export default function RequestDetailScreen() {
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Erro ao anexar", e.message);
+    },
+  });
+
+  const uploadPaymentProofMutation = trpc.requests.uploadPaymentProof.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ Comprovante anexado!", "O comprovante de pagamento foi registrado com sucesso.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao anexar comprovante", e.message);
+    },
+  });
+
+  const uploadInvoiceMutation = trpc.requests.uploadInvoice.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ Nota fiscal anexada!", "A nota fiscal foi registrada com sucesso.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao anexar nota fiscal", e.message);
+    },
+  });
+
+  const finalizeOCMutation = trpc.requests.finalizeOC.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ OC Finalizada!", "A Ordem de Compra foi encerrada com sucesso e habilitada nos Malotes.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao finalizar OC", e.message);
     },
   });
 
@@ -399,9 +440,42 @@ export default function RequestDetailScreen() {
 
   const handleFinalize = () => {
     if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe as informações de pagamento."); return; }
-    Alert.alert("Confirmar Pagamento", "Confirmar que o pagamento foi realizado?", [
+    Alert.alert("Confirmar Dados de Pagamento", "Confirmar os dados de pagamento e avançar para o Financeiro?", [
       { text: "Cancelar", style: "cancel" },
       { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, paymentInfo }) },
+    ]);
+  };
+
+  const handlePickPaymentProof = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const file = result.assets[0];
+      setPaymentProofFileName(file.name);
+      const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+      uploadPaymentProofMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
+    } catch (err) {
+      Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
+    }
+  };
+
+  const handlePickInvoice = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const file = result.assets[0];
+      setInvoiceFileName(file.name);
+      const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+      uploadInvoiceMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
+    } catch (err) {
+      Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
+    }
+  };
+
+  const handleFinalizeOC = () => {
+    Alert.alert("📦 Finalizar Ordem de Compra", "Confirma que o comprovante de pagamento foi verificado e deseja encerrar esta OC? Ela será habilitada nos Malotes.", [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Finalizar OC", onPress: () => finalizeOCMutation.mutate({ requestId: request.id }) },
     ]);
   };
 
@@ -465,8 +539,9 @@ export default function RequestDetailScreen() {
                   {currentStatus === "aguardando_orcamento" && "Anexe o PDF do orçamento para avançar."}
                   {currentStatus === "aguardando_controladoria" && "Esta solicitação aguarda aprovação da Controladoria."}
                   {currentStatus === "aguardando_diretoria" && "Esta solicitação aguarda aprovação da Diretoria."}
-                  {currentStatus === "aguardando_ordem_compra" && "Emita a Ordem de Compra para avançar."}
-                  {currentStatus === "aguardando_financeiro" && "Confirme o pagamento para concluir."}
+                  {currentStatus === "aguardando_ordem_compra" && "Emita a Ordem de Compra e informe os dados de pagamento."}
+                  {currentStatus === "aguardando_comprovante_pagamento" && "Anexe o PDF do comprovante de pagamento."}
+                  {currentStatus === "aguardando_verificacao_compras" && "Verifique o comprovante, anexe a nota fiscal e finalize a OC."}
                   {isRejected && "Corrija e reenvie esta solicitação."}
                 </Text>
               </View>
@@ -633,26 +708,125 @@ export default function RequestDetailScreen() {
                 </View>
               )}
 
-              {/* Etapa financeira */}
-              {currentStatus === "aguardando_financeiro" && (
+              {/* Etapa: Comprovante de Pagamento (Financeiro) */}
+              {currentStatus === "aguardando_comprovante_pagamento" && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-                  <Text className="text-sm font-bold text-foreground mb-1">Confirmar Pagamento</Text>
-                  <Text className="text-xs text-muted mb-3">Informe os dados do pagamento realizado</Text>
-                  <TextInput
-                    value={paymentInfo}
-                    onChangeText={setPaymentInfo}
-                    placeholder="Banco, agência, data do pagamento..."
-                    placeholderTextColor={colors.muted}
-                    multiline
-                    numberOfLines={3}
-                    style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground, minHeight: 80, textAlignVertical: "top", marginBottom: 12 }}
-                  />
+                  <Text className="text-sm font-bold text-foreground mb-1">💳 Comprovante de Pagamento</Text>
+                  <Text className="text-xs text-muted mb-3">Anexe o PDF do comprovante de pagamento realizado</Text>
+
+                  {/* Dados de pagamento do Compras */}
+                  {(request as any).paymentInfo && (
+                    <View style={{ backgroundColor: `${colors.primary}10`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                      <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginBottom: 4 }}>Dados de Pagamento (Compras)</Text>
+                      <Text style={{ color: colors.foreground, fontSize: 13 }}>{(request as any).paymentInfo}</Text>
+                    </View>
+                  )}
+
+                  {/* Comprovante já anexado */}
+                  {(request as any).paymentProofUrl ? (
+                    <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                        <Text style={{ fontSize: 22 }}>📄</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante Anexado</Text>
+                          <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                        </View>
+                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
+                      </View>
+                    </Pressable>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={handlePickPaymentProof}
+                      disabled={uploadPaymentProofMutation.isPending}
+                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}60`, borderRadius: 12, paddingVertical: 20, marginBottom: 12, opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
+                    >
+                      {uploadPaymentProofMutation.isPending ? (
+                        <><ActivityIndicator size="small" /><Text style={{ color: colors.primary, fontSize: 14, marginLeft: 8 }}>Enviando...</Text></>
+                      ) : (
+                        <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{paymentProofFileName ?? "Selecionar PDF do Comprovante"}</Text></>
+                      )}
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Botões Aprovar/Recusar */}
+                  <View style={{ flexDirection: "row", gap: 10 }}>
+                    <TouchableOpacity
+                      onPress={() => setShowPaymentRejectModal(true)}
+                      disabled={rejectMutation.isPending || approveMutation.isPending}
+                      style={{ flex: 1, backgroundColor: `${colors.error}15`, borderWidth: 1.5, borderColor: `${colors.error}50`, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                    >
+                      <Text style={{ fontSize: 16 }}>❌</Text>
+                      <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14 }}>Recusar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        Alert.alert("✅ Aprovar Comprovante", "Confirmar o comprovante de pagamento e avançar para verificação do Compras?", [
+                          { text: "Cancelar", style: "cancel" },
+                          { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id }) },
+                        ]);
+                      }}
+                      disabled={approveMutation.isPending || rejectMutation.isPending}
+                      style={{ flex: 2, backgroundColor: colors.success, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                    >
+                      {approveMutation.isPending ? <ActivityIndicator color="white" /> : <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>Aprovar Pagamento</Text></>}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* Etapa: Verificação Final (Compras) */}
+              {currentStatus === "aguardando_verificacao_compras" && (
+                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+                  <Text className="text-sm font-bold text-foreground mb-1">📝 Verificação Final — Compras</Text>
+                  <Text className="text-xs text-muted mb-3">Verifique o comprovante, anexe a nota fiscal e finalize a OC</Text>
+
+                  {/* Comprovante para visualização */}
+                  {(request as any).paymentProofUrl && (
+                    <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                        <Text style={{ fontSize: 20 }}>💳</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante de Pagamento</Text>
+                          <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                        </View>
+                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
+                      </View>
+                    </Pressable>
+                  )}
+
+                  {/* Nota Fiscal */}
+                  {(request as any).invoiceUrl ? (
+                    <Pressable onPress={() => Linking.openURL((request as any).invoiceUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                        <Text style={{ fontSize: 20 }}>🧾</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Nota Fiscal Anexada</Text>
+                          <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                        </View>
+                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
+                      </View>
+                    </Pressable>
+                  ) : (
+                    <TouchableOpacity
+                      onPress={handlePickInvoice}
+                      disabled={uploadInvoiceMutation.isPending}
+                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.warning}60`, borderRadius: 12, paddingVertical: 20, marginBottom: 12, opacity: uploadInvoiceMutation.isPending ? 0.6 : 1 }}
+                    >
+                      {uploadInvoiceMutation.isPending ? (
+                        <><ActivityIndicator size="small" /><Text style={{ color: colors.warning, fontSize: 14, marginLeft: 8 }}>Enviando...</Text></>
+                      ) : (
+                        <><Text style={{ fontSize: 24 }}>🧾</Text><Text style={{ color: colors.warning, fontWeight: "600", fontSize: 14 }}>{invoiceFileName ?? "Anexar Nota Fiscal (PDF)"}</Text></>
+                      )}
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Botão Finalizar OC */}
                   <TouchableOpacity
-                    onPress={handleFinalize}
-                    disabled={approveMutation.isPending || !paymentInfo.trim()}
-                    style={{ backgroundColor: paymentInfo.trim() ? colors.success : colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", opacity: approveMutation.isPending ? 0.7 : 1 }}
+                    onPress={handleFinalizeOC}
+                    disabled={finalizeOCMutation.isPending}
+                    style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: finalizeOCMutation.isPending ? 0.7 : 1 }}
                   >
-                    {approveMutation.isPending ? <ActivityIndicator color="white" /> : <Text style={{ color: paymentInfo.trim() ? "white" : colors.muted, fontWeight: "700" }}>Confirmar Pagamento</Text>}
+                    {finalizeOCMutation.isPending ? <ActivityIndicator color="white" /> : <><Text style={{ fontSize: 18 }}>📦</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Finalizar Ordem de Compra</Text></>}
                   </TouchableOpacity>
                 </View>
               )}
@@ -751,6 +925,13 @@ export default function RequestDetailScreen() {
       <RejectModal
         visible={showRejectModal}
         onClose={() => setShowRejectModal(false)}
+        onConfirm={(comment) => rejectMutation.mutate({ requestId: request.id, comment })}
+        isLoading={rejectMutation.isPending}
+      />
+      {/* Modal de recusa do comprovante de pagamento */}
+      <RejectModal
+        visible={showPaymentRejectModal}
+        onClose={() => setShowPaymentRejectModal(false)}
         onConfirm={(comment) => rejectMutation.mutate({ requestId: request.id, comment })}
         isLoading={rejectMutation.isPending}
       />
