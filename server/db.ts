@@ -747,12 +747,18 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
     stepDeadlineAt: getStepDeadline(),
   }).where(eq(purchaseRequests.id, requestId));
 
+  // Determinar a action correta com base no status atual
+  const rejectActionMap: Record<string, string> = {
+    aguardando_comprovante_pagamento: "comprovante_recusado",
+  };
+  const rejectAction = rejectActionMap[request.status] ?? "rejeitada";
+
   await db.insert(approvalHistory).values({
     requestId,
     userId: user.id,
     userName: user.name ?? "Usuário",
     step: (flow?.step ?? "gerente") as any,
-    action: "rejeitada",
+    action: rejectAction as any,
     comment,
   });
 

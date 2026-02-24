@@ -132,6 +132,7 @@ export interface DailyReportRequest {
   deadlineAt: Date | null;
   totalEstimatedValue: string | null;
   createdAt: Date;
+  itemNames?: string; // Nomes dos itens separados por vírgula
 }
 
 function urgencyLabel(level: string): string {
@@ -175,7 +176,7 @@ function buildRequestRow(req: DailyReportRequest, highlight: boolean): string {
     <td style="padding:10px 12px;font-size:13px;font-weight:700;color:#0a7ea4;">${req.requestNumber}</td>
     <td style="padding:10px 12px;font-size:13px;">${req.requesterName}</td>
     <td style="padding:10px 12px;font-size:13px;">${req.department}</td>
-    <td style="padding:10px 12px;font-size:13px;">${req.application}</td>
+    <td style="padding:10px 12px;font-size:13px;">${req.itemNames ?? req.application}</td>
     <td style="padding:10px 12px;font-size:12px;">${urgencyLabel(req.urgencyLevel)}</td>
     <td style="padding:10px 12px;font-size:12px;">${statusLabel(req.status)}</td>
     <td style="padding:10px 12px;font-size:12px;">${formatDeadline(req.deadlineAt)} ${badge}</td>
@@ -193,7 +194,7 @@ function buildTable(requests: DailyReportRequest[], criticalIds: Set<string>): s
         <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Nº</th>
         <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Solicitante</th>
         <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Depto</th>
-        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Finalidade</th>
+        <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Item(ns)</th>
         <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Urgência</th>
         <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Status</th>
         <th style="padding:8px 12px;text-align:left;font-size:12px;color:#687076;border-bottom:2px solid #E5E7EB;">Prazo</th>

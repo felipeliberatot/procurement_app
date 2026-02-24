@@ -1,5 +1,6 @@
 import { getDb } from "./db";
-import { purchaseRequests, users } from "../drizzle/schema";
+import { purchaseRequests, users, requestItems } from "../drizzle/schema";
+import { eq } from "drizzle-orm";
 import { sendDailyReportEmail, type DailyReportRequest } from "./email";
 import { sendSimpleWhatsApp } from "./whatsapp";
 
@@ -22,6 +23,7 @@ function toReportItem(r: {
   deadlineAt: Date | null;
   totalEstimatedValue: string | null;
   createdAt: Date;
+  itemNames?: string;
 }): DailyReportRequest {
   return {
     requestNumber: r.requestNumber,
@@ -33,6 +35,7 @@ function toReportItem(r: {
     deadlineAt: r.deadlineAt,
     totalEstimatedValue: r.totalEstimatedValue,
     createdAt: r.createdAt,
+    itemNames: r.itemNames,
   };
 }
 
@@ -56,15 +59,31 @@ export async function runDailyReport(): Promise<void> {
   // ── Fetch all requests ──────────────────────────────────────────────────────
   const allRequests = await db.select().from(purchaseRequests);
 
+  // Fetch all items for these requests and build a map requestId → itemNames
+  const allItems = await db.select().from(requestItems);
+  const itemsByRequest = new Map<number, string[]>();
+  for (const item of allItems) {
+    const list = itemsByRequest.get(item.requestId) ?? [];
+    list.push(item.description);
+    itemsByRequest.set(item.requestId, list);
+  }
+  const getItemNames = (id: number) => {
+    const names = itemsByRequest.get(id);
+    if (!names || names.length === 0) return undefined;
+    // Show up to 3 items; if more, append count
+    const preview = names.slice(0, 3).join(", ");
+    return names.length > 3 ? `${preview} (+${names.length - 3})` : preview;
+  };
+
   // Open requests: not in terminal states
   const openRequests: DailyReportRequest[] = allRequests
     .filter(r => !TERMINAL_STATUSES.includes(r.status))
-    .map(toReportItem);
+    .map(r => toReportItem({ ...r, itemNames: getItemNames(r.id) }));
 
   // Completed today: status = concluida AND updatedAt is today
   const completedToday: DailyReportRequest[] = allRequests
     .filter(r => r.status === "concluida" && r.updatedAt >= todayStart && r.updatedAt <= todayEnd)
-    .map(toReportItem);
+    .map(r => toReportItem({ ...r, itemNames: getItemNames(r.id) }));
 
   // Critical: open requests with deadline within 24h
   const criticalRequests: DailyReportRequest[] = openRequests.filter(
@@ -130,7 +149,8 @@ export async function runDailyReport(): Promise<void> {
   if (criticalRequests.length > 0) {
     whatsappMsg += `🚨 *ATENÇÃO — Prazos Críticos:*\n`;
     for (const r of criticalRequests) {
-      whatsappMsg += `  ⚠️ *${r.requestNumber}* | ${r.requesterName} | ${urgencyLabel(r.urgencyLevel)} | Prazo: ${formatDeadline(r.deadlineAt)}\n`;
+      const items = r.itemNames ? ` | _${r.itemNames}_` : "";
+      whatsappMsg += `  ⚠️ *${r.requestNumber}*${items} | ${r.requesterName} | ${urgencyLabel(r.urgencyLevel)} | Prazo: ${formatDeadline(r.deadlineAt)}\n`;
     }
     whatsappMsg += `\n`;
   }
@@ -139,7 +159,8 @@ export async function runDailyReport(): Promise<void> {
     whatsappMsg += `📋 *Solicitações em Aberto:*\n`;
     for (const r of openRequests) {
       const critical = criticalSet.has(r.requestNumber) ? " ⚠️" : "";
-      whatsappMsg += `  • *${r.requestNumber}*${critical} | ${r.requesterName} | ${statusLabel(r.status)}\n`;
+      const items = r.itemNames ? ` | _${r.itemNames}_` : "";
+      whatsappMsg += `  • *${r.requestNumber}*${critical}${items} | ${r.requesterName} | ${statusLabel(r.status)}\n`;
     }
     whatsappMsg += `\n`;
   }
@@ -147,7 +168,8 @@ export async function runDailyReport(): Promise<void> {
   if (completedToday.length > 0) {
     whatsappMsg += `✅ *Concluídas Hoje:*\n`;
     for (const r of completedToday) {
-      whatsappMsg += `  • *${r.requestNumber}* | ${r.requesterName}\n`;
+      const items = r.itemNames ? ` | _${r.itemNames}_` : "";
+      whatsappMsg += `  • *${r.requestNumber}*${items} | ${r.requesterName}\n`;
     }
   }
 

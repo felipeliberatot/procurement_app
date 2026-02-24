@@ -235,3 +235,8 @@
 - [ ] Envio de e-mail HTML do relatório para todos os usuários ativos
 - [ ] Envio de WhatsApp do relatório para todos os usuários com telefone cadastrado
 - [ ] Cron job agendado para 7h da manhã todos os dias
+
+## Correções (Lote 3)
+- [x] Corrigir botão Recusar no fluxo 07 (comprovante de pagamento)
+- [x] Incluir nome do item nos relatórios diários
+- [x] Remover campo "Número da OC" da etapa 06 (deixar apenas Dados de Pagamento)
