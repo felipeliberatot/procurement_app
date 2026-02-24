@@ -613,6 +613,8 @@ const STEP_FLOW: Record<string, { step: string; nextStatus: string; action: stri
   aguardando_diretoria:            { step: "diretoria",    nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
   aguardando_ordem_compra:         { step: "ordem_compra", nextStatus: "aguardando_comprovante_pagamento",  action: "ordem_emitida" },
   aguardando_comprovante_pagamento:{ step: "financeiro",   nextStatus: "aguardando_verificacao_compras",   action: "comprovante_aprovado" },
+  // Reenvio pelo solicitante após rejeição → reinicia o fluxo a partir do gerente
+  rejeitada:                       { step: "gerente",      nextStatus: "aguardando_gerente",                action: "reaberta" },
 };
 
 const REJECT_FLOW: Record<string, string> = {
@@ -621,7 +623,8 @@ const REJECT_FLOW: Record<string, string> = {
   aguardando_controladoria:        "aguardando_orcamento",
   aguardando_diretoria:            "aguardando_controladoria",
   aguardando_ordem_compra:         "aguardando_diretoria",
-  aguardando_comprovante_pagamento:"aguardando_ordem_compra",
+  // Fluxo 07: Financeiro recusa comprovante → volta para o solicitante (rejeitada)
+  aguardando_comprovante_pagamento:"rejeitada",
 };
 
 export async function approveRequest(

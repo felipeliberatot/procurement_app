@@ -240,3 +240,4 @@
 - [x] Corrigir botão Recusar no fluxo 07 (comprovante de pagamento)
 - [x] Incluir nome do item nos relatórios diários
 - [x] Remover campo "Número da OC" da etapa 06 (deixar apenas Dados de Pagamento)
+- [x] Corrigir rejeição do fluxo 07: ao recusar comprovante, solicitação deve voltar para o solicitante (não para etapa 06)

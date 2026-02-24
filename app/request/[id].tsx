@@ -320,6 +320,7 @@ export default function RequestDetailScreen() {
       invalidateAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setShowRejectModal(false);
+      setShowPaymentRejectModal(false);
     },
     onError: (e) => Alert.alert("Erro", e.message),
   });
@@ -627,7 +628,17 @@ export default function RequestDetailScreen() {
                 <View key={h.id} className="flex-row gap-3 mb-3">
                   <View className="w-8 h-8 rounded-full bg-primary/10 items-center justify-center mt-0.5">
                     <Text className="text-xs">
-                      {h.action === "aprovada" ? "✅" : h.action === "rejeitada" ? "❌" : h.action === "criada" ? "📝" : h.action === "orcamento_anexado" ? "📄" : h.action === "ordem_emitida" ? "🛒" : h.action === "pagamento_realizado" ? "💰" : "🔄"}
+                      {h.action === "aprovada" ? "✅"
+                        : h.action === "rejeitada" ? "❌"
+                        : h.action === "criada" ? "📝"
+                        : h.action === "orcamento_anexado" ? "📄"
+                        : h.action === "ordem_emitida" ? "🛒"
+                        : h.action === "comprovante_aprovado" ? "💳"
+                        : h.action === "comprovante_recusado" ? "🚫"
+                        : h.action === "reaberta" ? "🔄"
+                        : h.action === "oc_finalizada" ? "🏁"
+                        : h.action === "nota_fiscal_anexada" ? "🧾"
+                        : "🔄"}
                     </Text>
                   </View>
                   <View className="flex-1">
@@ -636,7 +647,22 @@ export default function RequestDetailScreen() {
                       <Text className="text-xs text-muted">{formatDate(h.createdAt)}</Text>
                     </View>
                     <Text className="text-xs text-muted">
-                      {(STEP_LABELS as Record<string, string>)[h.step] ?? h.step} — {h.action}
+                      {(STEP_LABELS as Record<string, string>)[h.step] ?? h.step} — {{
+                        criada: "Solicitado",
+                        aprovada: "Aprovado",
+                        rejeitada: "Rejeitado",
+                        reaberta: "Reenviado pelo solicitante",
+                        orcamento_anexado: "Orçamento anexado",
+                        ordem_emitida: "OC emitida",
+                        comprovante_anexado: "Comprovante anexado",
+                        comprovante_aprovado: "Comprovante aprovado",
+                        comprovante_recusado: "Comprovante recusado",
+                        pagamento_recusado: "Pagamento recusado",
+                        pagamento_verificado: "Pagamento verificado",
+                        nota_fiscal_anexada: "Nota fiscal anexada",
+                        oc_finalizada: "OC finalizada",
+                        cancelada: "Cancelado",
+                      }[h.action as string] ?? h.action}
                     </Text>
                     {h.comment && <Text className="text-xs text-foreground mt-1 italic">"{h.comment}"</Text>}
                   </View>
