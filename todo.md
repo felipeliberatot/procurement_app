@@ -250,3 +250,4 @@
 - [x] Tornar cards do dashboard clicáveis com navegação para histórico com filtro automático
 - [x] Corrigir erro de digitação "emergencialais" para "Emergenciais" no dashboard
 - [x] Corrigir números dos cards do dashboard para bater com os dados reais do banco
+- [x] Adicionar card/filtro "Em Andamento" na tela de Solicitações

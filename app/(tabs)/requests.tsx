@@ -17,6 +17,7 @@ import {
 
 const FILTER_TABS = [
   { key: "all", label: "Todas" },
+  { key: "pending", label: "⏳ Em Andamento" },
   { key: "aguardando_gerente", label: "Gerente" },
   { key: "aguardando_orcamento", label: "Orçamento" },
   { key: "aguardando_controladoria", label: "Controladoria" },
