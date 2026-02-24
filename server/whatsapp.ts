@@ -544,6 +544,35 @@ export async function sendDailyDeadlineReport(opts: {
   return sendWhatsAppMessage(opts.masterPhone, lines.join("\n"));
 }
 
+// ─── Mensagem de teste ────────────────────────────────────────────────
+
+export async function sendWhatsAppTestMessage(opts: {
+  phone: string;
+  userName: string;
+  senderName: string;
+}): Promise<boolean> {
+  const now = new Date().toLocaleString("pt-BR", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+  const message = [
+    `✅ *Teste de Notificação WhatsApp — CGS Agrícola*`,
+    ``,
+    `Olá, *${opts.userName}*!`,
+    ``,
+    `Esta é uma mensagem de teste enviada pelo sistema de compras da CGS Agrícola.`,
+    ``,
+    `*Enviado por:* ${opts.senderName}`,
+    `*Horário:* ${now}`,
+    ``,
+    `Se você recebeu esta mensagem, seu número está corretamente configurado para receber notificações de aprovação.`,
+    ``,
+    `📱 *CompraFácil — CGS Agrícola*`,
+  ].join("\n");
+
+  return sendWhatsAppMessage(opts.phone, message);
+}
+
 // ─── Webhook URL helper ───────────────────────────────────────────────────────
 
 export function getWebhookUrl(): string {

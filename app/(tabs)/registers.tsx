@@ -1276,6 +1276,18 @@ export default function RegistersScreen() {
     onError: (e) => Alert.alert("Erro ao redefinir senha", e.message),
   });
 
+  const testWhatsApp = trpc.users.testWhatsApp.useMutation({
+    onSuccess: (data) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (data.success) {
+        Alert.alert("✅ Mensagem enviada!", `Mensagem de teste enviada para ${data.phone}.\n\nSe não receber em alguns segundos, verifique se o número está correto e se o WhatsApp está configurado no servidor.`);
+      } else {
+        Alert.alert("⚠️ Não configurado", "O WhatsApp ainda não está configurado no servidor. Configure WHATSAPP_API_URL e WHATSAPP_API_TOKEN nas variáveis de ambiente.");
+      }
+    },
+    onError: (e) => Alert.alert("Erro ao enviar teste", e.message),
+  });
+
   const createCC = trpc.costCenters.create.useMutation({
     onSuccess: () => {
       utils.costCenters.list.invalidate();
@@ -1859,6 +1871,43 @@ export default function RegistersScreen() {
                           {isMaster ? "✏️ Editar" : "🔒 Minha Senha"}
                         </Text>
                       </Pressable>
+                    )}
+                    {/* Botão de teste WhatsApp — apenas Master, apenas se tiver telefone */}
+                    {isMaster && !!(item as any).phone && (
+                      <Pressable
+                        onPress={() => {
+                          Alert.alert(
+                            "📱 Testar WhatsApp",
+                            `Enviar mensagem de teste para ${(item as any).phone}?`,
+                            [
+                              { text: "Cancelar", style: "cancel" },
+                              {
+                                text: "Enviar",
+                                onPress: () => testWhatsApp.mutate({ userId: (item as any).id }),
+                              },
+                            ]
+                          );
+                        }}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.6 : 1,
+                          backgroundColor: "#25D36615",
+                          borderRadius: 8,
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderWidth: 1,
+                          borderColor: "#25D36630",
+                        })}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: "700", color: "#25D366" }}>
+                          {testWhatsApp.isPending && testWhatsApp.variables?.userId === (item as any).id
+                            ? "⏳ Enviando..."
+                            : "📱 Testar WA"}
+                        </Text>
+                      </Pressable>
+                    )}
+                    {/* Aviso quando não tem telefone */}
+                    {isMaster && !(item as any).phone && (
+                      <Text style={{ fontSize: 10, color: colors.warning, fontWeight: "600" }}>⚠️ Sem WA</Text>
                     )}
                     {(isAdmin || isMaster) && (
                       <Pressable

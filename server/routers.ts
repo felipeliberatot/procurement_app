@@ -162,6 +162,22 @@ export const appRouter = router({
         await db.updateUserPassword(input.userId, passwordHash);
         return { success: true };
       }),
+    testWhatsApp: protectedProcedure
+      .input(z.object({ userId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";
+        if (!callerIsMaster) throw new Error("Apenas usuários master podem enviar mensagens de teste.");
+        const target = await db.getUserById(input.userId);
+        if (!target) throw new Error("Usuário não encontrado.");
+        if (!target.phone) throw new Error("Este usuário não possui telefone cadastrado.");
+        const { sendWhatsAppTestMessage } = await import("./whatsapp");
+        const sent = await sendWhatsAppTestMessage({
+          phone: target.phone,
+          userName: target.name ?? "Usuário",
+          senderName: (ctx.user as any)?.name ?? "Administrador",
+        });
+        return { success: sent, phone: target.phone };
+      }),
   }),
 
   // ─── Cost Centers ──────────────────────────────────────────────────────────

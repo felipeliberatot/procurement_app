@@ -244,3 +244,5 @@
 - [x] Notificar via WhatsApp cada aprovador na sua etapa correspondente (gerente, orçamento, controladoria, diretoria, financeiro, verificação final)
 - [x] Incluir link direto para a solicitação em todas as notificações WhatsApp
 - [x] Corrigir notificações WhatsApp para aprovadores: garantir que o número é buscado do perfil cadastrado (campo phone na tabela users)
+- [x] Adicionar campo de telefone editável pelo usuário Master na tela de perfil/edição de usuários
+- [x] Adicionar botão "Testar envio WhatsApp" no card do usuário (apenas Master)
