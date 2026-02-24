@@ -135,8 +135,10 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   isEnabledInMalotes: boolean("isEnabledInMalotes").default(false).notNull(), // Habilitado nos Malotes após OC finalizada
 
   // Deadline tracking
-  deadlineAt: timestamp("deadlineAt"),       // Overall deadline based on urgency
-  stepDeadlineAt: timestamp("stepDeadlineAt"), // 48h deadline for current approver
+  deadlineAt: timestamp("deadlineAt"),                     // Overall deadline based on urgency
+  stepDeadlineAt: timestamp("stepDeadlineAt"),             // 48h deadline for current approver
+  cancellationDeadlineAt: timestamp("cancellationDeadlineAt"), // 10-day deadline before auto-cancel (set on rejection/expiry)
+  cancellationWarningSentAt: timestamp("cancellationWarningSentAt"), // When the 1-day warning was sent (prevents duplicates)
 
   // Timestamps
   createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -289,6 +291,24 @@ export const units = mysqlTable("units", {
 });
 export type Unit = typeof units.$inferSelect;
 export type InsertUnit = typeof units.$inferInsert;
+// ─── Business Units / Unidades ──────────────────────────────────────────────
+export const businessUnits = mysqlTable("businessUnits", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 150 }).notNull(),
+  code: varchar("code", { length: 30 }).notNull().unique(),
+  type: mysqlEnum("type", ["escritorio", "filial", "deposito", "outro"]).default("escritorio").notNull(),
+  address: varchar("address", { length: 255 }),
+  city: varchar("city", { length: 100 }),
+  state: varchar("state", { length: 50 }),
+  responsibleName: varchar("responsibleName", { length: 150 }),
+  responsiblePhone: varchar("responsiblePhone", { length: 32 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type BusinessUnit = typeof businessUnits.$inferSelect;
+export type InsertBusinessUnit = typeof businessUnits.$inferInsert;
+
 // ─── Malote Tags ──────────────────────────────────────────────────────────────
 export const maloteTags = mysqlTable("maloteTags", {
   id: int("id").autoincrement().primaryKey(),

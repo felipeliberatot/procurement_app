@@ -24,7 +24,7 @@ import {
   View,
 } from "react-native";
 
-type Tab = "users" | "costcenters" | "assets" | "units";
+type Tab = "users" | "costcenters" | "assets" | "units" | "businessunits";
 
 const ROLES: ProcurementRole[] = [
   "solicitante",
@@ -844,15 +844,26 @@ function CostCenterModal({
   visible,
   onClose,
   onSave,
+  item,
+  isSaving,
 }: {
   visible: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
+  item?: any | null;
+  isSaving?: boolean;
 }) {
   const colors = useColors();
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [responsible, setResponsible] = useState("");
+  const isEditing = !!item?.id;
+  const [code, setCode] = useState(item?.code ?? "");
+  const [name, setName] = useState(item?.name ?? "");
+  const [responsible, setResponsible] = useState(item?.responsible ?? "");
+
+  React.useEffect(() => {
+    setCode(item?.code ?? "");
+    setName(item?.name ?? "");
+    setResponsible(item?.responsible ?? "");
+  }, [item]);
 
   const handleSave = () => {
     if (!code.trim() || !name.trim()) {
@@ -860,9 +871,11 @@ function CostCenterModal({
       return;
     }
     onSave({ code: code.trim(), name: name.trim(), responsible: responsible.trim() || undefined });
-    setCode("");
-    setName("");
-    setResponsible("");
+    if (!isEditing) {
+      setCode("");
+      setName("");
+      setResponsible("");
+    }
   };
 
   return (
@@ -886,9 +899,9 @@ function CostCenterModal({
             <Text style={{ color: colors.primary }}>Cancelar</Text>
           </TouchableOpacity>
           <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>
-            Novo Centro de Custo
+            {isEditing ? "Editar Centro de Custo" : "Novo Centro de Custo"}
           </Text>
-          <TouchableOpacity onPress={handleSave}>
+          <TouchableOpacity onPress={handleSave} disabled={isSaving}>
             <Text style={{ color: colors.primary, fontWeight: "700" }}>Salvar</Text>
           </TouchableOpacity>
         </View>
@@ -971,16 +984,28 @@ function AssetModal({
   visible,
   onClose,
   onSave,
+  item,
+  isSaving,
 }: {
   visible: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
+  item?: any | null;
+  isSaving?: boolean;
 }) {
   const colors = useColors();
-  const [code, setCode] = useState("");
-  const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("");
-  const [location, setLocation] = useState("");
+  const isEditing = !!item?.id;
+  const [code, setCode] = useState(item?.code ?? "");
+  const [description, setDescription] = useState(item?.description ?? "");
+  const [category, setCategory] = useState(item?.category ?? "");
+  const [location, setLocation] = useState(item?.location ?? "");
+
+  React.useEffect(() => {
+    setCode(item?.code ?? "");
+    setDescription(item?.description ?? "");
+    setCategory(item?.category ?? "");
+    setLocation(item?.location ?? "");
+  }, [item]);
 
   const handleSave = () => {
     if (!code.trim() || !description.trim()) {
@@ -993,10 +1018,12 @@ function AssetModal({
       category: category.trim() || undefined,
       location: location.trim() || undefined,
     });
-    setCode("");
-    setDescription("");
-    setCategory("");
-    setLocation("");
+    if (!isEditing) {
+      setCode("");
+      setDescription("");
+      setCategory("");
+      setLocation("");
+    }
   };
 
   return (
@@ -1020,10 +1047,10 @@ function AssetModal({
             <Text style={{ color: colors.primary }}>Cancelar</Text>
           </TouchableOpacity>
           <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>
-            Novo Bem
+            {isEditing ? "Editar Bem" : "Novo Bem"}
           </Text>
-          <TouchableOpacity onPress={handleSave}>
-            <Text style={{ color: colors.primary, fontWeight: "700" }}>Salvar</Text>
+          <TouchableOpacity onPress={handleSave} disabled={isSaving}>
+            {isSaving ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={{ color: colors.primary, fontWeight: "700" }}>Salvar</Text>}
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
@@ -1121,6 +1148,104 @@ function AssetModal({
   );
 }
 
+// ─── Business Unit Form Modal ───────────────────────────────────────────────
+function BusinessUnitFormModal({
+  visible, unit, onClose, onSave, isSaving,
+}: {
+  visible: boolean;
+  unit: any | null;
+  onClose: () => void;
+  onSave: (data: any) => void;
+  isSaving: boolean;
+}) {
+  const colors = useColors();
+  const isEditing = !!unit?.id;
+  const [name, setName] = React.useState(unit?.name ?? "");
+  const [code, setCode] = React.useState(unit?.code ?? "");
+  const [type, setType] = React.useState<"escritorio" | "filial" | "deposito" | "outro">(unit?.type ?? "escritorio");
+  const [address, setAddress] = React.useState(unit?.address ?? "");
+  const [city, setCity] = React.useState(unit?.city ?? "");
+  const [state, setState] = React.useState(unit?.state ?? "");
+  const [responsibleName, setResponsibleName] = React.useState(unit?.responsibleName ?? "");
+  const [responsiblePhone, setResponsiblePhone] = React.useState(unit?.responsiblePhone ?? "");
+
+  React.useEffect(() => {
+    setName(unit?.name ?? "");
+    setCode(unit?.code ?? "");
+    setType(unit?.type ?? "escritorio");
+    setAddress(unit?.address ?? "");
+    setCity(unit?.city ?? "");
+    setState(unit?.state ?? "");
+    setResponsibleName(unit?.responsibleName ?? "");
+    setResponsiblePhone(unit?.responsiblePhone ?? "");
+  }, [unit]);
+
+  const handleSave = () => {
+    if (!name.trim() || !code.trim()) {
+      Alert.alert("Campos obrigatórios", "Nome e código são obrigatórios.");
+      return;
+    }
+    onSave({
+      name: name.trim(), code: code.trim(), type,
+      address: address.trim() || undefined, city: city.trim() || undefined,
+      state: state.trim() || undefined, responsibleName: responsibleName.trim() || undefined,
+      responsiblePhone: responsiblePhone.trim() || undefined,
+    });
+  };
+
+  const inputStyle = {
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground,
+  };
+  const labelStyle = { color: colors.foreground, fontSize: 13, fontWeight: "600" as const, marginBottom: 6 };
+  const UNIT_TYPES: Array<{ key: "escritorio" | "filial" | "deposito" | "outro"; label: string; icon: string }> = [
+    { key: "escritorio", label: "Escritório", icon: "🏢" },
+    { key: "filial", label: "Filial", icon: "🏗️" },
+    { key: "deposito", label: "Depósito", icon: "📦" },
+    { key: "outro", label: "Outro", icon: "📍" },
+  ];
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <TouchableOpacity onPress={onClose} disabled={isSaving}>
+            <Text style={{ color: colors.primary, fontSize: 15 }}>Cancelar</Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>{isEditing ? "Editar Unidade" : "Nova Unidade"}</Text>
+          <TouchableOpacity onPress={handleSave} disabled={isSaving}>
+            {isSaving ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "700" }}>Salvar</Text>}
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
+          <View><Text style={labelStyle}>Nome da Unidade *</Text><TextInput value={name} onChangeText={setName} placeholder="Ex: Escritório Central" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+          <View><Text style={labelStyle}>Código *</Text><TextInput value={code} onChangeText={setCode} placeholder="Ex: ESC01, FILIAL-MT" placeholderTextColor={colors.muted} autoCapitalize="characters" style={inputStyle} returnKeyType="next" /></View>
+          <View>
+            <Text style={labelStyle}>Tipo de Unidade</Text>
+            <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              {UNIT_TYPES.map((t) => (
+                <Pressable key={t.key} onPress={() => setType(t.key)} style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, borderWidth: 1.5, borderColor: type === t.key ? colors.primary : colors.border, backgroundColor: type === t.key ? `${colors.primary}15` : colors.surface }}>
+                    <Text style={{ fontSize: 14 }}>{t.icon}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: type === t.key ? colors.primary : colors.muted }}>{t.label}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+          <View><Text style={labelStyle}>Endereço</Text><TextInput value={address} onChangeText={setAddress} placeholder="Rua, número, bairro" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <View style={{ flex: 2 }}><Text style={labelStyle}>Cidade</Text><TextInput value={city} onChangeText={setCity} placeholder="Cidade" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+            <View style={{ flex: 1 }}><Text style={labelStyle}>Estado</Text><TextInput value={state} onChangeText={setState} placeholder="MT" placeholderTextColor={colors.muted} autoCapitalize="characters" maxLength={2} style={inputStyle} returnKeyType="next" /></View>
+          </View>
+          <View><Text style={labelStyle}>Responsável</Text><TextInput value={responsibleName} onChangeText={setResponsibleName} placeholder="Nome do responsável" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
+          <View><Text style={labelStyle}>Telefone do Responsável</Text><TextInput value={responsiblePhone} onChangeText={setResponsiblePhone} placeholder="+55 66 99999-9999" placeholderTextColor={colors.muted} keyboardType="phone-pad" style={inputStyle} returnKeyType="done" /></View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Unit Form Modal ─────────────────────────────────────────────────────────
 function UnitFormModal({
   visible, unit, onClose, onSave, isSaving,
@@ -1209,7 +1334,11 @@ export default function RegistersScreen() {
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
+  const [showBUModal, setShowBUModal] = useState(false);
   const [editingUnit, setEditingUnit] = useState<any>(null);
+  const [editingBU, setEditingBU] = useState<any>(null);
+  const [editingCC, setEditingCC] = useState<any>(null);
+  const [editingAsset, setEditingAsset] = useState<any>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
@@ -1232,6 +1361,9 @@ export default function RegistersScreen() {
     enabled: isAuthenticated,
   });
   const { data: unitsList, isLoading: unitsLoading } = trpc.units.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const { data: businessUnitsList, isLoading: buLoading } = trpc.businessUnits.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
@@ -1323,11 +1455,52 @@ export default function RegistersScreen() {
     },
     onError: (e) => Alert.alert("Erro", e.message),
   });
+  const updateCC = trpc.costCenters.update.useMutation({
+    onSuccess: () => {
+      utils.costCenters.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowCCModal(false);
+      setEditingCC(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+
+  const updateAsset = trpc.assets.update.useMutation({
+    onSuccess: () => {
+      utils.assets.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowAssetModal(false);
+      setEditingAsset(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+
+  const createBU = trpc.businessUnits.create.useMutation({
+    onSuccess: () => {
+      utils.businessUnits.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowBUModal(false);
+      setEditingBU(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+
+  const updateBU = trpc.businessUnits.update.useMutation({
+    onSuccess: () => {
+      utils.businessUnits.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowBUModal(false);
+      setEditingBU(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+
   const TABS: Array<{ key: Tab; label: string; icon: string; count?: number }> = [
     { key: "users", label: "Usuários", icon: "👥", count: usersList?.length },
     { key: "costcenters", label: "Centros de Custo", icon: "🏢", count: costCentersList?.length },
     { key: "assets", label: "Bens", icon: "📦", count: assetsList?.length },
     { key: "units", label: "Fazendas", icon: "🌾", count: unitsList?.length },
+    { key: "businessunits", label: "Unidades", icon: "🏗️", count: businessUnitsList?.length },
   ];
 
   // Require PIN verification before sensitive master actions
@@ -2006,6 +2179,16 @@ export default function RegistersScreen() {
                     👤 {item.responsible}
                   </Text>
                 )}
+                {isAdmin && (
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                    <Pressable
+                      onPress={() => { setEditingCC(item); setShowCCModal(true); }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: `${colors.primary}15`, borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: `${colors.primary}30` })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
             )}
           />
@@ -2076,6 +2259,16 @@ export default function RegistersScreen() {
                     📍 {item.location}
                   </Text>
                 )}
+                {isAdmin && (
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                    <Pressable
+                      onPress={() => { setEditingAsset(item); setShowAssetModal(true); }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: `${colors.primary}15`, borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: `${colors.primary}30` })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
+                    </Pressable>
+                  </View>
+                )}
               </View>
             )}
           />
@@ -2139,16 +2332,100 @@ export default function RegistersScreen() {
           />
         </View>
       )}
+      {/* ── Business Units Tab ── */}
+      {activeTab === "businessunits" && (
+        <View style={{ flex: 1 }}>
+          {(isAdmin || isMaster) && (
+            <View style={{ padding: 12 }}>
+              <TouchableOpacity
+                onPress={() => { setEditingBU(null); setShowBUModal(true); }}
+                style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+              >
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova Unidade</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <FlatList
+            data={businessUnitsList ?? []}
+            keyExtractor={(item) => String((item as any).id)}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              buLoading ? (
+                <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+              ) : (
+                <View style={{ alignItems: "center", marginTop: 60 }}>
+                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🏗️</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>Nenhuma unidade cadastrada</Text>
+                  <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Cadastre escritórios, filiais e depósitos</Text>
+                </View>
+              )
+            }
+            renderItem={({ item }) => {
+              const typeIcons: Record<string, string> = { escritorio: "🏢", filial: "🏗️", deposito: "📦", outro: "📍" };
+              const typeLabels: Record<string, string> = { escritorio: "Escritório", filial: "Filial", deposito: "Depósito", outro: "Outro" };
+              const t = (item as any).type ?? "outro";
+              return (
+                <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 14, marginBottom: 10 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <View style={{ backgroundColor: colors.primary + "20", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{(item as any).code}</Text>
+                      </View>
+                      <Text style={{ fontSize: 11, color: colors.muted }}>{typeIcons[t]} {typeLabels[t]}</Text>
+                    </View>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: (item as any).active ? "#22C55E" : "#EF4444" }} />
+                  </View>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginTop: 4 }}>{(item as any).name}</Text>
+                  {((item as any).city || (item as any).state) && (
+                    <Text style={{ fontSize: 12, color: colors.muted, marginTop: 3 }}>📍 {[(item as any).city, (item as any).state].filter(Boolean).join(" - ")}</Text>
+                  )}
+                  {(item as any).responsibleName && (
+                    <Text style={{ fontSize: 12, color: colors.muted, marginTop: 3 }}>👤 {(item as any).responsibleName}{(item as any).responsiblePhone ? ` · ${(item as any).responsiblePhone}` : ""}</Text>
+                  )}
+                  {(isAdmin || isMaster) && (
+                    <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                      <Pressable
+                        onPress={() => { setEditingBU(item); setShowBUModal(true); }}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: `${colors.primary}15`, borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: `${colors.primary}30` })}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
+                      </Pressable>
+                    </View>
+                  )}
+                </View>
+              );
+            }}
+          />
+        </View>
+      )}
+
       {/* Modals */}
       <CostCenterModal
         visible={showCCModal}
-        onClose={() => setShowCCModal(false)}
-        onSave={(data) => createCC.mutate(data)}
+        item={editingCC}
+        onClose={() => { setShowCCModal(false); setEditingCC(null); }}
+        onSave={(data) => {
+          if (editingCC?.id) {
+            updateCC.mutate({ id: editingCC.id, ...data });
+          } else {
+            createCC.mutate(data);
+          }
+        }}
+        isSaving={createCC.isPending || updateCC.isPending}
       />
       <AssetModal
         visible={showAssetModal}
-        onClose={() => setShowAssetModal(false)}
-        onSave={(data) => createAsset.mutate(data)}
+        item={editingAsset}
+        onClose={() => { setShowAssetModal(false); setEditingAsset(null); }}
+        onSave={(data) => {
+          if (editingAsset?.id) {
+            updateAsset.mutate({ id: editingAsset.id, ...data });
+          } else {
+            createAsset.mutate(data);
+          }
+        }}
+        isSaving={createAsset.isPending || updateAsset.isPending}
       />
       <UserFormModal
         visible={showUserModal}
@@ -2186,6 +2463,19 @@ export default function RegistersScreen() {
           }
         }}
         isSaving={createUnitMutation.isPending || updateUnitMutation.isPending}
+      />
+      <BusinessUnitFormModal
+        visible={showBUModal}
+        unit={editingBU}
+        onClose={() => { setShowBUModal(false); setEditingBU(null); }}
+        onSave={(data) => {
+          if (editingBU?.id) {
+            updateBU.mutate({ id: editingBU.id, ...data });
+          } else {
+            createBU.mutate(data);
+          }
+        }}
+        isSaving={createBU.isPending || updateBU.isPending}
       />
     </ScreenContainer>
   );

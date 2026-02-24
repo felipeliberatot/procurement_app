@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import {
   approvalHistory,
   assets,
+  businessUnits,
   costCenters,
   InsertUser,
   maloteItems,
@@ -13,6 +14,7 @@ import {
   requestItems,
   units,
   users,
+  type BusinessUnit,
   type Malote,
   type MaloteItem,
   type MaloteTag,
@@ -1217,6 +1219,53 @@ export async function deleteUnit(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(units).set({ active: false }).where(eq(units.id, id));
+}
+
+// ─── Business Units / Unidades ──────────────────────────────────────────────
+
+export async function listBusinessUnits(): Promise<BusinessUnit[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(businessUnits).where(eq(businessUnits.active, true)).orderBy(businessUnits.name);
+}
+
+export async function createBusinessUnit(data: {
+  name: string; code: string;
+  type?: "escritorio" | "filial" | "deposito" | "outro";
+  address?: string; city?: string;
+  state?: string; responsibleName?: string; responsiblePhone?: string;
+}): Promise<{ id: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(businessUnits).values({
+    name: data.name,
+    code: data.code.toUpperCase(),
+    type: data.type ?? "escritorio",
+    address: data.address ?? null,
+    city: data.city ?? null,
+    state: data.state ?? null,
+    responsibleName: data.responsibleName ?? null,
+    responsiblePhone: data.responsiblePhone ?? null,
+  });
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return { id: insertId };
+}
+
+export async function updateBusinessUnit(id: number, data: Partial<{
+  name: string; code: string;
+  type: "escritorio" | "filial" | "deposito" | "outro";
+  address: string; city: string;
+  state: string; responsibleName: string; responsiblePhone: string; active: boolean;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(businessUnits).set(data).where(eq(businessUnits.id, id));
+}
+
+export async function deleteBusinessUnit(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(businessUnits).set({ active: false }).where(eq(businessUnits.id, id));
 }
 
 // ─── Malote Tags ──────────────────────────────────────────────────────────────

@@ -251,3 +251,12 @@
 - [x] Corrigir erro de digitação "emergencialais" para "Emergenciais" no dashboard
 - [x] Corrigir números dos cards do dashboard para bater com os dados reais do banco
 - [x] Adicionar card/filtro "Em Andamento" na tela de Solicitações
+- [ ] Ao rejeitar solicitação, definir prazo de 10 dias para cancelamento automático
+- [ ] Cancelar automaticamente solicitações vencidas sem atualização após 10 dias
+- [ ] Emitir alerta WhatsApp 1 dia antes do cancelamento automático
+- [ ] Exibir aviso visual no frontend quando solicitação está próxima do cancelamento
+- [x] Adicionar aba Unidades na tela de Cadastros
+- [x] Formulário de criação/edição/cancelamento para Centros de Custo
+- [x] Formulário de criação/edição/cancelamento para Bens
+- [x] Formulário de criação/edição/cancelamento para Fazendas
+- [x] Formulário de criação/edição/cancelamento para Unidades
