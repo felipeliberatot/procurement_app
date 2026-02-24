@@ -663,27 +663,44 @@ export async function approveRequest(
   try {
     const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
     const [requester] = req ? await db.select().from(users).where(eq(users.id, req.requesterId)).limit(1) : [];
+    const items = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+    const itemsForMsg = items.map(it => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
 
-    if (flow.nextStatus === "aguardando_orcamento" && requester?.phone) {
-      // Notify requester to attach budget
-      await WA.notifyBudgetRequired({
-        requesterPhone: requester.phone,
-        requesterName: requester.name ?? "Solicitante",
-        requestNumber: req.requestNumber,
-        requestId,
-      });
-    } else if (flow.nextStatus === "concluida" && requester?.phone) {
-      // Notify completion
-      await WA.notifyApproval({
-        requesterPhone: requester.phone,
-        requesterName: requester.name ?? "Solicitante",
-        requestNumber: req.requestNumber,
-        requestId,
-        approverName: user.name ?? "Aprovador",
-        stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
-      });
+    // ── Mapa: próximo status → papel do aprovador que deve ser notificado ──────
+    const nextRoleMap: Record<string, string> = {
+      aguardando_gerente:              "gerente",
+      aguardando_orcamento:            "orcamento",
+      aguardando_controladoria:        "controladoria",
+      aguardando_diretoria:            "diretoria",
+      aguardando_ordem_compra:         "orcamento",          // Fluxo 06: OC → Orçamento
+      aguardando_comprovante_pagamento:"financeiro",         // Fluxo 07: Comprovante → Financeiro
+      aguardando_verificacao_compras:  "orcamento",          // Fluxo 08: Verificação Final → Orçamento
+    };
+
+    if (flow.nextStatus === "aguardando_orcamento" && request.status === "aguardando_gerente") {
+      // Gerente aprovou → notificar solicitante para anexar orçamento
+      if (requester?.phone) {
+        await WA.notifyBudgetRequired({
+          requesterPhone: requester.phone,
+          requesterName: requester.name ?? "Solicitante",
+          requestNumber: req.requestNumber,
+          requestId,
+        });
+      }
+    } else if (flow.nextStatus === "concluida") {
+      // Etapa final concluída → notificar solicitante
+      if (requester?.phone) {
+        await WA.notifyApproval({
+          requesterPhone: requester.phone,
+          requesterName: requester.name ?? "Solicitante",
+          requestNumber: req.requestNumber,
+          requestId,
+          approverName: user.name ?? "Aprovador",
+          stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
+        });
+      }
     } else {
-      // Notify requester of progress
+      // Notificar solicitante do progresso
       if (requester?.phone) {
         await WA.notifyApproval({
           requesterPhone: requester.phone,
@@ -695,38 +712,29 @@ export async function approveRequest(
           nextStepLabel: STEP_LABELS_SERVER[flow.nextStatus],
         });
       }
-      // Notify next approvers
-      const nextRoleMap: Record<string, string> = {
-        aguardando_orcamento: "orcamento",
-        aguardando_controladoria: "controladoria",
-        aguardando_diretoria: "diretoria",
-        aguardando_ordem_compra: "orcamento",           // Fluxo 06: Emissão de OC → Orçamento
-        aguardando_comprovante_pagamento: "financeiro",  // Fluxo 07: Comprovante → Financeiro
-        aguardando_verificacao_compras: "orcamento",    // Fluxo 08: Verificação Final → Orçamento
-      };
-      const nextRole = nextRoleMap[flow.nextStatus];
-      if (nextRole && req) {
-        const nextApprovers = await db.select().from(users).where(eq(users.procurementRole, nextRole as any));
-        const items = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
-        const itemsForMsg = items.map(it => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
-        for (const approver of nextApprovers) {
-          if (approver.phone) {
-            await WA.notifyApproverWithToken({
-              approverPhone: approver.phone,
-              approverName: approver.name ?? "Aprovador",
-              approverId: approver.id,
-              requestNumber: req.requestNumber,
-              requestId,
-              requesterName: req.requesterName,
-              application: req.application,
-              urgencyLevel: req.urgencyLevel,
-              department: req.department,
-              stepLabel: STEP_LABELS_SERVER[flow.nextStatus] ?? flow.nextStatus,
-              step: nextRole,
-              items: itemsForMsg,
-              totalValue: req.totalEstimatedValue ?? undefined,
-            });
-          }
+    }
+
+    // ── Notificar o(s) aprovador(es) da próxima etapa ─────────────────────────
+    const nextRole = nextRoleMap[flow.nextStatus];
+    if (nextRole && req) {
+      const nextApprovers = await db.select().from(users).where(eq(users.procurementRole, nextRole as any));
+      for (const approver of nextApprovers) {
+        if (approver.phone) {
+          await WA.notifyApproverWithToken({
+            approverPhone: approver.phone,
+            approverName: approver.name ?? "Aprovador",
+            approverId: approver.id,
+            requestNumber: req.requestNumber,
+            requestId,
+            requesterName: req.requesterName,
+            application: req.application,
+            urgencyLevel: req.urgencyLevel,
+            department: req.department,
+            stepLabel: STEP_LABELS_SERVER[flow.nextStatus] ?? flow.nextStatus,
+            step: nextRole,
+            items: itemsForMsg,
+            totalValue: req.totalEstimatedValue ?? undefined,
+          });
         }
       }
     }
@@ -765,21 +773,70 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
     comment,
   });
 
-  // Notify requester of rejection via WhatsApp
+  // Notify requester and/or previous approver via WhatsApp
   try {
     const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
     if (req) {
       const [requester] = await db.select().from(users).where(eq(users.id, req.requesterId)).limit(1);
-      if (requester?.phone) {
-        await WA.notifyRejection({
-          requesterPhone: requester.phone,
-          requesterName: requester.name ?? "Solicitante",
-          requestNumber: req.requestNumber,
-          requestId,
-          rejectorName: user.name ?? "Aprovador",
-          stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
-          comment,
-        });
+      const items = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+      const itemsForMsg = items.map(it => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
+
+      if (request.status === "aguardando_comprovante_pagamento") {
+        // Financeiro recusou comprovante → notificar solicitante que precisa corrigir
+        if (requester?.phone) {
+          await WA.notifyRejection({
+            requesterPhone: requester.phone,
+            requesterName: requester.name ?? "Solicitante",
+            requestNumber: req.requestNumber,
+            requestId,
+            rejectorName: user.name ?? "Financeiro",
+            stepLabel: "Comprovante de Pagamento",
+            comment,
+          });
+        }
+      } else {
+        // Rejeição normal → notificar solicitante
+        if (requester?.phone) {
+          await WA.notifyRejection({
+            requesterPhone: requester.phone,
+            requesterName: requester.name ?? "Solicitante",
+            requestNumber: req.requestNumber,
+            requestId,
+            rejectorName: user.name ?? "Aprovador",
+            stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
+            comment,
+          });
+        }
+
+        // Também notificar o aprovador da etapa anterior (para onde voltou)
+        const prevRoleMap: Record<string, string> = {
+          aguardando_orcamento:     "orcamento",
+          aguardando_controladoria: "controladoria",
+          aguardando_diretoria:     "diretoria",
+        };
+        const prevRole = prevRoleMap[prevStatus];
+        if (prevRole && req) {
+          const prevApprovers = await db.select().from(users).where(eq(users.procurementRole, prevRole as any));
+          for (const approver of prevApprovers) {
+            if (approver.phone) {
+              await WA.notifyApproverWithToken({
+                approverPhone: approver.phone,
+                approverName: approver.name ?? "Aprovador",
+                approverId: approver.id,
+                requestNumber: req.requestNumber,
+                requestId,
+                requesterName: req.requesterName,
+                application: req.application,
+                urgencyLevel: req.urgencyLevel,
+                department: req.department,
+                stepLabel: STEP_LABELS_SERVER[prevStatus] ?? prevStatus,
+                step: prevRole,
+                items: itemsForMsg,
+                totalValue: req.totalEstimatedValue ?? undefined,
+              });
+            }
+          }
+        }
       }
     }
   } catch (e) {
