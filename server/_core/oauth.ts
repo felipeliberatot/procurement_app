@@ -77,6 +77,10 @@ function buildUserResponse(
     email: user?.email ?? null,
     loginMethod: user?.loginMethod ?? null,
     lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString(),
+    procurementRole: (user as any)?.procurementRole ?? null,
+    approvalLevel: (user as any)?.approvalLevel ?? null,
+    phone: (user as any)?.phone ?? null,
+    active: (user as any)?.active ?? true,
   };
 }
 
@@ -186,6 +190,10 @@ export function registerOAuthRoutes(app: Express) {
           email: user.email,
           loginMethod: "password",
           lastSignedIn: new Date().toISOString(),
+          procurementRole: user.procurementRole,
+          approvalLevel: user.approvalLevel,
+          phone: user.phone,
+          active: user.active,
         },
       });
     } catch (error) {

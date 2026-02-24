@@ -57,6 +57,10 @@ export default function LoginScreen() {
         email: result.user.email,
         loginMethod: "password",
         lastSignedIn: new Date(result.user.lastSignedIn),
+        procurementRole: (result.user as any).procurementRole ?? null,
+        approvalLevel: (result.user as any).approvalLevel ?? null,
+        phone: (result.user as any).phone ?? null,
+        active: (result.user as any).active ?? true,
       };
       await Auth.setUserInfo(userInfo);
       await refresh();

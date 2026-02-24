@@ -33,6 +33,10 @@ export function useAuth(options?: UseAuthOptions) {
             email: apiUser.email,
             loginMethod: apiUser.loginMethod,
             lastSignedIn: new Date(apiUser.lastSignedIn),
+            procurementRole: (apiUser as any).procurementRole ?? null,
+            approvalLevel: (apiUser as any).approvalLevel ?? null,
+            phone: (apiUser as any).phone ?? null,
+            active: (apiUser as any).active ?? true,
           };
           setUser(userInfo);
           // Cache user info in localStorage for faster subsequent loads

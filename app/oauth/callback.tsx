@@ -51,6 +51,10 @@ export default function OAuthCallback() {
                 email: userData.email,
                 loginMethod: userData.loginMethod,
                 lastSignedIn: new Date(userData.lastSignedIn || Date.now()),
+                procurementRole: userData.procurementRole ?? null,
+                approvalLevel: userData.approvalLevel ?? null,
+                phone: userData.phone ?? null,
+                active: userData.active ?? true,
               };
               await Auth.setUserInfo(userInfo);
               console.log("[OAuth] User info stored:", userInfo);
