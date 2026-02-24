@@ -3,8 +3,8 @@ import { RequestCard } from "@/components/procurement/RequestCard";
 import { EmptyState } from "@/components/procurement/EmptyState";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -37,8 +37,15 @@ const URGENCY_FILTERS = [
 
 export default function RequestsScreen() {
   const { isAuthenticated } = useAuth();
-  const [activeFilter, setActiveFilter] = useState("all");
-  const [activeUrgency, setActiveUrgency] = useState("all");
+  const params = useLocalSearchParams<{ filter?: string; urgency?: string }>();
+  const [activeFilter, setActiveFilter] = useState(params.filter ?? "all");
+  const [activeUrgency, setActiveUrgency] = useState(params.urgency ?? "all");
+
+  // Atualiza filtros quando os parâmetros de rota mudam (ex: navegação do dashboard)
+  useEffect(() => {
+    if (params.filter) setActiveFilter(params.filter);
+    if (params.urgency) setActiveUrgency(params.urgency);
+  }, [params.filter, params.urgency]);
 
   const { data: requests, isLoading, refetch, isRefetching } = trpc.requests.myRequests.useQuery(undefined, {
     enabled: isAuthenticated,

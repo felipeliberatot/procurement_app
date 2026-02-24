@@ -247,3 +247,5 @@
 - [x] Adicionar campo de telefone editável pelo usuário Master na tela de perfil/edição de usuários
 - [x] Adicionar botão "Testar envio WhatsApp" no card do usuário (apenas Master)
 - [x] Adicionar botão mostrar/ocultar senha na tela de login
+- [x] Tornar cards do dashboard clicáveis com navegação para histórico com filtro automático
+- [x] Corrigir erro de digitação "emergencialais" para "Emergenciais" no dashboard

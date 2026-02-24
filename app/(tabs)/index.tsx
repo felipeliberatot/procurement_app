@@ -84,30 +84,67 @@ export default function DashboardScreen() {
           <View className="px-5 mb-4">
             <Text className="text-sm font-semibold text-foreground mb-3">Resumo Geral</Text>
             <View className="flex-row gap-3 mb-3">
-              <MetricCard label="Total" value={stats.total ?? 0} icon="📋" color="primary" />
-              <MetricCard label="Em Andamento" value={stats.pending ?? 0} icon="⏳" color="warning" />
-              <MetricCard label="Concluídas" value={stats.approved ?? 0} icon="✅" color="success" />
+              <MetricCard
+                label="Total"
+                value={stats.total ?? 0}
+                icon="📋"
+                color="primary"
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "all" } })}
+              />
+              <MetricCard
+                label="Em Andamento"
+                value={stats.pending ?? 0}
+                icon="⏳"
+                color="warning"
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "aguardando_gerente" } })}
+              />
+              <MetricCard
+                label="Concluídas"
+                value={stats.approved ?? 0}
+                icon="✅"
+                color="success"
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "concluida" } })}
+              />
             </View>
             <View className="flex-row gap-3 mb-3">
-              <MetricCard label="Rejeitadas" value={stats.rejected ?? 0} icon="❌" color="error" />
-              <MetricCard label="Canceladas" value={stats.rejected ?? 0} icon="🚫" color="muted" />
-
+              <MetricCard
+                label="Rejeitadas"
+                value={stats.rejected ?? 0}
+                icon="❌"
+                color="error"
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "rejeitada" } })}
+              />
+              <MetricCard
+                label="Canceladas"
+                value={stats.rejected ?? 0}
+                icon="🚫"
+                color="muted"
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "cancelada" } })}
+              />
             </View>
 
             {/* Urgências */}
             {(stats.emergency ?? 0) > 0 && (
-              <View className="bg-error/10 border border-error/30 rounded-2xl p-3 mb-3 flex-row items-center gap-3">
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { urgency: "emergencial" } })}
+                className="bg-error/10 border border-error/30 rounded-2xl p-3 mb-3 flex-row items-center gap-3"
+              >
                 <Text className="text-2xl">🔴</Text>
                 <View className="flex-1">
                   <Text className="text-sm font-bold text-error">
-                    {stats.emergency} Emergencial{(stats.emergency ?? 0) > 1 ? "ais" : ""}
+                    {stats.emergency} Emergencial{(stats.emergency ?? 0) > 1 ? "is" : ""}
                   </Text>
                   <Text className="text-xs text-muted">Prazo: 1 dia — ação imediata necessária</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
             {(stats.urgent ?? 0) > 0 && (
-              <View className="bg-warning/10 border border-warning/30 rounded-2xl p-3 mb-3 flex-row items-center gap-3">
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { urgency: "urgente" } })}
+                className="bg-warning/10 border border-warning/30 rounded-2xl p-3 mb-3 flex-row items-center gap-3"
+              >
                 <Text className="text-2xl">🟡</Text>
                 <View className="flex-1">
                   <Text className="text-sm font-bold text-warning">
@@ -115,10 +152,14 @@ export default function DashboardScreen() {
                   </Text>
                   <Text className="text-xs text-muted">Prazo: 3 dias</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
             {(stats.expiringSoon ?? 0) > 0 && (
-              <View className="bg-error/20 border-2 border-error rounded-2xl p-3 mb-3 flex-row items-center gap-3">
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "all" } })}
+                className="bg-error/20 border-2 border-error rounded-2xl p-3 mb-3 flex-row items-center gap-3"
+              >
                 <Text className="text-2xl">⏰</Text>
                 <View className="flex-1">
                   <Text className="text-sm font-bold text-error">
@@ -126,7 +167,7 @@ export default function DashboardScreen() {
                   </Text>
                   <Text className="text-xs text-muted">Ação imediata necessária</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             )}
 
             {/* Malotes — sempre visível */}
