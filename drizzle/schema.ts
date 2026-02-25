@@ -244,6 +244,7 @@ export const malotes = mysqlTable("malotes", {
   receivedAt: timestamp("receivedAt"),
   receivedById: int("receivedById"),
   receivedByName: varchar("receivedByName", { length: 255 }),
+  notes: text("notes"),
   receiptNotes: text("receiptNotes"),
   signatureData: longtext("signatureData"),
   returnReason: text("returnReason"),

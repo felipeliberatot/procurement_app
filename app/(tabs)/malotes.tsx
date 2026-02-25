@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -44,6 +45,7 @@ type Malote = {
   destinationUnit: string;
   createdByName: string;
   createdAt: string | Date;
+  notes?: string | null;
   items?: MaloteItem[];
 };
 
@@ -74,6 +76,7 @@ export default function MalotesScreen() {
   const [showCreate, setShowCreate] = useState(false);
   const [originUnit, setOriginUnit] = useState("");
   const [destinationUnit, setDestinationUnit] = useState("");
+  const [newMaloteNotes, setNewMaloteNotes] = useState("");
   const [selectedMalote, setSelectedMalote] = useState<Malote | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [showAddRequest, setShowAddRequest] = useState(false);
@@ -105,9 +108,9 @@ export default function MalotesScreen() {
       return;
     }
     createMutation.mutate(
-      { originUnit, destinationUnit },
+      { originUnit, destinationUnit, notes: newMaloteNotes.trim() || undefined },
       {
-        onSuccess: () => { setShowCreate(false); setOriginUnit(""); setDestinationUnit(""); },
+        onSuccess: () => { setShowCreate(false); setOriginUnit(""); setDestinationUnit(""); setNewMaloteNotes(""); },
         onError: (e) => Alert.alert("Erro", e.message),
       }
     );
@@ -269,6 +272,17 @@ export default function MalotesScreen() {
                 </Text>
                 <IconSymbol name="chevron.right" size={14} color={colors.muted} />
               </TouchableOpacity>
+              <Text style={[styles.label, { color: colors.muted }]}>Observações</Text>
+              <TextInput
+                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, color: colors.foreground, height: 80, textAlignVertical: "top" }]}
+                placeholder="Informações adicionais sobre o malote..."
+                placeholderTextColor={colors.muted}
+                value={newMaloteNotes}
+                onChangeText={setNewMaloteNotes}
+                multiline
+                numberOfLines={3}
+                maxLength={500}
+              />
               <View style={styles.row}>
                 <TouchableOpacity style={[styles.btn, { backgroundColor: colors.border }]} onPress={() => setShowCreate(false)}>
                   <Text style={{ color: colors.foreground }}>Cancelar</Text>
@@ -358,9 +372,15 @@ export default function MalotesScreen() {
                 </Text>
               </View>
             )}
-            <Text style={[styles.route, { color: colors.muted, marginBottom: 12 }]}>
+            <Text style={[styles.route, { color: colors.muted, marginBottom: selectedMalote?.notes ? 6 : 12 }]}>
               📦 {selectedMalote?.originUnit} → {selectedMalote?.destinationUnit}
             </Text>
+            {selectedMalote?.notes ? (
+              <View style={{ backgroundColor: colors.background, borderRadius: 8, padding: 10, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: colors.primary }}>
+                <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", marginBottom: 2 }}>OBSERVAÇÕES</Text>
+                <Text style={{ color: colors.foreground, fontSize: 13 }}>{selectedMalote.notes}</Text>
+              </View>
+            ) : null}
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
                 Solicitações ({(maloteDetail?.items ?? []).length})

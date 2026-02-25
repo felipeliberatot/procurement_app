@@ -995,6 +995,7 @@ export async function createMalote(opts: {
   destinationUnit: string;
   createdById: number;
   createdByName: string;
+  notes?: string | null;
 }): Promise<Malote> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1006,6 +1007,7 @@ export async function createMalote(opts: {
     destinationUnit: opts.destinationUnit,
     createdById: opts.createdById,
     createdByName: opts.createdByName,
+    notes: opts.notes ?? null,
   });
   const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
   const [malote] = await db.select().from(malotes).where(eq(malotes.id, insertId)).limit(1);

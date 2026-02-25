@@ -264,3 +264,4 @@
 - [x] Corrigir nome "CGS Agropecuária" para "CGS Agrícola" nos e-mails e textos do sistema
 - [x] Adicionar logo CGS Agrícola no canto superior direito da tela de boas-vindas
 - [x] Corrigir modal de criação de malotes: formulário sem scroll e seletor de unidades sobrepondo o modal
+- [x] Adicionar campo "Observações" no formulário de criação de malotes

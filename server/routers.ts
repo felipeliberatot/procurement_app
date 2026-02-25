@@ -522,11 +522,13 @@ export const appRouter = router({
       .input(z.object({
         originUnit: z.string().min(1),
         destinationUnit: z.string().min(1),
+        notes: z.string().optional(),
       }))
       .mutation(({ ctx, input }) =>
         db.createMalote({
           originUnit: input.originUnit,
           destinationUnit: input.destinationUnit,
+          notes: input.notes ?? null,
           createdById: ctx.user.id,
           createdByName: ctx.user.name ?? "Usuário",
         })
