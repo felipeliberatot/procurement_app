@@ -6,7 +6,9 @@ import type { ExpoConfig } from "expo/config";
 // e.g., "my-app" created at 2024-01-15 10:30:45 -> "space.manus.my.app.t20240115103045"
 // Bundle ID can only contain letters, numbers, and dots
 // Android requires each dot-separated segment to start with a letter
-const rawBundleId = "space.manus.procurement_app.t20260220134510";
+// Bundle ID para produção — altere para o bundle ID aprovado na sua conta Apple Developer
+// Formato recomendado: com.suaempresa.nomeapp (ex: com.cgsagricola.compras)
+const rawBundleId = "com.cgsagricola.compras";
 const bundleId =
   rawBundleId
     .replace(/[-_]/g, ".") // Replace hyphens/underscores with dots
@@ -41,6 +43,9 @@ const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
   version: "1.0.0",
+  runtimeVersion: {
+    policy: "appVersion",
+  },
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
@@ -49,9 +54,13 @@ const config: ExpoConfig = {
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
-    "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+    buildNumber: "1",
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      NSCameraUsageDescription: "Necessário para fotografar documentos e comprovantes.",
+      NSPhotoLibraryUsageDescription: "Necessário para anexar imagens às solicitações.",
+      NSMicrophoneUsageDescription: "Necessário para gravação de áudio.",
+    },
   },
   android: {
     adaptiveIcon: {
