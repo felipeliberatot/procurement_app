@@ -8,6 +8,7 @@ import React, { useEffect } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Image,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -65,13 +66,23 @@ export default function DashboardScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
         {/* Header */}
         <View className="px-5 pt-4 pb-4">
-          <Text className="text-sm text-muted">Bem-vindo,</Text>
-          <Text className="text-2xl font-bold text-foreground">{user?.name?.split(" ")[0] ?? "Usuário"}</Text>
-          <View className="mt-1 flex-row items-center gap-2">
-            <View className="bg-primary/10 px-2 py-0.5 rounded-full">
-              <Text className="text-xs text-primary font-semibold">{ROLE_LABELS[userRole]}</Text>
+          <View className="flex-row items-start justify-between">
+            <View className="flex-1">
+              <Text className="text-sm text-muted">Bem-vindo,</Text>
+              <Text className="text-2xl font-bold text-foreground">{user?.name?.split(" ")[0] ?? "Usuário"}</Text>
+              <View className="mt-1 flex-row items-center gap-2">
+                <View className="bg-primary/10 px-2 py-0.5 rounded-full">
+                  <Text className="text-xs text-primary font-semibold">{ROLE_LABELS[userRole]}</Text>
+                </View>
+                {user?.email && <Text className="text-xs text-muted">{user.email}</Text>}
+              </View>
             </View>
-            {user?.email && <Text className="text-xs text-muted">{user.email}</Text>}
+            {/* Logo CGS Agrícola */}
+            <Image
+              source={require("@/assets/images/icon.png")}
+              style={{ width: 56, height: 56, borderRadius: 12 }}
+              resizeMode="contain"
+            />
           </View>
         </View>
 

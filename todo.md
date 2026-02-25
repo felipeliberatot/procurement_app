@@ -262,3 +262,4 @@
 - [x] Formulário de criação/edição/cancelamento para Unidades
 - [x] Personalizar layout com cores da logo CGS Agrícola (verde #3DB84B, amarelo #F5C842, marrom #3D2F2A)
 - [x] Corrigir nome "CGS Agropecuária" para "CGS Agrícola" nos e-mails e textos do sistema
+- [x] Adicionar logo CGS Agrícola no canto superior direito da tela de boas-vindas
