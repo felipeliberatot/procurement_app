@@ -432,7 +432,17 @@ export const appRouter = router({
         const role = roleMap[req.status];
         if (!role) throw new Error("Solicitação não está em etapa pendente de aprovação");
 
-        const approvers = await dbConn.select().from(users).where(eq(users.procurementRole, role as any));
+        const { or: orOp, and: andOp } = await import("drizzle-orm");
+        const approversRaw = await dbConn.select().from(users).where(
+          andOp(
+            eq(users.active, true),
+            orOp(
+              eq(users.procurementRole, role as any),
+              eq(users.approvalLevel, role as any),
+            ),
+          )
+        );
+        const approvers = [...new Map(approversRaw.map((a: any) => [a.id, a])).values()];
         let sent = 0;
         for (const approver of approvers) {
           if (approver.phone) {

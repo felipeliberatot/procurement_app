@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   approvalHistory,
@@ -510,11 +510,16 @@ export async function createPurchaseRequest(
       .select()
       .from(users)
       .where(and(
-        eq(users.procurementRole, approverRole as any),
         eq(users.active, true),
+        or(
+          eq(users.procurementRole, approverRole as any),
+          eq(users.approvalLevel, approverRole as any),
+        ),
       ));
-    console.log(`[WhatsApp] Nova solicitação: notificando aprovadores "${approverRole}": ${approvers.length} encontrado(s)`);
-    for (const approver of approvers) {
+    // Deduplicar por id (um usuário pode ter role E approvalLevel iguais)
+    const uniqueApprovers = [...new Map(approvers.map(a => [a.id, a])).values()];
+    console.log(`[WhatsApp] Nova solicitação: notificando aprovadores "${approverRole}": ${uniqueApprovers.length} encontrado(s)`);
+    for (const approver of uniqueApprovers) {
       const phoneRaw = approver.phone;
       console.log(`[WhatsApp] Aprovador: ${approver.name} | phone raw: ${phoneRaw}`);
       if (phoneRaw) {
@@ -756,14 +761,19 @@ export async function approveRequest(
     // ── Notificar o(s) aprovador(es) da próxima etapa ─────────────────────────
     const nextRole = nextRoleMap[flow.nextStatus];
     if (nextRole && req) {
-      // Buscar aprovadores ativos com o papel correto, usando o telefone do perfil cadastrado
-      const nextApprovers = await db
+      // Buscar aprovadores ativos com o papel correto (procurementRole OU approvalLevel)
+      const nextApproversRaw = await db
         .select()
         .from(users)
         .where(and(
-          eq(users.procurementRole, nextRole as any),
           eq(users.active, true),
+          or(
+            eq(users.procurementRole, nextRole as any),
+            eq(users.approvalLevel, nextRole as any),
+          ),
         ));
+      // Deduplicar por id
+      const nextApprovers = [...new Map(nextApproversRaw.map(a => [a.id, a])).values()];
       console.log(`[WhatsApp] Notificando aprovadores para etapa "${nextRole}": ${nextApprovers.length} encontrado(s)`);
       for (const approver of nextApprovers) {
         const phoneRaw = approver.phone;
@@ -867,13 +877,17 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
         };
         const prevRole = prevRoleMap[prevStatus];
         if (prevRole && req) {
-          const prevApprovers = await db
+          const prevApproversRaw = await db
             .select()
             .from(users)
             .where(and(
-              eq(users.procurementRole, prevRole as any),
               eq(users.active, true),
+              or(
+                eq(users.procurementRole, prevRole as any),
+                eq(users.approvalLevel, prevRole as any),
+              ),
             ));
+          const prevApprovers = [...new Map(prevApproversRaw.map(a => [a.id, a])).values()];
           console.log(`[WhatsApp] Notificando aprovadores (rejeição) para etapa "${prevRole}": ${prevApprovers.length} encontrado(s)`);
           for (const approver of prevApprovers) {
             const phoneRaw = approver.phone;

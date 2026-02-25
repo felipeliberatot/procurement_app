@@ -1,0 +1,8 @@
+{
+  "query": "\nDELETE FROM approval_history;\nDELETE FROM request_items;\nDELETE FROM purchase_requests;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nDELETE FROM approval_history;\nDELETE FROM request_items;\nDELETE FROM purchase_requests;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1146 (42S02) at line 2: Table '3hnvqvcmduec2a2tyjw5ps.approval_history' doesn't exist"
+  ]
+}

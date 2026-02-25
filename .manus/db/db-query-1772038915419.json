@@ -1,0 +1,52 @@
+{
+  "query": "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY table_name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY table_name;",
+  "rows": [
+    {
+      "table_name": "__drizzle_migrations"
+    },
+    {
+      "table_name": "approvalHistory"
+    },
+    {
+      "table_name": "assets"
+    },
+    {
+      "table_name": "businessUnits"
+    },
+    {
+      "table_name": "costCenters"
+    },
+    {
+      "table_name": "maloteItems"
+    },
+    {
+      "table_name": "maloteTagLinks"
+    },
+    {
+      "table_name": "maloteTags"
+    },
+    {
+      "table_name": "malotes"
+    },
+    {
+      "table_name": "purchaseRequests"
+    },
+    {
+      "table_name": "requestItems"
+    },
+    {
+      "table_name": "units"
+    },
+    {
+      "table_name": "users"
+    },
+    {
+      "table_name": "whatsappSessions"
+    }
+  ],
+  "messages": [],
+  "stdout": "table_name\n__drizzle_migrations\napprovalHistory\nassets\nbusinessUnits\ncostCenters\nmaloteItems\nmaloteTagLinks\nmaloteTags\nmalotes\npurchaseRequests\nrequestItems\nunits\nusers\nwhatsappSessions\n",
+  "stderr": "",
+  "execution_time_ms": 354
+}

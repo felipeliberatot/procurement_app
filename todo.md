@@ -270,3 +270,4 @@
 - [x] Ícones diferenciados por categoria no seletor de unidades dos malotes (Fazenda=🌾, Escritório=🏢, Filial=🏗️, Depósito=📦, Outro=📍)
 - [x] Geração automática de código nos cadastros de Bens (BEM-001), Fazendas (FAZ-001), Unidades (UN-001) e Centros de Custo (CC-001)
 - [x] Botão de importação CSV nos cadastros de Bens, Fazendas, Unidades e Centros de Custo (parser de cabeçalho + inserção em lote)
+- [x] Notificação WhatsApp para o aprovador correto ao receber uma solicitação em cada etapa do fluxo (busca por procurementRole OU approvalLevel, deduplicado por id)
