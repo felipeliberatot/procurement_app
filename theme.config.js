@@ -1,14 +1,19 @@
 /** @type {const} */
+// Cores baseadas na identidade visual CGS Agrícola
+// Verde: #3DB84B (folha + texto "AGRÍCOLA")
+// Amarelo/dourado: #F5C842 (sol)
+// Marrom escuro: #3D2F2A (texto "CGS")
 const themeColors = {
-  primary:    { light: '#1A56DB', dark: '#3B82F6' },
-  background: { light: '#F8FAFC', dark: '#0F172A' },
-  surface:    { light: '#FFFFFF', dark: '#1E293B' },
-  foreground: { light: '#0F172A', dark: '#F1F5F9' },
-  muted:      { light: '#64748B', dark: '#94A3B8' },
-  border:     { light: '#E2E8F0', dark: '#334155' },
-  success:    { light: '#16A34A', dark: '#22C55E' },
-  warning:    { light: '#D97706', dark: '#F59E0B' },
-  error:      { light: '#DC2626', dark: '#EF4444' },
+  primary:    { light: '#3DB84B', dark: '#4DCB5C' },   // Verde CGS
+  background: { light: '#F7FAF7', dark: '#0F1A0F' },   // Fundo levemente esverdeado
+  surface:    { light: '#FFFFFF', dark: '#1A2B1A' },   // Cards/superfícies
+  foreground: { light: '#3D2F2A', dark: '#F1F5F9' },   // Texto principal (marrom CGS)
+  muted:      { light: '#6B7B6B', dark: '#94A89A' },   // Texto secundário
+  border:     { light: '#D4E8D4', dark: '#2A3D2A' },   // Bordas esverdeadas
+  success:    { light: '#2E9E3A', dark: '#3DB84B' },   // Sucesso (verde escuro)
+  warning:    { light: '#C9A000', dark: '#F5C842' },   // Aviso (amarelo CGS)
+  error:      { light: '#DC2626', dark: '#EF4444' },   // Erro (vermelho padrão)
+  tint:       { light: '#3DB84B', dark: '#4DCB5C' },   // Tint (alias de primary)
 };
 
 module.exports = { themeColors };
