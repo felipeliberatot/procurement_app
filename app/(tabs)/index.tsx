@@ -1,5 +1,4 @@
 import { ScreenContainer } from "@/components/screen-container";
-import { RequestCard } from "@/components/procurement/RequestCard";
 import { MetricCard } from "@/components/procurement/MetricCard";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
@@ -7,7 +6,6 @@ import { router } from "expo-router";
 import React, { useEffect } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Image,
   ScrollView,
   Text,
@@ -16,10 +14,6 @@ import {
 } from "react-native";
 import type { ProcurementRole } from "@/shared/types";
 import { ROLE_LABELS } from "@/shared/types";
-
-function formatCurrency(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
 export default function DashboardScreen() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -36,20 +30,15 @@ export default function DashboardScreen() {
     enabled: isAuthenticated,
   });
 
+  const { data: maloteStats, isLoading: maloteLoading } = trpc.malotes.stats.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
   const { data: pending } = trpc.requests.pendingForMe.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
-  const { data: myRequests } = trpc.requests.myRequests.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
-
-  const { data: maloteStats } = trpc.malotes.stats.useQuery(undefined, {
-    enabled: isAuthenticated,
-  });
-
-  const recentRequests = (myRequests ?? []).slice(0, 3);
-  const pendingRequests = (pending ?? []).slice(0, 3);
+  const pendingCount = (pending ?? []).length;
 
   if (loading) {
     return (
@@ -61,220 +50,230 @@ export default function DashboardScreen() {
     );
   }
 
+  const today = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
   return (
     <ScreenContainer>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+
         {/* Header */}
-        <View className="px-5 pt-4 pb-4">
-          <View className="flex-row items-start justify-between">
+        <View className="px-5 pt-5 pb-4">
+          <View className="flex-row items-center justify-between">
             <View className="flex-1">
-              <Text className="text-sm text-muted">Bem-vindo,</Text>
-              <Text className="text-2xl font-bold text-foreground">{user?.name?.split(" ")[0] ?? "Usuário"}</Text>
-              <View className="mt-1 flex-row items-center gap-2">
-                <View className="bg-primary/10 px-2 py-0.5 rounded-full">
-                  <Text className="text-xs text-primary font-semibold">{ROLE_LABELS[userRole]}</Text>
-                </View>
-                {user?.email && <Text className="text-xs text-muted">{user.email}</Text>}
+              <Text className="text-xs text-muted capitalize">{today}</Text>
+              <Text className="text-2xl font-bold text-foreground mt-0.5">
+                Olá, {user?.name?.split(" ")[0] ?? "Usuário"} 👋
+              </Text>
+              <View className="mt-1.5 self-start bg-primary/10 px-2.5 py-0.5 rounded-full">
+                <Text className="text-xs text-primary font-semibold">{ROLE_LABELS[userRole]}</Text>
               </View>
             </View>
-            {/* Logo CGS Agrícola */}
             <Image
               source={require("@/assets/images/icon.png")}
-              style={{ width: 56, height: 56, borderRadius: 12 }}
+              style={{ width: 52, height: 52, borderRadius: 12 }}
               resizeMode="contain"
             />
           </View>
         </View>
 
-        {/* Métricas */}
-        {statsLoading ? (
+        {/* Alerta de aprovações pendentes */}
+        {pendingCount > 0 && (
           <View className="px-5 mb-4">
-            <ActivityIndicator />
-          </View>
-        ) : stats ? (
-          <View className="px-5 mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-3">Resumo Geral</Text>
-            <View className="flex-row gap-3 mb-3">
-              <MetricCard
-                label="Total"
-                value={stats.total ?? 0}
-                icon="📋"
-                color="primary"
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "all" } })}
-              />
-              <MetricCard
-                label="Em Andamento"
-                value={stats.pending ?? 0}
-                icon="⏳"
-                color="warning"
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "pending" } })}
-              />
-              <MetricCard
-                label="Concluídas"
-                value={stats.approved ?? 0}
-                icon="✅"
-                color="success"
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "concluida" } })}
-              />
-            </View>
-            <View className="flex-row gap-3 mb-3">
-              <MetricCard
-                label="Rejeitadas"
-                value={stats.rejected ?? 0}
-                icon="❌"
-                color="error"
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "rejeitada" } })}
-              />
-              <MetricCard
-                label="Canceladas"
-                value={(stats as any).cancelled ?? 0}
-                icon="🚫"
-                color="muted"
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "cancelada" } })}
-              />
-            </View>
-
-            {/* Urgências */}
-            {(stats.emergency ?? 0) > 0 && (
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { urgency: "emergencial" } })}
-                className="bg-error/10 border border-error/30 rounded-2xl p-3 mb-3 flex-row items-center gap-3"
-              >
-                <Text className="text-2xl">🔴</Text>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-error">
-                    {stats.emergency} Emergencial{(stats.emergency ?? 0) !== 1 ? "is" : ""}
-                  </Text>
-                  <Text className="text-xs text-muted">Prazo: 1 dia — ação imediata necessária</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-            {(stats.urgent ?? 0) > 0 && (
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { urgency: "urgente" } })}
-                className="bg-warning/10 border border-warning/30 rounded-2xl p-3 mb-3 flex-row items-center gap-3"
-              >
-                <Text className="text-2xl">🟡</Text>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-warning">
-                    {stats.urgent} Urgente{(stats.urgent ?? 0) > 1 ? "s" : ""}
-                  </Text>
-                  <Text className="text-xs text-muted">Prazo: 3 dias</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-            {(stats.expiringSoon ?? 0) > 0 && (
-              <TouchableOpacity
-                activeOpacity={0.75}
-                onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "all" } })}
-                className="bg-error/20 border-2 border-error rounded-2xl p-3 mb-3 flex-row items-center gap-3"
-              >
-                <Text className="text-2xl">⏰</Text>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-error">
-                    {stats.expiringSoon} prazo{(stats.expiringSoon ?? 0) > 1 ? "s" : ""} vencendo em 24h!
-                  </Text>
-                  <Text className="text-xs text-muted">Ação imediata necessária</Text>
-                </View>
-              </TouchableOpacity>
-            )}
-
-            {/* Malotes — sempre visível */}
             <TouchableOpacity
-              onPress={() => router.push("/(tabs)/malotes" as any)}
-              className="bg-surface border border-border rounded-2xl p-3 mb-3"
+              activeOpacity={0.8}
+              onPress={() => router.push("/(tabs)/approvals" as any)}
+              style={{ backgroundColor: "#FEF3C7", borderColor: "#F59E0B", borderWidth: 1 }}
+              className="rounded-2xl p-4 flex-row items-center gap-3"
             >
-              <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-sm font-bold text-foreground">📦 Malotes</Text>
-                <Text className="text-xs text-primary font-semibold">Ver todos →</Text>
+              <Text className="text-2xl">⚠️</Text>
+              <View className="flex-1">
+                <Text className="text-sm font-bold" style={{ color: "#92400E" }}>
+                  {pendingCount} solicitaç{pendingCount !== 1 ? "ões aguardam" : "ão aguarda"} sua aprovação
+                </Text>
+                <Text className="text-xs" style={{ color: "#B45309" }}>Toque para revisar</Text>
               </View>
-              <View className="flex-row gap-3">
-                <View className="flex-1 bg-blue-500/10 rounded-xl p-2 items-center">
-                  <Text className="text-lg font-bold text-blue-500">{maloteStats?.abertos ?? 0}</Text>
-                  <Text className="text-xs text-muted">Abertos</Text>
-                </View>
-                <View className="flex-1 bg-warning/10 rounded-xl p-2 items-center">
-                  <Text className="text-lg font-bold text-warning">{maloteStats?.enviados ?? 0}</Text>
-                  <Text className="text-xs text-muted">Em Trânsito</Text>
-                </View>
-                <View className="flex-1 bg-success/10 rounded-xl p-2 items-center">
-                  <Text className="text-lg font-bold text-success">{maloteStats?.recebidos ?? 0}</Text>
-                  <Text className="text-xs text-muted">Recebidos</Text>
-                </View>
-              </View>
+              <Text style={{ color: "#92400E" }}>→</Text>
             </TouchableOpacity>
           </View>
-        ) : null}
+        )}
 
-        {/* Ação Rápida */}
-        <View className="px-5 mb-4">
-          <TouchableOpacity
-            onPress={() => router.push("/request/new" as any)}
-            className="bg-primary rounded-2xl p-4 flex-row items-center gap-3"
-          >
-            <View className="w-10 h-10 rounded-xl bg-white/20 items-center justify-center">
-              <Text className="text-xl">+</Text>
+        {/* Métricas de Solicitações */}
+        <View className="px-5 mb-5">
+          <Text className="text-sm font-bold text-foreground mb-3">Solicitações de Compra</Text>
+          {statsLoading ? (
+            <View className="items-center py-4">
+              <ActivityIndicator />
             </View>
-            <View className="flex-1">
-              <Text className="text-white font-bold text-base">Nova Solicitação</Text>
-              <Text className="text-white/70 text-xs">Criar uma nova solicitação de compra</Text>
-            </View>
-            <Text className="text-white text-lg">→</Text>
-          </TouchableOpacity>
+          ) : (
+            <>
+              <View className="flex-row gap-3 mb-3">
+                <MetricCard
+                  label="Total"
+                  value={stats?.total ?? 0}
+                  icon="📋"
+                  color="primary"
+                  onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "all" } })}
+                />
+                <MetricCard
+                  label="Em Andamento"
+                  value={stats?.pending ?? 0}
+                  icon="⏳"
+                  color="warning"
+                  onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "pending" } })}
+                />
+                <MetricCard
+                  label="Concluídas"
+                  value={stats?.approved ?? 0}
+                  icon="✅"
+                  color="success"
+                  onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "concluida" } })}
+                />
+              </View>
+              <View className="flex-row gap-3">
+                <MetricCard
+                  label="Rejeitadas"
+                  value={stats?.rejected ?? 0}
+                  icon="❌"
+                  color="error"
+                  onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "rejeitada" } })}
+                />
+                <MetricCard
+                  label="Canceladas"
+                  value={(stats as any)?.cancelled ?? 0}
+                  icon="🚫"
+                  color="muted"
+                  onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "cancelada" } })}
+                />
+                <MetricCard
+                  label="Emergenciais"
+                  value={stats?.emergency ?? 0}
+                  icon="🔴"
+                  color="error"
+                  onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { urgency: "emergencial" } })}
+                />
+              </View>
+            </>
+          )}
         </View>
 
-        {/* Aprovações Pendentes */}
-        {pendingRequests.length > 0 && (
-          <View className="px-5 mb-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-sm font-bold text-foreground">Aguardando Sua Ação</Text>
-              <TouchableOpacity onPress={() => router.push("/(tabs)/approvals" as any)}>
-                <Text className="text-xs text-primary font-semibold">Ver todas →</Text>
+        {/* Métricas de Malotes */}
+        <View className="px-5 mb-5">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-sm font-bold text-foreground">Malotes</Text>
+            <TouchableOpacity onPress={() => router.push("/(tabs)/malotes" as any)}>
+              <Text className="text-xs text-primary font-semibold">Ver todos →</Text>
+            </TouchableOpacity>
+          </View>
+          {maloteLoading ? (
+            <View className="items-center py-4">
+              <ActivityIndicator />
+            </View>
+          ) : (
+            <View className="bg-surface border border-border rounded-2xl p-4">
+              <View className="flex-row gap-3">
+                <View className="flex-1 items-center py-2">
+                  <Text className="text-2xl font-bold text-primary">{maloteStats?.abertos ?? 0}</Text>
+                  <Text className="text-xs text-muted mt-0.5">Abertos</Text>
+                </View>
+                <View className="w-px bg-border" />
+                <View className="flex-1 items-center py-2">
+                  <Text className="text-2xl font-bold text-warning">{maloteStats?.enviados ?? 0}</Text>
+                  <Text className="text-xs text-muted mt-0.5">Em Trânsito</Text>
+                </View>
+                <View className="w-px bg-border" />
+                <View className="flex-1 items-center py-2">
+                  <Text className="text-2xl font-bold text-success">{maloteStats?.recebidos ?? 0}</Text>
+                  <Text className="text-xs text-muted mt-0.5">Recebidos</Text>
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Ações Rápidas */}
+        <View className="px-5 mb-5">
+          <Text className="text-sm font-bold text-foreground mb-3">Ações Rápidas</Text>
+          <View className="gap-3">
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => router.push("/request/new" as any)}
+              className="bg-primary rounded-2xl p-4 flex-row items-center gap-3"
+            >
+              <View className="w-10 h-10 rounded-xl bg-white/20 items-center justify-center">
+                <Text className="text-xl">+</Text>
+              </View>
+              <View className="flex-1">
+                <Text className="text-white font-bold text-base">Nova Solicitação</Text>
+                <Text className="text-white/70 text-xs">Criar solicitação de compra</Text>
+              </View>
+              <Text className="text-white text-lg">→</Text>
+            </TouchableOpacity>
+
+            <View className="flex-row gap-3">
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => router.push("/(tabs)/malotes" as any)}
+                className="flex-1 bg-surface border border-border rounded-2xl p-4 items-center gap-2"
+              >
+                <Text className="text-2xl">📦</Text>
+                <Text className="text-xs font-semibold text-foreground text-center">Novo Malote</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => router.push("/(tabs)/approvals" as any)}
+                className="flex-1 bg-surface border border-border rounded-2xl p-4 items-center gap-2"
+              >
+                <Text className="text-2xl">✅</Text>
+                <Text className="text-xs font-semibold text-foreground text-center">Aprovações</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => router.push("/(tabs)/registers" as any)}
+                className="flex-1 bg-surface border border-border rounded-2xl p-4 items-center gap-2"
+              >
+                <Text className="text-2xl">📂</Text>
+                <Text className="text-xs font-semibold text-foreground text-center">Cadastros</Text>
               </TouchableOpacity>
             </View>
-            {pendingRequests.map((item) => (
-              <RequestCard
-                key={item.id}
-                request={item}
-                onPress={() => router.push(`/request/${item.id}` as any)}
-              />
-            ))}
           </View>
-        )}
+        </View>
 
-        {/* Minhas Solicitações Recentes */}
-        {recentRequests.length > 0 && (
-          <View className="px-5 mb-4">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-sm font-bold text-foreground">Minhas Solicitações</Text>
-              <TouchableOpacity onPress={() => router.push("/(tabs)/requests" as any)}>
-                <Text className="text-xs text-primary font-semibold">Ver todas →</Text>
+        {/* Módulos do Sistema */}
+        <View className="px-5">
+          <Text className="text-sm font-bold text-foreground mb-3">Módulos do Sistema</Text>
+          <View className="bg-surface border border-border rounded-2xl overflow-hidden">
+            {[
+              { icon: "📋", label: "Solicitações de Compra", desc: "Criar e acompanhar pedidos", route: "/(tabs)/requests" },
+              { icon: "✅", label: "Aprovações", desc: "Revisar e aprovar solicitações", route: "/(tabs)/approvals" },
+              { icon: "📦", label: "Malotes", desc: "Controle de envio e recebimento", route: "/(tabs)/malotes" },
+              { icon: "📂", label: "Cadastros", desc: "Bens, fazendas, unidades e centros de custo", route: "/(tabs)/registers" },
+              { icon: "👤", label: "Perfil", desc: "Dados pessoais e configurações", route: "/(tabs)/profile" },
+            ].map((item, index, arr) => (
+              <TouchableOpacity
+                key={item.route}
+                activeOpacity={0.7}
+                onPress={() => router.push(item.route as any)}
+                className={`flex-row items-center gap-3 px-4 py-3.5 ${index < arr.length - 1 ? "border-b border-border" : ""}`}
+              >
+                <View className="w-9 h-9 bg-primary/10 rounded-xl items-center justify-center">
+                  <Text className="text-lg">{item.icon}</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-semibold text-foreground">{item.label}</Text>
+                  <Text className="text-xs text-muted">{item.desc}</Text>
+                </View>
+                <Text className="text-muted text-sm">›</Text>
               </TouchableOpacity>
-            </View>
-            {recentRequests.map((item) => (
-              <RequestCard
-                key={item.id}
-                request={item}
-                onPress={() => router.push(`/request/${item.id}` as any)}
-              />
             ))}
           </View>
-        )}
+        </View>
 
-        {/* Empty state */}
-        {recentRequests.length === 0 && pendingRequests.length === 0 && !statsLoading && (
-          <View className="px-5 items-center py-8">
-            <Text className="text-5xl mb-4">🛒</Text>
-            <Text className="text-lg font-semibold text-foreground text-center mb-2">
-              Nenhuma solicitação ainda
-            </Text>
-            <Text className="text-sm text-muted text-center">
-              Toque em "Nova Solicitação" para começar o processo de compras.
-            </Text>
-          </View>
-        )}
       </ScrollView>
     </ScreenContainer>
   );

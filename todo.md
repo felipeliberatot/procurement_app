@@ -272,3 +272,4 @@
 - [x] Botão de importação CSV nos cadastros de Bens, Fazendas, Unidades e Centros de Custo (parser de cabeçalho + inserção em lote)
 - [x] Notificação WhatsApp para o aprovador correto ao receber uma solicitação em cada etapa do fluxo (busca por procurementRole OU approvalLevel, deduplicado por id)
 - [x] Envio automático do relatório diário às 18h via cron job no servidor (America/Sao_Paulo)
+- [x] Limpar e atualizar o Dashboard para refletir o sistema atual com solicitações zeradas
