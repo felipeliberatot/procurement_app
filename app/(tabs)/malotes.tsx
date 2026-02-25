@@ -10,6 +10,8 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
@@ -51,6 +53,120 @@ type Malote = {
 
 const ALL_STATUSES = ["todos", "aberto", "enviado", "recebido", "devolvido"] as const;
 
+// ─── Componente de seleção de unidade inline ─────────────────────────────────
+function UnitSelector({
+  label,
+  value,
+  units,
+  onChange,
+  colors,
+}: {
+  label: string;
+  value: string;
+  units: string[];
+  onChange: (v: string) => void;
+  colors: ReturnType<typeof import("@/hooks/use-colors").useColors>;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <View style={{ marginBottom: 4 }}>
+      <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 4, marginTop: 10 }}>{label}</Text>
+      <TouchableOpacity
+        onPress={() => setOpen((o) => !o)}
+        activeOpacity={0.7}
+        style={{
+          borderWidth: 1,
+          borderRadius: 10,
+          paddingHorizontal: 12,
+          paddingVertical: 12,
+          borderColor: open ? colors.primary : colors.border,
+          backgroundColor: colors.background,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <Text style={{ color: value ? colors.foreground : colors.muted, fontSize: 15, flex: 1 }}>
+          {value || "Selecionar unidade..."}
+        </Text>
+        <IconSymbol
+          name={open ? "chevron.up" : "chevron.down"}
+          size={16}
+          color={open ? colors.primary : colors.muted}
+        />
+      </TouchableOpacity>
+
+      {open && (
+        <View
+          style={{
+            borderWidth: 1,
+            borderColor: colors.primary,
+            borderRadius: 10,
+            marginTop: 4,
+            backgroundColor: colors.background,
+            overflow: "hidden",
+            maxHeight: 200,
+          }}
+        >
+          {units.length === 0 ? (
+            <View style={{ padding: 16, alignItems: "center" }}>
+              <Text style={{ color: colors.muted, fontSize: 13, textAlign: "center" }}>
+                Nenhuma unidade cadastrada.{"\n"}Vá em Cadastros → Unidades.
+              </Text>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={true}
+              nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
+            >
+              {units.map((name) => {
+                const selected = value === name;
+                return (
+                  <TouchableOpacity
+                    key={name}
+                    onPress={() => {
+                      onChange(name);
+                      setOpen(false);
+                    }}
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      paddingVertical: 13,
+                      paddingHorizontal: 14,
+                      borderBottomWidth: 0.5,
+                      borderBottomColor: colors.border,
+                      backgroundColor: selected ? colors.primary + "12" : "transparent",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 15,
+                        color: selected ? colors.primary : colors.foreground,
+                        fontWeight: selected ? "700" : "400",
+                        flex: 1,
+                      }}
+                    >
+                      🏭 {name}
+                    </Text>
+                    {selected && (
+                      <IconSymbol name="checkmark.seal.fill" size={18} color={colors.primary} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ─── Tela principal ───────────────────────────────────────────────────────────
 export default function MalotesScreen() {
   const colors = useColors();
   const utils = trpc.useUtils();
@@ -82,7 +198,7 @@ export default function MalotesScreen() {
   const [showAddRequest, setShowAddRequest] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterUnit, setFilterUnit] = useState<string>("todas");
-  const [showUnitPicker, setShowUnitPicker] = useState<"origin" | "destination" | "filter" | null>(null);
+  const [showUnitPicker, setShowUnitPicker] = useState<"filter" | null>(null);
 
   const { data: maloteDetail } = trpc.malotes.getById.useQuery(
     { id: selectedMalote?.id ?? 0 },
@@ -110,7 +226,12 @@ export default function MalotesScreen() {
     createMutation.mutate(
       { originUnit, destinationUnit, notes: newMaloteNotes.trim() || undefined },
       {
-        onSuccess: () => { setShowCreate(false); setOriginUnit(""); setDestinationUnit(""); setNewMaloteNotes(""); },
+        onSuccess: () => {
+          setShowCreate(false);
+          setOriginUnit("");
+          setDestinationUnit("");
+          setNewMaloteNotes("");
+        },
         onError: (e) => Alert.alert("Erro", e.message),
       }
     );
@@ -239,88 +360,128 @@ export default function MalotesScreen() {
         />
       )}
 
-      {/* Modal: Criar Malote */}
-      <Modal visible={showCreate} transparent animationType="slide">
-        <View style={styles.overlay}>
-          <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "85%" }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Novo Malote</Text>
-              <TouchableOpacity onPress={() => setShowCreate(false)}>
-                <IconSymbol name="xmark" size={22} color={colors.muted} />
-              </TouchableOpacity>
-            </View>
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              <Text style={[styles.label, { color: colors.muted }]}>Unidade de Origem *</Text>
-              <TouchableOpacity
-                onPress={() => setShowUnitPicker("origin")}
-                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
-                activeOpacity={0.7}
-              >
-                <Text style={{ color: originUnit ? colors.foreground : colors.muted, fontSize: 15 }}>
-                  {originUnit || "Selecionar unidade..."}
-                </Text>
-                <IconSymbol name="chevron.right" size={14} color={colors.muted} />
-              </TouchableOpacity>
-              <Text style={[styles.label, { color: colors.muted }]}>Unidade de Destino *</Text>
-              <TouchableOpacity
-                onPress={() => setShowUnitPicker("destination")}
-                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
-                activeOpacity={0.7}
-              >
-                <Text style={{ color: destinationUnit ? colors.foreground : colors.muted, fontSize: 15 }}>
-                  {destinationUnit || "Selecionar unidade..."}
-                </Text>
-                <IconSymbol name="chevron.right" size={14} color={colors.muted} />
-              </TouchableOpacity>
-              <Text style={[styles.label, { color: colors.muted }]}>Observações</Text>
-              <TextInput
-                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, color: colors.foreground, height: 80, textAlignVertical: "top" }]}
-                placeholder="Informações adicionais sobre o malote..."
-                placeholderTextColor={colors.muted}
-                value={newMaloteNotes}
-                onChangeText={setNewMaloteNotes}
-                multiline
-                numberOfLines={3}
-                maxLength={500}
-              />
-              <View style={styles.row}>
-                <TouchableOpacity style={[styles.btn, { backgroundColor: colors.border }]} onPress={() => setShowCreate(false)}>
-                  <Text style={{ color: colors.foreground }}>Cancelar</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleCreate}>
-                  {createMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "600" }}>Criar</Text>}
+      {/* ─── Modal: Criar Malote ─── */}
+      <Modal visible={showCreate} transparent animationType="slide" statusBarTranslucent>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <View style={styles.overlay}>
+            <View style={[styles.modal, { backgroundColor: colors.surface }]}>
+              {/* Cabeçalho */}
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Novo Malote</Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setShowCreate(false);
+                    setOriginUnit("");
+                    setDestinationUnit("");
+                    setNewMaloteNotes("");
+                  }}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <IconSymbol name="xmark" size={22} color={colors.muted} />
                 </TouchableOpacity>
               </View>
-            </ScrollView>
+
+              {/* Conteúdo rolável */}
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled={true}
+                contentContainerStyle={{ paddingBottom: 8 }}
+              >
+                {/* Seletor de Origem — inline dropdown */}
+                <UnitSelector
+                  label="Unidade de Origem *"
+                  value={originUnit}
+                  units={unitNames}
+                  onChange={setOriginUnit}
+                  colors={colors}
+                />
+
+                {/* Seletor de Destino — inline dropdown */}
+                <UnitSelector
+                  label="Unidade de Destino *"
+                  value={destinationUnit}
+                  units={unitNames}
+                  onChange={setDestinationUnit}
+                  colors={colors}
+                />
+
+                {/* Observações */}
+                <Text style={[styles.label, { color: colors.muted }]}>Observações</Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      borderColor: colors.border,
+                      backgroundColor: colors.background,
+                      color: colors.foreground,
+                      height: 80,
+                      textAlignVertical: "top",
+                    },
+                  ]}
+                  placeholder="Informações adicionais sobre o malote..."
+                  placeholderTextColor={colors.muted}
+                  value={newMaloteNotes}
+                  onChangeText={setNewMaloteNotes}
+                  multiline
+                  numberOfLines={3}
+                  maxLength={500}
+                />
+
+                {/* Botões */}
+                <View style={[styles.row, { marginTop: 20 }]}>
+                  <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: colors.border }]}
+                    onPress={() => {
+                      setShowCreate(false);
+                      setOriginUnit("");
+                      setDestinationUnit("");
+                      setNewMaloteNotes("");
+                    }}
+                  >
+                    <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: colors.primary }]}
+                    onPress={handleCreate}
+                    disabled={createMutation.isPending}
+                  >
+                    {createMutation.isPending
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : <Text style={{ color: "#fff", fontWeight: "600" }}>Criar Malote</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
-      {/* Modal: Seletor de Unidade */}
+      {/* ─── Modal: Filtro por Unidade ─── */}
       <Modal visible={showUnitPicker !== null} transparent animationType="slide">
         <View style={styles.overlay}>
           <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "70%" }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                {showUnitPicker === "filter" ? "Filtrar por Unidade" : showUnitPicker === "origin" ? "Unidade de Origem" : "Unidade de Destino"}
-              </Text>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>Filtrar por Unidade</Text>
               <TouchableOpacity onPress={() => setShowUnitPicker(null)}>
                 <IconSymbol name="xmark" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
-              {showUnitPicker === "filter" && (
-                <TouchableOpacity
-                  style={[styles.unitOption, { borderBottomColor: colors.border }]}
-                  onPress={() => { setFilterUnit("todas"); setShowUnitPicker(null); }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{ fontSize: 15, color: filterUnit === "todas" ? colors.primary : colors.foreground, fontWeight: filterUnit === "todas" ? "700" : "400" }}>
-                    Todas as unidades
-                  </Text>
-                  {filterUnit === "todas" && <IconSymbol name="checkmark.seal.fill" size={18} color={colors.primary} />}
-                </TouchableOpacity>
-              )}
+              <TouchableOpacity
+                style={[styles.unitOption, { borderBottomColor: colors.border }]}
+                onPress={() => { setFilterUnit("todas"); setShowUnitPicker(null); }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ fontSize: 15, color: filterUnit === "todas" ? colors.primary : colors.foreground, fontWeight: filterUnit === "todas" ? "700" : "400" }}>
+                  Todas as unidades
+                </Text>
+                {filterUnit === "todas" && <IconSymbol name="checkmark.seal.fill" size={18} color={colors.primary} />}
+              </TouchableOpacity>
               {unitNames.length === 0 ? (
                 <View style={{ padding: 20, alignItems: "center" }}>
                   <Text style={{ color: colors.muted, fontSize: 14, textAlign: "center" }}>
@@ -329,17 +490,12 @@ export default function MalotesScreen() {
                 </View>
               ) : (
                 unitNames.map((name) => {
-                  const isSelected = showUnitPicker === "filter" ? filterUnit === name : showUnitPicker === "origin" ? originUnit === name : destinationUnit === name;
+                  const isSelected = filterUnit === name;
                   return (
                     <TouchableOpacity
                       key={name}
                       style={[styles.unitOption, { borderBottomColor: colors.border }]}
-                      onPress={() => {
-                        if (showUnitPicker === "origin") setOriginUnit(name);
-                        else if (showUnitPicker === "destination") setDestinationUnit(name);
-                        else setFilterUnit(name);
-                        setShowUnitPicker(null);
-                      }}
+                      onPress={() => { setFilterUnit(name); setShowUnitPicker(null); }}
                       activeOpacity={0.7}
                     >
                       <Text style={{ fontSize: 15, color: isSelected ? colors.primary : colors.foreground, fontWeight: isSelected ? "700" : "400" }}>
@@ -355,7 +511,7 @@ export default function MalotesScreen() {
         </View>
       </Modal>
 
-      {/* Modal: Detalhe do Malote */}
+      {/* ─── Modal: Detalhe do Malote ─── */}
       <Modal visible={showDetail} transparent animationType="slide">
         <View style={styles.overlay}>
           <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "85%" }]}>
@@ -435,7 +591,7 @@ export default function MalotesScreen() {
         </View>
       </Modal>
 
-      {/* Modal: Adicionar Solicitação */}
+      {/* ─── Modal: Adicionar Solicitação ─── */}
       <Modal visible={showAddRequest} transparent animationType="slide">
         <View style={styles.overlay}>
           <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "80%" }]}>
@@ -484,13 +640,13 @@ const styles = StyleSheet.create({
   empty: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12 },
   emptyText: { fontSize: 15, textAlign: "center" },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
-  modal: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  modal: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: "90%" },
   modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
   modalTitle: { fontSize: 18, fontWeight: "700" },
   label: { fontSize: 13, marginBottom: 4, marginTop: 10 },
   input: { borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginBottom: 4 },
-  row: { flexDirection: "row", gap: 10, marginTop: 16 },
-  btn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 12, borderRadius: 10, gap: 4 },
+  row: { flexDirection: "row", gap: 10 },
+  btn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", paddingVertical: 13, borderRadius: 10, gap: 4 },
   infoBadge: { alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20, marginBottom: 8 },
   sectionTitle: { fontSize: 15, fontWeight: "600" },
   itemRow: { flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: 0.5, gap: 8 },

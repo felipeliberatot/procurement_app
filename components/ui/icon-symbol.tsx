@@ -20,6 +20,8 @@ const MAPPING = {
   "plus": "add",
   "paperplane.fill": "send",
   "chevron.right": "chevron-right",
+  "chevron.up": "expand-less",
+  "chevron.down": "expand-more",
   "chevron.left.forwardslash.chevron.right": "code",
   "arrow.left": "arrow-back",
   "xmark": "close",
