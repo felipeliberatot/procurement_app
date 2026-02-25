@@ -239,43 +239,45 @@ export default function MalotesScreen() {
       {/* Modal: Criar Malote */}
       <Modal visible={showCreate} transparent animationType="slide">
         <View style={styles.overlay}>
-          <View style={[styles.modal, { backgroundColor: colors.surface }]}>
+          <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "85%" }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>Novo Malote</Text>
               <TouchableOpacity onPress={() => setShowCreate(false)}>
                 <IconSymbol name="xmark" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.label, { color: colors.muted }]}>Unidade de Origem *</Text>
-            <TouchableOpacity
-              onPress={() => setShowUnitPicker("origin")}
-              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
-              activeOpacity={0.7}
-            >
-              <Text style={{ color: originUnit ? colors.foreground : colors.muted, fontSize: 15 }}>
-                {originUnit || "Selecionar unidade..."}
-              </Text>
-              <IconSymbol name="chevron.right" size={14} color={colors.muted} />
-            </TouchableOpacity>
-            <Text style={[styles.label, { color: colors.muted }]}>Unidade de Destino *</Text>
-            <TouchableOpacity
-              onPress={() => setShowUnitPicker("destination")}
-              style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
-              activeOpacity={0.7}
-            >
-              <Text style={{ color: destinationUnit ? colors.foreground : colors.muted, fontSize: 15 }}>
-                {destinationUnit || "Selecionar unidade..."}
-              </Text>
-              <IconSymbol name="chevron.right" size={14} color={colors.muted} />
-            </TouchableOpacity>
-            <View style={styles.row}>
-              <TouchableOpacity style={[styles.btn, { backgroundColor: colors.border }]} onPress={() => setShowCreate(false)}>
-                <Text style={{ color: colors.foreground }}>Cancelar</Text>
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              <Text style={[styles.label, { color: colors.muted }]}>Unidade de Origem *</Text>
+              <TouchableOpacity
+                onPress={() => setShowUnitPicker("origin")}
+                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: originUnit ? colors.foreground : colors.muted, fontSize: 15 }}>
+                  {originUnit || "Selecionar unidade..."}
+                </Text>
+                <IconSymbol name="chevron.right" size={14} color={colors.muted} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleCreate}>
-                {createMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "600" }}>Criar</Text>}
+              <Text style={[styles.label, { color: colors.muted }]}>Unidade de Destino *</Text>
+              <TouchableOpacity
+                onPress={() => setShowUnitPicker("destination")}
+                style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }]}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: destinationUnit ? colors.foreground : colors.muted, fontSize: 15 }}>
+                  {destinationUnit || "Selecionar unidade..."}
+                </Text>
+                <IconSymbol name="chevron.right" size={14} color={colors.muted} />
               </TouchableOpacity>
-            </View>
+              <View style={styles.row}>
+                <TouchableOpacity style={[styles.btn, { backgroundColor: colors.border }]} onPress={() => setShowCreate(false)}>
+                  <Text style={{ color: colors.foreground }}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleCreate}>
+                  {createMutation.isPending ? <ActivityIndicator color="#fff" size="small" /> : <Text style={{ color: "#fff", fontWeight: "600" }}>Criar</Text>}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
         </View>
       </Modal>
