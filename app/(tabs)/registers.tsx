@@ -4,6 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import type { ProcurementRole } from "@/shared/types";
 import { ROLE_LABELS } from "@/shared/types";
+import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Haptics from "expo-haptics";
 import * as Sharing from "expo-sharing";
@@ -840,18 +841,30 @@ function UserFormModal({
 
 // ─── Cost Center Modal ────────────────────────────────────────────────────────
 
+function generateAutoCode(prefix: string, existingCodes: string[]): string {
+  const prefixUpper = prefix.toUpperCase();
+  const nums = existingCodes
+    .filter(c => c.startsWith(prefixUpper + "-"))
+    .map(c => parseInt(c.replace(prefixUpper + "-", ""), 10))
+    .filter(n => !isNaN(n));
+  const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+  return `${prefixUpper}-${String(next).padStart(3, "0")}`;
+}
+
 function CostCenterModal({
   visible,
   onClose,
   onSave,
   item,
   isSaving,
+  existingCodes,
 }: {
   visible: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
   item?: any | null;
   isSaving?: boolean;
+  existingCodes?: string[];
 }) {
   const colors = useColors();
   const isEditing = !!item?.id;
@@ -860,10 +873,15 @@ function CostCenterModal({
   const [responsible, setResponsible] = useState(item?.responsible ?? "");
 
   React.useEffect(() => {
-    setCode(item?.code ?? "");
+    if (!item?.id && !isEditing) {
+      // Auto-generate code for new items
+      setCode(generateAutoCode("CC", existingCodes ?? []));
+    } else {
+      setCode(item?.code ?? "");
+    }
     setName(item?.name ?? "");
     setResponsible(item?.responsible ?? "");
-  }, [item]);
+  }, [item, visible]);
 
   const handleSave = () => {
     if (!code.trim() || !name.trim()) {
@@ -907,9 +925,10 @@ function CostCenterModal({
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
           <View>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
-              Código *
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>Código *</Text>
+              {!isEditing && <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>⚙️ Gerado automaticamente</Text>}
+            </View>
             <TextInput
               value={code}
               onChangeText={setCode}
@@ -918,13 +937,15 @@ function CostCenterModal({
               style={{
                 backgroundColor: colors.surface,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: isEditing ? colors.border : `${colors.primary}50`,
                 borderRadius: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 fontSize: 14,
                 color: colors.foreground,
+                fontFamily: "monospace",
               }}
+              autoCapitalize="characters"
               returnKeyType="next"
             />
           </View>
@@ -986,12 +1007,14 @@ function AssetModal({
   onSave,
   item,
   isSaving,
+  existingCodes,
 }: {
   visible: boolean;
   onClose: () => void;
   onSave: (data: any) => void;
   item?: any | null;
   isSaving?: boolean;
+  existingCodes?: string[];
 }) {
   const colors = useColors();
   const isEditing = !!item?.id;
@@ -1001,11 +1024,15 @@ function AssetModal({
   const [location, setLocation] = useState(item?.location ?? "");
 
   React.useEffect(() => {
-    setCode(item?.code ?? "");
+    if (!item?.id && !isEditing) {
+      setCode(generateAutoCode("BEM", existingCodes ?? []));
+    } else {
+      setCode(item?.code ?? "");
+    }
     setDescription(item?.description ?? "");
     setCategory(item?.category ?? "");
     setLocation(item?.location ?? "");
-  }, [item]);
+  }, [item, visible]);
 
   const handleSave = () => {
     if (!code.trim() || !description.trim()) {
@@ -1055,9 +1082,10 @@ function AssetModal({
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
           <View>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
-              Código *
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>Código *</Text>
+              {!isEditing && <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>⚙️ Gerado automaticamente</Text>}
+            </View>
             <TextInput
               value={code}
               onChangeText={setCode}
@@ -1066,13 +1094,15 @@ function AssetModal({
               style={{
                 backgroundColor: colors.surface,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: isEditing ? colors.border : `${colors.primary}50`,
                 borderRadius: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
                 fontSize: 14,
                 color: colors.foreground,
+                fontFamily: "monospace",
               }}
+              autoCapitalize="characters"
               returnKeyType="next"
             />
           </View>
@@ -1150,13 +1180,14 @@ function AssetModal({
 
 // ─── Business Unit Form Modal ───────────────────────────────────────────────
 function BusinessUnitFormModal({
-  visible, unit, onClose, onSave, isSaving,
+  visible, unit, onClose, onSave, isSaving, existingCodes,
 }: {
   visible: boolean;
   unit: any | null;
   onClose: () => void;
   onSave: (data: any) => void;
   isSaving: boolean;
+  existingCodes?: string[];
 }) {
   const colors = useColors();
   const isEditing = !!unit?.id;
@@ -1171,14 +1202,18 @@ function BusinessUnitFormModal({
 
   React.useEffect(() => {
     setName(unit?.name ?? "");
-    setCode(unit?.code ?? "");
+    if (!unit?.id) {
+      setCode(generateAutoCode("UN", existingCodes ?? []));
+    } else {
+      setCode(unit?.code ?? "");
+    }
     setType(unit?.type ?? "escritorio");
     setAddress(unit?.address ?? "");
     setCity(unit?.city ?? "");
     setState(unit?.state ?? "");
     setResponsibleName(unit?.responsibleName ?? "");
     setResponsiblePhone(unit?.responsiblePhone ?? "");
-  }, [unit]);
+  }, [unit, visible]);
 
   const handleSave = () => {
     if (!name.trim() || !code.trim()) {
@@ -1219,7 +1254,13 @@ function BusinessUnitFormModal({
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
           <View><Text style={labelStyle}>Nome da Unidade *</Text><TextInput value={name} onChangeText={setName} placeholder="Ex: Escritório Central" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
-          <View><Text style={labelStyle}>Código *</Text><TextInput value={code} onChangeText={setCode} placeholder="Ex: ESC01, FILIAL-MT" placeholderTextColor={colors.muted} autoCapitalize="characters" style={inputStyle} returnKeyType="next" /></View>
+          <View>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <Text style={labelStyle}>Código *</Text>
+              {!isEditing && <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>⚙️ Gerado automaticamente</Text>}
+            </View>
+            <TextInput value={code} onChangeText={setCode} placeholder="Ex: UN-001" placeholderTextColor={colors.muted} autoCapitalize="characters" style={{ ...inputStyle, borderColor: isEditing ? colors.border : `${colors.primary}50`, fontFamily: "monospace" }} returnKeyType="next" />
+          </View>
           <View>
             <Text style={labelStyle}>Tipo de Unidade</Text>
             <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
@@ -1248,13 +1289,14 @@ function BusinessUnitFormModal({
 
 // ─── Unit Form Modal ─────────────────────────────────────────────────────────
 function UnitFormModal({
-  visible, unit, onClose, onSave, isSaving,
+  visible, unit, onClose, onSave, isSaving, existingCodes,
 }: {
   visible: boolean;
   unit: any | null;
   onClose: () => void;
   onSave: (data: { name: string; code: string; address?: string; city?: string; state?: string; responsibleName?: string; responsiblePhone?: string }) => void;
   isSaving: boolean;
+  existingCodes?: string[];
 }) {
   const colors = useColors();
   const isEditing = !!unit?.id;
@@ -1268,13 +1310,17 @@ function UnitFormModal({
 
   React.useEffect(() => {
     setName(unit?.name ?? "");
-    setCode(unit?.code ?? "");
+    if (!unit?.id) {
+      setCode(generateAutoCode("FAZ", existingCodes ?? []));
+    } else {
+      setCode(unit?.code ?? "");
+    }
     setAddress(unit?.address ?? "");
     setCity(unit?.city ?? "");
     setState(unit?.state ?? "");
     setResponsibleName(unit?.responsibleName ?? "");
     setResponsiblePhone(unit?.responsiblePhone ?? "");
-  }, [unit]);
+  }, [unit, visible]);
 
   const handleSave = () => {
     if (!name.trim() || !code.trim()) {
@@ -1309,7 +1355,13 @@ function UnitFormModal({
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
           <View><Text style={labelStyle}>Nome da Fazenda/Unidade *</Text><TextInput value={name} onChangeText={setName} placeholder="Ex: Fazenda São João" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
-          <View><Text style={labelStyle}>Código *</Text><TextInput value={code} onChangeText={setCode} placeholder="Ex: FSJ, MATRIZ, FILIAL01" placeholderTextColor={colors.muted} autoCapitalize="characters" style={inputStyle} returnKeyType="next" /></View>
+          <View>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <Text style={labelStyle}>Código *</Text>
+              {!isEditing && <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>⚙️ Gerado automaticamente</Text>}
+            </View>
+            <TextInput value={code} onChangeText={setCode} placeholder="Ex: FAZ-001" placeholderTextColor={colors.muted} autoCapitalize="characters" style={{ ...inputStyle, borderColor: isEditing ? colors.border : `${colors.primary}50`, fontFamily: "monospace" }} returnKeyType="next" />
+          </View>
           <View><Text style={labelStyle}>Endereço</Text><TextInput value={address} onChangeText={setAddress} placeholder="Rua, número, bairro" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
           <View style={{ flexDirection: "row", gap: 10 }}>
             <View style={{ flex: 2 }}><Text style={labelStyle}>Cidade</Text><TextInput value={city} onChangeText={setCity} placeholder="Cidade" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" /></View>
@@ -1494,6 +1546,100 @@ export default function RegistersScreen() {
     },
     onError: (e) => Alert.alert("Erro", e.message),
   });
+
+  // ─── Import Batch mutations ─────────────────────────────────────────────────
+  const importCCBatch = trpc.costCenters.importBatch.useMutation({
+    onSuccess: (data) => {
+      utils.costCenters.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Importação concluída", `${data.imported} registro(s) importado(s) com sucesso.${data.errors.length > 0 ? `\n${data.errors.length} erro(s).` : ""}`);
+    },
+    onError: (e) => Alert.alert("Erro na importação", e.message),
+  });
+  const importAssetsBatch = trpc.assets.importBatch.useMutation({
+    onSuccess: (data) => {
+      utils.assets.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Importação concluída", `${data.imported} registro(s) importado(s) com sucesso.${data.errors.length > 0 ? `\n${data.errors.length} erro(s).` : ""}`);
+    },
+    onError: (e) => Alert.alert("Erro na importação", e.message),
+  });
+  const importUnitsBatch = trpc.units.importBatch.useMutation({
+    onSuccess: (data) => {
+      utils.units.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Importação concluída", `${data.imported} registro(s) importado(s) com sucesso.${data.errors.length > 0 ? `\n${data.errors.length} erro(s).` : ""}`);
+    },
+    onError: (e) => Alert.alert("Erro na importação", e.message),
+  });
+  const importBUBatch = trpc.businessUnits.importBatch.useMutation({
+    onSuccess: (data) => {
+      utils.businessUnits.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Importação concluída", `${data.imported} registro(s) importado(s) com sucesso.${data.errors.length > 0 ? `\n${data.errors.length} erro(s).` : ""}`);
+    },
+    onError: (e) => Alert.alert("Erro na importação", e.message),
+  });
+
+  // ─── CSV Parser helper ────────────────────────────────────────────────────────
+  function parseCSV(text: string): string[][] {
+    return text.split(/\r?\n/).filter(l => l.trim()).map(line => {
+      const cols: string[] = [];
+      let cur = "", inQ = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '"') { inQ = !inQ; }
+        else if ((c === ',' || c === ';') && !inQ) { cols.push(cur.trim()); cur = ""; }
+        else { cur += c; }
+      }
+      cols.push(cur.trim());
+      return cols;
+    });
+  }
+
+  // ─── CSV Import handlers ──────────────────────────────────────────────────────
+  async function handleImportCSV(tab: Tab) {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: ["text/csv", "text/comma-separated-values", "application/csv", "*/*"], copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      const text = await FileSystem.readAsStringAsync(asset.uri);
+      const rows = parseCSV(text);
+      if (rows.length < 2) { Alert.alert("Arquivo vazio", "O arquivo CSV deve ter cabeçalho e pelo menos uma linha de dados."); return; }
+      const header = rows[0].map(h => h.toLowerCase().replace(/\s+/g, ""));
+      const dataRows = rows.slice(1);
+      if (tab === "costcenters") {
+        const codeIdx = header.indexOf("codigo") !== -1 ? header.indexOf("codigo") : header.indexOf("code") !== -1 ? header.indexOf("code") : 0;
+        const nameIdx = header.indexOf("nome") !== -1 ? header.indexOf("nome") : header.indexOf("name") !== -1 ? header.indexOf("name") : 1;
+        const respIdx = header.indexOf("responsavel") !== -1 ? header.indexOf("responsavel") : header.indexOf("responsible") !== -1 ? header.indexOf("responsible") : -1;
+        const mapped = dataRows.map(r => ({ code: r[codeIdx] ?? "", name: r[nameIdx] ?? "", responsible: respIdx >= 0 ? r[respIdx] : undefined })).filter(r => r.code && r.name);
+        if (mapped.length === 0) { Alert.alert("Sem dados válidos", "Nenhuma linha válida encontrada. Verifique o formato do arquivo."); return; }
+        importCCBatch.mutate({ rows: mapped });
+      } else if (tab === "assets") {
+        const codeIdx = header.indexOf("codigo") !== -1 ? header.indexOf("codigo") : header.indexOf("code") !== -1 ? header.indexOf("code") : 0;
+        const descIdx = header.indexOf("descricao") !== -1 ? header.indexOf("descricao") : header.indexOf("description") !== -1 ? header.indexOf("description") : 1;
+        const catIdx = header.indexOf("categoria") !== -1 ? header.indexOf("categoria") : header.indexOf("category") !== -1 ? header.indexOf("category") : -1;
+        const locIdx = header.indexOf("localizacao") !== -1 ? header.indexOf("localizacao") : header.indexOf("location") !== -1 ? header.indexOf("location") : -1;
+        const mapped = dataRows.map(r => ({ code: r[codeIdx] ?? "", description: r[descIdx] ?? "", category: catIdx >= 0 ? r[catIdx] : undefined, location: locIdx >= 0 ? r[locIdx] : undefined })).filter(r => r.code && r.description);
+        if (mapped.length === 0) { Alert.alert("Sem dados válidos", "Nenhuma linha válida encontrada. Verifique o formato do arquivo."); return; }
+        importAssetsBatch.mutate({ rows: mapped });
+      } else if (tab === "units") {
+        const codeIdx = header.indexOf("codigo") !== -1 ? header.indexOf("codigo") : header.indexOf("code") !== -1 ? header.indexOf("code") : 0;
+        const nameIdx = header.indexOf("nome") !== -1 ? header.indexOf("nome") : header.indexOf("name") !== -1 ? header.indexOf("name") : 1;
+        const mapped = dataRows.map(r => ({ code: r[codeIdx] ?? "", name: r[nameIdx] ?? "", city: r[2] || undefined, state: r[3] || undefined, responsibleName: r[4] || undefined, responsiblePhone: r[5] || undefined })).filter(r => r.code && r.name);
+        if (mapped.length === 0) { Alert.alert("Sem dados válidos", "Nenhuma linha válida encontrada. Verifique o formato do arquivo."); return; }
+        importUnitsBatch.mutate({ rows: mapped });
+      } else if (tab === "businessunits") {
+        const codeIdx = header.indexOf("codigo") !== -1 ? header.indexOf("codigo") : header.indexOf("code") !== -1 ? header.indexOf("code") : 0;
+        const nameIdx = header.indexOf("nome") !== -1 ? header.indexOf("nome") : header.indexOf("name") !== -1 ? header.indexOf("name") : 1;
+        const mapped = dataRows.map(r => ({ code: r[codeIdx] ?? "", name: r[nameIdx] ?? "", city: r[2] || undefined, state: r[3] || undefined, responsibleName: r[4] || undefined, responsiblePhone: r[5] || undefined })).filter(r => r.code && r.name);
+        if (mapped.length === 0) { Alert.alert("Sem dados válidos", "Nenhuma linha válida encontrada. Verifique o formato do arquivo."); return; }
+        importBUBatch.mutate({ rows: mapped });
+      }
+    } catch (err: any) {
+      Alert.alert("Erro ao importar", err.message ?? "Erro desconhecido");
+    }
+  }
 
   const TABS: Array<{ key: Tab; label: string; icon: string; count?: number }> = [
     { key: "users", label: "Usuários", icon: "👥", count: usersList?.length },
@@ -2104,19 +2250,18 @@ export default function RegistersScreen() {
       {activeTab === "costcenters" && (
         <View style={{ flex: 1 }}>
           {isAdmin && (
-            <View style={{ padding: 12 }}>
+            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => setShowCCModal(true)}
-                style={{
-                  backgroundColor: colors.primary,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                }}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
               >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
-                  + Novo Centro de Custo
-                </Text>
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Novo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleImportCSV("costcenters")}
+                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -2199,19 +2344,18 @@ export default function RegistersScreen() {
       {activeTab === "assets" && (
         <View style={{ flex: 1 }}>
           {isAdmin && (
-            <View style={{ padding: 12 }}>
+            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => setShowAssetModal(true)}
-                style={{
-                  backgroundColor: colors.primary,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: "center",
-                }}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
               >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
-                  + Novo Bem
-                </Text>
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Novo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleImportCSV("assets")}
+                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -2279,12 +2423,18 @@ export default function RegistersScreen() {
       {activeTab === "units" && (
         <View style={{ flex: 1 }}>
           {(isAdmin || isMaster) && (
-            <View style={{ padding: 12 }}>
+            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => { setEditingUnit(null); setShowUnitModal(true); }}
-                style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
               >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova Fazenda</Text>
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleImportCSV("units")}
+                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -2336,12 +2486,18 @@ export default function RegistersScreen() {
       {activeTab === "businessunits" && (
         <View style={{ flex: 1 }}>
           {(isAdmin || isMaster) && (
-            <View style={{ padding: 12 }}>
+            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => { setEditingBU(null); setShowBUModal(true); }}
-                style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
               >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova Unidade</Text>
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleImportCSV("businessunits")}
+                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -2413,6 +2569,7 @@ export default function RegistersScreen() {
           }
         }}
         isSaving={createCC.isPending || updateCC.isPending}
+        existingCodes={(costCentersList ?? []).map((c: any) => c.code)}
       />
       <AssetModal
         visible={showAssetModal}
@@ -2426,6 +2583,7 @@ export default function RegistersScreen() {
           }
         }}
         isSaving={createAsset.isPending || updateAsset.isPending}
+        existingCodes={(assetsList ?? []).map((a: any) => a.code)}
       />
       <UserFormModal
         visible={showUserModal}
@@ -2463,6 +2621,7 @@ export default function RegistersScreen() {
           }
         }}
         isSaving={createUnitMutation.isPending || updateUnitMutation.isPending}
+        existingCodes={(unitsList ?? []).map((u: any) => u.code)}
       />
       <BusinessUnitFormModal
         visible={showBUModal}
@@ -2476,6 +2635,7 @@ export default function RegistersScreen() {
           }
         }}
         isSaving={createBU.isPending || updateBU.isPending}
+        existingCodes={(businessUnitsList ?? []).map((u: any) => u.code)}
       />
     </ScreenContainer>
   );

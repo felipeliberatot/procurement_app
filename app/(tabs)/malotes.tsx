@@ -53,6 +53,19 @@ type Malote = {
 
 const ALL_STATUSES = ["todos", "aberto", "enviado", "recebido", "devolvido"] as const;
 
+// ─── Helpers de ícone por tipo de unidade ────────────────────────────────────
+type UnitEntry = { name: string; type: string };
+
+function getUnitIcon(type: string): string {
+  switch (type) {
+    case "fazenda": return "🌾";
+    case "escritorio": return "🏢";
+    case "filial": return "🏗️";
+    case "deposito": return "📦";
+    default: return "📍";
+  }
+}
+
 // ─── Componente de seleção de unidade inline ─────────────────────────────────
 function UnitSelector({
   label,
@@ -63,11 +76,13 @@ function UnitSelector({
 }: {
   label: string;
   value: string;
-  units: string[];
+  units: UnitEntry[];
   onChange: (v: string) => void;
   colors: ReturnType<typeof import("@/hooks/use-colors").useColors>;
 }) {
   const [open, setOpen] = useState(false);
+  const selectedEntry = units.find((u) => u.name === value);
+  const displayIcon = selectedEntry ? getUnitIcon(selectedEntry.type) : "";
 
   return (
     <View style={{ marginBottom: 4 }}>
@@ -88,7 +103,7 @@ function UnitSelector({
         }}
       >
         <Text style={{ color: value ? colors.foreground : colors.muted, fontSize: 15, flex: 1 }}>
-          {value || "Selecionar unidade..."}
+          {value ? `${displayIcon} ${value}` : "Selecionar unidade..."}
         </Text>
         <IconSymbol
           name={open ? "chevron.up" : "chevron.down"}
@@ -106,7 +121,7 @@ function UnitSelector({
             marginTop: 4,
             backgroundColor: colors.background,
             overflow: "hidden",
-            maxHeight: 200,
+            maxHeight: 220,
           }}
         >
           {units.length === 0 ? (
@@ -121,13 +136,14 @@ function UnitSelector({
               nestedScrollEnabled={true}
               keyboardShouldPersistTaps="handled"
             >
-              {units.map((name) => {
-                const selected = value === name;
+              {units.map((entry) => {
+                const selected = value === entry.name;
+                const icon = getUnitIcon(entry.type);
                 return (
                   <TouchableOpacity
-                    key={name}
+                    key={entry.name}
                     onPress={() => {
-                      onChange(name);
+                      onChange(entry.name);
                       setOpen(false);
                     }}
                     activeOpacity={0.7}
@@ -150,7 +166,7 @@ function UnitSelector({
                         flex: 1,
                       }}
                     >
-                      🏭 {name}
+                      {icon} {entry.name}
                     </Text>
                     {selected && (
                       <IconSymbol name="checkmark.seal.fill" size={18} color={colors.primary} />
@@ -206,12 +222,18 @@ export default function MalotesScreen() {
     { enabled: !!selectedMalote && showDetail }
   );
 
-  // Combina Fazendas (units) + Unidades (businessUnits) em uma lista única ordenada
-  const unitNames: string[] = useMemo(() => {
-    const fromUnits = (unitsList as any[]).map((u) => u.name);
-    const fromBU = (businessUnitsList as any[]).map((u) => u.name);
-    return Array.from(new Set([...fromUnits, ...fromBU])).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  // Combina Fazendas (units) + Unidades (businessUnits) em lista única com tipo
+  const unitEntries: UnitEntry[] = useMemo(() => {
+    const fromUnits: UnitEntry[] = (unitsList as any[]).map((u) => ({ name: u.name, type: "fazenda" }));
+    const fromBU: UnitEntry[] = (businessUnitsList as any[]).map((u) => ({ name: u.name, type: u.type ?? "outro" }));
+    const all = [...fromUnits, ...fromBU];
+    // Remove duplicatas por nome, mantendo o primeiro encontrado
+    const seen = new Set<string>();
+    return all.filter((e) => { if (seen.has(e.name)) return false; seen.add(e.name); return true; })
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }, [unitsList, businessUnitsList]);
+  // Lista de nomes para filtro e compatibilidade
+  const unitNames: string[] = useMemo(() => unitEntries.map((e) => e.name), [unitEntries]);
 
   const filteredMalotes = useMemo(() => {
     let list = malotes as Malote[];
@@ -401,7 +423,7 @@ export default function MalotesScreen() {
                 <UnitSelector
                   label="Unidade de Origem *"
                   value={originUnit}
-                  units={unitNames}
+                  units={unitEntries}
                   onChange={setOriginUnit}
                   colors={colors}
                 />
@@ -410,7 +432,7 @@ export default function MalotesScreen() {
                 <UnitSelector
                   label="Unidade de Destino *"
                   value={destinationUnit}
-                  units={unitNames}
+                  units={unitEntries}
                   onChange={setDestinationUnit}
                   colors={colors}
                 />

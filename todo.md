@@ -267,3 +267,6 @@
 - [x] Adicionar campo "Observações" no formulário de criação de malotes
 - [x] Corrigir seletor de unidades no modal de criação de malotes: substituir modal secundário por dropdown inline responsivo
 - [x] Bug: unidades recém-cadastradas não aparecem no seletor de malotes (corrigido: tabela businessUnits criada no banco + seletor agora combina units + businessUnits)
+- [x] Ícones diferenciados por categoria no seletor de unidades dos malotes (Fazenda=🌾, Escritório=🏢, Filial=🏗️, Depósito=📦, Outro=📍)
+- [x] Geração automática de código nos cadastros de Bens (BEM-001), Fazendas (FAZ-001), Unidades (UN-001) e Centros de Custo (CC-001)
+- [x] Botão de importação CSV nos cadastros de Bens, Fazendas, Unidades e Centros de Custo (parser de cabeçalho + inserção em lote)

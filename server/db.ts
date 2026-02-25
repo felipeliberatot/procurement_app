@@ -381,6 +381,30 @@ export async function deleteAsset(id: number) {
   await db.update(assets).set({ active: false }).where(eq(assets.id, id));
 }
 
+export async function importAssetsBatch(rows: Array<{
+  code: string; description: string; category?: string; location?: string;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  let imported = 0;
+  const errors: Array<{ row: number; message: string }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const existing = await db.select({ id: assets.id }).from(assets).where(eq(assets.code, row.code)).limit(1);
+      if (existing.length > 0) {
+        await db.update(assets).set({ description: row.description, category: row.category ?? null, location: row.location ?? null }).where(eq(assets.code, row.code));
+      } else {
+        await db.insert(assets).values({ code: row.code, description: row.description, category: row.category ?? null, location: row.location ?? null });
+      }
+      imported++;
+    } catch (err: any) {
+      errors.push({ row: i + 1, message: err.message ?? "Erro desconhecido" });
+    }
+  }
+  return { imported, errors };
+}
+
 // ─── Purchase Requests ────────────────────────────────────────────────────────
 
 async function generateRequestNumber(db: Awaited<ReturnType<typeof getDb>>): Promise<string> {
@@ -1223,6 +1247,31 @@ export async function deleteUnit(id: number): Promise<void> {
   await db.update(units).set({ active: false }).where(eq(units.id, id));
 }
 
+export async function importUnitsBatch(rows: Array<{
+  code: string; name: string; address?: string; city?: string; state?: string;
+  responsibleName?: string; responsiblePhone?: string;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  let imported = 0;
+  const errors: Array<{ row: number; message: string }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const existing = await db.select({ id: units.id }).from(units).where(eq(units.code, row.code)).limit(1);
+      if (existing.length > 0) {
+        await db.update(units).set({ name: row.name, address: row.address ?? null, city: row.city ?? null, state: row.state ?? null, responsibleName: row.responsibleName ?? null, responsiblePhone: row.responsiblePhone ?? null }).where(eq(units.code, row.code));
+      } else {
+        await db.insert(units).values({ code: row.code.toUpperCase(), name: row.name, address: row.address ?? null, city: row.city ?? null, state: row.state ?? null, responsibleName: row.responsibleName ?? null, responsiblePhone: row.responsiblePhone ?? null });
+      }
+      imported++;
+    } catch (err: any) {
+      errors.push({ row: i + 1, message: err.message ?? "Erro desconhecido" });
+    }
+  }
+  return { imported, errors };
+}
+
 // ─── Business Units / Unidades ──────────────────────────────────────────────
 
 export async function listBusinessUnits(): Promise<BusinessUnit[]> {
@@ -1268,6 +1317,33 @@ export async function deleteBusinessUnit(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(businessUnits).set({ active: false }).where(eq(businessUnits.id, id));
+}
+
+export async function importBusinessUnitsBatch(rows: Array<{
+  code: string; name: string;
+  type?: "escritorio" | "filial" | "deposito" | "outro";
+  address?: string; city?: string; state?: string;
+  responsibleName?: string; responsiblePhone?: string;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  let imported = 0;
+  const errors: Array<{ row: number; message: string }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const existing = await db.select({ id: businessUnits.id }).from(businessUnits).where(eq(businessUnits.code, row.code)).limit(1);
+      if (existing.length > 0) {
+        await db.update(businessUnits).set({ name: row.name, type: row.type ?? "escritorio", address: row.address ?? null, city: row.city ?? null, state: row.state ?? null, responsibleName: row.responsibleName ?? null, responsiblePhone: row.responsiblePhone ?? null }).where(eq(businessUnits.code, row.code));
+      } else {
+        await db.insert(businessUnits).values({ code: row.code.toUpperCase(), name: row.name, type: row.type ?? "escritorio", address: row.address ?? null, city: row.city ?? null, state: row.state ?? null, responsibleName: row.responsibleName ?? null, responsiblePhone: row.responsiblePhone ?? null });
+      }
+      imported++;
+    } catch (err: any) {
+      errors.push({ row: i + 1, message: err.message ?? "Erro desconhecido" });
+    }
+  }
+  return { imported, errors };
 }
 
 // ─── Malote Tags ──────────────────────────────────────────────────────────────

@@ -202,6 +202,15 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteCostCenter(input.id)),
+    importBatch: protectedProcedure
+      .input(z.object({
+        rows: z.array(z.object({
+          code: z.string().min(1),
+          name: z.string().min(1),
+          responsible: z.string().optional(),
+        }))
+      }))
+      .mutation(({ input }) => db.importCostCentersBatch(input.rows)),
   }),
 
   // ─── Assets ────────────────────────────────────────────────────────────────
@@ -228,6 +237,16 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteAsset(input.id)),
+    importBatch: protectedProcedure
+      .input(z.object({
+        rows: z.array(z.object({
+          code: z.string().min(1),
+          description: z.string().min(1),
+          category: z.string().optional(),
+          location: z.string().optional(),
+        }))
+      }))
+      .mutation(({ input }) => db.importAssetsBatch(input.rows)),
   }),
 
   // ─── Purchase Requests ─────────────────────────────────────────────────────
@@ -472,6 +491,19 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteUnit(input.id)),
+    importBatch: protectedProcedure
+      .input(z.object({
+        rows: z.array(z.object({
+          code: z.string().min(1),
+          name: z.string().min(1),
+          address: z.string().optional(),
+          city: z.string().optional(),
+          state: z.string().optional(),
+          responsibleName: z.string().optional(),
+          responsiblePhone: z.string().optional(),
+        }))
+      }))
+      .mutation(({ input }) => db.importUnitsBatch(input.rows)),
   }),
   //  // ─── Business Units / Unidades ────────────────────────────────────────────────
   businessUnits: router({
@@ -508,6 +540,20 @@ export const appRouter = router({
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteBusinessUnit(input.id)),
+    importBatch: protectedProcedure
+      .input(z.object({
+        rows: z.array(z.object({
+          code: z.string().min(1),
+          name: z.string().min(1),
+          type: z.enum(["escritorio", "filial", "deposito", "outro"]).optional(),
+          address: z.string().optional(),
+          city: z.string().optional(),
+          state: z.string().optional(),
+          responsibleName: z.string().optional(),
+          responsiblePhone: z.string().optional(),
+        }))
+      }))
+      .mutation(({ input }) => db.importBusinessUnitsBatch(input.rows)),
   }),
 
   // ─── Malotes ─────────────────────────────────────────────────────
