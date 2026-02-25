@@ -1,0 +1,13 @@
+{
+  "query": "SHOW TABLES LIKE '%unit%'; SELECT 'units' as tabela, COUNT(*) as total FROM units; SELECT 'business_units' as tabela, COUNT(*) as total FROM business_units;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SHOW TABLES LIKE '%unit%'; SELECT 'units' as tabela, COUNT(*) as total FROM units; SELECT 'business_units' as tabela, COUNT(*) as total FROM business_units;",
+  "returncode": 1,
+  "logs": [
+    "Tables_in_3hNVqVCmDUEc2A2TYJw5pS (%unit%)",
+    "businessUnits",
+    "units",
+    "tabela\ttotal",
+    "units\t1",
+    "ERROR 1146 (42S02) at line 1: Table '3hnvqvcmduec2a2tyjw5ps.business_units' doesn't exist"
+  ]
+}

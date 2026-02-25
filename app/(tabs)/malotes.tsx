@@ -175,6 +175,7 @@ export default function MalotesScreen() {
   const { data: malotes = [], isLoading } = trpc.malotes.list.useQuery();
   const { data: readyRequests = [] } = trpc.malotes.readyRequests.useQuery();
   const { data: unitsList = [] } = trpc.units.list.useQuery();
+  const { data: businessUnitsList = [] } = trpc.businessUnits.list.useQuery();
 
   const createMutation = trpc.malotes.create.useMutation({
     onSuccess: () => { utils.malotes.list.invalidate(); utils.malotes.stats.invalidate(); },
@@ -205,7 +206,12 @@ export default function MalotesScreen() {
     { enabled: !!selectedMalote && showDetail }
   );
 
-  const unitNames: string[] = (unitsList as any[]).map((u) => u.name);
+  // Combina Fazendas (units) + Unidades (businessUnits) em uma lista única ordenada
+  const unitNames: string[] = useMemo(() => {
+    const fromUnits = (unitsList as any[]).map((u) => u.name);
+    const fromBU = (businessUnitsList as any[]).map((u) => u.name);
+    return Array.from(new Set([...fromUnits, ...fromBU])).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [unitsList, businessUnitsList]);
 
   const filteredMalotes = useMemo(() => {
     let list = malotes as Malote[];

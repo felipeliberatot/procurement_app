@@ -1,0 +1,9 @@
+{
+  "query": "CREATE TABLE IF NOT EXISTS `businessUnits` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `name` varchar(150) NOT NULL,\n  `code` varchar(30) NOT NULL,\n  `type` enum('escritorio','filial','deposito','outro') NOT NULL DEFAULT 'escritorio',\n  `address` varchar(255) DEFAULT NULL,\n  `city` varchar(100) DEFAULT NULL,\n  `state` varchar(50) DEFAULT NULL,\n  `responsibleName` varchar(150) DEFAULT NULL,\n  `responsiblePhone` varchar(32) DEFAULT NULL,\n  `active` tinyint(1) NOT NULL DEFAULT '1',\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `businessUnits_code_unique` (`code`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute CREATE TABLE IF NOT EXISTS `businessUnits` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `name` varchar(150) NOT NULL,\n  `code` varchar(30) NOT NULL,\n  `type` enum('escritorio','filial','deposito','outro') NOT NULL DEFAULT 'escritorio',\n  `address` varchar(255) DEFAULT NULL,\n  `city` varchar(100) DEFAULT NULL,\n  `state` varchar(50) DEFAULT NULL,\n  `responsibleName` varchar(150) DEFAULT NULL,\n  `responsiblePhone` varchar(32) DEFAULT NULL,\n  `active` tinyint(1) NOT NULL DEFAULT '1',\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  PRIMARY KEY (`id`),\n  UNIQUE KEY `businessUnits_code_unique` (`code`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 371
+}

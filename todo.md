@@ -266,3 +266,4 @@
 - [x] Corrigir modal de criação de malotes: formulário sem scroll e seletor de unidades sobrepondo o modal
 - [x] Adicionar campo "Observações" no formulário de criação de malotes
 - [x] Corrigir seletor de unidades no modal de criação de malotes: substituir modal secundário por dropdown inline responsivo
+- [x] Bug: unidades recém-cadastradas não aparecem no seletor de malotes (corrigido: tabela businessUnits criada no banco + seletor agora combina units + businessUnits)
