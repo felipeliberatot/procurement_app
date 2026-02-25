@@ -63,3 +63,8 @@ Thumbs.db
 
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
+
+# Certificados iOS
+certs/*.p12
+certs/*.mobileprovision
+credentials.json
