@@ -280,7 +280,9 @@ export const appRouter = router({
       db.getPendingRequestsForUser(ctx.user.procurementRole)
     ),
 
-    all: protectedProcedure.query(() => db.getAllRequests()),
+    all: protectedProcedure
+      .input(z.object({ department: z.string().optional() }).optional())
+      .query(({ input }) => db.getAllRequests(input?.department)),
 
     dashboardStats: protectedProcedure.query(({ ctx }) =>
       db.getDashboardStats(ctx.user.id, ctx.user.procurementRole)

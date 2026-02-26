@@ -45,6 +45,7 @@ export default function RequestsScreen() {
   const params = useLocalSearchParams<{ filter?: string; urgency?: string }>();
   const [activeFilter, setActiveFilter] = useState(params.filter ?? "all");
   const [activeUrgency, setActiveUrgency] = useState(params.urgency ?? "all");
+  const [activeDepartment, setActiveDepartment] = useState<string>("all");
 
   // Atualiza filtros quando os parâmetros de rota mudam (ex: navegação do dashboard)
   useEffect(() => {
@@ -56,6 +57,10 @@ export default function RequestsScreen() {
     enabled: isAuthenticated,
   });
 
+  const { data: departments } = trpc.departments.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
   const filtered = (requests ?? []).filter((r) => {
     // "pending" é um filtro especial que agrupa todos os status "aguardando_*"
     const statusMatch =
@@ -63,7 +68,8 @@ export default function RequestsScreen() {
       : activeFilter === "pending" ? r.status.startsWith("aguardando")
       : r.status === activeFilter;
     const urgencyMatch = activeUrgency === "all" ? true : r.urgencyLevel === activeUrgency;
-    return statusMatch && urgencyMatch;
+    const deptMatch = activeDepartment === "all" ? true : r.department === activeDepartment;
+    return statusMatch && urgencyMatch && deptMatch;
   });
 
   if (isDesktop) {
@@ -89,6 +95,33 @@ export default function RequestsScreen() {
                 })}
               >
                 <Text style={{ fontSize: 13, fontWeight: activeFilter === tab.key ? "700" : "500", color: activeFilter === tab.key ? colors.primary : colors.foreground, flex: 1 }}>{tab.label}</Text>
+              </Pressable>
+            ))}
+            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12 }} />
+            <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 8, paddingHorizontal: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Departamento</Text>
+            <Pressable
+              onPress={() => setActiveDepartment("all")}
+              style={({ pressed }) => ({
+                flexDirection: "row", alignItems: "center",
+                paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, marginBottom: 2,
+                backgroundColor: activeDepartment === "all" ? `${colors.primary}18` : pressed ? `${colors.primary}08` : "transparent",
+                opacity: pressed ? 0.85 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 13, fontWeight: activeDepartment === "all" ? "700" : "500", color: activeDepartment === "all" ? colors.primary : colors.foreground }}>Todos</Text>
+            </Pressable>
+            {(departments ?? []).map((dept: any) => (
+              <Pressable
+                key={dept.id}
+                onPress={() => setActiveDepartment(dept.name)}
+                style={({ pressed }) => ({
+                  flexDirection: "row", alignItems: "center",
+                  paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, marginBottom: 2,
+                  backgroundColor: activeDepartment === dept.name ? `${colors.primary}18` : pressed ? `${colors.primary}08` : "transparent",
+                  opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <Text style={{ fontSize: 13, fontWeight: activeDepartment === dept.name ? "700" : "500", color: activeDepartment === dept.name ? colors.primary : colors.foreground }} numberOfLines={1}>{dept.name}</Text>
               </Pressable>
             ))}
             <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12 }} />
@@ -144,7 +177,7 @@ export default function RequestsScreen() {
                 ListEmptyComponent={
                   <EmptyState
                     title="Nenhuma solicitação"
-                    description={activeFilter !== "all" || activeUrgency !== "all" ? "Nenhuma solicitação com esses filtros." : "Clique em '+ Nova Solicitação' para criar sua primeira solicitação de compra."}
+                    description={activeFilter !== "all" || activeUrgency !== "all" || activeDepartment !== "all" ? "Nenhuma solicitação com esses filtros." : "Clique em '+ Nova Solicitação' para criar sua primeira solicitação de compra."}
                     icon="📋"
                   />
                 }
@@ -189,6 +222,26 @@ export default function RequestsScreen() {
         </ScrollView>
       </View>
 
+      {/* Filtro por departamento */}
+      {departments && departments.length > 0 && (
+        <View className="border-b border-border bg-background">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
+            <Pressable onPress={() => setActiveDepartment("all")} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+              <View className={`px-3 py-1.5 rounded-full border ${activeDepartment === "all" ? "bg-primary border-primary" : "bg-surface border-border"}`}>
+                <Text className={`text-xs font-semibold ${activeDepartment === "all" ? "text-white" : "text-muted"}`}>🏛️ Todos</Text>
+              </View>
+            </Pressable>
+            {(departments ?? []).map((dept: any) => (
+              <Pressable key={dept.id} onPress={() => setActiveDepartment(dept.name)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                <View className={`px-3 py-1.5 rounded-full border ${activeDepartment === dept.name ? "bg-primary border-primary" : "bg-surface border-border"}`}>
+                  <Text className={`text-xs font-semibold ${activeDepartment === dept.name ? "text-white" : "text-muted"}`}>{dept.name}</Text>
+                </View>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
       {/* Filtro por urgência */}
       <View className="border-b border-border bg-background">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
@@ -224,6 +277,8 @@ export default function RequestsScreen() {
               description={
                 activeFilter !== "all" || activeUrgency !== "all"
                   ? "Nenhuma solicitação com esses filtros."
+                  : activeDepartment !== "all"
+                  ? "Nenhuma solicitação neste departamento."
                   : "Toque em '+ Nova' para criar sua primeira solicitação de compra."
               }
               icon="📋"

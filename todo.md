@@ -278,6 +278,7 @@
 - [x] Bug: erro "JSON Parse error: Unexpected character: <" ao aprovar solicitação como gerente (corrigido: servidor agora retorna JSON em vez de HTML para erros; handler global de sessão expirada adicionado no QueryClient)
 - [ ] Corrigir fluxo emergencial/urgente: direto para diretoria → após aprovação volta para orçamento em diante
 - [x] Corrigir fluxo emergencial/urgente: direto para diretoria → após aprovação volta para orçamento em diante
-- [ ] Seletor de bem na caixa de aplicação da solicitação
-- [ ] Cadastro de Departamentos (tabela, rota, aba nos cadastros)
-- [ ] Seletor de departamento no fluxo de criação de solicitação
+- [x] Seletor de bem na caixa de aplicação da solicitação
+- [x] Cadastro de Departamentos (tabela, rota, aba nos cadastros)
+- [x] Seletor de departamento no fluxo de criação de solicitação
+- [x] Filtro por departamento na tela de Solicitações

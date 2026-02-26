@@ -594,9 +594,14 @@ export async function getPendingRequestsForUser(role: string) {
     .orderBy(purchaseRequests.urgencyLevel, purchaseRequests.deadlineAt);
 }
 
-export async function getAllRequests() {
+export async function getAllRequests(departmentFilter?: string) {
   const db = await getDb();
   if (!db) return [];
+  if (departmentFilter) {
+    return db.select().from(purchaseRequests)
+      .where(eq(purchaseRequests.department, departmentFilter))
+      .orderBy(desc(purchaseRequests.createdAt));
+  }
   return db.select().from(purchaseRequests).orderBy(desc(purchaseRequests.createdAt));
 }
 
