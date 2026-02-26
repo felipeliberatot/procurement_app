@@ -1083,6 +1083,42 @@ export async function cancelRequest(
   }
 }
 
+// ─── Reopen Request ─────────────────────────────────────────────────────────────
+
+/**
+ * Allows a master user to reopen a cancelled request, resetting it to the beginning of the flow.
+ */
+export async function reopenRequest(requestId: number, masterId: number, masterName: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Verify the request exists and is cancelled
+  const [existing] = await db
+    .select()
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.id, requestId))
+    .limit(1);
+
+  if (!existing) throw new Error("Solicitação não encontrada.");
+  if (existing.status !== "cancelada") throw new Error("Apenas solicitações canceladas podem ser reabertas.");
+
+  // Reset status to beginning of flow
+  await db
+    .update(purchaseRequests)
+    .set({ status: "aguardando_gerente", updatedAt: new Date() })
+    .where(eq(purchaseRequests.id, requestId));
+
+  // Record in approval history
+  await db.insert(approvalHistory).values({
+    requestId: requestId,
+    userId: masterId,
+    userName: masterName,
+    step: "criacao",
+    action: "reaberta",
+    comment: `Solicitação reaberta pelo master ${masterName}. Retornada ao início do fluxo.`,
+  });
+}
+
 // ─── Master PIN ───────────────────────────────────────────────────────────────
 
 import bcrypt from "bcryptjs";

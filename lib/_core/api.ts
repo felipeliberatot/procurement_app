@@ -188,3 +188,21 @@ export async function establishSession(token: string): Promise<boolean> {
     return false;
   }
 }
+
+// Forgot password — generates a temporary password
+export async function forgotPassword(email: string): Promise<{
+  success: boolean;
+  tempPassword?: string;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const result = await apiCall<any>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    return result;
+  } catch (error: any) {
+    return { success: false, error: error?.message ?? "Erro ao processar solicitação" };
+  }
+}

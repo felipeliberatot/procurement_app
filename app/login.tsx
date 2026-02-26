@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
@@ -18,6 +20,174 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+// ─── Forgot Password Modal ────────────────────────────────────────────────────
+function ForgotPasswordModal({
+  visible,
+  onClose,
+}: {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const colors = useColors();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"form" | "success">("form");
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleClose = () => {
+    setEmail("");
+    setLoading(false);
+    setStep("form");
+    setTempPassword(null);
+    setError(null);
+    onClose();
+  };
+
+  const handleSubmit = async () => {
+    if (!email.trim()) {
+      setError("Informe o e-mail cadastrado.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await Api.forgotPassword(email.trim().toLowerCase());
+      if (!result.success) {
+        setError(result.error ?? "Erro ao processar solicitação.");
+        return;
+      }
+      setTempPassword(result.tempPassword ?? null);
+      setStep("success");
+    } catch (e: any) {
+      setError(e?.message ?? "Erro ao processar solicitação.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={handleClose}
+    >
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center", padding: 24 }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 28, width: "100%", maxWidth: 400 }}>
+            {step === "form" ? (
+              <>
+                <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>🔑 Esqueceu a senha?</Text>
+                <Text style={{ fontSize: 14, color: colors.muted, lineHeight: 20, marginBottom: 20 }}>
+                  Informe seu e-mail cadastrado. Uma senha temporária será gerada para você.
+                </Text>
+
+                <View style={{
+                  borderWidth: 1,
+                  borderColor: error ? colors.error : colors.border,
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  backgroundColor: colors.background,
+                  marginBottom: 12,
+                }}>
+                  <Text style={{ fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, color: colors.muted, marginBottom: 4 }}>
+                    E-mail
+                  </Text>
+                  <TextInput
+                    style={{ fontSize: 16, color: colors.foreground, paddingVertical: 0 }}
+                    value={email}
+                    onChangeText={(t) => { setEmail(t); setError(null); }}
+                    placeholder="seu@email.com.br"
+                    placeholderTextColor={colors.muted}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    returnKeyType="done"
+                    onSubmitEditing={handleSubmit}
+                  />
+                </View>
+
+                {error && (
+                  <View style={{ backgroundColor: colors.error + "1A", borderWidth: 1, borderColor: colors.error + "40", borderRadius: 10, padding: 10, marginBottom: 12 }}>
+                    <Text style={{ fontSize: 13, color: colors.error, textAlign: "center" }}>{error}</Text>
+                  </View>
+                )}
+
+                <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+                  <TouchableOpacity
+                    onPress={handleClose}
+                    style={{ flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: "center" }}
+                  >
+                    <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 15 }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleSubmit}
+                    disabled={loading || !email.trim()}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 14,
+                      borderRadius: 12,
+                      backgroundColor: colors.primary,
+                      alignItems: "center",
+                      opacity: loading || !email.trim() ? 0.6 : 1,
+                    }}
+                  >
+                    {loading ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Enviar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 22, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>✅ Senha gerada!</Text>
+
+                {tempPassword ? (
+                  <>
+                    <Text style={{ fontSize: 14, color: colors.muted, lineHeight: 20, marginBottom: 16 }}>
+                      O SMTP não está configurado. Use a senha temporária abaixo para acessar o sistema e altere-a em seguida:
+                    </Text>
+                    <View style={{ backgroundColor: colors.primary + "15", borderWidth: 1.5, borderColor: colors.primary + "40", borderRadius: 14, padding: 20, alignItems: "center", marginBottom: 20 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5, color: colors.muted, marginBottom: 8 }}>
+                        Senha Temporária
+                      </Text>
+                      <Text style={{ fontSize: 28, fontWeight: "700", letterSpacing: 4, color: colors.primary }}>
+                        {tempPassword}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 12, color: colors.muted, textAlign: "center", marginBottom: 20, lineHeight: 18 }}>
+                      Anote esta senha. Ela não será exibida novamente.
+                    </Text>
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 14, color: colors.muted, lineHeight: 20, marginBottom: 20 }}>
+                    Se o e-mail <Text style={{ fontWeight: "700", color: colors.foreground }}>{email}</Text> estiver cadastrado, você receberá a nova senha por e-mail em breve.
+                  </Text>
+                )}
+
+                <TouchableOpacity
+                  onPress={handleClose}
+                  style={{ paddingVertical: 14, borderRadius: 12, backgroundColor: colors.primary, alignItems: "center" }}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Fechar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+// ─── Login Screen ─────────────────────────────────────────────────────────────
 export default function LoginScreen() {
   const { isAuthenticated, loading, refresh } = useAuth();
   const colors = useColors();
@@ -27,6 +197,7 @@ export default function LoginScreen() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -147,6 +318,15 @@ export default function LoginScreen() {
               </View>
             </View>
 
+            {/* Link "Esqueceu a senha?" */}
+            <TouchableOpacity
+              onPress={() => setShowForgotModal(true)}
+              activeOpacity={0.6}
+              style={styles.forgotLink}
+            >
+              <Text style={[styles.forgotText, { color: colors.primary }]}>Esqueceu a senha?</Text>
+            </TouchableOpacity>
+
             {error && (
               <View style={[styles.errorBox, { backgroundColor: colors.error + "1A", borderColor: colors.error + "40" }]}>
                 <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
@@ -172,6 +352,12 @@ export default function LoginScreen() {
           </Text>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Modal de recuperação de senha */}
+      <ForgotPasswordModal
+        visible={showForgotModal}
+        onClose={() => setShowForgotModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -227,6 +413,15 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 16,
     paddingVertical: 0,
+  },
+  forgotLink: {
+    alignSelf: "flex-end",
+    marginTop: -4,
+    paddingVertical: 2,
+  },
+  forgotText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
   errorBox: {
     borderWidth: 1,

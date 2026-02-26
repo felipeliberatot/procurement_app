@@ -9,6 +9,7 @@ const STATUS_ORDER: RequestStatus[] = [
   "aguardando_controladoria",
   "aguardando_diretoria",
   "aguardando_ordem_compra",
+  "aguardando_aprovacao_compra",
   "aguardando_comprovante_pagamento",
   "aguardando_verificacao_compras",
   "concluida",

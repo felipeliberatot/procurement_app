@@ -219,6 +219,52 @@ export function registerOAuthRoutes(app: Express) {
     }
   });
 
+  // Forgot password — generates a temporary password and sends by email
+  app.post("/api/auth/forgot-password", async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body as { email?: string };
+      if (!email) {
+        res.status(400).json({ error: "E-mail é obrigatório." });
+        return;
+      }
+      const user = await getUserByEmailForLogin(email.toLowerCase().trim());
+      // Always return success to avoid user enumeration
+      if (!user || !user.active) {
+        res.json({ success: true, message: "Se o e-mail estiver cadastrado, você receberá a nova senha." });
+        return;
+      }
+      // Generate a temporary password (8 chars: letters + numbers)
+      const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+      let tempPassword = "";
+      for (let i = 0; i < 8; i++) tempPassword += chars[Math.floor(Math.random() * chars.length)];
+      // Hash and save
+      const passwordHash = await bcrypt.hash(tempPassword, 10);
+      const { updateUserPassword } = await import("../db");
+      await updateUserPassword(user.id, passwordHash);
+      // Try to send email
+      let emailSent = false;
+      try {
+        const { sendPasswordResetEmail } = await import("../email");
+        emailSent = await sendPasswordResetEmail({
+          toEmail: user.email ?? email,
+          toName: user.name ?? "Usuário",
+          tempPassword,
+        });
+      } catch (e) {
+        console.warn("[Auth] Failed to send password reset email:", e);
+      }
+      // If email not sent, return the temp password directly (fallback for unconfigured SMTP)
+      if (!emailSent) {
+        res.json({ success: true, tempPassword, message: "Senha temporária gerada. Configure o SMTP para envio por e-mail." });
+        return;
+      }
+      res.json({ success: true, message: "Se o e-mail estiver cadastrado, você receberá a nova senha." });
+    } catch (error) {
+      console.error("[Auth] /api/auth/forgot-password failed:", error);
+      res.status(500).json({ error: "Erro interno ao processar solicitação." });
+    }
+  });
+
   // Establish session cookie from Bearer token
   // Used by iframe preview: frontend receives token via postMessage, then calls this endpoint
   // to get a proper Set-Cookie response from the backend (3000-xxx domain)

@@ -286,3 +286,6 @@
 - [x] Reorganizar fluxos para 9 etapas: inserir Fluxo 7 (Aprovação Financeiro) entre Emissão de OC e Comprovante
 - [x] Bug: botão de cancelar não aparece nos fluxos 1 e 2 (aguardando_gerente e aguardando_orcamento)
 - [x] Motivo obrigatório no cancelamento de solicitação, registrado no histórico
+- [x] Bug: Fluxo 7 (Aprovação Financeiro) aparece como aprovado prematuramente na linha do tempo
+- [x] Funcionalidade: master pode reabrir solicitação cancelada (retorna ao Fluxo 1)
+- [x] Funcionalidade "Lembrar Senha" na tela de Login (reset por e-mail)

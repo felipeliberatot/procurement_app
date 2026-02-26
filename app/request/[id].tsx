@@ -500,6 +500,21 @@ export default function RequestDetailScreen() {
     },
   });
 
+  const [showReopenModal, setShowReopenModal] = useState(false);
+
+  const reopenMutation = trpc.requests.reopen.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowReopenModal(false);
+      Alert.alert("✅ Solicitação reaberta", "A solicitação foi reaberta e retornou ao início do fluxo.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao reabrir", e.message);
+    },
+  });
+
   const cancelMutation = trpc.requests.cancel.useMutation({
     onSuccess: () => {
       invalidateAll();
@@ -1259,6 +1274,37 @@ export default function RequestDetailScreen() {
             </>
           )}
 
+          {/* Botão Reabrir Solicitação — visível somente para master quando cancelada */}
+          {isMasterUser && isCancelled && (
+            <View style={{ marginTop: 16, marginBottom: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowReopenModal(true)}
+                disabled={reopenMutation.isPending}
+                style={{
+                  backgroundColor: `${colors.success}12`,
+                  borderWidth: 1.5,
+                  borderColor: `${colors.success}40`,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                  opacity: reopenMutation.isPending ? 0.7 : 1,
+                }}
+              >
+                {reopenMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.success} />
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 16 }}>🔄</Text>
+                    <Text style={{ color: colors.success, fontWeight: "700", fontSize: 15 }}>Reabrir Solicitação</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Botão Cancelar Solicitação — visível para o solicitante que abriu ou master */}
           {canCancel && (
             <View style={{ marginTop: 16, marginBottom: 8 }}>
@@ -1394,6 +1440,42 @@ export default function RequestDetailScreen() {
         onConfirm={(comment) => rejectMutation.mutate({ requestId: request.id, comment })}
         isLoading={rejectMutation.isPending}
       />
+      {/* Modal de Reabertura */}
+      <Modal
+        visible={showReopenModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowReopenModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24 }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: "100%", maxWidth: 400 }}>
+            <Text style={{ fontSize: 20, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>🔄 Reabrir Solicitação</Text>
+            <Text style={{ fontSize: 14, color: colors.muted, lineHeight: 20, marginBottom: 24 }}>
+              Tem certeza que deseja reabrir esta solicitação? Ela será retornada ao início do fluxo de aprovação (Fluxo 1 — Aprovação do Gerente).
+            </Text>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                onPress={() => setShowReopenModal(false)}
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: "center" }}
+              >
+                <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 15 }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => reopenMutation.mutate({ requestId: request.id })}
+                disabled={reopenMutation.isPending}
+                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: colors.success, alignItems: "center", opacity: reopenMutation.isPending ? 0.7 : 1 }}
+              >
+                {reopenMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>Reabrir</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Modal de Cancelamento */}
       <CancelModal
         visible={showCancelModal}

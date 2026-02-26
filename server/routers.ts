@@ -386,6 +386,16 @@ export const appRouter = router({
       }))
       .mutation(({ ctx, input }) => db.cancelRequest(input.requestId, ctx.user as any, input.reason)),
 
+    reopen: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+      }))
+      .mutation(({ ctx, input }) => {
+        const user = ctx.user as any;
+        if (user.approvalLevel !== "master") throw new Error("Apenas usuários master podem reabrir solicitações.");
+        return db.reopenRequest(input.requestId, user.id, user.name);
+      }),
+
     // Listar todas as solicitações (somente master)
     allForMaster: protectedProcedure.query(({ ctx }) => {
       const isMaster = (ctx.user as any).approvalLevel === "master";

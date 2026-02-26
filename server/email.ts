@@ -340,3 +340,76 @@ export async function sendDailyReportEmail(params: {
     return false;
   }
 }
+
+// ─── Password Reset Email ─────────────────────────────────────────────────────
+
+export async function sendPasswordResetEmail(params: {
+  toEmail: string;
+  toName: string;
+  tempPassword: string;
+}): Promise<boolean> {
+  const transporter = getTransporter();
+  if (!transporter) return false;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redefinição de Senha</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f5f5;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:32px 0;">
+    <tr>
+      <td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <tr>
+            <td style="background:#0a7ea4;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agrícola</h1>
+              <p style="margin:6px 0 0;color:#e0f4fb;font-size:14px;">Sistema de Gestão de Compras</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 8px;color:#11181C;font-size:18px;">Olá, ${params.toName}! 🔑</h2>
+              <p style="margin:0 0 16px;color:#687076;font-size:14px;line-height:1.6;">
+                Recebemos uma solicitação de redefinição de senha para sua conta.
+                Sua senha temporária é:
+              </p>
+              <div style="background:#f5f5f5;border-radius:8px;padding:16px 24px;text-align:center;margin:0 0 24px;">
+                <span style="font-size:28px;font-weight:700;letter-spacing:4px;color:#0a7ea4;">${params.tempPassword}</span>
+              </div>
+              <p style="margin:0 0 16px;color:#687076;font-size:14px;line-height:1.6;">
+                Acesse o sistema com esta senha temporária e altere-a assim que possível nas configurações do seu perfil.
+              </p>
+              <hr style="border:none;border-top:1px solid #E5E7EB;margin:24px 0;" />
+              <p style="margin:0;color:#9BA1A6;font-size:12px;text-align:center;">
+                Se você não solicitou a redefinição de senha, entre em contato com o administrador do sistema imediatamente.<br/>
+                Este e-mail foi enviado automaticamente. Não responda a este e-mail.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+
+  try {
+    await transporter.sendMail({
+      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+      to: params.toEmail,
+      subject: "Redefinição de Senha — CGS Agrícola",
+      html,
+      text: `Olá, ${params.toName}!\n\nSua senha temporária é: ${params.tempPassword}\n\nAcesse o sistema e altere sua senha assim que possível.\n\nEm caso de dúvidas, entre em contato com o administrador.`,
+    });
+    console.log(`[Email] Password reset email sent to ${params.toEmail}`);
+    return true;
+  } catch (err) {
+    console.error("[Email] Failed to send password reset email:", err);
+    return false;
+  }
+}
