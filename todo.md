@@ -294,3 +294,6 @@
 - [x] Garantir campo de motivo obrigatório em todos os fluxos de cancelamento
 - [x] Bug: Fluxo 5 (Diretoria) aprovando volta para Fluxo 3 (Orçamento) incorretamente
 - [x] Lógica especial: urgente/emergencial retorna ao Fluxo 3 após Fluxo 5 apenas UMA VEZ, depois segue fluxo normal (3→9)
+
+## Correções de Responsividade
+- [x] Corrigir scroll do modal de detalhe do malote: todo o conteúdo agora está dentro de um ScrollView, permitindo arrastar para cima para visualizar melhor

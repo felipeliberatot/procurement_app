@@ -542,50 +542,58 @@ export default function MalotesScreen() {
       {/* ─── Modal: Detalhe do Malote ─── */}
       <Modal visible={showDetail} transparent animationType="slide">
         <View style={styles.overlay}>
-          <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "85%" }]}>
+          <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "90%" }]}>
+            {/* Cabeçalho fixo */}
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>{selectedMalote?.maloteCode}</Text>
-              <TouchableOpacity onPress={() => setShowDetail(false)}>
+              <TouchableOpacity onPress={() => setShowDetail(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                 <IconSymbol name="xmark" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            {selectedMalote && (
-              <View style={[styles.infoBadge, { backgroundColor: STATUS_COLOR[selectedMalote.status] + "22" }]}>
-                <Text style={{ color: STATUS_COLOR[selectedMalote.status], fontWeight: "600" }}>
-                  {STATUS_LABEL[selectedMalote.status]}
-                </Text>
-              </View>
-            )}
-            <Text style={[styles.route, { color: colors.muted, marginBottom: selectedMalote?.notes ? 6 : 12 }]}>
-              📦 {selectedMalote?.originUnit} → {selectedMalote?.destinationUnit}
-            </Text>
-            {selectedMalote?.notes ? (
-              <View style={{ backgroundColor: colors.background, borderRadius: 8, padding: 10, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: colors.primary }}>
-                <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", marginBottom: 2 }}>OBSERVAÇÕES</Text>
-                <Text style={{ color: colors.foreground, fontSize: 13 }}>{selectedMalote.notes}</Text>
-              </View>
-            ) : null}
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
-                Solicitações ({(maloteDetail?.items ?? []).length})
-              </Text>
-              {selectedMalote?.status === "aberto" && (
-                <TouchableOpacity onPress={() => setShowAddRequest(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }} activeOpacity={0.7}>
-                  <IconSymbol name="plus" size={16} color={colors.primary} />
-                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>Adicionar</Text>
-                </TouchableOpacity>
+
+            {/* Conteúdo totalmente rolável */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              nestedScrollEnabled={true}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 8 }}
+            >
+              {selectedMalote && (
+                <View style={[styles.infoBadge, { backgroundColor: STATUS_COLOR[selectedMalote.status] + "22" }]}>
+                  <Text style={{ color: STATUS_COLOR[selectedMalote.status], fontWeight: "600" }}>
+                    {STATUS_LABEL[selectedMalote.status]}
+                  </Text>
+                </View>
               )}
-            </View>
-            <ScrollView style={{ maxHeight: 220 }} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.route, { color: colors.muted, marginBottom: selectedMalote?.notes ? 6 : 12 }]}>
+                📦 {selectedMalote?.originUnit} → {selectedMalote?.destinationUnit}
+              </Text>
+              {selectedMalote?.notes ? (
+                <View style={{ backgroundColor: colors.background, borderRadius: 8, padding: 10, marginBottom: 12, borderLeftWidth: 3, borderLeftColor: colors.primary }}>
+                  <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", marginBottom: 2 }}>OBSERVAÇÕES</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 13 }}>{selectedMalote.notes}</Text>
+                </View>
+              ) : null}
+              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground }]}>
+                  Solicitações ({(maloteDetail?.items ?? []).length})
+                </Text>
+                {selectedMalote?.status === "aberto" && (
+                  <TouchableOpacity onPress={() => setShowAddRequest(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }} activeOpacity={0.7}>
+                    <IconSymbol name="plus" size={16} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>Adicionar</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               {maloteDetail?.items && maloteDetail.items.length > 0 ? (
                 maloteDetail.items.map((item) => (
                   <View key={item.id} style={[styles.itemRow, { borderBottomColor: colors.border }]}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.itemCode, { color: colors.foreground }]}>{item.requestCode}</Text>
-                      <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={1}>{item.application}</Text>
+                      <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={2}>{item.application}</Text>
                     </View>
                     {selectedMalote?.status === "aberto" && (
-                      <TouchableOpacity onPress={() => handleRemoveItem(item.id)} activeOpacity={0.7}>
+                      <TouchableOpacity onPress={() => handleRemoveItem(item.id)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                         <IconSymbol name="trash.fill" size={18} color="#EF4444" />
                       </TouchableOpacity>
                     )}
@@ -596,25 +604,25 @@ export default function MalotesScreen() {
                   Nenhuma solicitação adicionada
                 </Text>
               )}
+              {selectedMalote?.status === "aberto" && (
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: "#F59E0B", marginTop: 16, justifyContent: "center" }]}
+                  onPress={() => handleSend(selectedMalote.id)}
+                >
+                  <IconSymbol name="paperplane.fill" size={16} color="#fff" />
+                  <Text style={{ color: "#fff", fontWeight: "600", marginLeft: 4 }}>Enviar Malote</Text>
+                </TouchableOpacity>
+              )}
+              {selectedMalote?.status === "enviado" && (
+                <TouchableOpacity
+                  style={[styles.btn, { backgroundColor: "#22C55E", marginTop: 16, justifyContent: "center" }]}
+                  onPress={() => { setShowDetail(false); router.push(`/malote/${selectedMalote.id}`); }}
+                >
+                  <IconSymbol name="checkmark.seal.fill" size={16} color="#fff" />
+                  <Text style={{ color: "#fff", fontWeight: "600", marginLeft: 4 }}>Registrar Recebimento</Text>
+                </TouchableOpacity>
+              )}
             </ScrollView>
-            {selectedMalote?.status === "aberto" && (
-              <TouchableOpacity
-                style={[styles.btn, { backgroundColor: "#F59E0B", marginTop: 16, justifyContent: "center" }]}
-                onPress={() => handleSend(selectedMalote.id)}
-              >
-                <IconSymbol name="paperplane.fill" size={16} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "600", marginLeft: 4 }}>Enviar Malote</Text>
-              </TouchableOpacity>
-            )}
-            {selectedMalote?.status === "enviado" && (
-              <TouchableOpacity
-                style={[styles.btn, { backgroundColor: "#22C55E", marginTop: 16, justifyContent: "center" }]}
-                onPress={() => { setShowDetail(false); router.push(`/malote/${selectedMalote.id}`); }}
-              >
-                <IconSymbol name="checkmark.seal.fill" size={16} color="#fff" />
-                <Text style={{ color: "#fff", fontWeight: "600", marginLeft: 4 }}>Registrar Recebimento</Text>
-              </TouchableOpacity>
-            )}
           </View>
         </View>
       </Modal>
