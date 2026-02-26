@@ -18,6 +18,8 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
+import { router } from "expo-router";
+import { Alert } from "react-native";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -54,7 +56,23 @@ export default function RootLayout() {
         defaultOptions: {
           queries: {
             refetchOnWindowFocus: false,
-            retry: 1,
+            retry: (failureCount, error: any) => {
+              // Don't retry on authentication errors
+              if (error?.data?.code === "UNAUTHORIZED") return false;
+              return failureCount < 1;
+            },
+          },
+          mutations: {
+            onError: (error: any) => {
+              // Session expired: redirect to login
+              if (error?.data?.code === "UNAUTHORIZED" || error?.message?.includes("Please login")) {
+                Alert.alert(
+                  "Sessão expirada",
+                  "Sua sessão expirou. Por favor, faça login novamente.",
+                  [{ text: "OK", onPress: () => router.replace("/login") }]
+                );
+              }
+            },
           },
         },
       }),

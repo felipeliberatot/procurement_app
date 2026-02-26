@@ -84,6 +84,17 @@ async function startServer() {
     }),
   );
 
+  // ── Global error handlers: always return JSON, never HTML ─────────────────
+  // Catch-all for unmatched routes
+  app.use((_req, res) => {
+    res.status(404).json({ error: "Not found" });
+  });
+  // Express error handler
+  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    console.error("[Server] Unhandled error:", err);
+    res.status(500).json({ error: err.message || "Internal server error" });
+  });
+
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
 
