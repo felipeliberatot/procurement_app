@@ -33,5 +33,15 @@
         "buildType": "app-bundle"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "language": "pt-BR"
+      },
+      "android": {
+        "track": "production"
+      }
+    }
   }
 }
