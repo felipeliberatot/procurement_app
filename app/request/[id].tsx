@@ -534,7 +534,8 @@ export default function RequestDetailScreen() {
   const isApproveOnly = STATUS_APPROVE_ONLY.includes(currentStatus);
 
   // Permissão de cancelar: somente o solicitante que abriu ou master
-  const isOwner = request.requesterId === (user as any)?.id;
+  // Comparar como Number para evitar mismatch entre string e number
+  const isOwner = Number(request.requesterId) === Number((user as any)?.id);
   const canCancel = (isOwner || isMasterUser) && !isCancelled && !isDone;
 
   // Determina se deve mostrar botões fixos de aprovar/rejeitar
@@ -1244,6 +1245,37 @@ export default function RequestDetailScreen() {
               )}
             </>
           )}
+
+          {/* Botão Cancelar Solicitação — visível para o solicitante que abriu ou master */}
+          {canCancel && (
+            <View style={{ marginTop: 16, marginBottom: 8 }}>
+              <TouchableOpacity
+                onPress={() => setShowCancelModal(true)}
+                disabled={cancelMutation.isPending}
+                style={{
+                  backgroundColor: `${colors.error}12`,
+                  borderWidth: 1.5,
+                  borderColor: `${colors.error}40`,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                  opacity: cancelMutation.isPending ? 0.7 : 1,
+                }}
+              >
+                {cancelMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.error} />
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 16 }}>🚫</Text>
+                    <Text style={{ color: colors.error, fontWeight: "700", fontSize: 15 }}>Cancelar Solicitação</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
         </ScrollView>
 
         {/* ─── Barra de ações fixa na parte inferior ─── */}
@@ -1326,47 +1358,7 @@ export default function RequestDetailScreen() {
           </View>
         )}
 
-        {/* Botão Cancelar Solicitação (solicitante ou master, quando não há outros botões fixos) */}
-        {canCancel && !showFixedButtons && (
-          <View style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            paddingHorizontal: 16,
-            paddingTop: 12,
-            paddingBottom: insets.bottom > 0 ? insets.bottom : 16,
-            backgroundColor: colors.background,
-            borderTopWidth: 1,
-            borderTopColor: colors.border,
-          }}>
-            <TouchableOpacity
-              onPress={() => setShowCancelModal(true)}
-              disabled={cancelMutation.isPending}
-              style={{
-                backgroundColor: `${colors.error}12`,
-                borderWidth: 1.5,
-                borderColor: `${colors.error}40`,
-                borderRadius: 14,
-                paddingVertical: 14,
-                alignItems: "center",
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 8,
-                opacity: cancelMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {cancelMutation.isPending ? (
-                <ActivityIndicator size="small" color={colors.error} />
-              ) : (
-                <>
-                  <Text style={{ fontSize: 16 }}>🚫</Text>
-                  <Text style={{ color: colors.error, fontWeight: "700", fontSize: 15 }}>Cancelar Solicitação</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+
       </KeyboardAvoidingView>
 
       {/* Modais */}

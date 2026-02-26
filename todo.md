@@ -284,3 +284,4 @@
 - [x] Filtro por departamento na tela de Solicitações
 - [x] Bug: "Ver todas" no Dashboard não exibe solicitações na aba de Solicitações
 - [x] Reorganizar fluxos para 9 etapas: inserir Fluxo 7 (Aprovação Financeiro) entre Emissão de OC e Comprovante
+- [x] Bug: botão de cancelar não aparece nos fluxos 1 e 2 (aguardando_gerente e aguardando_orcamento)
