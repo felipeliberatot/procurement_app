@@ -311,6 +311,19 @@ export const businessUnits = mysqlTable("businessUnits", {
 export type BusinessUnit = typeof businessUnits.$inferSelect;
 export type InsertBusinessUnit = typeof businessUnits.$inferInsert;
 
+// ─── Departments / Departamentos ────────────────────────────────────────────
+export const departments = mysqlTable("departments", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 128 }).notNull(),
+  responsible: varchar("responsible", { length: 128 }),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Department = typeof departments.$inferSelect;
+export type InsertDepartment = typeof departments.$inferInsert;
+
 // ─── Malote Tags ──────────────────────────────────────────────────────────────
 export const maloteTags = mysqlTable("maloteTags", {
   id: int("id").autoincrement().primaryKey(),

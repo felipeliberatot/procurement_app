@@ -25,7 +25,7 @@ import {
   View,
 } from "react-native";
 
-type Tab = "users" | "costcenters" | "assets" | "units" | "businessunits";
+type Tab = "users" | "costcenters" | "assets" | "units" | "businessunits" | "departments";
 
 const ROLES: ProcurementRole[] = [
   "solicitante",
@@ -1375,6 +1375,85 @@ function UnitFormModal({
   );
 }
 
+// ─── Department Form Modal ─────────────────────────────────────────────────────
+function DepartmentFormModal({
+  visible, dept, onClose, onSave, isSaving, existingCodes,
+}: {
+  visible: boolean;
+  dept: any | null;
+  onClose: () => void;
+  onSave: (data: { code: string; name: string; responsible?: string }) => void;
+  isSaving: boolean;
+  existingCodes?: string[];
+}) {
+  const colors = useColors();
+  const isEditing = !!dept?.id;
+  const [name, setName] = React.useState(dept?.name ?? "");
+  const [code, setCode] = React.useState(dept?.code ?? "");
+  const [responsible, setResponsible] = React.useState(dept?.responsible ?? "");
+
+  React.useEffect(() => {
+    setName(dept?.name ?? "");
+    if (!dept?.id) {
+      setCode(generateAutoCode("DEP", existingCodes ?? []));
+    } else {
+      setCode(dept?.code ?? "");
+    }
+    setResponsible(dept?.responsible ?? "");
+  }, [dept, visible]);
+
+  const handleSave = () => {
+    if (!name.trim() || !code.trim()) {
+      Alert.alert("Campos obrigatórios", "Nome e código são obrigatórios.");
+      return;
+    }
+    onSave({
+      name: name.trim(),
+      code: code.trim(),
+      responsible: responsible.trim() || undefined,
+    });
+  };
+
+  const inputStyle = {
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground,
+  };
+  const labelStyle = { color: colors.foreground, fontSize: 13, fontWeight: "600" as const, marginBottom: 6 };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <TouchableOpacity onPress={onClose} disabled={isSaving}>
+            <Text style={{ color: colors.primary, fontSize: 15 }}>Cancelar</Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>{isEditing ? "Editar Departamento" : "Novo Departamento"}</Text>
+          <TouchableOpacity onPress={handleSave} disabled={isSaving}>
+            {isSaving ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "700" }}>Salvar</Text>}
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
+          <View>
+            <Text style={labelStyle}>Nome do Departamento *</Text>
+            <TextInput value={name} onChangeText={setName} placeholder="Ex: Recursos Humanos" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" />
+          </View>
+          <View>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+              <Text style={labelStyle}>Código *</Text>
+              {!isEditing && <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>⚙️ Gerado automaticamente</Text>}
+            </View>
+            <TextInput value={code} onChangeText={setCode} placeholder="Ex: DEP-001" placeholderTextColor={colors.muted} autoCapitalize="characters" style={{ ...inputStyle, borderColor: isEditing ? colors.border : `${colors.primary}50`, fontFamily: "monospace" }} returnKeyType="next" />
+          </View>
+          <View>
+            <Text style={labelStyle}>Responsável</Text>
+            <TextInput value={responsible} onChangeText={setResponsible} placeholder="Nome do responsável" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="done" />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function RegistersScreen() {
   const { isAuthenticated, user } = useAuth();
@@ -1387,10 +1466,12 @@ export default function RegistersScreen() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [showBUModal, setShowBUModal] = useState(false);
+  const [showDeptModal, setShowDeptModal] = useState(false);
   const [editingUnit, setEditingUnit] = useState<any>(null);
   const [editingBU, setEditingBU] = useState<any>(null);
   const [editingCC, setEditingCC] = useState<any>(null);
   const [editingAsset, setEditingAsset] = useState<any>(null);
+  const [editingDept, setEditingDept] = useState<any>(null);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [showPinModal, setShowPinModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
@@ -1416,6 +1497,9 @@ export default function RegistersScreen() {
     enabled: isAuthenticated,
   });
   const { data: businessUnitsList, isLoading: buLoading } = trpc.businessUnits.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const { data: departmentsList, isLoading: deptLoading } = trpc.departments.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
@@ -1527,6 +1611,32 @@ export default function RegistersScreen() {
     onError: (e) => Alert.alert("Erro", e.message),
   });
 
+  const createDept = trpc.departments.create.useMutation({
+    onSuccess: () => {
+      utils.departments.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowDeptModal(false);
+      setEditingDept(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+  const updateDept = trpc.departments.update.useMutation({
+    onSuccess: () => {
+      utils.departments.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowDeptModal(false);
+      setEditingDept(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+  const deleteDept = trpc.departments.delete.useMutation({
+    onSuccess: () => {
+      utils.departments.list.invalidate();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+
   const createBU = trpc.businessUnits.create.useMutation({
     onSuccess: () => {
       utils.businessUnits.list.invalidate();
@@ -1575,6 +1685,14 @@ export default function RegistersScreen() {
   const importBUBatch = trpc.businessUnits.importBatch.useMutation({
     onSuccess: (data) => {
       utils.businessUnits.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Importação concluída", `${data.imported} registro(s) importado(s) com sucesso.${data.errors.length > 0 ? `\n${data.errors.length} erro(s).` : ""}`);
+    },
+    onError: (e) => Alert.alert("Erro na importação", e.message),
+  });
+  const importDeptBatch = trpc.departments.importBatch.useMutation({
+    onSuccess: (data) => {
+      utils.departments.list.invalidate();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert("Importação concluída", `${data.imported} registro(s) importado(s) com sucesso.${data.errors.length > 0 ? `\n${data.errors.length} erro(s).` : ""}`);
     },
@@ -1635,6 +1753,13 @@ export default function RegistersScreen() {
         const mapped = dataRows.map(r => ({ code: r[codeIdx] ?? "", name: r[nameIdx] ?? "", city: r[2] || undefined, state: r[3] || undefined, responsibleName: r[4] || undefined, responsiblePhone: r[5] || undefined })).filter(r => r.code && r.name);
         if (mapped.length === 0) { Alert.alert("Sem dados válidos", "Nenhuma linha válida encontrada. Verifique o formato do arquivo."); return; }
         importBUBatch.mutate({ rows: mapped });
+      } else if (tab === "departments") {
+        const codeIdx = header.indexOf("codigo") !== -1 ? header.indexOf("codigo") : header.indexOf("code") !== -1 ? header.indexOf("code") : 0;
+        const nameIdx = header.indexOf("nome") !== -1 ? header.indexOf("nome") : header.indexOf("name") !== -1 ? header.indexOf("name") : 1;
+        const respIdx = header.indexOf("responsavel") !== -1 ? header.indexOf("responsavel") : header.indexOf("responsible") !== -1 ? header.indexOf("responsible") : -1;
+        const mapped = dataRows.map(r => ({ code: r[codeIdx] ?? "", name: r[nameIdx] ?? "", responsible: respIdx >= 0 ? r[respIdx] : undefined })).filter(r => r.code && r.name);
+        if (mapped.length === 0) { Alert.alert("Sem dados válidos", "Nenhuma linha válida encontrada. Verifique o formato do arquivo."); return; }
+        importDeptBatch.mutate({ rows: mapped });
       }
     } catch (err: any) {
       Alert.alert("Erro ao importar", err.message ?? "Erro desconhecido");
@@ -1647,6 +1772,7 @@ export default function RegistersScreen() {
     { key: "assets", label: "Bens", icon: "📦", count: assetsList?.length },
     { key: "units", label: "Fazendas", icon: "🌾", count: unitsList?.length },
     { key: "businessunits", label: "Unidades", icon: "🏗️", count: businessUnitsList?.length },
+    { key: "departments", label: "Departamentos", icon: "🏛️", count: departmentsList?.length },
   ];
 
   // Require PIN verification before sensitive master actions
@@ -2556,6 +2682,80 @@ export default function RegistersScreen() {
         </View>
       )}
 
+      {/* ── Departments Tab ── */}
+      {activeTab === "departments" && (
+        <View style={{ flex: 1 }}>
+          {(isAdmin || isMaster) && (
+            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => { setEditingDept(null); setShowDeptModal(true); }}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+              >
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Novo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleImportCSV("departments")}
+                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          <FlatList
+            data={departmentsList ?? []}
+            keyExtractor={(item) => String((item as any).id)}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              deptLoading ? (
+                <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+              ) : (
+                <View style={{ alignItems: "center", marginTop: 60 }}>
+                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🏛️</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>Nenhum departamento cadastrado</Text>
+                  <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Cadastre os departamentos da empresa</Text>
+                </View>
+              )
+            }
+            renderItem={({ item }) => (
+              <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 14, marginBottom: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                  <View style={{ backgroundColor: colors.primary + "20", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{(item as any).code}</Text>
+                  </View>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: (item as any).active ? "#22C55E" : "#EF4444" }} />
+                </View>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginTop: 4 }}>{(item as any).name}</Text>
+                {(item as any).responsible && (
+                  <Text style={{ fontSize: 12, color: colors.muted, marginTop: 3 }}>👤 {(item as any).responsible}</Text>
+                )}
+                {(isAdmin || isMaster) && (
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+                    <Pressable
+                      onPress={() => { setEditingDept(item); setShowDeptModal(true); }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: `${colors.primary}15`, borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: `${colors.primary}30` })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        Alert.alert("Excluir Departamento", `Deseja excluir o departamento "${(item as any).name}"?`, [
+                          { text: "Cancelar", style: "cancel" },
+                          { text: "Excluir", style: "destructive", onPress: () => deleteDept.mutate({ id: (item as any).id }) },
+                        ]);
+                      }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: "#EF444415", borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: "#EF444430" })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: "#EF4444" }}>🗑️ Excluir</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            )}
+          />
+        </View>
+      )}
+
       {/* Modals */}
       <CostCenterModal
         visible={showCCModal}
@@ -2636,6 +2836,20 @@ export default function RegistersScreen() {
         }}
         isSaving={createBU.isPending || updateBU.isPending}
         existingCodes={(businessUnitsList ?? []).map((u: any) => u.code)}
+      />
+      <DepartmentFormModal
+        visible={showDeptModal}
+        dept={editingDept}
+        onClose={() => { setShowDeptModal(false); setEditingDept(null); }}
+        onSave={(data) => {
+          if (editingDept?.id) {
+            updateDept.mutate({ id: editingDept.id, ...data });
+          } else {
+            createDept.mutate(data);
+          }
+        }}
+        isSaving={createDept.isPending || updateDept.isPending}
+        existingCodes={(departmentsList ?? []).map((d: any) => d.code)}
       />
     </ScreenContainer>
   );

@@ -52,6 +52,24 @@ export default function NewRequestScreen() {
   const [items, setItems] = useState<Item[]>([newItem()]);
 
   const { data: costCenters } = trpc.costCenters.list.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: departments } = trpc.departments.list.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: assets } = trpc.assets.list.useQuery(undefined, { enabled: isAuthenticated });
+
+  const [showDeptPicker, setShowDeptPicker] = useState(false);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [assetSearch, setAssetSearch] = useState("");
+  const [deptSearch, setDeptSearch] = useState("");
+
+  const filteredAssets = (assets ?? []).filter((a) =>
+    !assetSearch ||
+    a.description.toLowerCase().includes(assetSearch.toLowerCase()) ||
+    a.code.toLowerCase().includes(assetSearch.toLowerCase())
+  );
+  const filteredDepts = (departments ?? []).filter((d) =>
+    !deptSearch ||
+    d.name.toLowerCase().includes(deptSearch.toLowerCase()) ||
+    d.code.toLowerCase().includes(deptSearch.toLowerCase())
+  );
 
   const createMutation = trpc.requests.create.useMutation({
     onSuccess: () => {
@@ -141,14 +159,26 @@ export default function NewRequestScreen() {
           {/* Departamento */}
           <View className="mb-4">
             <Text className="text-sm font-semibold text-foreground mb-1">Departamento <Text className="text-error">*</Text></Text>
-            <TextInput
-              value={department}
-              onChangeText={setDepartment}
-              placeholder="Ex: Tecnologia da Informação"
-              placeholderTextColor={colors.muted}
-              className="bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground"
-              returnKeyType="next"
-            />
+            <Pressable
+              onPress={() => setShowDeptPicker(true)}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.8 : 1,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: department ? colors.primary : colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 13,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              })}
+            >
+              <Text style={{ fontSize: 14, color: department ? colors.foreground : colors.muted, flex: 1 }}>
+                {department || "Selecione o departamento..."}
+              </Text>
+              <Text style={{ fontSize: 16, color: colors.muted }}>▾</Text>
+            </Pressable>
           </View>
 
           {/* Centro de Custo */}
@@ -172,9 +202,29 @@ export default function NewRequestScreen() {
             </ScrollView>
           </View>
 
-          {/* Aplicação */}
+          {/* Aplicação / Bem */}
           <View className="mb-4">
             <Text className="text-sm font-semibold text-foreground mb-1">Aplicação / Finalidade <Text className="text-error">*</Text></Text>
+            {/* Botão para selecionar bem cadastrado */}
+            <Pressable
+              onPress={() => setShowAssetPicker(true)}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.8 : 1,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+              })}
+            >
+              <Text style={{ fontSize: 13, color: colors.primary, fontWeight: "600" }}>📦 Selecionar bem cadastrado</Text>
+              <Text style={{ fontSize: 14, color: colors.muted }}>▾</Text>
+            </Pressable>
             <TextInput
               value={application}
               onChangeText={setApplication}
@@ -326,6 +376,132 @@ export default function NewRequestScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal: Selecionar Departamento */}
+      {showDeptPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>🏛️ Selecionar Departamento</Text>
+              <Pressable onPress={() => { setShowDeptPicker(false); setDeptSearch(""); }} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+              </Pressable>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+              <TextInput
+                value={deptSearch}
+                onChangeText={setDeptSearch}
+                placeholder="Buscar departamento..."
+                placeholderTextColor={colors.muted}
+                autoFocus
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+              />
+            </View>
+            <FlatList
+              data={filteredDepts}
+              keyExtractor={(item) => String(item.id)}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🏛️</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhum departamento encontrado</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => { setDepartment(item.name); setShowDeptPicker(false); setDeptSearch(""); }}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : 1,
+                    backgroundColor: department === item.name ? `${colors.primary}15` : colors.surface,
+                    borderWidth: 1,
+                    borderColor: department === item.name ? colors.primary : colors.border,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  })}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
+                    {item.responsible && <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>👤 {item.responsible}</Text>}
+                  </View>
+                  <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{item.code}</Text>
+                  </View>
+                </Pressable>
+              )}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* Modal: Selecionar Bem */}
+      {showAssetPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>📦 Selecionar Bem</Text>
+              <Pressable onPress={() => { setShowAssetPicker(false); setAssetSearch(""); }} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+              </Pressable>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+              <TextInput
+                value={assetSearch}
+                onChangeText={setAssetSearch}
+                placeholder="Buscar bem por código ou descrição..."
+                placeholderTextColor={colors.muted}
+                autoFocus
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+              />
+            </View>
+            <FlatList
+              data={filteredAssets}
+              keyExtractor={(item) => String(item.id)}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>📦</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhum bem encontrado</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>Cadastre bens em Cadastros → Bens</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => {
+                    setApplication(`${item.code} — ${item.description}`);
+                    setShowAssetPicker(false);
+                    setAssetSearch("");
+                  }}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : 1,
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 12,
+                  })}
+                >
+                  <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{item.code}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.description}</Text>
+                    {item.category && <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{item.category}</Text>}
+                    {item.location && <Text style={{ fontSize: 12, color: colors.muted }}>📍 {item.location}</Text>}
+                  </View>
+                </Pressable>
+              )}
+            />
+          </View>
+        </View>
+      )}
     </ScreenContainer>
   );
 }

@@ -1,10 +1,13 @@
-import { and, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
+import {
+  and, desc, eq, gte, inArray, or, sql
+} from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   approvalHistory,
   assets,
   businessUnits,
   costCenters,
+  departments,
   InsertUser,
   maloteItems,
   maloteTagLinks,
@@ -15,6 +18,7 @@ import {
   units,
   users,
   type BusinessUnit,
+  type Department,
   type Malote,
   type MaloteItem,
   type MaloteTag,
@@ -1430,4 +1434,83 @@ export async function setMaloteTags(maloteId: number, tagIds: number[]): Promise
       tagIds.map(tagId => ({ maloteId, tagId }))
     );
   }
+}
+
+// ─── Departments / Departamentos ─────────────────────────────────────────────────────
+
+export async function listDepartments(): Promise<Department[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(departments).where(eq(departments.active, true)).orderBy(departments.name);
+}
+
+export async function createDepartment(data: {
+  code: string;
+  name: string;
+  responsible?: string;
+}): Promise<{ id: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(departments).values({
+    code: data.code.toUpperCase(),
+    name: data.name,
+    responsible: data.responsible ?? null,
+  });
+  const insertId = (result as any)[0]?.insertId ?? (result as any).insertId;
+  return { id: insertId };
+}
+
+export async function updateDepartment(id: number, data: Partial<{
+  code: string;
+  name: string;
+  responsible: string;
+  active: boolean;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(departments).set(data).where(eq(departments.id, id));
+}
+
+export async function deleteDepartment(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(departments).set({ active: false }).where(eq(departments.id, id));
+}
+
+export async function importDepartmentsBatch(rows: Array<{
+  code: string;
+  name: string;
+  responsible?: string;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  let imported = 0;
+  const errors: Array<{ row: number; message: string }> = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    try {
+      const existing = await db.select({ id: departments.id }).from(departments).where(eq(departments.code, row.code)).limit(1);
+      if (existing.length > 0) {
+        await db.update(departments).set({ name: row.name, responsible: row.responsible ?? null }).where(eq(departments.code, row.code));
+      } else {
+        await db.insert(departments).values({ code: row.code.toUpperCase(), name: row.name, responsible: row.responsible ?? null });
+      }
+      imported++;
+    } catch (err: any) {
+      errors.push({ row: i + 1, message: err.message ?? "Erro desconhecido" });
+    }
+  }
+  return { imported, errors };
+}
+
+export async function getNextDepartmentCode(): Promise<string> {
+  const db = await getDb();
+  if (!db) return "DEP-001";
+  const all = await db.select({ code: departments.code }).from(departments);
+  const nums = all
+    .map(r => r.code)
+    .filter(c => /^DEP-\d+$/.test(c))
+    .map(c => parseInt(c.split("-")[1] ?? "0", 10));
+  const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
+  return `DEP-${String(next).padStart(3, "0")}`;
 }

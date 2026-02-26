@@ -583,7 +583,44 @@ export const appRouter = router({
       .mutation(({ input }) => db.importBusinessUnitsBatch(input.rows)),
   }),
 
-  // ─── Malotes ─────────────────────────────────────────────────────
+  // ─── Departments / Departamentos ───────────────────────────────────────────────────────────
+  departments: router({
+    list: protectedProcedure.query(() => db.listDepartments()),
+    nextCode: protectedProcedure.query(() => db.getNextDepartmentCode()),
+    create: protectedProcedure
+      .input(z.object({
+        code: z.string().min(1),
+        name: z.string().min(1),
+        responsible: z.string().optional(),
+      }))
+      .mutation(({ input }) => db.createDepartment(input)),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        code: z.string().optional(),
+        name: z.string().optional(),
+        responsible: z.string().optional(),
+        active: z.boolean().optional(),
+      }))
+      .mutation(({ input }) => {
+        const { id, ...data } = input;
+        return db.updateDepartment(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => db.deleteDepartment(input.id)),
+    importBatch: protectedProcedure
+      .input(z.object({
+        rows: z.array(z.object({
+          code: z.string().min(1),
+          name: z.string().min(1),
+          responsible: z.string().optional(),
+        }))
+      }))
+      .mutation(({ input }) => db.importDepartmentsBatch(input.rows)),
+  }),
+
+  // ─── Malotes ──────────────────────────────────────────────────────────────
   malotes: router({
     list: protectedProcedure.query(() => db.listMalotes()),
     stats: protectedProcedure.query(() => db.getMaloteStats()),
