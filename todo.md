@@ -283,3 +283,4 @@
 - [x] Seletor de departamento no fluxo de criação de solicitação
 - [x] Filtro por departamento na tela de Solicitações
 - [x] Bug: "Ver todas" no Dashboard não exibe solicitações na aba de Solicitações
+- [x] Reorganizar fluxos para 9 etapas: inserir Fluxo 7 (Aprovação Financeiro) entre Emissão de OC e Comprovante

@@ -569,7 +569,7 @@ export default function RequestDetailScreen() {
     const methodLabel = PAYMENT_METHOD_LABELS[selectedPaymentMethod];
     Alert.alert(
       "Confirmar Emissão de OC",
-      `Confirmar pagamento via ${methodLabel} e encaminhar para Aprovação de Compra (Financeiro)?`,
+      `Confirmar pagamento via ${methodLabel} e encaminhar para Aprovação Financeiro?`,
       [
         { text: "Cancelar", style: "cancel" },
         { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", paymentInfo, paymentMethod: selectedPaymentMethod, paymentObservations: paymentObservations.trim() || undefined }) },
@@ -970,11 +970,11 @@ export default function RequestDetailScreen() {
                 </View>
               )}
 
-              {/* Etapa 06b: Aprovação de Compra (Financeiro) */}
+              {/* Fluxo 07: Aprovação Financeiro */}
               {currentStatus === "aguardando_aprovacao_compra" && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-                  <Text className="text-sm font-bold text-foreground mb-1">💰 Aprovação de Compra</Text>
-                  <Text className="text-xs text-muted mb-4">Revise os dados da compra e aprove ou cancele</Text>
+                  <Text className="text-sm font-bold text-foreground mb-1">💰 Aprovação Financeiro</Text>
+                  <Text className="text-xs text-muted mb-4">Revise os dados da compra e aprove ou recuse (somente Financeiro)</Text>
 
                   {/* Método de pagamento selecionado */}
                   {(request as any).paymentMethod && (
@@ -1012,20 +1012,20 @@ export default function RequestDetailScreen() {
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert("🚫 Cancelar Compra", "Deseja cancelar esta compra? Ela retornará para o Compras revisar.", [
+                        Alert.alert("🚫 Recusar Compra", "Deseja recusar esta compra? Ela retornará para o Compras revisar.", [
                           { text: "Voltar", style: "cancel" },
-                          { text: "Cancelar Compra", style: "destructive", onPress: () => rejectMutation.mutate({ requestId: request.id, comment: "Compra cancelada pelo Financeiro" }) },
+                          { text: "Recusar", style: "destructive", onPress: () => rejectMutation.mutate({ requestId: request.id, comment: "Compra recusada pelo Financeiro" }) },
                         ]);
                       }}
                       disabled={rejectMutation.isPending || approveMutation.isPending}
                       style={{ flex: 1, backgroundColor: `${colors.error}15`, borderWidth: 1.5, borderColor: `${colors.error}50`, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                     >
                       <Text style={{ fontSize: 16 }}>❌</Text>
-                      <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14 }}>Cancelar</Text>
+                      <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14 }}>Recusar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert("✅ Aprovar Compra", "Confirmar a aprovação desta compra e avançar para o Comprovante de Pagamento?", [
+                        Alert.alert("✅ Aprovar Compra", "Confirmar a aprovação desta compra e avançar para o Comprovante de Pagamento? (Fluxo 8)", [
                           { text: "Voltar", style: "cancel" },
                           { text: "Aprovar", onPress: () => approveMutation.mutate({ requestId: request.id }) },
                         ]);
@@ -1039,7 +1039,7 @@ export default function RequestDetailScreen() {
                 </View>
               )}
 
-              {/* Etapa: Comprovante de Pagamento (Financeiro) */}
+              {/* Fluxo 08: Comprovante de Pagamento (Financeiro) */}
               {currentStatus === "aguardando_comprovante_pagamento" && (() => {
                 const payMethod = (request as any).paymentMethod as PaymentMethod | undefined;
                 const isPix = payMethod === "pix";
@@ -1186,7 +1186,7 @@ export default function RequestDetailScreen() {
                 );
               })()}
 
-              {/* Etapa: Verificação Final (Compras) */}
+              {/* Fluxo 09: Verificação Final (Compras) */}
               {currentStatus === "aguardando_verificacao_compras" && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">📝 Verificação Final — Compras</Text>

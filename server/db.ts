@@ -29,13 +29,15 @@ import { ENV } from "./_core/env";
 import * as WA from "./whatsapp";
 
 const STEP_LABELS_SERVER: Record<string, string> = {
-  aguardando_gerente: "Gerente de Unidade",
-  aguardando_orcamento: "Orçamento",
-  aguardando_controladoria: "Controladoria",
-  aguardando_diretoria: "Diretoria",
-  aguardando_ordem_compra: "Ordem de Compra",
-  aguardando_financeiro: "Financeiro",
-  concluida: "Concluída",
+  aguardando_gerente:              "Aprovação do Gerente",
+  aguardando_orcamento:            "Orçamento",
+  aguardando_controladoria:        "Aprovação Controladoria",
+  aguardando_diretoria:            "Aprovação Diretoria",
+  aguardando_ordem_compra:         "Emissão de OC (Compras)",
+  aguardando_aprovacao_compra:     "Aprovação Financeiro",
+  aguardando_comprovante_pagamento:"Comprovante de Pagamento",
+  aguardando_verificacao_compras:  "Verificação Final (Compras)",
+  concluida:                       "Concluída",
 };
 
 let _db: ReturnType<typeof drizzle> | null = null;
