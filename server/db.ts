@@ -702,17 +702,25 @@ export async function approveRequest(
   if (!flow) throw new Error("Ação não permitida neste status");
 
   // Fluxo especial: pedidos urgentes/emergenciais vão direto para diretoria.
-  // Quando a diretoria aprova, o fluxo retoma a partir do orçamento (não vai direto para OC).
+  // Quando a diretoria aprova pela PRIMEIRA VEZ, o fluxo retoma a partir do orçamento.
+  // Após o orçamento ser feito (orcamentoFeitoUrgente = true), segue o fluxo normal (3→9).
   const isUrgentOrEmergency = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
-  const effectiveNextStatus =
-    (request.status === "aguardando_diretoria" && isUrgentOrEmergency)
-      ? "aguardando_orcamento"   // diretoria aprovou pedido urgente/emergencial → segue para orçamento
-      : flow.nextStatus;
+  const deveVoltarOrcamento =
+    request.status === "aguardando_diretoria" &&
+    isUrgentOrEmergency &&
+    !request.orcamentoFeitoUrgente; // só retorna ao orçamento se ainda não foi feito
+  const effectiveNextStatus = deveVoltarOrcamento
+    ? "aguardando_orcamento"   // diretoria aprovou pedido urgente/emergencial pela 1ª vez → vai para orçamento
+    : flow.nextStatus;         // demais casos: segue o fluxo normal
 
   const updateData: Record<string, unknown> = {
     status: effectiveNextStatus,
     stepDeadlineAt: getStepDeadline(),
   };
+  // Quando o orçamento for feito em pedido urgente/emergencial, marcar como feito
+  if (request.status === "aguardando_orcamento" && isUrgentOrEmergency && !request.orcamentoFeitoUrgente) {
+    updateData.orcamentoFeitoUrgente = true;
+  }
   if (data.purchaseOrderNumber) updateData.purchaseOrderNumber = data.purchaseOrderNumber;
   if (data.paymentInfo) updateData.paymentInfo = data.paymentInfo;
   if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
