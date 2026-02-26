@@ -685,8 +685,16 @@ export async function approveRequest(
   const flow = STEP_FLOW[request.status];
   if (!flow) throw new Error("Ação não permitida neste status");
 
+  // Fluxo especial: pedidos urgentes/emergenciais vão direto para diretoria.
+  // Quando a diretoria aprova, o fluxo retoma a partir do orçamento (não vai direto para OC).
+  const isUrgentOrEmergency = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
+  const effectiveNextStatus =
+    (request.status === "aguardando_diretoria" && isUrgentOrEmergency)
+      ? "aguardando_orcamento"   // diretoria aprovou pedido urgente/emergencial → segue para orçamento
+      : flow.nextStatus;
+
   const updateData: Record<string, unknown> = {
-    status: flow.nextStatus,
+    status: effectiveNextStatus,
     stepDeadlineAt: getStepDeadline(),
   };
   if (data.purchaseOrderNumber) updateData.purchaseOrderNumber = data.purchaseOrderNumber;
@@ -721,8 +729,8 @@ export async function approveRequest(
       aguardando_verificacao_compras:  "orcamento",          // Fluxo 08: Verificação Final → Orçamento
     };
 
-    if (flow.nextStatus === "aguardando_orcamento" && request.status === "aguardando_gerente") {
-      // Gerente aprovou → notificar solicitante para anexar orçamento
+    if (effectiveNextStatus === "aguardando_orcamento" && (request.status === "aguardando_gerente" || (request.status === "aguardando_diretoria" && isUrgentOrEmergency))) {
+      // Gerente aprovou OU diretoria aprovou pedido urgente/emergencial → notificar solicitante para anexar orçamento
       if (requester?.phone) {
         await WA.notifyBudgetRequired({
           requesterPhone: requester.phone,
@@ -731,7 +739,7 @@ export async function approveRequest(
           requestId,
         });
       }
-    } else if (flow.nextStatus === "concluida") {
+    } else if (effectiveNextStatus === "concluida") {
       // Etapa final concluída → notificar solicitante
       if (requester?.phone) {
         await WA.notifyApproval({

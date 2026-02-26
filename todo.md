@@ -276,3 +276,8 @@
 - [x] Adicionar botão de upload de PDF "OC Siagri" na tela de emissão de OC (Compras)
 - [x] Tornar upload da OC Siagri obrigatório na etapa de Emissão de OC
 - [x] Bug: erro "JSON Parse error: Unexpected character: <" ao aprovar solicitação como gerente (corrigido: servidor agora retorna JSON em vez de HTML para erros; handler global de sessão expirada adicionado no QueryClient)
+- [ ] Corrigir fluxo emergencial/urgente: direto para diretoria → após aprovação volta para orçamento em diante
+- [x] Corrigir fluxo emergencial/urgente: direto para diretoria → após aprovação volta para orçamento em diante
+- [ ] Seletor de bem na caixa de aplicação da solicitação
+- [ ] Cadastro de Departamentos (tabela, rota, aba nos cadastros)
+- [ ] Seletor de departamento no fluxo de criação de solicitação
