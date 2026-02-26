@@ -130,6 +130,7 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   paymentInfo: text("paymentInfo"),        // Dados de pagamento inseridos pelo Compras
   paymentProofUrl: text("paymentProofUrl"), // PDF comprovante de pagamento (Financeiro)
   invoiceUrl: text("invoiceUrl"),           // PDF nota fiscal (Compras na verificação final)
+  ocSiagriUrl: text("ocSiagriUrl"),          // PDF OC Siagri (Compras na emissão de OC)
 
   // Malotes integration
   isEnabledInMalotes: boolean("isEnabledInMalotes").default(false).notNull(), // Habilitado nos Malotes após OC finalizada

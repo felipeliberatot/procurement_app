@@ -278,6 +278,7 @@ export default function RequestDetailScreen() {
   const [budgetFileName, setBudgetFileName] = useState<string | null>(null);
   const [paymentProofFileName, setPaymentProofFileName] = useState<string | null>(null);
   const [invoiceFileName, setInvoiceFileName] = useState<string | null>(null);
+  const [ocSiagriFileName, setOcSiagriFileName] = useState<string | null>(null);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showPaymentRejectModal, setShowPaymentRejectModal] = useState(false);
@@ -358,6 +359,18 @@ export default function RequestDetailScreen() {
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Erro ao anexar nota fiscal", e.message);
+    },
+  });
+
+  const uploadOCSiagriMutation = trpc.requests.uploadOCSiagri.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ OC Siagri anexada!", "O PDF da OC Siagri foi registrado com sucesso.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao anexar OC Siagri", e.message);
     },
   });
 
@@ -745,6 +758,27 @@ export default function RequestDetailScreen() {
                       marginBottom: 16,
                     }}
                   />
+
+                  {/* Upload OC Siagri */}
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>OC Siagri (opcional)</Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o PDF da Ordem de Compra gerada no Siagri</Text>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+                      if (result.canceled || !result.assets?.[0]) return;
+                      const file = result.assets[0];
+                      const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+                      setOcSiagriFileName(file.name);
+                      uploadOCSiagriMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
+                    }}
+                    disabled={uploadOCSiagriMutation.isPending}
+                    style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}60`, borderRadius: 12, paddingVertical: 16, marginBottom: 16, opacity: uploadOCSiagriMutation.isPending ? 0.6 : 1 }}
+                  >
+                    {uploadOCSiagriMutation.isPending
+                      ? <ActivityIndicator color={colors.primary} />
+                      : <><Text style={{ fontSize: 22 }}>📄</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{ocSiagriFileName ?? (request as any).ocSiagriUrl ? "✅ OC Siagri anexada" : "Anexar OC Siagri (PDF)"}</Text></>
+                    }
+                  </TouchableOpacity>
 
                   {/* Indicador de campos obrigatórios */}
                   {!paymentInfo.trim() && (

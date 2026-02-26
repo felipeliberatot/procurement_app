@@ -354,6 +354,23 @@ export const appRouter = router({
         return { url };
       }),
 
+    uploadOCSiagri: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        fileName: z.string(),
+        base64: z.string(),
+        mimeType: z.string().default("application/pdf"),
+      }))
+      .mutation(async ({ input }) => {
+        const { storagePut } = await import("./storage");
+        const buffer = Buffer.from(input.base64, "base64");
+        const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const key = `oc-siagri/${input.requestId}/${Date.now()}_${safeName}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        await db.attachOCSiagri(input.requestId, url);
+        return { url };
+      }),
+
     // Finalizar OC (Compras - encerra o fluxo e habilita nos Malotes)
     finalizeOC: protectedProcedure
       .input(z.object({ requestId: z.number() }))

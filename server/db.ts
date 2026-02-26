@@ -934,6 +934,12 @@ export async function attachInvoice(requestId: number, fileUrl: string): Promise
   await db.update(purchaseRequests).set({ invoiceUrl: fileUrl }).where(eq(purchaseRequests.id, requestId));
 }
 
+export async function attachOCSiagri(requestId: number, fileUrl: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(purchaseRequests).set({ ocSiagriUrl: fileUrl }).where(eq(purchaseRequests.id, requestId));
+}
+
 export async function finalizeOC(requestId: number, user: User): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
