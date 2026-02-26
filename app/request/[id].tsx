@@ -788,11 +788,19 @@ export default function RequestDetailScreen() {
                   )}
 
                   {/* Botão Emitir OC */}
+                  {/* Aviso OC Siagri obrigatória */}
+                  {!ocSiagriFileName && !(request as any).ocSiagriUrl && (
+                    <View style={{ backgroundColor: `${colors.warning}15`, borderRadius: 10, padding: 10, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Text style={{ fontSize: 14 }}>⚠️</Text>
+                      <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "600", flex: 1 }}>Anexe a OC Siagri (PDF) antes de emitir a OC.</Text>
+                    </View>
+                  )}
+
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending || !paymentInfo.trim()}
+                    disabled={approveMutation.isPending || !paymentInfo.trim() || (!ocSiagriFileName && !(request as any).ocSiagriUrl)}
                     style={{
-                      backgroundColor: paymentInfo.trim() ? colors.primary : colors.border,
+                      backgroundColor: (paymentInfo.trim() && (ocSiagriFileName || (request as any).ocSiagriUrl)) ? colors.primary : colors.border,
                       borderRadius: 12,
                       paddingVertical: 14,
                       alignItems: "center",
@@ -807,7 +815,7 @@ export default function RequestDetailScreen() {
                       : (
                         <>
                           <Text style={{ fontSize: 16 }}>📤</Text>
-                          <Text style={{ color: paymentInfo.trim() ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
+                          <Text style={{ color: (paymentInfo.trim() && (ocSiagriFileName || (request as any).ocSiagriUrl)) ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
                             Emitir OC e Enviar ao Financeiro
                           </Text>
                         </>

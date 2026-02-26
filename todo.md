@@ -274,5 +274,5 @@
 - [x] Envio automático do relatório diário às 18h via cron job no servidor (America/Sao_Paulo)
 - [x] Limpar e atualizar o Dashboard para refletir o sistema atual com solicitações zeradas
 - [x] Adicionar botão de upload de PDF "OC Siagri" na tela de emissão de OC (Compras)
-- [ ] Tornar upload da OC Siagri obrigatório na etapa de Emissão de OC
+- [x] Tornar upload da OC Siagri obrigatório na etapa de Emissão de OC
 - [x] Bug: erro "JSON Parse error: Unexpected character: <" ao aprovar solicitação como gerente (corrigido: servidor agora retorna JSON em vez de HTML para erros; handler global de sessão expirada adicionado no QueryClient)
