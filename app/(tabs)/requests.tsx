@@ -53,7 +53,7 @@ export default function RequestsScreen() {
     if (params.urgency) setActiveUrgency(params.urgency);
   }, [params.filter, params.urgency]);
 
-  const { data: requests, isLoading, refetch, isRefetching } = trpc.requests.myRequests.useQuery(undefined, {
+  const { data: requests, isLoading, refetch, isRefetching } = trpc.requests.all.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
