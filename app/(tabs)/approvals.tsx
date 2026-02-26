@@ -2,6 +2,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RequestCard } from "@/components/procurement/RequestCard";
 import { EmptyState } from "@/components/procurement/EmptyState";
 import { useAuth } from "@/hooks/use-auth";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { router } from "expo-router";
@@ -154,6 +155,8 @@ function QuickRejectModal({
 // ─── Tela Principal ───────────────────────────────────────────────────────────
 export default function ApprovalsScreen() {
   const { isAuthenticated, user } = useAuth();
+  const { isDesktop } = useBreakpoint();
+  const colors = useColors();
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
   const utils = trpc.useUtils();
 
@@ -216,14 +219,33 @@ export default function ApprovalsScreen() {
     setRejectTarget({ id: item.id, requestNumber: item.requestNumber });
   };
 
+  const renderItem = ({ item }: { item: any }) => {
+    const status = item.status as RequestStatus;
+    const isApproveOnly = APPROVE_ONLY_STATUSES.includes(status);
+    const isApproving = approvingId === item.id && approveMutation.isPending;
+    const isRejecting = rejectTarget?.id === item.id && rejectMutation.isPending;
+    return (
+      <View style={isDesktop ? { flex: 1 } : {}}>
+        <RequestCard
+          request={item}
+          onPress={() => router.push(`/request/${item.id}` as any)}
+          onApprove={!isApproveOnly ? () => handleQuickApprove(item) : undefined}
+          onReject={!isApproveOnly ? () => handleQuickReject(item) : undefined}
+          isApproving={isApproving}
+          isRejecting={isRejecting}
+        />
+      </View>
+    );
+  };
+
   return (
     <ScreenContainer>
-      <View className="px-5 pt-4 pb-3 border-b border-border">
-        <Text className="text-2xl font-bold text-foreground">Aprovações</Text>
-        <Text className="text-sm text-muted mt-0.5">{ROLE_LABELS[userRole] ?? "Usuário"}</Text>
+      <View style={{ paddingHorizontal: isDesktop ? 24 : 20, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <Text style={{ fontSize: isDesktop ? 24 : 22, fontWeight: "800", color: colors.foreground }}>Aprovações</Text>
+        <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{ROLE_LABELS[userRole] ?? "Usuário"}</Text>
         {pending && pending.length > 0 && (
-          <View className="mt-2 bg-warning/10 border border-warning/30 rounded-xl px-3 py-2">
-            <Text className="text-xs text-warning font-semibold">
+          <View style={{ marginTop: 8, backgroundColor: `${colors.warning}18`, borderWidth: 1, borderColor: `${colors.warning}40`, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
+            <Text style={{ fontSize: 12, color: colors.warning, fontWeight: "700" }}>
               ⚠️ {pending.length} solicitação{pending.length !== 1 ? "ões" : ""} aguardando sua ação
             </Text>
           </View>
@@ -231,16 +253,22 @@ export default function ApprovalsScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 items-center justify-center">
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator size="large" />
         </View>
       ) : (
         <FlatList
           data={pending ?? []}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={{ padding: 16, paddingBottom: 32, flexGrow: 1 }}
+          contentContainerStyle={isDesktop
+            ? { padding: 20, paddingBottom: 32, flexGrow: 1, maxWidth: 1000, alignSelf: "center" as any, width: "100%" }
+            : { padding: 16, paddingBottom: 32, flexGrow: 1 }
+          }
           onRefresh={refetch}
           refreshing={isRefetching}
+          numColumns={isDesktop ? 2 : 1}
+          key={isDesktop ? "desktop" : "mobile"}
+          columnWrapperStyle={isDesktop ? { gap: 16 } : undefined}
           ListEmptyComponent={
             <EmptyState
               title="Nenhuma aprovação pendente"
@@ -248,23 +276,7 @@ export default function ApprovalsScreen() {
               icon="✅"
             />
           }
-          renderItem={({ item }) => {
-            const status = item.status as RequestStatus;
-            const isApproveOnly = APPROVE_ONLY_STATUSES.includes(status);
-            const isApproving = approvingId === item.id && approveMutation.isPending;
-            const isRejecting = rejectTarget?.id === item.id && rejectMutation.isPending;
-
-            return (
-              <RequestCard
-                request={item}
-                onPress={() => router.push(`/request/${item.id}` as any)}
-                onApprove={!isApproveOnly ? () => handleQuickApprove(item) : undefined}
-                onReject={!isApproveOnly ? () => handleQuickReject(item) : undefined}
-                isApproving={isApproving}
-                isRejecting={isRejecting}
-              />
-            );
-          }}
+          renderItem={renderItem}
         />
       )}
 

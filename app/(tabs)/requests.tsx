@@ -2,6 +2,8 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RequestCard } from "@/components/procurement/RequestCard";
 import { EmptyState } from "@/components/procurement/EmptyState";
 import { useAuth } from "@/hooks/use-auth";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
+import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
@@ -38,6 +40,8 @@ const URGENCY_FILTERS = [
 
 export default function RequestsScreen() {
   const { isAuthenticated } = useAuth();
+  const { isDesktop } = useBreakpoint();
+  const colors = useColors();
   const params = useLocalSearchParams<{ filter?: string; urgency?: string }>();
   const [activeFilter, setActiveFilter] = useState(params.filter ?? "all");
   const [activeUrgency, setActiveUrgency] = useState(params.urgency ?? "all");
@@ -61,6 +65,101 @@ export default function RequestsScreen() {
     const urgencyMatch = activeUrgency === "all" ? true : r.urgencyLevel === activeUrgency;
     return statusMatch && urgencyMatch;
   });
+
+  if (isDesktop) {
+    return (
+      <ScreenContainer>
+        <View style={{ flex: 1, flexDirection: "row" }}>
+          {/* Sidebar de filtros (desktop) */}
+          <View style={{ width: 200, borderRightWidth: 1, borderRightColor: colors.border, paddingTop: 20, paddingHorizontal: 12 }}>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 8, paddingHorizontal: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Status</Text>
+            {FILTER_TABS.map((tab) => (
+              <Pressable
+                key={tab.key}
+                onPress={() => setActiveFilter(tab.key)}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  marginBottom: 2,
+                  backgroundColor: activeFilter === tab.key ? `${colors.primary}18` : pressed ? `${colors.primary}08` : "transparent",
+                  opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <Text style={{ fontSize: 13, fontWeight: activeFilter === tab.key ? "700" : "500", color: activeFilter === tab.key ? colors.primary : colors.foreground, flex: 1 }}>{tab.label}</Text>
+              </Pressable>
+            ))}
+            <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12 }} />
+            <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 8, paddingHorizontal: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Urgência</Text>
+            {URGENCY_FILTERS.map((uf) => (
+              <Pressable
+                key={uf.key}
+                onPress={() => setActiveUrgency(uf.key)}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  paddingHorizontal: 10,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  marginBottom: 2,
+                  backgroundColor: activeUrgency === uf.key ? `${colors.primary}18` : pressed ? `${colors.primary}08` : "transparent",
+                  opacity: pressed ? 0.85 : 1,
+                })}
+              >
+                <Text style={{ fontSize: 13, fontWeight: activeUrgency === uf.key ? "700" : "500", color: activeUrgency === uf.key ? colors.primary : colors.foreground }}>{uf.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Conteúdo principal */}
+          <View style={{ flex: 1 }}>
+            <View style={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View>
+                <Text style={{ fontSize: 22, fontWeight: "800", color: colors.foreground }}>Solicitações</Text>
+                <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{filtered.length} solicitação{filtered.length !== 1 ? "ões" : ""}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push("/request/new" as any)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
+              >
+                <Text style={{ color: "white", fontSize: 14, fontWeight: "700" }}>+ Nova Solicitação</Text>
+              </TouchableOpacity>
+            </View>
+
+            {isLoading ? (
+              <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+                <ActivityIndicator size="large" />
+              </View>
+            ) : (
+              <FlatList
+                data={filtered}
+                keyExtractor={(item) => String(item.id)}
+                contentContainerStyle={{ padding: 20, paddingBottom: 32, flexGrow: 1, maxWidth: 900, alignSelf: "center" as any, width: "100%" }}
+                onRefresh={refetch}
+                refreshing={isRefetching}
+                numColumns={2}
+                columnWrapperStyle={{ gap: 16 }}
+                ListEmptyComponent={
+                  <EmptyState
+                    title="Nenhuma solicitação"
+                    description={activeFilter !== "all" || activeUrgency !== "all" ? "Nenhuma solicitação com esses filtros." : "Clique em '+ Nova Solicitação' para criar sua primeira solicitação de compra."}
+                    icon="📋"
+                  />
+                }
+                renderItem={({ item }) => (
+                  <View style={{ flex: 1 }}>
+                    <RequestCard request={item} onPress={() => router.push(`/request/${item.id}` as any)} />
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>

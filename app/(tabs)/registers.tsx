@@ -1,5 +1,6 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import type { ProcurementRole } from "@/shared/types";
@@ -1457,6 +1458,7 @@ function DepartmentFormModal({
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function RegistersScreen() {
   const { isAuthenticated, user } = useAuth();
+  const { isDesktop } = useBreakpoint();
   const colors = useColors();
   const utils = trpc.useUtils();
 
@@ -1940,61 +1942,70 @@ export default function RegistersScreen() {
       </View>
 
       {/* Tab Selector */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }}
-        contentContainerStyle={{ flexDirection: "row" }}
-      >
-        {TABS.map((tab) => (
-          <Pressable
-            key={tab.key}
-            onPress={() => setActiveTab(tab.key)}
-            style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, minWidth: 80 })}>
-            <View
-              style={{
-                alignItems: "center",
-                paddingVertical: 12,
-                borderBottomWidth: 2,
-                borderBottomColor: activeTab === tab.key ? colors.primary : "transparent",
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>{tab.icon}</Text>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "600",
-                  marginTop: 2,
-                  color: activeTab === tab.key ? colors.primary : colors.muted,
-                }}
+      <View style={{ flex: 1, flexDirection: isDesktop ? "row" : "column" }}>
+        {/* Sidebar de abas (desktop) ou tab bar horizontal (mobile) */}
+        {isDesktop ? (
+          <View style={{ width: 180, borderRightWidth: 1, borderRightColor: colors.border, paddingTop: 12, paddingHorizontal: 8 }}>
+            {TABS.map((tab) => (
+              <Pressable
+                key={tab.key}
+                onPress={() => setActiveTab(tab.key)}
+                style={({ pressed }) => ({
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  borderRadius: 10,
+                  marginBottom: 2,
+                  backgroundColor: activeTab === tab.key ? `${colors.primary}18` : pressed ? `${colors.primary}08` : "transparent",
+                  opacity: pressed ? 0.85 : 1,
+                })}
               >
-                {tab.label}
-              </Text>
-              {tab.count !== undefined && (
+                <Text style={{ fontSize: 16 }}>{tab.icon}</Text>
+                <Text style={{ fontSize: 13, fontWeight: activeTab === tab.key ? "700" : "500", color: activeTab === tab.key ? colors.primary : colors.foreground, flex: 1 }}>{tab.label}</Text>
+                {tab.count !== undefined && (
+                  <View style={{ backgroundColor: activeTab === tab.key ? colors.primary : colors.border, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 }}>
+                    <Text style={{ fontSize: 10, fontWeight: "700", color: activeTab === tab.key ? "white" : colors.muted }}>{tab.count}</Text>
+                  </View>
+                )}
+              </Pressable>
+            ))}
+          </View>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ borderBottomWidth: 0.5, borderBottomColor: colors.border }}
+            contentContainerStyle={{ flexDirection: "row" }}
+          >
+            {TABS.map((tab) => (
+              <Pressable
+                key={tab.key}
+                onPress={() => setActiveTab(tab.key)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, minWidth: 80 })}>
                 <View
                   style={{
-                    backgroundColor: activeTab === tab.key ? colors.primary : colors.border,
-                    borderRadius: 8,
-                    paddingHorizontal: 6,
-                    paddingVertical: 1,
-                    marginTop: 2,
+                    alignItems: "center",
+                    paddingVertical: 12,
+                    borderBottomWidth: 2,
+                    borderBottomColor: activeTab === tab.key ? colors.primary : "transparent",
                   }}
                 >
-                  <Text
-                    style={{
-                      fontSize: 10,
-                      fontWeight: "700",
-                      color: activeTab === tab.key ? "white" : colors.muted,
-                    }}
-                  >
-                    {tab.count}
-                  </Text>
+                  <Text style={{ fontSize: 18 }}>{tab.icon}</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "600", marginTop: 2, color: activeTab === tab.key ? colors.primary : colors.muted }}>{tab.label}</Text>
+                  {tab.count !== undefined && (
+                    <View style={{ backgroundColor: activeTab === tab.key ? colors.primary : colors.border, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1, marginTop: 2 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "700", color: activeTab === tab.key ? "white" : colors.muted }}>{tab.count}</Text>
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-          </Pressable>
-        ))}
-      </ScrollView>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+        {/* Conteúdo das abas */}
+        <View style={{ flex: 1 }}>
       {/* ── Users Tab ── */}
       {activeTab === "users" && (
         <View style={{ flex: 1 }}>
@@ -2755,6 +2766,9 @@ export default function RegistersScreen() {
           />
         </View>
       )}
+
+        </View>{/* fecha View conteúdo das abas */}
+      </View>{/* fecha View wrapper principal */}
 
       {/* Modals */}
       <CostCenterModal
