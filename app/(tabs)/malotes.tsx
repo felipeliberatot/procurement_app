@@ -14,6 +14,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
@@ -187,6 +188,8 @@ export default function MalotesScreen() {
   const colors = useColors();
   const utils = trpc.useUtils();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(insets.bottom, 16);
 
   const { data: malotes = [], isLoading } = trpc.malotes.list.useQuery();
   const { data: readyRequests = [] } = trpc.malotes.readyRequests.useQuery();
@@ -540,9 +543,17 @@ export default function MalotesScreen() {
       </Modal>
 
       {/* ─── Modal: Detalhe do Malote ─── */}
-      <Modal visible={showDetail} transparent animationType="slide">
+      <Modal visible={showDetail} transparent animationType="slide" statusBarTranslucent>
         <View style={styles.overlay}>
-          <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "90%" }]}>
+          <View style={[
+            styles.modal,
+            { backgroundColor: colors.surface, maxHeight: "90%", paddingBottom: 0 },
+          ]}>
+            {/* Barra de arraste */}
+            <View style={{ alignItems: "center", marginBottom: 8, marginTop: -4 }}>
+              <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border }} />
+            </View>
+
             {/* Cabeçalho fixo */}
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>{selectedMalote?.maloteCode}</Text>
@@ -551,12 +562,12 @@ export default function MalotesScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* Conteúdo totalmente rolável */}
+            {/* Conteúdo rolável */}
             <ScrollView
               showsVerticalScrollIndicator={false}
               nestedScrollEnabled={true}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 8 }}
+              contentContainerStyle={{ paddingBottom: bottomPad + 8 }}
             >
               {selectedMalote && (
                 <View style={[styles.infoBadge, { backgroundColor: STATUS_COLOR[selectedMalote.status] + "22" }]}>
@@ -604,22 +615,32 @@ export default function MalotesScreen() {
                   Nenhuma solicitação adicionada
                 </Text>
               )}
+
+              {/* Botões de ação com espaço extra para não ficar cortado */}
               {selectedMalote?.status === "aberto" && (
                 <TouchableOpacity
-                  style={[styles.btn, { backgroundColor: "#F59E0B", marginTop: 16, justifyContent: "center" }]}
+                  style={[
+                    styles.btn,
+                    { backgroundColor: "#F59E0B", marginTop: 20, justifyContent: "center", paddingVertical: 16 },
+                  ]}
                   onPress={() => handleSend(selectedMalote.id)}
+                  activeOpacity={0.8}
                 >
-                  <IconSymbol name="paperplane.fill" size={16} color="#fff" />
-                  <Text style={{ color: "#fff", fontWeight: "600", marginLeft: 4 }}>Enviar Malote</Text>
+                  <IconSymbol name="paperplane.fill" size={18} color="#fff" />
+                  <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6, fontSize: 15 }}>Enviar Malote</Text>
                 </TouchableOpacity>
               )}
               {selectedMalote?.status === "enviado" && (
                 <TouchableOpacity
-                  style={[styles.btn, { backgroundColor: "#22C55E", marginTop: 16, justifyContent: "center" }]}
+                  style={[
+                    styles.btn,
+                    { backgroundColor: "#22C55E", marginTop: 20, justifyContent: "center", paddingVertical: 16 },
+                  ]}
                   onPress={() => { setShowDetail(false); router.push(`/malote/${selectedMalote.id}`); }}
+                  activeOpacity={0.8}
                 >
-                  <IconSymbol name="checkmark.seal.fill" size={16} color="#fff" />
-                  <Text style={{ color: "#fff", fontWeight: "600", marginLeft: 4 }}>Registrar Recebimento</Text>
+                  <IconSymbol name="checkmark.seal.fill" size={18} color="#fff" />
+                  <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6, fontSize: 15 }}>Registrar Recebimento</Text>
                 </TouchableOpacity>
               )}
             </ScrollView>

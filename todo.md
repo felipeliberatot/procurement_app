@@ -297,3 +297,5 @@
 
 ## Correções de Responsividade
 - [x] Corrigir scroll do modal de detalhe do malote: todo o conteúdo agora está dentro de um ScrollView, permitindo arrastar para cima para visualizar melhor
+- [x] Corrigir modal de malotes: botão "Enviar Malote" cortado na borda inferior — adicionar padding inferior suficiente no ScrollView e safe area
+- [x] Alterar horário do cron do relatório diário de e-mail de 18h para 19h

@@ -3,7 +3,7 @@
  *
  * Schedules background tasks that run on a fixed schedule.
  * Currently registered jobs:
- *   - Daily Report: every day at 18:00 BRT (America/Sao_Paulo)
+ *   - Daily Report: every day at 19:00 BRT (America/Sao_Paulo)
  */
 
 import cron from "node-cron";
@@ -15,12 +15,12 @@ export function registerCronJobs(): void {
   if (initialized) return;
   initialized = true;
 
-  // ── Daily Report at 18:00 BRT (America/Sao_Paulo) ──────────────────────────
-  // Cron expression: minute=0, hour=18, day=*, month=*, weekday=*
+  // ── Daily Report at 19:00 BRT (America/Sao_Paulo) ──────────────────────────
+  // Cron expression: minute=0, hour=19, day=*, month=*, weekday=*
   cron.schedule(
-    "0 18 * * *",
+    "0 19 * * *",
     async () => {
-      console.log("[Cron] Running daily report job (18:00 BRT)...");
+      console.log("[Cron] Running daily report job (19:00 BRT)...");
       try {
         await runDailyReport();
       } catch (err) {
@@ -32,5 +32,5 @@ export function registerCronJobs(): void {
     },
   );
 
-  console.log("[Cron] Daily report scheduled for 18:00 BRT (America/Sao_Paulo)");
+  console.log("[Cron] Daily report scheduled for 19:00 BRT (America/Sao_Paulo)");
 }
