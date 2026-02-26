@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import * as Api from "@/lib/_core/api";
@@ -198,6 +199,21 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Carregar credenciais salvas ao montar
+  useEffect(() => {
+    AsyncStorage.getItem("@cgs:remember_credentials").then((raw) => {
+      if (raw) {
+        try {
+          const saved = JSON.parse(raw);
+          if (saved.email) setEmail(saved.email);
+          if (saved.password) setPassword(saved.password);
+          setRememberMe(true);
+        } catch {}
+      }
+    });
+  }, []);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -217,6 +233,12 @@ export default function LoginScreen() {
       if (!result.success || !result.user) {
         setError(result.error ?? "E-mail ou senha incorretos.");
         return;
+      }
+      // Salvar ou limpar credenciais conforme opção
+      if (rememberMe) {
+        await AsyncStorage.setItem("@cgs:remember_credentials", JSON.stringify({ email: email.trim().toLowerCase(), password }));
+      } else {
+        await AsyncStorage.removeItem("@cgs:remember_credentials");
       }
       // Salvar token e dados do usuário
       if (result.token && Platform.OS !== "web") {
@@ -318,14 +340,39 @@ export default function LoginScreen() {
               </View>
             </View>
 
-            {/* Link "Esqueceu a senha?" */}
-            <TouchableOpacity
-              onPress={() => setShowForgotModal(true)}
-              activeOpacity={0.6}
-              style={styles.forgotLink}
-            >
-              <Text style={[styles.forgotText, { color: colors.primary }]}>Esqueceu a senha?</Text>
-            </TouchableOpacity>
+            {/* Lembrar-me + Esqueceu a senha */}
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              {/* Checkbox Lembrar-me */}
+              <TouchableOpacity
+                onPress={() => setRememberMe((v) => !v)}
+                activeOpacity={0.7}
+                style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+              >
+                <View style={{
+                  width: 20,
+                  height: 20,
+                  borderRadius: 5,
+                  borderWidth: 2,
+                  borderColor: rememberMe ? colors.primary : colors.border,
+                  backgroundColor: rememberMe ? colors.primary : "transparent",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                  {rememberMe && (
+                    <Text style={{ color: "#fff", fontSize: 12, fontWeight: "700", lineHeight: 14 }}>✓</Text>
+                  )}
+                </View>
+                <Text style={{ fontSize: 14, color: colors.foreground, fontWeight: "500" }}>Lembrar-me</Text>
+              </TouchableOpacity>
+
+              {/* Link "Esqueceu a senha?" */}
+              <TouchableOpacity
+                onPress={() => setShowForgotModal(true)}
+                activeOpacity={0.6}
+              >
+                <Text style={[styles.forgotText, { color: colors.primary }]}>Esqueceu a senha?</Text>
+              </TouchableOpacity>
+            </View>
 
             {error && (
               <View style={[styles.errorBox, { backgroundColor: colors.error + "1A", borderColor: colors.error + "40" }]}>

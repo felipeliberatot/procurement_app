@@ -289,3 +289,4 @@
 - [x] Bug: Fluxo 7 (Aprovação Financeiro) aparece como aprovado prematuramente na linha do tempo
 - [x] Funcionalidade: master pode reabrir solicitação cancelada (retorna ao Fluxo 1)
 - [x] Funcionalidade "Lembrar Senha" na tela de Login (reset por e-mail)
+- [x] Checkbox "Lembrar-me" na tela de Login (salva e-mail e senha via AsyncStorage)
