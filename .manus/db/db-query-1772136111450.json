@@ -1,0 +1,9 @@
+{
+  "query": "ALTER TABLE approvalHistory MODIFY COLUMN action ENUM('criada','aprovada','rejeitada','orcamento_anexado','ordem_emitida','comprovante_anexado','comprovante_aprovado','comprovante_recusado','pagamento_recusado','pagamento_verificado','nota_fiscal_anexada','oc_finalizada','cancelada','reaberta','compra_aprovada','compra_cancelada') NOT NULL;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute ALTER TABLE approvalHistory MODIFY COLUMN action ENUM('criada','aprovada','rejeitada','orcamento_anexado','ordem_emitida','comprovante_anexado','comprovante_aprovado','comprovante_recusado','pagamento_recusado','pagamento_verificado','nota_fiscal_anexada','oc_finalizada','cancelada','reaberta','compra_aprovada','compra_cancelada') NOT NULL;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 443
+}

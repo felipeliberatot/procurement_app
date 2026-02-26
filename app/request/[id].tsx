@@ -801,6 +801,7 @@ export default function RequestDetailScreen() {
                         : h.action === "reaberta" ? "🔄"
                         : h.action === "oc_finalizada" ? "🏁"
                         : h.action === "nota_fiscal_anexada" ? "🧾"
+                        : h.action === "cancelada" ? "🚫"
                         : "🔄"}
                     </Text>
                   </View>
@@ -814,7 +815,7 @@ export default function RequestDetailScreen() {
                         criada: "Solicitado",
                         aprovada: "Aprovado",
                         rejeitada: "Rejeitado",
-                        reaberta: "Reenviado pelo solicitante",
+                        reaberta: "Reaberta pelo master",
                         orcamento_anexado: "Orçamento anexado",
                         ordem_emitida: "OC emitida",
                         comprovante_anexado: "Comprovante anexado",
@@ -825,6 +826,8 @@ export default function RequestDetailScreen() {
                         nota_fiscal_anexada: "Nota fiscal anexada",
                         oc_finalizada: "OC finalizada",
                         cancelada: "Cancelado",
+                        compra_aprovada: "Compra aprovada",
+                        compra_cancelada: "Compra cancelada",
                       }[h.action as string] ?? h.action}
                     </Text>
                     {h.comment && <Text className="text-xs text-foreground mt-1 italic">"{h.comment}"</Text>}

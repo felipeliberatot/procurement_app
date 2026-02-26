@@ -290,3 +290,5 @@
 - [x] Funcionalidade: master pode reabrir solicitação cancelada (retorna ao Fluxo 1)
 - [x] Funcionalidade "Lembrar Senha" na tela de Login (reset por e-mail)
 - [x] Checkbox "Lembrar-me" na tela de Login (salva e-mail e senha via AsyncStorage)
+- [x] Bug: motivo de cancelamento não aparece no histórico da solicitação
+- [x] Garantir campo de motivo obrigatório em todos os fluxos de cancelamento

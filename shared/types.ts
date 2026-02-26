@@ -58,7 +58,9 @@ export type ApprovalStep =
   | "ordem_compra"
   | "aprovacao_compra"
   | "financeiro"
-  | "verificacao_compras";
+  | "verificacao_compras"
+  | "cancelamento"
+  | "reabertura";
 
 export type ApprovalAction =
   | "criada"
@@ -125,6 +127,8 @@ export const STEP_LABELS: Record<ApprovalStep, string> = {
   aprovacao_compra: "Aprovação Financeiro",
   financeiro: "Comprovante de Pagamento",
   verificacao_compras: "Verificação Final (Compras)",
+  cancelamento: "Cancelamento",
+  reabertura: "Reabertura",
 };
 
 export const WORKFLOW_STEPS: Array<{
