@@ -382,7 +382,7 @@ export const appRouter = router({
     cancel: protectedProcedure
       .input(z.object({
         requestId: z.number(),
-        reason: z.string().optional(),
+        reason: z.string().min(1, "O motivo do cancelamento é obrigatório."),
       }))
       .mutation(({ ctx, input }) => db.cancelRequest(input.requestId, ctx.user as any, input.reason)),
 

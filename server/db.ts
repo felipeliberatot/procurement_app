@@ -1022,10 +1022,14 @@ export async function finalizeOC(requestId: number, user: User): Promise<void> {
 export async function cancelRequest(
   requestId: number,
   user: User,
-  reason?: string
+  reason: string
 ): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  if (!reason || reason.trim().length === 0) {
+    throw new Error("O motivo do cancelamento é obrigatório.");
+  }
 
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");

@@ -184,7 +184,12 @@ function CancelModal({
   const colors = useColors();
   const [reason, setReason] = useState("");
 
+  const [touched, setTouched] = useState(false);
+  const isReasonEmpty = reason.trim().length === 0;
+
   const handleConfirm = () => {
+    setTouched(true);
+    if (isReasonEmpty) return;
     onConfirm(reason.trim());
   };
 
@@ -211,20 +216,23 @@ function CancelModal({
           </View>
 
           <View>
-            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", marginBottom: 8 }}>
-              Motivo do cancelamento (opcional)
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", marginBottom: 4 }}>
+              Motivo do cancelamento <Text style={{ color: colors.error }}>*</Text>
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 8 }}>
+              Informe o motivo para que fique registrado no histórico da solicitação.
             </Text>
             <TextInput
               value={reason}
-              onChangeText={setReason}
+              onChangeText={(text) => { setReason(text); setTouched(true); }}
               placeholder="Descreva o motivo do cancelamento..."
               placeholderTextColor={colors.muted}
               multiline
               numberOfLines={4}
               style={{
                 backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
+                borderWidth: 1.5,
+                borderColor: touched && isReasonEmpty ? colors.error : colors.border,
                 borderRadius: 12,
                 paddingHorizontal: 16,
                 paddingVertical: 12,
@@ -234,6 +242,11 @@ function CancelModal({
                 textAlignVertical: "top",
               }}
             />
+            {touched && isReasonEmpty && (
+              <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>
+                O motivo é obrigatório para cancelar a solicitação.
+              </Text>
+            )}
           </View>
 
           <TouchableOpacity
@@ -247,7 +260,7 @@ function CancelModal({
               flexDirection: "row",
               justifyContent: "center",
               gap: 8,
-              opacity: isLoading ? 0.7 : 1,
+              opacity: isLoading || (touched && isReasonEmpty) ? 0.5 : 1,
             }}
           >
             {isLoading ? (
@@ -1385,7 +1398,7 @@ export default function RequestDetailScreen() {
       <CancelModal
         visible={showCancelModal}
         onClose={() => setShowCancelModal(false)}
-        onConfirm={(reason) => cancelMutation.mutate({ requestId: request.id, reason: reason || undefined })}
+        onConfirm={(reason) => cancelMutation.mutate({ requestId: request.id, reason })}
         isLoading={cancelMutation.isPending}
       />
     </ScreenContainer>
