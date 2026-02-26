@@ -375,6 +375,21 @@ export const appRouter = router({
     finalizeOC: protectedProcedure
       .input(z.object({ requestId: z.number() }))
       .mutation(({ ctx, input }) => db.finalizeOC(input.requestId, ctx.user)),
+
+    // Cancelar solicitação (somente solicitante ou master)
+    cancel: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        reason: z.string().optional(),
+      }))
+      .mutation(({ ctx, input }) => db.cancelRequest(input.requestId, ctx.user as any, input.reason)),
+
+    // Listar todas as solicitações (somente master)
+    allForMaster: protectedProcedure.query(({ ctx }) => {
+      const isMaster = (ctx.user as any).approvalLevel === "master";
+      if (!isMaster) throw new Error("Acesso restrito a usuários master.");
+      return db.getAllRequests();
+    }),
   }),
 
   // ─── Approvals ─────────────────────────────────────────────────────────────
@@ -385,6 +400,8 @@ export const appRouter = router({
         comment: z.string().optional(),
         purchaseOrderNumber: z.string().optional(),
         paymentInfo: z.string().optional(),
+        paymentMethod: z.enum(["pix", "boleto", "cartao_avista", "cartao_parcelado"]).optional(),
+        paymentObservations: z.string().optional(),
       }))
       .mutation(({ ctx, input }) =>
         db.approveRequest(input.requestId, ctx.user, input)

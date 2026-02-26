@@ -24,8 +24,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { RequestStatus, ProcurementRole } from "@/shared/types";
-import { STEP_LABELS } from "@/shared/types";
+import type { RequestStatus, ProcurementRole, PaymentMethod } from "@/shared/types";
+import { STEP_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ICONS } from "@/shared/types";
 
 const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
   rascunho: ["solicitante", "admin"],
@@ -34,6 +34,7 @@ const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
   aguardando_controladoria: ["controladoria", "admin"],
   aguardando_diretoria: ["diretoria", "admin"],
   aguardando_ordem_compra: ["orcamento", "admin"],
+  aguardando_aprovacao_compra: ["financeiro", "admin"],
   aguardando_comprovante_pagamento: ["financeiro", "admin"],
   aguardando_verificacao_compras: ["orcamento", "admin"],
   concluida: [],
@@ -45,6 +46,7 @@ const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
 const STATUS_APPROVE_ONLY: RequestStatus[] = [
   "aguardando_orcamento",
   "aguardando_ordem_compra",
+  "aguardando_aprovacao_compra",
   "aguardando_comprovante_pagamento",
   "aguardando_verificacao_compras",
 ];
@@ -167,6 +169,102 @@ function RejectModal({
   );
 }
 
+// ─── Modal de Cancelamento ──────────────────────────────────────────────────────
+function CancelModal({
+  visible,
+  onClose,
+  onConfirm,
+  isLoading,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: (reason: string) => void;
+  isLoading: boolean;
+}) {
+  const colors = useColors();
+  const [reason, setReason] = useState("");
+
+  const handleConfirm = () => {
+    onConfirm(reason.trim());
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <TouchableOpacity onPress={onClose} disabled={isLoading}>
+            <Text style={{ color: colors.primary, fontSize: 15 }}>Voltar</Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>Cancelar Solicitação</Text>
+          <View style={{ width: 60 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+          <View style={{ backgroundColor: `${colors.error}10`, borderWidth: 1, borderColor: `${colors.error}30`, borderRadius: 16, padding: 16, flexDirection: "row", gap: 12, alignItems: "flex-start" }}>
+            <Text style={{ fontSize: 24 }}>🚫</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14, marginBottom: 4 }}>Atenção</Text>
+              <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+                Esta ação cancelará a solicitação permanentemente. O solicitante será notificado.
+              </Text>
+            </View>
+          </View>
+
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600", marginBottom: 8 }}>
+              Motivo do cancelamento (opcional)
+            </Text>
+            <TextInput
+              value={reason}
+              onChangeText={setReason}
+              placeholder="Descreva o motivo do cancelamento..."
+              placeholderTextColor={colors.muted}
+              multiline
+              numberOfLines={4}
+              style={{
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 14,
+                color: colors.foreground,
+                minHeight: 100,
+                textAlignVertical: "top",
+              }}
+            />
+          </View>
+
+          <TouchableOpacity
+            onPress={handleConfirm}
+            disabled={isLoading}
+            style={{
+              backgroundColor: colors.error,
+              borderRadius: 14,
+              paddingVertical: 16,
+              alignItems: "center",
+              flexDirection: "row",
+              justifyContent: "center",
+              gap: 8,
+              opacity: isLoading ? 0.7 : 1,
+            }}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <>
+                <Text style={{ fontSize: 18 }}>🚫</Text>
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Confirmar Cancelamento</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Modal de Aprovação com comentário opcional ───────────────────────────────
 function ApproveModal({
   visible,
@@ -275,6 +373,8 @@ export default function RequestDetailScreen() {
 
   const [orderNumber, setOrderNumber] = useState("");
   const [paymentInfo, setPaymentInfo] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"pix" | "boleto" | "cartao_avista" | "cartao_parcelado" | null>(null);
+  const [paymentObservations, setPaymentObservations] = useState("");
   const [budgetFileName, setBudgetFileName] = useState<string | null>(null);
   const [paymentProofFileName, setPaymentProofFileName] = useState<string | null>(null);
   const [invoiceFileName, setInvoiceFileName] = useState<string | null>(null);
@@ -282,6 +382,7 @@ export default function RequestDetailScreen() {
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showPaymentRejectModal, setShowPaymentRejectModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const requestId = parseInt(id ?? "0");
 
@@ -386,6 +487,19 @@ export default function RequestDetailScreen() {
     },
   });
 
+  const cancelMutation = trpc.requests.cancel.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowCancelModal(false);
+      Alert.alert("✅ Solicitação cancelada", "A solicitação foi cancelada com sucesso.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao cancelar", e.message);
+    },
+  });
+
   if (isLoading) {
     return (
       <ScreenContainer>
@@ -411,12 +525,17 @@ export default function RequestDetailScreen() {
   }
 
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
+  const isMasterUser = (user as any)?.approvalLevel === "master";
   const currentStatus = request.status as RequestStatus;
   const canAct = ROLE_CAN_ACT[currentStatus]?.includes(userRole) ?? false;
   const isRejected = currentStatus === "rejeitada";
   const isCancelled = currentStatus === "cancelada";
   const isDone = currentStatus === "concluida";
   const isApproveOnly = STATUS_APPROVE_ONLY.includes(currentStatus);
+
+  // Permissão de cancelar: somente o solicitante que abriu ou master
+  const isOwner = request.requesterId === (user as any)?.id;
+  const canCancel = (isOwner || isMasterUser) && !isCancelled && !isDone;
 
   // Determina se deve mostrar botões fixos de aprovar/rejeitar
   const showFixedButtons = canAct && !isDone && !isCancelled && !isRejected && !isApproveOnly;
@@ -445,13 +564,15 @@ export default function RequestDetailScreen() {
   };
 
   const handleIssueOrder = () => {
+    if (!selectedPaymentMethod) { Alert.alert("Campo obrigatório", "Selecione o método de pagamento antes de avançar."); return; }
     if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe os dados de pagamento antes de avançar."); return; }
+    const methodLabel = PAYMENT_METHOD_LABELS[selectedPaymentMethod];
     Alert.alert(
       "Confirmar Emissão de OC",
-      "Confirmar os dados de pagamento e encaminhar ao Financeiro?",
+      `Confirmar pagamento via ${methodLabel} e encaminhar para Aprovação de Compra (Financeiro)?`,
       [
         { text: "Cancelar", style: "cancel" },
-        { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", paymentInfo }) },
+        { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", paymentInfo, paymentMethod: selectedPaymentMethod, paymentObservations: paymentObservations.trim() || undefined }) },
       ]
     );
   };
@@ -734,13 +855,37 @@ export default function RequestDetailScreen() {
                   <Text className="text-sm font-bold text-foreground mb-1">📋 Emissão de Ordem de Compra</Text>
                   <Text className="text-xs text-muted mb-4">Preencha os campos abaixo para emitir a OC e encaminhar ao Financeiro</Text>
 
+                  {/* Seletor de Método de Pagamento */}
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 8 }}>Método de Pagamento *</Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
+                    {(["pix", "boleto", "cartao_avista", "cartao_parcelado"] as PaymentMethod[]).map((method) => (
+                      <TouchableOpacity
+                        key={method}
+                        onPress={() => setSelectedPaymentMethod(method)}
+                        style={{
+                          flex: 1, minWidth: "45%",
+                          flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6,
+                          paddingVertical: 12, paddingHorizontal: 10,
+                          borderRadius: 12, borderWidth: 2,
+                          borderColor: selectedPaymentMethod === method ? colors.primary : colors.border,
+                          backgroundColor: selectedPaymentMethod === method ? `${colors.primary}15` : colors.background,
+                        }}
+                      >
+                        <Text style={{ fontSize: 18 }}>{PAYMENT_METHOD_ICONS[method]}</Text>
+                        <Text style={{ color: selectedPaymentMethod === method ? colors.primary : colors.foreground, fontWeight: selectedPaymentMethod === method ? "700" : "400", fontSize: 13 }}>
+                          {PAYMENT_METHOD_LABELS[method]}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+
                   {/* Dados de Pagamento */}
                   <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Dados de Pagamento *</Text>
-                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe banco, agência, conta, tipo de pagamento, valor, data prevista, etc.</Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe banco, agência, conta, valor, data prevista, etc.</Text>
                   <TextInput
                     value={paymentInfo}
                     onChangeText={setPaymentInfo}
-                    placeholder="Ex: Banco Bradesco, Ag. 1234-5, CC 00012345-6, Transferência, R$ 5.000,00, vencimento 30/03/2024..."
+                    placeholder="Ex: Banco Bradesco, Ag. 1234-5, CC 00012345-6, R$ 5.000,00, vencimento 30/03/2024..."
                     placeholderTextColor={colors.muted}
                     multiline
                     numberOfLines={5}
@@ -781,9 +926,9 @@ export default function RequestDetailScreen() {
                   </TouchableOpacity>
 
                   {/* Indicador de campos obrigatórios */}
-                  {!paymentInfo.trim() && (
+                  {(!selectedPaymentMethod || !paymentInfo.trim()) && (
                     <Text style={{ color: colors.error, fontSize: 11, marginBottom: 12, textAlign: "center" }}>
-                      * Preencha os dados de pagamento para continuar
+                      * Selecione o método de pagamento e preencha os dados para continuar
                     </Text>
                   )}
 
@@ -798,7 +943,7 @@ export default function RequestDetailScreen() {
 
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending || !paymentInfo.trim() || (!ocSiagriFileName && !(request as any).ocSiagriUrl)}
+                    disabled={approveMutation.isPending || !selectedPaymentMethod || !paymentInfo.trim() || (!ocSiagriFileName && !(request as any).ocSiagriUrl)}
                     style={{
                       backgroundColor: (paymentInfo.trim() && (ocSiagriFileName || (request as any).ocSiagriUrl)) ? colors.primary : colors.border,
                       borderRadius: 12,
@@ -825,71 +970,221 @@ export default function RequestDetailScreen() {
                 </View>
               )}
 
-              {/* Etapa: Comprovante de Pagamento (Financeiro) */}
-              {currentStatus === "aguardando_comprovante_pagamento" && (
+              {/* Etapa 06b: Aprovação de Compra (Financeiro) */}
+              {currentStatus === "aguardando_aprovacao_compra" && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-                  <Text className="text-sm font-bold text-foreground mb-1">💳 Comprovante de Pagamento</Text>
-                  <Text className="text-xs text-muted mb-3">Anexe o PDF do comprovante de pagamento realizado</Text>
+                  <Text className="text-sm font-bold text-foreground mb-1">💰 Aprovação de Compra</Text>
+                  <Text className="text-xs text-muted mb-4">Revise os dados da compra e aprove ou cancele</Text>
 
-                  {/* Dados de pagamento do Compras */}
-                  {(request as any).paymentInfo && (
-                    <View style={{ backgroundColor: `${colors.primary}10`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                      <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 12, marginBottom: 4 }}>Dados de Pagamento (Compras)</Text>
-                      <Text style={{ color: colors.foreground, fontSize: 13 }}>{(request as any).paymentInfo}</Text>
+                  {/* Método de pagamento selecionado */}
+                  {(request as any).paymentMethod && (
+                    <View style={{ backgroundColor: `${colors.primary}10`, borderRadius: 12, padding: 12, marginBottom: 12 }}>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Método de Pagamento</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <Text style={{ fontSize: 20 }}>{PAYMENT_METHOD_ICONS[(request as any).paymentMethod as PaymentMethod] ?? "💳"}</Text>
+                        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>
+                          {PAYMENT_METHOD_LABELS[(request as any).paymentMethod as PaymentMethod] ?? (request as any).paymentMethod}
+                        </Text>
+                      </View>
                     </View>
                   )}
 
-                  {/* Comprovante já anexado */}
-                  {(request as any).paymentProofUrl ? (
-                    <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                        <Text style={{ fontSize: 22 }}>📄</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante Anexado</Text>
-                          <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
-                        </View>
-                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
-                      </View>
-                    </Pressable>
-                  ) : (
-                    <TouchableOpacity
-                      onPress={handlePickPaymentProof}
-                      disabled={uploadPaymentProofMutation.isPending}
-                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}60`, borderRadius: 12, paddingVertical: 20, marginBottom: 12, opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
-                    >
-                      {uploadPaymentProofMutation.isPending ? (
-                        <><ActivityIndicator size="small" /><Text style={{ color: colors.primary, fontSize: 14, marginLeft: 8 }}>Enviando...</Text></>
-                      ) : (
-                        <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{paymentProofFileName ?? "Selecionar PDF do Comprovante"}</Text></>
-                      )}
-                    </TouchableOpacity>
+                  {/* Dados de pagamento */}
+                  {(request as any).paymentInfo && (
+                    <View style={{ backgroundColor: `${colors.surface}`, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12 }}>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Dados de Pagamento</Text>
+                      <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 20 }}>{(request as any).paymentInfo}</Text>
+                    </View>
                   )}
 
-                  {/* Botões Aprovar/Recusar */}
+                  {/* Valor estimado */}
+                  {request.totalEstimatedValue && (
+                    <View style={{ backgroundColor: `${colors.warning}10`, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Text style={{ fontSize: 18 }}>💵</Text>
+                      <View>
+                        <Text style={{ color: colors.muted, fontSize: 11 }}>Valor Estimado</Text>
+                        <Text style={{ color: colors.warning, fontWeight: "700", fontSize: 16 }}>{formatCurrency(request.totalEstimatedValue)}</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Botões Aprovar / Cancelar */}
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     <TouchableOpacity
-                      onPress={() => setShowPaymentRejectModal(true)}
+                      onPress={() => {
+                        Alert.alert("🚫 Cancelar Compra", "Deseja cancelar esta compra? Ela retornará para o Compras revisar.", [
+                          { text: "Voltar", style: "cancel" },
+                          { text: "Cancelar Compra", style: "destructive", onPress: () => rejectMutation.mutate({ requestId: request.id, comment: "Compra cancelada pelo Financeiro" }) },
+                        ]);
+                      }}
                       disabled={rejectMutation.isPending || approveMutation.isPending}
                       style={{ flex: 1, backgroundColor: `${colors.error}15`, borderWidth: 1.5, borderColor: `${colors.error}50`, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                     >
                       <Text style={{ fontSize: 16 }}>❌</Text>
-                      <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14 }}>Recusar</Text>
+                      <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14 }}>Cancelar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert("✅ Aprovar Comprovante", "Confirmar o comprovante de pagamento e avançar para verificação do Compras?", [
-                          { text: "Cancelar", style: "cancel" },
-                          { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id }) },
+                        Alert.alert("✅ Aprovar Compra", "Confirmar a aprovação desta compra e avançar para o Comprovante de Pagamento?", [
+                          { text: "Voltar", style: "cancel" },
+                          { text: "Aprovar", onPress: () => approveMutation.mutate({ requestId: request.id }) },
                         ]);
                       }}
                       disabled={approveMutation.isPending || rejectMutation.isPending}
-                      style={{ flex: 2, backgroundColor: colors.success, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                      style={{ flex: 1, backgroundColor: `${colors.success}15`, borderWidth: 1.5, borderColor: `${colors.success}50`, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                     >
-                      {approveMutation.isPending ? <ActivityIndicator color="white" /> : <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>Aprovar Pagamento</Text></>}
+                      {approveMutation.isPending ? <ActivityIndicator size="small" color={colors.success} /> : <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: colors.success, fontWeight: "700", fontSize: 14 }}>Aprovar</Text></>}
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
+
+              {/* Etapa: Comprovante de Pagamento (Financeiro) */}
+              {currentStatus === "aguardando_comprovante_pagamento" && (() => {
+                const payMethod = (request as any).paymentMethod as PaymentMethod | undefined;
+                const isPix = payMethod === "pix";
+                const hasProof = !!(request as any).paymentProofUrl;
+                const hasObs = paymentObservations.trim().length > 0;
+                // Para PIX: obrigatório comprovante. Para outros: obrigatório observações
+                const canApprove = isPix ? hasProof : hasObs;
+                return (
+                  <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+                    <Text className="text-sm font-bold text-foreground mb-1">💳 Comprovante de Pagamento</Text>
+
+                    {/* Método de pagamento */}
+                    {payMethod && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: `${colors.primary}10`, borderRadius: 10, padding: 10, marginBottom: 12 }}>
+                        <Text style={{ fontSize: 18 }}>{PAYMENT_METHOD_ICONS[payMethod]}</Text>
+                        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>{PAYMENT_METHOD_LABELS[payMethod]}</Text>
+                      </View>
+                    )}
+
+                    {/* Dados de pagamento do Compras */}
+                    {(request as any).paymentInfo && (
+                      <View style={{ backgroundColor: `${colors.surface}`, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                        <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Dados de Pagamento (Compras)</Text>
+                        <Text style={{ color: colors.foreground, fontSize: 13 }}>{(request as any).paymentInfo}</Text>
+                      </View>
+                    )}
+
+                    {/* PIX: comprovante obrigatório */}
+                    {isPix && (
+                      <>
+                        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Comprovante PIX *</Text>
+                        <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o comprovante do PIX realizado (obrigatório)</Text>
+                        {hasProof ? (
+                          <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                              <Text style={{ fontSize: 22 }}>📄</Text>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante Anexado</Text>
+                                <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                              </View>
+                              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
+                            </View>
+                          </Pressable>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={handlePickPaymentProof}
+                            disabled={uploadPaymentProofMutation.isPending}
+                            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.error}60`, borderRadius: 12, paddingVertical: 20, marginBottom: 12, opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
+                          >
+                            {uploadPaymentProofMutation.isPending ? (
+                              <><ActivityIndicator size="small" /><Text style={{ color: colors.primary, fontSize: 14, marginLeft: 8 }}>Enviando...</Text></>
+                            ) : (
+                              <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.error, fontWeight: "600", fontSize: 14 }}>{paymentProofFileName ?? "Selecionar Comprovante PIX (obrigatório)"}</Text></>
+                            )}
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    )}
+
+                    {/* Boleto / Cartão: observações obrigatórias + comprovante opcional */}
+                    {!isPix && (
+                      <>
+                        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Observações e Vencimento *</Text>
+                        <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe a data de vencimento, número do boleto ou parcelas do cartão (obrigatório)</Text>
+                        <TextInput
+                          value={paymentObservations}
+                          onChangeText={setPaymentObservations}
+                          placeholder="Ex: Boleto vence em 15/04/2025, código 12345. / Cartão em 3x de R$ 500,00, vencimento dia 10..."
+                          placeholderTextColor={colors.muted}
+                          multiline
+                          numberOfLines={4}
+                          style={{
+                            backgroundColor: colors.background,
+                            borderWidth: 1,
+                            borderColor: hasObs ? colors.border : `${colors.error}60`,
+                            borderRadius: 12,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                            fontSize: 14,
+                            color: colors.foreground,
+                            minHeight: 100,
+                            textAlignVertical: "top",
+                            marginBottom: 12,
+                          }}
+                        />
+                        {/* Comprovante opcional para boleto/cartão */}
+                        <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Comprovante (opcional)</Text>
+                        {hasProof ? (
+                          <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                              <Text style={{ fontSize: 22 }}>📄</Text>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante Anexado</Text>
+                                <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                              </View>
+                            </View>
+                          </Pressable>
+                        ) : (
+                          <TouchableOpacity
+                            onPress={handlePickPaymentProof}
+                            disabled={uploadPaymentProofMutation.isPending}
+                            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}40`, borderRadius: 12, paddingVertical: 16, marginBottom: 12, opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
+                          >
+                            {uploadPaymentProofMutation.isPending ? (
+                              <ActivityIndicator size="small" color={colors.primary} />
+                            ) : (
+                              <><Text style={{ fontSize: 20 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>{paymentProofFileName ?? "Anexar comprovante (opcional)"}</Text></>
+                            )}
+                          </TouchableOpacity>
+                        )}
+                      </>
+                    )}
+
+                    {!canApprove && (
+                      <Text style={{ color: colors.error, fontSize: 11, textAlign: "center", marginBottom: 10 }}>
+                        {isPix ? "* Anexe o comprovante PIX para continuar" : "* Preencha as observações e vencimento para continuar"}
+                      </Text>
+                    )}
+
+                    {/* Botões Aprovar/Recusar */}
+                    <View style={{ flexDirection: "row", gap: 10 }}>
+                      <TouchableOpacity
+                        onPress={() => setShowPaymentRejectModal(true)}
+                        disabled={rejectMutation.isPending || approveMutation.isPending}
+                        style={{ flex: 1, backgroundColor: `${colors.error}15`, borderWidth: 1.5, borderColor: `${colors.error}50`, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                      >
+                        <Text style={{ fontSize: 16 }}>❌</Text>
+                        <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14 }}>Recusar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => {
+                          Alert.alert("✅ Aprovar Comprovante", "Confirmar o pagamento e avançar para verificação do Compras?", [
+                            { text: "Cancelar", style: "cancel" },
+                            { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, paymentObservations: !isPix ? paymentObservations.trim() : undefined }) },
+                          ]);
+                        }}
+                        disabled={approveMutation.isPending || rejectMutation.isPending || !canApprove}
+                        style={{ flex: 2, backgroundColor: canApprove ? colors.success : colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                      >
+                        {approveMutation.isPending ? <ActivityIndicator color="white" /> : <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: canApprove ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>Aprovar Pagamento</Text></>}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })()}
 
               {/* Etapa: Verificação Final (Compras) */}
               {currentStatus === "aguardando_verificacao_compras" && (
@@ -1030,6 +1325,48 @@ export default function RequestDetailScreen() {
             </TouchableOpacity>
           </View>
         )}
+
+        {/* Botão Cancelar Solicitação (solicitante ou master, quando não há outros botões fixos) */}
+        {canCancel && !showFixedButtons && (
+          <View style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 16,
+            backgroundColor: colors.background,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+          }}>
+            <TouchableOpacity
+              onPress={() => setShowCancelModal(true)}
+              disabled={cancelMutation.isPending}
+              style={{
+                backgroundColor: `${colors.error}12`,
+                borderWidth: 1.5,
+                borderColor: `${colors.error}40`,
+                borderRadius: 14,
+                paddingVertical: 14,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+                opacity: cancelMutation.isPending ? 0.7 : 1,
+              }}
+            >
+              {cancelMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.error} />
+              ) : (
+                <>
+                  <Text style={{ fontSize: 16 }}>🚫</Text>
+                  <Text style={{ color: colors.error, fontWeight: "700", fontSize: 15 }}>Cancelar Solicitação</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       {/* Modais */}
@@ -1051,6 +1388,13 @@ export default function RequestDetailScreen() {
         onClose={() => setShowPaymentRejectModal(false)}
         onConfirm={(comment) => rejectMutation.mutate({ requestId: request.id, comment })}
         isLoading={rejectMutation.isPending}
+      />
+      {/* Modal de Cancelamento */}
+      <CancelModal
+        visible={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={(reason) => cancelMutation.mutate({ requestId: request.id, reason: reason || undefined })}
+        isLoading={cancelMutation.isPending}
       />
     </ScreenContainer>
   );

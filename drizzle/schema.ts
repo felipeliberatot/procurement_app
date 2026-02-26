@@ -115,6 +115,7 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
     "aguardando_controladoria",
     "aguardando_diretoria",
     "aguardando_ordem_compra",
+    "aguardando_aprovacao_compra",
     "aguardando_comprovante_pagamento",
     "aguardando_verificacao_compras",
     "concluida",
@@ -127,8 +128,10 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   // Step-specific data
   budgetFileUrl: text("budgetFileUrl"),   // PDF orçamento
   purchaseOrderNumber: varchar("purchaseOrderNumber", { length: 64 }),
+  paymentMethod: mysqlEnum("paymentMethod", ["pix", "boleto", "cartao_avista", "cartao_parcelado"]), // Método de pagamento selecionado pelo Compras
   paymentInfo: text("paymentInfo"),        // Dados de pagamento inseridos pelo Compras
   paymentProofUrl: text("paymentProofUrl"), // PDF comprovante de pagamento (Financeiro)
+  paymentObservations: text("paymentObservations"), // Observações de pagamento (boleto/cartão)
   invoiceUrl: text("invoiceUrl"),           // PDF nota fiscal (Compras na verificação final)
   ocSiagriUrl: text("ocSiagriUrl"),          // PDF OC Siagri (Compras na emissão de OC)
 

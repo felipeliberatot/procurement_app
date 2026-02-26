@@ -655,14 +655,17 @@ export async function attachBudget(requestId: number, userId: number, userName: 
 // ─── Approvals ────────────────────────────────────────────────────────────────
 
 const STEP_FLOW: Record<string, { step: string; nextStatus: string; action: string }> = {
-  aguardando_gerente:              { step: "gerente",      nextStatus: "aguardando_orcamento",              action: "aprovada" },
-  aguardando_orcamento:            { step: "orcamento",    nextStatus: "aguardando_controladoria",          action: "aprovada" },
-  aguardando_controladoria:        { step: "controladoria",nextStatus: "aguardando_diretoria",              action: "aprovada" },
-  aguardando_diretoria:            { step: "diretoria",    nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
-  aguardando_ordem_compra:         { step: "ordem_compra", nextStatus: "aguardando_comprovante_pagamento",  action: "ordem_emitida" },
-  aguardando_comprovante_pagamento:{ step: "financeiro",   nextStatus: "aguardando_verificacao_compras",   action: "comprovante_aprovado" },
+  aguardando_gerente:              { step: "gerente",           nextStatus: "aguardando_orcamento",              action: "aprovada" },
+  aguardando_orcamento:            { step: "orcamento",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
+  aguardando_controladoria:        { step: "controladoria",     nextStatus: "aguardando_diretoria",              action: "aprovada" },
+  aguardando_diretoria:            { step: "diretoria",         nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
+  // Fluxo 06: Compras emite OC e define método de pagamento → vai para Aprovação de Compra (Financeiro)
+  aguardando_ordem_compra:         { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_compra",       action: "ordem_emitida" },
+  // Fluxo 06b: Financeiro aprova a compra → vai para Comprovante de Pagamento
+  aguardando_aprovacao_compra:     { step: "aprovacao_compra",  nextStatus: "aguardando_comprovante_pagamento",  action: "compra_aprovada" },
+  aguardando_comprovante_pagamento:{ step: "financeiro",        nextStatus: "aguardando_verificacao_compras",   action: "comprovante_aprovado" },
   // Reenvio pelo solicitante após rejeição → reinicia o fluxo a partir do gerente
-  rejeitada:                       { step: "gerente",      nextStatus: "aguardando_gerente",                action: "reaberta" },
+  rejeitada:                       { step: "gerente",           nextStatus: "aguardando_gerente",                action: "reaberta" },
 };
 
 const REJECT_FLOW: Record<string, string> = {
@@ -671,6 +674,8 @@ const REJECT_FLOW: Record<string, string> = {
   aguardando_controladoria:        "aguardando_orcamento",
   aguardando_diretoria:            "aguardando_controladoria",
   aguardando_ordem_compra:         "aguardando_diretoria",
+  // Fluxo 06b: Financeiro recusa a compra → volta para o Compras (aguardando_ordem_compra)
+  aguardando_aprovacao_compra:     "aguardando_ordem_compra",
   // Fluxo 07: Financeiro recusa comprovante → volta para o solicitante (rejeitada)
   aguardando_comprovante_pagamento:"rejeitada",
 };
@@ -678,7 +683,7 @@ const REJECT_FLOW: Record<string, string> = {
 export async function approveRequest(
   requestId: number,
   user: User,
-  data: { comment?: string; purchaseOrderNumber?: string; paymentInfo?: string }
+  data: { comment?: string; purchaseOrderNumber?: string; paymentInfo?: string; paymentMethod?: string; paymentObservations?: string }
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -703,6 +708,8 @@ export async function approveRequest(
   };
   if (data.purchaseOrderNumber) updateData.purchaseOrderNumber = data.purchaseOrderNumber;
   if (data.paymentInfo) updateData.paymentInfo = data.paymentInfo;
+  if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
+  if (data.paymentObservations) updateData.paymentObservations = data.paymentObservations;
 
   await db.update(purchaseRequests).set(updateData).where(eq(purchaseRequests.id, requestId));
 
@@ -729,6 +736,7 @@ export async function approveRequest(
       aguardando_controladoria:        "controladoria",
       aguardando_diretoria:            "diretoria",
       aguardando_ordem_compra:         "orcamento",          // Fluxo 06: OC → Orçamento
+      aguardando_aprovacao_compra:     "financeiro",         // Fluxo 06b: Aprovação de Compra → Financeiro
       aguardando_comprovante_pagamento:"financeiro",         // Fluxo 07: Comprovante → Financeiro
       aguardando_verificacao_compras:  "orcamento",          // Fluxo 08: Verificação Final → Orçamento
     };
@@ -994,6 +1002,73 @@ export async function finalizeOC(requestId: number, user: User): Promise<void> {
     }
   } catch (e) {
     console.warn("[WhatsApp] Failed to send finalization notification:", e);
+  }
+}
+
+// ─── Cancel Request ─────────────────────────────────────────────────────────
+
+/**
+ * Cancela uma solicitação.
+ * Somente o solicitante que abriu (requesterId) ou um usuário master pode cancelar.
+ * Solicitações já concluídas ou canceladas não podem ser canceladas.
+ */
+export async function cancelRequest(
+  requestId: number,
+  user: User,
+  reason?: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+  if (!request) throw new Error("Solicitação não encontrada");
+
+  const isMaster = (user as any).approvalLevel === "master";
+  const isOwner = request.requesterId === user.id;
+
+  if (!isMaster && !isOwner) {
+    throw new Error("Apenas o solicitante ou um usuário master pode cancelar esta solicitação.");
+  }
+
+  if (request.status === "cancelada") {
+    throw new Error("Esta solicitação já foi cancelada.");
+  }
+  if (request.status === "concluida") {
+    throw new Error("Solicitações concluídas não podem ser canceladas.");
+  }
+
+  await db.update(purchaseRequests).set({
+    status: "cancelada" as any,
+    stepDeadlineAt: null,
+  }).where(eq(purchaseRequests.id, requestId));
+
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: user.id,
+    userName: user.name ?? "Usuário",
+    step: "cancelamento" as any,
+    action: "cancelada" as any,
+    comment: reason ?? "Solicitação cancelada pelo solicitante.",
+  });
+
+  // Notificar solicitante se for o master cancelando
+  if (isMaster && !isOwner) {
+    try {
+      const [requester] = await db.select().from(users).where(eq(users.id, request.requesterId)).limit(1);
+      if (requester?.phone) {
+        await WA.notifyRejection({
+          requesterPhone: requester.phone,
+          requesterName: requester.name ?? "Solicitante",
+          requestNumber: request.requestNumber,
+          requestId,
+          rejectorName: user.name ?? "Master",
+          stepLabel: "Cancelamento",
+          comment: reason ?? "Solicitação cancelada pelo administrador.",
+        });
+      }
+    } catch (e) {
+      console.warn("[WhatsApp] Failed to send cancellation notification:", e);
+    }
   }
 }
 

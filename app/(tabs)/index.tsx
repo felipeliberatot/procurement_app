@@ -13,8 +13,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import type { ProcurementRole } from "@/shared/types";
-import { ROLE_LABELS } from "@/shared/types";
+import type { ProcurementRole, RequestStatus } from "@/shared/types";
+import { ROLE_LABELS, STATUS_LABELS } from "@/shared/types";
+import { useColors } from "@/hooks/use-colors";
 
 export default function DashboardScreen() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -28,7 +29,13 @@ export default function DashboardScreen() {
 
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
 
+  const colors = useColors();
+
   const { data: stats, isLoading: statsLoading } = trpc.requests.dashboardStats.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  const { data: allRequests, isLoading: allRequestsLoading } = trpc.requests.all.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
@@ -294,6 +301,110 @@ export default function DashboardScreen() {
             </View>
           </>
         )}
+
+        {/* Todas as Solicitações — somente visualização */}
+        {/* Helper para converter token de cor em valor real */}
+        <View className="px-5 mt-6 mb-5" style={isDesktop ? { paddingHorizontal: 0 } : {}}>
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="text-sm font-bold text-foreground">Todas as Solicitações</Text>
+            <TouchableOpacity onPress={() => router.push("/(tabs)/requests" as any)}>
+              <Text className="text-xs text-primary font-semibold">Ver todas →</Text>
+            </TouchableOpacity>
+          </View>
+          {allRequestsLoading ? (
+            <View className="items-center py-6"><ActivityIndicator /></View>
+          ) : !allRequests || allRequests.length === 0 ? (
+            <View className="bg-surface border border-border rounded-2xl p-6 items-center">
+              <Text className="text-3xl mb-2">📋</Text>
+              <Text className="text-sm text-muted text-center">Nenhuma solicitação cadastrada ainda</Text>
+            </View>
+          ) : (
+            <View className="bg-surface border border-border rounded-2xl overflow-hidden">
+              {(allRequests.slice(0, isDesktop ? 10 : 5)).map((req: any, index: number, arr: any[]) => (
+                <TouchableOpacity
+                  key={req.id}
+                  activeOpacity={0.7}
+                  onPress={() => router.push(`/request/${req.id}` as any)}
+                  style={{
+                    flexDirection: "row", alignItems: "center", gap: 12,
+                    paddingHorizontal: 16, paddingVertical: 12,
+                    borderBottomWidth: index < arr.length - 1 ? 1 : 0,
+                    borderBottomColor: colors.border,
+                  }}
+                >
+                  {/* Status dot */}
+                  <View style={{
+                    width: 8, height: 8, borderRadius: 4,
+                    backgroundColor: {
+                      rascunho: colors.muted,
+                      aguardando_gerente: colors.warning,
+                      aguardando_orcamento: colors.warning,
+                      aguardando_controladoria: colors.warning,
+                      aguardando_diretoria: colors.warning,
+                      aguardando_ordem_compra: colors.warning,
+                      aguardando_aprovacao_compra: colors.warning,
+                      aguardando_comprovante_pagamento: colors.warning,
+                      aguardando_verificacao_compras: colors.warning,
+                      concluida: colors.success,
+                      rejeitada: colors.error,
+                      cancelada: colors.muted,
+                    }[req.status as RequestStatus] ?? colors.muted,
+                    flexShrink: 0,
+                  }} />
+                  {/* Info */}
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }} numberOfLines={1}>
+                      {req.title ?? `Solicitação #${req.id}`}
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 11, marginTop: 1 }} numberOfLines={1}>
+                      {req.requesterName ?? "Solicitante"} · {new Date(req.createdAt).toLocaleDateString("pt-BR")}
+                    </Text>
+                  </View>
+                  {/* Status badge */}
+                  {(() => {
+                    const statusColor = {
+                      rascunho: colors.muted,
+                      aguardando_gerente: colors.warning,
+                      aguardando_orcamento: colors.warning,
+                      aguardando_controladoria: colors.warning,
+                      aguardando_diretoria: colors.warning,
+                      aguardando_ordem_compra: colors.warning,
+                      aguardando_aprovacao_compra: colors.warning,
+                      aguardando_comprovante_pagamento: colors.warning,
+                      aguardando_verificacao_compras: colors.warning,
+                      concluida: colors.success,
+                      rejeitada: colors.error,
+                      cancelada: colors.muted,
+                    }[req.status as RequestStatus] ?? colors.muted;
+                    return (
+                      <>
+                        <View style={{
+                          paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20,
+                          backgroundColor: `${statusColor}20`,
+                        }}>
+                          <Text style={{ color: statusColor, fontSize: 10, fontWeight: "700" }}>
+                            {STATUS_LABELS[req.status as RequestStatus] ?? req.status}
+                          </Text>
+                        </View>
+                        <Text style={{ color: colors.muted, fontSize: 14 }}>›</Text>
+                      </>
+                    );
+                  })()}
+                </TouchableOpacity>
+              ))}
+              {allRequests.length > (isDesktop ? 10 : 5) && (
+                <TouchableOpacity
+                  onPress={() => router.push("/(tabs)/requests" as any)}
+                  style={{ paddingVertical: 12, alignItems: "center", borderTopWidth: 1, borderTopColor: colors.border }}
+                >
+                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                    Ver mais {allRequests.length - (isDesktop ? 10 : 5)} solicitações →
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
 
       </ScrollView>
     </ScreenContainer>

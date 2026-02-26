@@ -17,11 +17,28 @@ export type RequestStatus =
   | "aguardando_controladoria"
   | "aguardando_diretoria"
   | "aguardando_ordem_compra"
+  | "aguardando_aprovacao_compra"
   | "aguardando_comprovante_pagamento"
   | "aguardando_verificacao_compras"
   | "concluida"
   | "rejeitada"
   | "cancelada";
+
+export type PaymentMethod = "pix" | "boleto" | "cartao_avista" | "cartao_parcelado";
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  pix: "PIX",
+  boleto: "Boleto",
+  cartao_avista: "Cartão à Vista",
+  cartao_parcelado: "Cartão Parcelado",
+};
+
+export const PAYMENT_METHOD_ICONS: Record<PaymentMethod, string> = {
+  pix: "🟩",
+  boleto: "🧳",
+  cartao_avista: "💳",
+  cartao_parcelado: "💳",
+};
 
 export type ProcurementRole =
   | "solicitante"
@@ -77,6 +94,7 @@ export const STATUS_LABELS: Record<RequestStatus, string> = {
   aguardando_controladoria: "Aguard. Controladoria",
   aguardando_diretoria: "Aguard. Diretoria",
   aguardando_ordem_compra: "Emissão de OC",
+  aguardando_aprovacao_compra: "Aprovação de Compra",
   aguardando_comprovante_pagamento: "Aguard. Comprovante",
   aguardando_verificacao_compras: "Verif. Compras",
   concluida: "Concluída",
@@ -128,6 +146,7 @@ export const STATUS_COLORS: Record<RequestStatus, "primary" | "warning" | "succe
   aguardando_controladoria: "warning",
   aguardando_diretoria: "warning",
   aguardando_ordem_compra: "warning",
+  aguardando_aprovacao_compra: "warning",
   aguardando_comprovante_pagamento: "warning",
   aguardando_verificacao_compras: "warning",
   concluida: "success",
