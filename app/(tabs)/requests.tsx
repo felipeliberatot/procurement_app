@@ -7,6 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -45,6 +46,7 @@ export default function RequestsScreen() {
   const { isAuthenticated } = useAuth();
   const { isDesktop } = useBreakpoint();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ filter?: string; urgency?: string }>();
   const [activeFilter, setActiveFilter] = useState(params.filter ?? "all");
   const [activeUrgency, setActiveUrgency] = useState(params.urgency ?? "all");
@@ -279,7 +281,7 @@ export default function RequestsScreen() {
         <FlatList
           data={filtered}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={{ padding: 16, paddingBottom: 32, flexGrow: 1 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
           onRefresh={refetch}
           refreshing={isRefetching}
           ListEmptyComponent={

@@ -104,7 +104,7 @@ export default function RootLayout() {
             <Stack.Screen name="whatsapp-setup" />
             <Stack.Screen name="whatsapp-config" />
           </Stack>
-          <StatusBar style="auto" />
+          <StatusBar style="auto" translucent={Platform.OS === "android"} backgroundColor="transparent" />
         </QueryClientProvider>
       </trpc.Provider>
     </GestureHandlerRootView>

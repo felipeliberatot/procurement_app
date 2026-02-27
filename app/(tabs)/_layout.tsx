@@ -21,7 +21,9 @@ export default function TabLayout() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { isDesktop } = useBreakpoint();
-  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
+  // No Android edge-to-edge, insets.bottom já inclui a altura da barra de navegação.
+  // Garantimos um mínimo de 8px e máximo confortável para não sobrepor a gesture bar.
+  const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, Platform.OS === "android" ? 12 : 8);
   const tabBarHeight = 56 + bottomPadding;
 
   return (

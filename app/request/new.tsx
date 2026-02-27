@@ -1,6 +1,7 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "@/lib/trpc";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
@@ -40,6 +41,7 @@ function newItem(): Item {
 }
 
 export default function NewRequestScreen() {
+  const insets = useSafeAreaInsets();
   const { user, isAuthenticated } = useAuth();
   const colors = useColors();
   const utils = trpc.useUtils();
@@ -147,7 +149,7 @@ export default function NewRequestScreen() {
           <View style={{ width: 60 }} />
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: Math.max(insets.bottom + 24, 40) }} keyboardShouldPersistTaps="handled">
 
           {/* Solicitante (readonly) */}
           <View className="mb-4 bg-surface border border-border rounded-xl p-3">

@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { trpc } from "@/lib/trpc";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useEffect } from "react";
 import {
   ActivityIndicator,
@@ -30,6 +31,7 @@ export default function DashboardScreen() {
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
 
   const colors = useColors();
+  const insets = useSafeAreaInsets();
 
   const { data: stats, isLoading: statsLoading } = trpc.requests.dashboardStats.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -67,7 +69,7 @@ export default function DashboardScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40, maxWidth: isDesktop ? 1200 : undefined, alignSelf: isDesktop ? "center" as any : undefined, width: isDesktop ? "100%" : undefined, paddingHorizontal: isDesktop ? 32 : 0 }}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Math.max(insets.bottom + 24, 40), maxWidth: isDesktop ? 1200 : undefined, alignSelf: isDesktop ? "center" as any : undefined, width: isDesktop ? "100%" : undefined, paddingHorizontal: isDesktop ? 32 : 0 }}>
 
         {/* Header */}
         <View className="px-5 pt-5 pb-4" style={isDesktop ? { paddingHorizontal: 0 } : {}}>

@@ -307,3 +307,6 @@
 
 ## E-mail Relatório Diário
 - [x] Substituir emoji 🌾 no cabeçalho do e-mail pela logo da CGS Agrícola como imagem inline (todos os 3 templates: boas-vindas, relatório diário e reset de senha)
+
+## Otimização Android Safe Area
+- [x] Auditar e corrigir todas as telas para não conflitarem com barras de interface do Android (status bar, navigation bar, gesture bar) — ScreenContainer atualizado com bottom edge no Android, paddingBottom dinâmico via useSafeAreaInsets em todas as telas, StatusBar translucent no Android

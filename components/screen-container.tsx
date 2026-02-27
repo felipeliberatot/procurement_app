@@ -1,12 +1,14 @@
-import { View, type ViewProps } from "react-native";
+import { Platform, View, type ViewProps } from "react-native";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 
 import { cn } from "@/lib/utils";
 
 export interface ScreenContainerProps extends ViewProps {
   /**
-   * SafeArea edges to apply. Defaults to ["top", "left", "right"].
-   * Bottom is typically handled by Tab Bar.
+   * SafeArea edges to apply.
+   * On Android defaults to ["top", "left", "right", "bottom"] to avoid
+   * conflicts with the navigation/gesture bar.
+   * On iOS defaults to ["top", "left", "right"] because the Tab Bar handles bottom.
    */
   edges?: Edge[];
   /**
@@ -24,10 +26,8 @@ export interface ScreenContainerProps extends ViewProps {
 }
 
 /**
- * A container component that properly handles SafeArea and background colors.
- *
- * The outer View extends to full screen (including status bar area) with the background color,
- * while the inner SafeAreaView ensures content is within safe bounds.
+ * A container component that properly handles SafeArea and background colors
+ * for both iOS and Android (including edge-to-edge navigation bar).
  *
  * Usage:
  * ```tsx
@@ -40,13 +40,22 @@ export interface ScreenContainerProps extends ViewProps {
  */
 export function ScreenContainer({
   children,
-  edges = ["top", "left", "right"],
+  edges,
   className,
   containerClassName,
   safeAreaClassName,
   style,
   ...props
 }: ScreenContainerProps) {
+  // Android: include bottom to avoid gesture/navigation bar overlap.
+  // iOS: bottom is handled by the Tab Bar, so we skip it by default.
+  const defaultEdges: Edge[] =
+    Platform.OS === "android"
+      ? ["top", "left", "right", "bottom"]
+      : ["top", "left", "right"];
+
+  const resolvedEdges = edges ?? defaultEdges;
+
   return (
     <View
       className={cn(
@@ -57,7 +66,7 @@ export function ScreenContainer({
       {...props}
     >
       <SafeAreaView
-        edges={edges}
+        edges={resolvedEdges}
         className={cn("flex-1", safeAreaClassName)}
         style={style}
       >

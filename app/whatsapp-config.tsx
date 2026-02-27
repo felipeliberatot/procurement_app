@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "@/lib/trpc";
 import { router } from "expo-router";
 
@@ -69,6 +70,7 @@ const PROVIDERS = [
 
 export default function WhatsAppConfigScreen() {
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [testPhone, setTestPhone] = useState("");
 
@@ -101,7 +103,7 @@ export default function WhatsAppConfigScreen() {
 
   return (
     <ScreenContainer>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom + 24, 40) }}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity

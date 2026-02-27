@@ -2,6 +2,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useAuth } from "@/hooks/use-auth";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useColors } from "@/hooks/use-colors";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "@/lib/trpc";
 import type { ProcurementRole } from "@/shared/types";
 import { ROLE_LABELS } from "@/shared/types";
@@ -1460,6 +1461,7 @@ export default function RegistersScreen() {
   const { isAuthenticated, user } = useAuth();
   const { isDesktop } = useBreakpoint();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const utils = trpc.useUtils();
 
   const [activeTab, setActiveTab] = useState<Tab>("users");
@@ -2013,7 +2015,7 @@ export default function RegistersScreen() {
           <FlatList
             data={filteredUsers}
             keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
               <View style={{ gap: 8, paddingTop: 12, paddingBottom: 4 }}>
@@ -2405,7 +2407,7 @@ export default function RegistersScreen() {
           <FlatList
             data={costCentersList ?? []}
             keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               ccLoading ? (
@@ -2499,7 +2501,7 @@ export default function RegistersScreen() {
           <FlatList
             data={assetsList ?? []}
             keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               assetsLoading ? (
@@ -2578,7 +2580,7 @@ export default function RegistersScreen() {
           <FlatList
             data={unitsList ?? []}
             keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               unitsLoading ? (
@@ -2641,7 +2643,7 @@ export default function RegistersScreen() {
           <FlatList
             data={businessUnitsList ?? []}
             keyExtractor={(item) => String((item as any).id)}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               buLoading ? (
@@ -2715,7 +2717,7 @@ export default function RegistersScreen() {
           <FlatList
             data={departmentsList ?? []}
             keyExtractor={(item) => String((item as any).id)}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 32, flexGrow: 1 }}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               deptLoading ? (

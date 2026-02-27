@@ -387,7 +387,7 @@ export default function MalotesScreen() {
           data={filteredMalotes}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderMalote}
-          contentContainerStyle={{ padding: 16, gap: 10 }}
+          contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: Math.max(insets.bottom + 16, 32) }}
         />
       )}
 

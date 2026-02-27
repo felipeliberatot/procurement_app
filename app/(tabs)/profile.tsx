@@ -1,4 +1,5 @@
 import { ScreenContainer } from "@/components/screen-container";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
@@ -19,6 +20,7 @@ import type { ProcurementRole } from "@/shared/types";
 import { ROLE_LABELS } from "@/shared/types";
 
 export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, logout: authLogout } = useAuth();
   const colors = useColors();
   const utils = trpc.useUtils();
@@ -70,7 +72,7 @@ export default function ProfileScreen() {
           <Text className="text-2xl font-bold text-foreground">Meu Perfil</Text>
         </View>
 
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }} keyboardShouldPersistTaps="handled">
+        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: Math.max(insets.bottom + 24, 40) }} keyboardShouldPersistTaps="handled">
           {/* Avatar */}
           <View className="items-center mb-6">
             <View className="w-20 h-20 rounded-full bg-primary/10 items-center justify-center mb-3">

@@ -7,6 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -157,6 +158,7 @@ export default function ApprovalsScreen() {
   const { isAuthenticated, user } = useAuth();
   const { isDesktop } = useBreakpoint();
   const colors = useColors();
+  const insets = useSafeAreaInsets();
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
   const utils = trpc.useUtils();
 
@@ -261,8 +263,8 @@ export default function ApprovalsScreen() {
           data={pending ?? []}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={isDesktop
-            ? { padding: 20, paddingBottom: 32, flexGrow: 1, maxWidth: 1000, alignSelf: "center" as any, width: "100%" }
-            : { padding: 16, paddingBottom: 32, flexGrow: 1 }
+            ? { padding: 20, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1, maxWidth: 1000, alignSelf: "center" as any, width: "100%" }
+            : { padding: 16, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }
           }
           onRefresh={refetch}
           refreshing={isRefetching}
