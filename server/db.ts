@@ -611,9 +611,8 @@ export async function getDashboardStats(userId: number, role: string) {
   const db = await getDb();
   if (!db) return { total: 0, pending: 0, approved: 0, rejected: 0, urgent: 0, emergency: 0 };
 
-  const all = role === "solicitante"
-    ? await db.select().from(purchaseRequests).where(eq(purchaseRequests.requesterId, userId))
-    : await db.select().from(purchaseRequests);
+  // Todos os perfis vêem todas as solicitações no dashboard
+  const all = await db.select().from(purchaseRequests);
 
   const pending = all.filter(r => r.status.startsWith("aguardando")).length;
   const approved = all.filter(r => r.status === "concluida").length;

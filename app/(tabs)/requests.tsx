@@ -6,7 +6,8 @@ import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -49,10 +50,18 @@ export default function RequestsScreen() {
   const [activeUrgency, setActiveUrgency] = useState(params.urgency ?? "all");
   const [activeDepartment, setActiveDepartment] = useState<string>("all");
 
-  // Atualiza filtros quando os parâmetros de rota mudam (ex: navegação do dashboard)
+  // Sincroniza filtros sempre que a tela recebe foco (inclui navegação por tab)
+  useFocusEffect(
+    useCallback(() => {
+      setActiveFilter(params.filter ?? "all");
+      setActiveUrgency(params.urgency ?? "all");
+    }, [params.filter, params.urgency])
+  );
+
+  // Também sincroniza quando os params mudam sem perda de foco
   useEffect(() => {
-    if (params.filter) setActiveFilter(params.filter);
-    if (params.urgency) setActiveUrgency(params.urgency);
+    setActiveFilter(params.filter ?? "all");
+    setActiveUrgency(params.urgency ?? "all");
   }, [params.filter, params.urgency]);
 
   const { data: requests, isLoading, refetch, isRefetching } = trpc.requests.all.useQuery(undefined, {

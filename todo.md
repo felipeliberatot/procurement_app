@@ -299,3 +299,8 @@
 - [x] Corrigir scroll do modal de detalhe do malote: todo o conteúdo agora está dentro de um ScrollView, permitindo arrastar para cima para visualizar melhor
 - [x] Corrigir modal de malotes: botão "Enviar Malote" cortado na borda inferior — adicionar padding inferior suficiente no ScrollView e safe area
 - [x] Alterar horário do cron do relatório diário de e-mail de 18h para 19h
+
+## Correções de Visibilidade e Dashboard
+- [x] Todas as solicitações visíveis para todos os perfis (getDashboardStats não filtra mais por requesterId para solicitante)
+- [x] Solicitações concluídas permanecem visíveis na aba Solicitações (já estava correto, getAllRequests retorna todos os status)
+- [x] Bug: Dashboard — filtros sincronizados via useFocusEffect + useEffect para garantir que ao clicar nos cards as solicitações aparecem corretamente filtradas
