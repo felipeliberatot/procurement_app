@@ -58,7 +58,8 @@ export async function sendWelcomeEmail(params: {
           <!-- Header -->
           <tr>
             <td style="background:#0a7ea4;padding:28px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agrícola</h1>
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663032360281/ptXJWPoflNdSNrge.png" alt="CGS Agrícola" width="56" height="56" style="display:block;margin:0 auto 12px;border-radius:12px;" />
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">CGS Agrícola</h1>
               <p style="margin:6px 0 0;color:#e0f4fb;font-size:14px;">Sistema de Gestão de Compras</p>
             </td>
           </tr>
@@ -244,7 +245,8 @@ export async function sendDailyReportEmail(params: {
           <!-- Header -->
           <tr>
             <td style="background:#0a7ea4;padding:28px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agrícola</h1>
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663032360281/ptXJWPoflNdSNrge.png" alt="CGS Agrícola" width="56" height="56" style="display:block;margin:0 auto 12px;border-radius:12px;" />
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">CGS Agrícola</h1>
               <p style="margin:6px 0 0;color:#e0f4fb;font-size:14px;">Relatório Diário de Compras — ${params.date}</p>
             </td>
           </tr>
@@ -366,7 +368,8 @@ export async function sendPasswordResetEmail(params: {
         <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <tr>
             <td style="background:#0a7ea4;padding:28px 32px;text-align:center;">
-              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">🌾 CGS Agrícola</h1>
+              <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310419663032360281/ptXJWPoflNdSNrge.png" alt="CGS Agrícola" width="56" height="56" style="display:block;margin:0 auto 12px;border-radius:12px;" />
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">CGS Agrícola</h1>
               <p style="margin:6px 0 0;color:#e0f4fb;font-size:14px;">Sistema de Gestão de Compras</p>
             </td>
           </tr>

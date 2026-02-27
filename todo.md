@@ -304,3 +304,6 @@
 - [x] Todas as solicitações visíveis para todos os perfis (getDashboardStats não filtra mais por requesterId para solicitante)
 - [x] Solicitações concluídas permanecem visíveis na aba Solicitações (já estava correto, getAllRequests retorna todos os status)
 - [x] Bug: Dashboard — filtros sincronizados via useFocusEffect + useEffect para garantir que ao clicar nos cards as solicitações aparecem corretamente filtradas
+
+## E-mail Relatório Diário
+- [x] Substituir emoji 🌾 no cabeçalho do e-mail pela logo da CGS Agrícola como imagem inline (todos os 3 templates: boas-vindas, relatório diário e reset de senha)
