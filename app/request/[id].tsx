@@ -8,6 +8,7 @@ import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
+import * as Print from "expo-print";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -396,6 +397,7 @@ export default function RequestDetailScreen() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showPaymentRejectModal, setShowPaymentRejectModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const requestId = parseInt(id ?? "0");
 
@@ -571,6 +573,114 @@ export default function RequestDetailScreen() {
   const showFixedApproveOnly = canAct && !isDone && !isCancelled && isApproveOnly;
   const bottomBarHeight = 80 + (insets.bottom > 0 ? insets.bottom : 16);
 
+  const handlePrint = async () => {
+    if (!request) return;
+    setIsPrinting(true);
+    try {
+      const itemsRows = (request.items ?? []).map((item: any) => `
+        <tr>
+          <td>${item.description ?? "—"}</td>
+          <td style="text-align:center">${item.quantity ?? "—"} ${item.unit ?? ""}</td>
+          <td style="text-align:right">${item.unitPrice ? Number(item.unitPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}</td>
+          <td style="text-align:right">${item.totalPrice ? Number(item.totalPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}</td>
+        </tr>`).join("");
+
+      const historyRows = (history ?? []).map((h: any) => `
+        <tr>
+          <td>${new Date(h.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
+          <td>${h.userName ?? "—"}</td>
+          <td>${h.action ?? "—"}</td>
+          <td>${h.comment ?? ""}</td>
+        </tr>`).join("");
+
+      const html = `
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solicitação ${(request as any).requestNumber ?? ("#" + request.id)}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #1a1a1a; padding: 24px; }
+    .header { background: #166534; color: white; padding: 16px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .header h1 { font-size: 18px; font-weight: 700; }
+    .header .sub { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+    .badge { display: inline-block; background: #dcfce7; color: #166534; border: 1px solid #86efac; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700; }
+    .section { border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px; }
+    .section-title { font-size: 11px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
+    .row { display: flex; gap: 8px; margin-bottom: 6px; }
+    .label { color: #6b7280; min-width: 130px; }
+    .value { font-weight: 600; color: #1a1a1a; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { background: #f3f4f6; text-align: left; padding: 7px 8px; font-size: 10px; text-transform: uppercase; color: #6b7280; border-bottom: 2px solid #e5e7eb; }
+    td { padding: 7px 8px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .total-row td { font-weight: 700; background: #f9fafb; }
+    .footer { margin-top: 24px; text-align: center; font-size: 10px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+    @page { margin: 20px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="sub">CGS Agrícola — Sistema de Gestão de Compras</div>
+      <h1>Solicitação ${(request as any).requestNumber ?? ("#" + request.id)}</h1>
+    </div>
+    <div class="badge">✓ CONCLUÍDA</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Informações Gerais</div>
+    <div class="row"><span class="label">Aplicação/Finalidade:</span><span class="value">${request.application ?? "—"}</span></div>
+    <div class="row"><span class="label">Solicitante:</span><span class="value">${request.requesterName ?? "—"}</span></div>
+    <div class="row"><span class="label">Departamento:</span><span class="value">${request.department ?? "—"}</span></div>
+    ${request.costCenterCode ? `<div class="row"><span class="label">Centro de Custo:</span><span class="value">${request.costCenterCode}</span></div>` : ""}
+    <div class="row"><span class="label">Urgência:</span><span class="value">${request.urgencyLevel ?? "—"}</span></div>
+    <div class="row"><span class="label">Criado em:</span><span class="value">${new Date(request.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span></div>
+    ${request.purchaseOrderNumber ? `<div class="row"><span class="label">Ordem de Compra:</span><span class="value">${request.purchaseOrderNumber}</span></div>` : ""}
+    ${(request as any).paymentMethod ? `<div class="row"><span class="label">Método de Pagamento:</span><span class="value">${(({ pix: "PIX", boleto: "Boleto", cartao_avista: "Cartão à Vista", cartao_parcelado: "Cartão Parcelado" } as Record<string, string>)[(request as any).paymentMethod] ?? (request as any).paymentMethod)}</span></div>` : ""}
+    ${(request as any).paymentInfo ? `<div class="row"><span class="label">Dados de Pagamento:</span><span class="value">${(request as any).paymentInfo}</span></div>` : ""}
+    ${(request as any).paymentObservations ? `<div class="row"><span class="label">Obs. Pagamento:</span><span class="value">${(request as any).paymentObservations}</span></div>` : ""}
+    ${request.totalEstimatedValue ? `<div class="row"><span class="label">Valor Total:</span><span class="value">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>` : ""}
+    ${request.observations ? `<div class="row"><span class="label">Observações:</span><span class="value">${request.observations}</span></div>` : ""}
+  </div>
+
+  ${(request.items ?? []).length > 0 ? `
+  <div class="section">
+    <div class="section-title">Itens Solicitados</div>
+    <table>
+      <thead><tr><th>Descrição</th><th style="text-align:center">Qtd/Un</th><th style="text-align:right">Valor Unit.</th><th style="text-align:right">Total</th></tr></thead>
+      <tbody>${itemsRows}</tbody>
+      ${request.totalEstimatedValue ? `<tfoot><tr class="total-row"><td colspan="3">Total Geral</td><td style="text-align:right">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td></tr></tfoot>` : ""}
+    </table>
+  </div>` : ""}
+
+  ${(history ?? []).length > 0 ? `
+  <div class="section">
+    <div class="section-title">Histórico de Aprovações</div>
+    <table>
+      <thead><tr><th>Data/Hora</th><th>Usuário</th><th>Ação</th><th>Comentário</th></tr></thead>
+      <tbody>${historyRows}</tbody>
+    </table>
+  </div>` : ""}
+
+  <div class="footer">
+    Documento gerado em ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} — CGS Agrícola
+  </div>
+</body>
+</html>`;
+
+      await Print.printAsync({ html });
+    } catch (err: any) {
+      if (!err?.message?.includes("cancelled") && !err?.message?.includes("cancel")) {
+        Alert.alert("Erro ao imprimir", "Não foi possível abrir a impressão. Tente novamente.");
+      }
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
   const handlePickBudget = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
@@ -674,7 +784,7 @@ export default function RequestDetailScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{
             padding: 20,
-            paddingBottom: (showFixedButtons || showFixedApproveOnly) ? bottomBarHeight + 20 : 40,
+            paddingBottom: (showFixedButtons || showFixedApproveOnly || isDone) ? bottomBarHeight + 20 : 40,
           }}
           keyboardShouldPersistTaps="handled"
         >
@@ -1339,6 +1449,51 @@ export default function RequestDetailScreen() {
             </View>
           )}
         </ScrollView>
+
+        {/* ─── Botão de Impressão (status concluída) ─── */}
+        {isDone && (
+          <View style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 16,
+            backgroundColor: colors.background,
+            borderTopWidth: 1,
+            borderTopColor: colors.border,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 8,
+            elevation: 8,
+          }}>
+            <TouchableOpacity
+              onPress={handlePrint}
+              disabled={isPrinting}
+              style={{
+                backgroundColor: colors.primary,
+                borderRadius: 14,
+                paddingVertical: 15,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+                opacity: isPrinting ? 0.7 : 1,
+              }}
+            >
+              {isPrinting ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Text style={{ fontSize: 18 }}>🖨️</Text>
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Imprimir / Salvar PDF</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* ─── Barra de ações fixa na parte inferior ─── */}
         {showFixedButtons && (
