@@ -1,29 +1,19 @@
 import React from "react";
 import { Text, View } from "react-native";
 import type { RequestStatus } from "@/shared/types";
-import { WORKFLOW_STEPS } from "@/shared/types";
+import { getWorkflowSteps } from "@/shared/types";
 
-const STATUS_ORDER: RequestStatus[] = [
-  "aguardando_gerente",
-  "aguardando_orcamento",
-  "aguardando_controladoria",
-  "aguardando_diretoria",
-  "aguardando_ordem_compra",
-  "aguardando_aprovacao_compra",
-  "aguardando_comprovante_pagamento",
-  "aguardando_verificacao_compras",
-  "concluida",
-];
-
-function getStepState(stepStatus: RequestStatus, currentStatus: RequestStatus): "done" | "active" | "pending" {
+function getStepState(
+  stepStatus: RequestStatus,
+  currentStatus: RequestStatus,
+  statusOrder: RequestStatus[]
+): "done" | "active" | "pending" {
+  const currentIdx = statusOrder.indexOf(currentStatus);
+  const stepIdx = statusOrder.indexOf(stepStatus);
   if (currentStatus === "rejeitada" || currentStatus === "cancelada") {
-    const currentIdx = STATUS_ORDER.indexOf(currentStatus);
-    const stepIdx = STATUS_ORDER.indexOf(stepStatus);
     if (stepIdx < currentIdx) return "done";
     return "pending";
   }
-  const currentIdx = STATUS_ORDER.indexOf(currentStatus);
-  const stepIdx = STATUS_ORDER.indexOf(stepStatus);
   if (stepIdx < currentIdx) return "done";
   if (stepIdx === currentIdx) return "active";
   return "pending";
@@ -31,16 +21,19 @@ function getStepState(stepStatus: RequestStatus, currentStatus: RequestStatus): 
 
 interface ApprovalTimelineProps {
   currentStatus: RequestStatus;
+  urgencyLevel?: string;
 }
 
-export function ApprovalTimeline({ currentStatus }: ApprovalTimelineProps) {
+export function ApprovalTimeline({ currentStatus, urgencyLevel }: ApprovalTimelineProps) {
   const isCancelled = currentStatus === "cancelada" || currentStatus === "rejeitada";
+  const workflowSteps = getWorkflowSteps(urgencyLevel);
+  const statusOrder = workflowSteps.map(ws => ws.status);
 
   return (
     <View>
-      {WORKFLOW_STEPS.map((ws, index) => {
-        const state = getStepState(ws.status, currentStatus);
-        const isLast = index === WORKFLOW_STEPS.length - 1;
+      {workflowSteps.map((ws, index) => {
+        const state = getStepState(ws.status, currentStatus, statusOrder);
+        const isLast = index === workflowSteps.length - 1;
 
         return (
           <View key={ws.step} className="flex-row">

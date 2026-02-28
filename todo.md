@@ -313,3 +313,28 @@
 
 ## Impressão
 - [x] Adicionar botão de impressão na etapa "concluído" da tela de detalhe da solicitação — gera PDF com resumo completo da compra via expo-print
+
+## Novos Fluxos de Aprovação
+- [ ] Implementar fluxo Normal: Solicitação → Gerente → Orçamento → Controladoria → Diretoria → OC Compras → Financeiro → Comprovante → Verificação Final
+- [ ] Implementar fluxo Urgente/Emergencial: Solicitação → Gerente → Diretoria → Orçamento → Controladoria → OC Compras → Financeiro → Comprovante → Verificação Final
+- [ ] Atualizar tela de detalhe da solicitação para exibir o fluxo correto conforme urgência
+- [ ] Garantir que ao clicar na solicitação abre tela com todas as informações
+
+## Campo OS Myfarm
+- [ ] Adicionar campo "OS Myfarm" no formulário de lançamento da solicitação
+
+## PDF de Impressão de Solicitações
+- [ ] Criar PDF de impressão para solicitações (disponível em qualquer status, não apenas concluída)
+
+## Malotes
+- [ ] Criar numeração sequencial para malotes (MAL-2026-XXXX)
+- [ ] Implementar tela de impressão do malote com resumo das solicitações e itens
+
+## Novos Fluxos de Aprovação e Melhorias (Lote 5)
+- [x] Dois fluxos de aprovação: Normal (Gerente→Orçamento→Controladoria→Diretoria→OC→Financeiro→Comprovante→Verificação) e Urgente/Emergencial (Gerente→Diretoria→Orçamento→Controladoria→OC→Financeiro→Comprovante→Verificação)
+- [x] ApprovalTimeline atualizado para mostrar o fluxo correto conforme urgência
+- [x] Campo OS Myfarm (opcional) no formulário de nova solicitação
+- [x] Campo OS Myfarm exibido na tela de detalhe da solicitação
+- [x] Botão de impressão/PDF no modal de detalhe do malote (disponível em todos os status)
+- [x] PDF do malote com: código, status, origem, destino, criado por, data de envio, observações e tabela de solicitações
+- [x] Numeração sequencial de malotes já existente (MAL-AAAA-NNNN)

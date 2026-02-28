@@ -148,6 +148,30 @@ export const WORKFLOW_STEPS: Array<{
   { step: "verificacao_compras", label: "Verificação Final (Compras)", status: "aguardando_verificacao_compras", role: "orcamento" },
 ];
 
+// Fluxo Urgente/Emergencial: Gerente → Diretoria → Orçamento → Controladoria → OC → Financeiro → Comprovante → Verificação
+export const WORKFLOW_STEPS_URGENT: Array<{
+  step: ApprovalStep;
+  label: string;
+  status: RequestStatus;
+  role?: ProcurementRole;
+}> = [
+  { step: "criacao",          label: "Solicitação Criada",          status: "aguardando_gerente" },
+  { step: "gerente",          label: "Aprovação do Gerente",        status: "aguardando_gerente",                role: "gerente" },
+  { step: "diretoria",        label: "Aprovação Diretoria",         status: "aguardando_diretoria",              role: "diretoria" },
+  { step: "orcamento",        label: "Orçamento",                    status: "aguardando_orcamento" },
+  { step: "controladoria",    label: "Aprovação Controladoria",     status: "aguardando_controladoria",          role: "controladoria" },
+  { step: "ordem_compra",     label: "Emissão de OC (Compras)",     status: "aguardando_ordem_compra",           role: "orcamento" },
+  { step: "aprovacao_compra", label: "Aprovação Financeiro",        status: "aguardando_aprovacao_compra",       role: "financeiro" },
+  { step: "financeiro",       label: "Comprovante de Pagamento",    status: "aguardando_comprovante_pagamento",  role: "financeiro" },
+  { step: "verificacao_compras", label: "Verificação Final (Compras)", status: "aguardando_verificacao_compras", role: "orcamento" },
+];
+
+export function getWorkflowSteps(urgencyLevel?: string) {
+  return (urgencyLevel === "urgente" || urgencyLevel === "emergencial")
+    ? WORKFLOW_STEPS_URGENT
+    : WORKFLOW_STEPS;
+}
+
 export const STATUS_COLORS: Record<RequestStatus, "primary" | "warning" | "success" | "error" | "muted"> = {
   rascunho: "muted",
   aguardando_gerente: "warning",

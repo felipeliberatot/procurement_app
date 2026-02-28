@@ -843,6 +843,9 @@ export default function RequestDetailScreen() {
               {request.purchaseOrderNumber && (
                 <Text className="text-sm text-muted">Ordem de Compra: <Text className="text-foreground font-bold">{request.purchaseOrderNumber}</Text></Text>
               )}
+              {request.osMyfarm && (
+                <Text className="text-sm text-muted">OS Myfarm: <Text className="text-foreground font-bold">{request.osMyfarm}</Text></Text>
+              )}
             </View>
             {request.observations && (
               <View className="mt-3 pt-3 border-t border-border">
@@ -890,7 +893,7 @@ export default function RequestDetailScreen() {
           {/* Fluxo de aprovação */}
           <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
             <Text className="text-sm font-bold text-foreground mb-4">Fluxo de Aprovação</Text>
-            <ApprovalTimeline currentStatus={currentStatus} />
+            <ApprovalTimeline currentStatus={currentStatus} urgencyLevel={request.urgencyLevel} />
           </View>
 
           {/* Histórico */}

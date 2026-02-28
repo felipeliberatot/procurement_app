@@ -51,6 +51,7 @@ export default function NewRequestScreen() {
   const [application, setApplication] = useState("");
   const [urgency, setUrgency] = useState<UrgencyLevel>("normal");
   const [observations, setObservations] = useState("");
+  const [osMyfarm, setOsMyfarm] = useState("");
   const [items, setItems] = useState<Item[]>([newItem()]);
 
   const { data: costCenters } = trpc.costCenters.list.useQuery(undefined, { enabled: isAuthenticated });
@@ -128,6 +129,7 @@ export default function NewRequestScreen() {
       application: application.trim(),
       urgencyLevel: urgency,
       observations: observations.trim() || undefined,
+      osMyfarm: osMyfarm.trim() || undefined,
       items: validItems.map((i) => ({
         description: i.description.trim(),
         quantity: i.quantity || "1",
@@ -360,6 +362,19 @@ export default function NewRequestScreen() {
               multiline
               numberOfLines={4}
               style={{ minHeight: 100, textAlignVertical: "top", borderColor: (urgency === "urgente" || urgency === "emergencial") && !observations.trim() ? colors.warning : undefined }}
+            />
+          </View>
+
+          {/* OS Myfarm */}
+          <View className="mb-6">
+            <Text className="text-sm font-semibold text-foreground mb-2">OS Myfarm <Text className="text-muted font-normal">(opcional)</Text></Text>
+            <TextInput
+              value={osMyfarm}
+              onChangeText={setOsMyfarm}
+              placeholder="Número da OS Myfarm vinculada..."
+              placeholderTextColor={colors.muted}
+              className="bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground"
+              returnKeyType="done"
             />
           </View>
 

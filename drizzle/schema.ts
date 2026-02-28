@@ -135,6 +135,9 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   invoiceUrl: text("invoiceUrl"),           // PDF nota fiscal (Compras na verificação final)
   ocSiagriUrl: text("ocSiagriUrl"),          // PDF OC Siagri (Compras na emissão de OC)
 
+  // OS Myfarm
+  osMyfarm: varchar("osMyfarm", { length: 64 }), // Número da OS Myfarm vinculada
+
   // Urgente/Emergencial: controle de retorno ao orçamento
   orcamentoFeitoUrgente: boolean("orcamentoFeitoUrgente").default(false).notNull(), // true após o orçamento ser feito pela primeira vez em pedidos urgentes/emergenciais
 

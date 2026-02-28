@@ -19,6 +19,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import * as Print from "expo-print";
 
 const STATUS_LABEL: Record<string, string> = {
   aberto: "Aberto",
@@ -48,6 +49,7 @@ type Malote = {
   destinationUnit: string;
   createdByName: string;
   createdAt: string | Date;
+  sentAt?: string | Date | null;
   notes?: string | null;
   items?: MaloteItem[];
 };
@@ -641,6 +643,90 @@ export default function MalotesScreen() {
                 >
                   <IconSymbol name="checkmark.seal.fill" size={18} color="#fff" />
                   <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6, fontSize: 15 }}>Registrar Recebimento</Text>
+                </TouchableOpacity>
+              )}
+
+              {/* Botão de impressão — disponível em todos os status */}
+              {selectedMalote && (
+                <TouchableOpacity
+                  style={[
+                    styles.btn,
+                    { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: colors.border, marginTop: 12, justifyContent: "center", paddingVertical: 14 },
+                  ]}
+                  onPress={async () => {
+                    const malote = selectedMalote;
+                    const dataEnvio = malote.sentAt ? new Date(malote.sentAt).toLocaleDateString("pt-BR") : "—";
+                    const itensHtml = (malote.items ?? []).map((item: MaloteItem, idx: number) => `
+                      <tr style="background:${idx % 2 === 0 ? "#f9fafb" : "#fff"}">
+                        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;font-weight:600;">${item.requestCode}</td>
+                        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${item.application}</td>
+                        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${item.requesterName}</td>
+                        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;text-align:center;">
+                          <span style="background:${item.receiptStatus === 'recebido' ? '#dcfce7' : item.receiptStatus === 'devolvido' ? '#fee2e2' : '#fef9c3'};color:${item.receiptStatus === 'recebido' ? '#166534' : item.receiptStatus === 'devolvido' ? '#991b1b' : '#854d0e'};padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;">
+                            ${item.receiptStatus === 'recebido' ? 'Recebido' : item.receiptStatus === 'devolvido' ? 'Devolvido' : 'Pendente'}
+                          </span>
+                        </td>
+                      </tr>
+                    `).join("");
+                    const html = `
+                      <!DOCTYPE html>
+                      <html lang="pt-BR">
+                      <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+                      <title>Malote ${malote.maloteCode}</title>
+                      <style>
+                        body { font-family: Arial, sans-serif; margin: 0; padding: 0; color: #111; }
+                        .header { background: #1a7a4a; color: white; padding: 24px 32px; }
+                        .header h1 { margin: 0; font-size: 22px; }
+                        .header p { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
+                        .content { padding: 24px 32px; }
+                        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+                        .info-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 16px; }
+                        .info-box label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 4px; }
+                        .info-box span { font-size: 14px; font-weight: 700; color: #111; }
+                        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; }
+                        .status-aberto { background: #dbeafe; color: #1d4ed8; }
+                        .status-enviado { background: #fef3c7; color: #92400e; }
+                        .status-recebido { background: #dcfce7; color: #166534; }
+                        .status-devolvido { background: #fee2e2; color: #991b1b; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+                        th { background: #1a7a4a; color: white; padding: 10px; font-size: 11px; text-align: left; }
+                        .footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; font-size: 11px; color: #9ca3af; text-align: center; }
+                        @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+                      </style></head>
+                      <body>
+                        <div class="header">
+                          <h1>CGS Agrícola — Malote ${malote.maloteCode}</h1>
+                          <p>Documento gerado em ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                        </div>
+                        <div class="content">
+                          <div class="info-grid">
+                            <div class="info-box"><label>Código</label><span>${malote.maloteCode}</span></div>
+                            <div class="info-box"><label>Status</label><span class="status-badge status-${malote.status}">${{ aberto: "Aberto", enviado: "Enviado", recebido: "Recebido", devolvido: "Devolvido" }[malote.status] ?? malote.status}</span></div>
+                            <div class="info-box"><label>Origem</label><span>${malote.originUnit}</span></div>
+                            <div class="info-box"><label>Destino</label><span>${malote.destinationUnit}</span></div>
+                            <div class="info-box"><label>Criado por</label><span>${malote.createdByName}</span></div>
+                            <div class="info-box"><label>Data de Envio</label><span>${dataEnvio}</span></div>
+                          </div>
+                          ${malote.notes ? `<div style="background:#fef9c3;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:20px;"><strong style="font-size:12px;">Observações:</strong><p style="margin:4px 0 0;font-size:13px;">${malote.notes}</p></div>` : ""}
+                          <h3 style="font-size:14px;margin-bottom:8px;">Solicitações no Malote (${(malote.items ?? []).length})</h3>
+                          <table>
+                            <thead><tr><th>Código</th><th>Aplicação</th><th>Solicitante</th><th style="text-align:center;">Status</th></tr></thead>
+                            <tbody>${itensHtml || '<tr><td colspan="4" style="text-align:center;padding:16px;color:#9ca3af;">Nenhuma solicitação</td></tr>'}</tbody>
+                          </table>
+                          <div class="footer">CGS Agrícola • Sistema de Compras • ${malote.maloteCode}</div>
+                        </div>
+                      </body></html>
+                    `;
+                    try {
+                      await Print.printAsync({ html });
+                    } catch (e) {
+                      Alert.alert("Erro", "Não foi possível abrir a impressão.");
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 16 }}>🖨️</Text>
+                  <Text style={{ color: colors.foreground, fontWeight: "700", marginLeft: 6, fontSize: 14 }}>Imprimir / Salvar PDF</Text>
                 </TouchableOpacity>
               )}
             </ScrollView>

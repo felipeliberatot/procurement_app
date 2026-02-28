@@ -445,6 +445,7 @@ export async function createPurchaseRequest(
     application: string;
     urgencyLevel: "normal" | "urgente" | "emergencial";
     observations?: string;
+    osMyfarm?: string;
     items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
   }
 ) {
@@ -473,9 +474,10 @@ export async function createPurchaseRequest(
     application: input.application,
     urgencyLevel: input.urgencyLevel,
     observations: input.observations ?? null,
+    osMyfarm: input.osMyfarm ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
-    // Urgentes e emergenciais vão direto para aprovação da Diretoria
-    status: (input.urgencyLevel === "urgente" || input.urgencyLevel === "emergencial") ? "aguardando_diretoria" : "aguardando_gerente",
+    // Todos os pedidos começam pelo Gerente (urgentes/emergenciais vão para Diretoria após o Gerente)
+    status: "aguardando_gerente",
     deadlineAt,
     stepDeadlineAt,
   });
@@ -660,31 +662,69 @@ export async function attachBudget(requestId: number, userId: number, userName: 
 
 // ─── Approvals ────────────────────────────────────────────────────────────────
 
-const STEP_FLOW: Record<string, { step: string; nextStatus: string; action: string }> = {
+// Fluxo NORMAL: Gerente → Orçamento → Controladoria → Diretoria → OC → Financeiro → Comprovante → Verificação
+const STEP_FLOW_NORMAL: Record<string, { step: string; nextStatus: string; action: string }> = {
   aguardando_gerente:              { step: "gerente",           nextStatus: "aguardando_orcamento",              action: "aprovada" },
   aguardando_orcamento:            { step: "orcamento",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
   aguardando_controladoria:        { step: "controladoria",     nextStatus: "aguardando_diretoria",              action: "aprovada" },
   aguardando_diretoria:            { step: "diretoria",         nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
-  // Fluxo 06: Compras emite OC e define método de pagamento → vai para Aprovação de Compra (Financeiro)
   aguardando_ordem_compra:         { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_compra",       action: "ordem_emitida" },
-  // Fluxo 06b: Financeiro aprova a compra → vai para Comprovante de Pagamento
   aguardando_aprovacao_compra:     { step: "aprovacao_compra",  nextStatus: "aguardando_comprovante_pagamento",  action: "compra_aprovada" },
   aguardando_comprovante_pagamento:{ step: "financeiro",        nextStatus: "aguardando_verificacao_compras",   action: "comprovante_aprovado" },
-  // Reenvio pelo solicitante após rejeição → reinicia o fluxo a partir do gerente
   rejeitada:                       { step: "gerente",           nextStatus: "aguardando_gerente",                action: "reaberta" },
 };
 
-const REJECT_FLOW: Record<string, string> = {
+// Fluxo URGENTE/EMERGENCIAL: Gerente → Diretoria → Orçamento → Controladoria → OC → Financeiro → Comprovante → Verificação
+const STEP_FLOW_URGENT: Record<string, { step: string; nextStatus: string; action: string }> = {
+  aguardando_gerente:              { step: "gerente",           nextStatus: "aguardando_diretoria",              action: "aprovada" },
+  aguardando_diretoria:            { step: "diretoria",         nextStatus: "aguardando_orcamento",              action: "aprovada" },
+  aguardando_orcamento:            { step: "orcamento",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
+  aguardando_controladoria:        { step: "controladoria",     nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
+  aguardando_ordem_compra:         { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_compra",       action: "ordem_emitida" },
+  aguardando_aprovacao_compra:     { step: "aprovacao_compra",  nextStatus: "aguardando_comprovante_pagamento",  action: "compra_aprovada" },
+  aguardando_comprovante_pagamento:{ step: "financeiro",        nextStatus: "aguardando_verificacao_compras",   action: "comprovante_aprovado" },
+  rejeitada:                       { step: "gerente",           nextStatus: "aguardando_gerente",                action: "reaberta" },
+};
+
+function getStepFlow(urgencyLevel: string) {
+  return (urgencyLevel === "urgente" || urgencyLevel === "emergencial")
+    ? STEP_FLOW_URGENT
+    : STEP_FLOW_NORMAL;
+}
+
+// Mantém compatibilidade com código que usa STEP_FLOW diretamente
+const STEP_FLOW = STEP_FLOW_NORMAL;
+
+// Fluxo de rejeição NORMAL
+const REJECT_FLOW_NORMAL: Record<string, string> = {
   aguardando_gerente:              "aguardando_gerente",
   aguardando_orcamento:            "aguardando_orcamento",
   aguardando_controladoria:        "aguardando_orcamento",
   aguardando_diretoria:            "aguardando_controladoria",
   aguardando_ordem_compra:         "aguardando_diretoria",
-  // Fluxo 06b: Financeiro recusa a compra → volta para o Compras (aguardando_ordem_compra)
   aguardando_aprovacao_compra:     "aguardando_ordem_compra",
-  // Fluxo 07: Financeiro recusa comprovante → volta para o solicitante (rejeitada)
   aguardando_comprovante_pagamento:"rejeitada",
 };
+
+// Fluxo de rejeição URGENTE/EMERGENCIAL
+const REJECT_FLOW_URGENT: Record<string, string> = {
+  aguardando_gerente:              "aguardando_gerente",
+  aguardando_diretoria:            "aguardando_gerente",
+  aguardando_orcamento:            "aguardando_orcamento",
+  aguardando_controladoria:        "aguardando_orcamento",
+  aguardando_ordem_compra:         "aguardando_controladoria",
+  aguardando_aprovacao_compra:     "aguardando_ordem_compra",
+  aguardando_comprovante_pagamento:"rejeitada",
+};
+
+function getRejectFlow(urgencyLevel: string) {
+  return (urgencyLevel === "urgente" || urgencyLevel === "emergencial")
+    ? REJECT_FLOW_URGENT
+    : REJECT_FLOW_NORMAL;
+}
+
+// Compatível com código legado
+const REJECT_FLOW = REJECT_FLOW_NORMAL;
 
 export async function approveRequest(
   requestId: number,
@@ -697,29 +737,17 @@ export async function approveRequest(
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");
 
-  const flow = STEP_FLOW[request.status];
+  // Seleciona o fluxo correto com base na urgência do pedido
+  const stepFlow = getStepFlow(request.urgencyLevel);
+  const flow = stepFlow[request.status];
   if (!flow) throw new Error("Ação não permitida neste status");
 
-  // Fluxo especial: pedidos urgentes/emergenciais vão direto para diretoria.
-  // Quando a diretoria aprova pela PRIMEIRA VEZ, o fluxo retoma a partir do orçamento.
-  // Após o orçamento ser feito (orcamentoFeitoUrgente = true), segue o fluxo normal (3→9).
-  const isUrgentOrEmergency = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
-  const deveVoltarOrcamento =
-    request.status === "aguardando_diretoria" &&
-    isUrgentOrEmergency &&
-    !request.orcamentoFeitoUrgente; // só retorna ao orçamento se ainda não foi feito
-  const effectiveNextStatus = deveVoltarOrcamento
-    ? "aguardando_orcamento"   // diretoria aprovou pedido urgente/emergencial pela 1ª vez → vai para orçamento
-    : flow.nextStatus;         // demais casos: segue o fluxo normal
+  const effectiveNextStatus = flow.nextStatus;
 
   const updateData: Record<string, unknown> = {
     status: effectiveNextStatus,
     stepDeadlineAt: getStepDeadline(),
   };
-  // Quando o orçamento for feito em pedido urgente/emergencial, marcar como feito
-  if (request.status === "aguardando_orcamento" && isUrgentOrEmergency && !request.orcamentoFeitoUrgente) {
-    updateData.orcamentoFeitoUrgente = true;
-  }
   if (data.purchaseOrderNumber) updateData.purchaseOrderNumber = data.purchaseOrderNumber;
   if (data.paymentInfo) updateData.paymentInfo = data.paymentInfo;
   if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
@@ -755,6 +783,7 @@ export async function approveRequest(
       aguardando_verificacao_compras:  "orcamento",          // Fluxo 08: Verificação Final → Orçamento
     };
 
+    const isUrgentOrEmergency = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
     if (effectiveNextStatus === "aguardando_orcamento" && (request.status === "aguardando_gerente" || (request.status === "aguardando_diretoria" && isUrgentOrEmergency))) {
       // Gerente aprovou OU diretoria aprovou pedido urgente/emergencial → notificar solicitante para anexar orçamento
       if (requester?.phone) {
@@ -845,8 +874,10 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");
 
-  const flow = STEP_FLOW[request.status];
-  const prevStatus = REJECT_FLOW[request.status] ?? "aguardando_gerente";
+  const stepFlow = getStepFlow(request.urgencyLevel);
+  const rejectFlow = getRejectFlow(request.urgencyLevel);
+  const flow = stepFlow[request.status];
+  const prevStatus = rejectFlow[request.status] ?? "aguardando_gerente";
 
   await db.update(purchaseRequests).set({
     status: prevStatus as any,
