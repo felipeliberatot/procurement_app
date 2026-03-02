@@ -2,10 +2,12 @@ import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Platform, View } from "react-native";
+import { Platform, Text, View } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { DesktopSidebar } from "@/components/desktop-sidebar";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/hooks/use-auth";
 
 function DesktopLayout({ children }: { children: React.ReactNode }) {
   const colors = useColors();
@@ -75,7 +77,38 @@ export default function TabLayout() {
         name="malotes"
         options={{
           title: "Malotes",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="shippingbox.fill" color={color} />,
+          tabBarIcon: ({ color }) => {
+            const { isAuthenticated } = useAuth();
+            const colors = useColors();
+            const { data: malotesList } = trpc.malotes.list.useQuery(undefined, {
+              enabled: isAuthenticated,
+              refetchInterval: 30000,
+            });
+            const openCount = (malotesList ?? []).filter((m: any) => m.status === "aberto").length;
+            return (
+              <View style={{ position: "relative" }}>
+                <IconSymbol size={26} name="shippingbox.fill" color={color} />
+                {openCount > 0 && (
+                  <View style={{
+                    position: "absolute",
+                    top: -4,
+                    right: -6,
+                    backgroundColor: colors.error,
+                    borderRadius: 8,
+                    minWidth: 16,
+                    height: 16,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingHorizontal: 3,
+                  }}>
+                    <Text style={{ color: "white", fontSize: 10, fontWeight: "700", lineHeight: 14 }}>
+                      {openCount > 99 ? "99+" : openCount}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            );
+          },
         }}
       />
       <Tabs.Screen

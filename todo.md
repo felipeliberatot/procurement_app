@@ -349,3 +349,6 @@
 
 ## Automação Malote
 - [x] Ao finalizar etapa 9 (Verificação Final), criar automaticamente um malote com os itens da solicitação concluída — origem = departamento do usuário de Compras, destino = departamento do solicitante
+
+## Badge Tab Malotes
+- [x] Badge com contador de malotes "Abertos" no ícone da tab de Malotes — badge vermelho com número, atualiza a cada 30 segundos
