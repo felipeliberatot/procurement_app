@@ -494,7 +494,11 @@ export default function RequestDetailScreen() {
     onSuccess: () => {
       invalidateAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("✅ OC Finalizada!", "A Ordem de Compra foi encerrada com sucesso e habilitada nos Malotes.");
+      Alert.alert(
+        "✅ OC Finalizada!",
+        "A Ordem de Compra foi encerrada com sucesso e habilitada nos Malotes.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
     },
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -971,25 +975,58 @@ export default function RequestDetailScreen() {
               {currentStatus === "aguardando_orcamento" && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">Anexar Orçamento</Text>
-                  <Text className="text-xs text-muted mb-3">Selecione o PDF do orçamento obtido</Text>
+                  <Text className="text-xs text-muted mb-3">Selecione o PDF do orçamento e clique em Enviar Orçamento para avançar</Text>
                   <TouchableOpacity
                     onPress={handlePickBudget}
-                    disabled={uploadFileMutation.isPending}
+                    disabled={uploadFileMutation.isPending || approveMutation.isPending}
                     style={{
                       flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
                       borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}60`,
                       borderRadius: 12, paddingVertical: 20,
-                      opacity: uploadFileMutation.isPending ? 0.6 : 1,
+                      opacity: (uploadFileMutation.isPending || approveMutation.isPending) ? 0.6 : 1,
                     }}
                   >
                     {uploadFileMutation.isPending ? (
                       <><ActivityIndicator size="small" /><Text style={{ color: colors.primary, fontSize: 14, marginLeft: 8 }}>Enviando PDF...</Text></>
                     ) : (
-                      <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{budgetFileName ?? "Selecionar PDF do Orçamento"}</Text></>
+                      <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{budgetFileName ?? (request.budgetFileUrl ? "Trocar PDF do Orçamento" : "Selecionar PDF do Orçamento")}</Text></>
                     )}
                   </TouchableOpacity>
-                  {budgetFileName && !uploadFileMutation.isPending && (
-                    <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName} enviado</Text>
+                  {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
+                    <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName ?? "Orçamento já anexado"}</Text>
+                  )}
+                  {/* Botão Enviar Orçamento - habilitado após PDF anexado */}
+                  {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        Alert.alert(
+                          "📤 Enviar Orçamento",
+                          "Confirma o envio do orçamento para apreciação? O fluxo avançará para a próxima etapa.",
+                          [
+                            { text: "Cancelar", style: "cancel" },
+                            { text: "Enviar", onPress: () => approveMutation.mutate({ requestId: request.id }) },
+                          ]
+                        );
+                      }}
+                      disabled={approveMutation.isPending}
+                      style={{
+                        marginTop: 12,
+                        backgroundColor: colors.success,
+                        borderRadius: 12,
+                        paddingVertical: 14,
+                        alignItems: "center",
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        gap: 8,
+                        opacity: approveMutation.isPending ? 0.7 : 1,
+                      }}
+                    >
+                      {approveMutation.isPending ? (
+                        <ActivityIndicator color="white" />
+                      ) : (
+                        <><Text style={{ fontSize: 18 }}>📤</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Enviar Orçamento</Text></>
+                      )}
+                    </TouchableOpacity>
                   )}
                 </View>
               )}

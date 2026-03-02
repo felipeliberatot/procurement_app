@@ -164,7 +164,7 @@ export default function RequestsScreen() {
             <View style={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <View>
                 <Text style={{ fontSize: 22, fontWeight: "800", color: colors.foreground }}>Solicitações</Text>
-                <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{filtered.length} solicitação{filtered.length !== 1 ? "ões" : ""}</Text>
+                <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => router.push("/request/new" as any)}
@@ -219,7 +219,7 @@ export default function RequestsScreen() {
             <Text className="text-white text-sm font-semibold">+ Nova</Text>
           </TouchableOpacity>
         </View>
-        <Text className="text-sm text-muted">{filtered.length} solicitação{filtered.length !== 1 ? "ões" : ""}</Text>
+        <Text className="text-sm text-muted">{filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}</Text>
       </View>
 
       {/* Filtro por status */}

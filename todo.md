@@ -338,3 +338,11 @@
 - [x] Botão de impressão/PDF no modal de detalhe do malote (disponível em todos os status)
 - [x] PDF do malote com: código, status, origem, destino, criado por, data de envio, observações e tabela de solicitações
 - [x] Numeração sequencial de malotes já existente (MAL-AAAA-NNNN)
+
+## Correção PIN Master
+- [x] Diagnosticar e corrigir PIN de cadastro de usuário do master Rafael — pinHash estava nulo no banco, regenerado e salvo com bcrypt
+
+## Correções Lote 6
+- [x] Bug: tela estática ao clicar em "Finalizado" no fluxo 01 — adicionado router.back() após alert de OC finalizada
+- [x] Texto errado: "solicitaçãoões" → "solicitações" corrigido nas duas ocorrências
+- [x] Botão "Enviar Orçamento" habilitado após anexar PDF na etapa de Orçamento (aparece para ambos os fluxos quando status = aguardando_orcamento)
