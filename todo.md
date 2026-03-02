@@ -346,3 +346,6 @@
 - [x] Bug: tela estática ao clicar em "Finalizado" no fluxo 01 — adicionado router.back() após alert de OC finalizada
 - [x] Texto errado: "solicitaçãoões" → "solicitações" corrigido nas duas ocorrências
 - [x] Botão "Enviar Orçamento" habilitado após anexar PDF na etapa de Orçamento (aparece para ambos os fluxos quando status = aguardando_orcamento)
+
+## Automação Malote
+- [x] Ao finalizar etapa 9 (Verificação Final), criar automaticamente um malote com os itens da solicitação concluída — origem = departamento do usuário de Compras, destino = departamento do solicitante

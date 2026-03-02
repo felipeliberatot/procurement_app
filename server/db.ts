@@ -1029,6 +1029,48 @@ export async function finalizeOC(requestId: number, user: User): Promise<void> {
     comment: "Ordem de Compra finalizada. Nota fiscal verificada.",
   });
 
+  // Criar malote automaticamente com os itens da solicitação
+  try {
+    const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+    if (req) {
+      // Verificar se a solicitação já está em algum malote
+      const existingMaloteItem = await db
+        .select()
+        .from(maloteItems)
+        .where(eq(maloteItems.requestId, requestId))
+        .limit(1);
+
+      if (existingMaloteItem.length === 0) {
+        // Criar novo malote com origem = departamento de Compras, destino = departamento do solicitante
+        const originUnit = user.department ?? "Compras";
+        const destinationUnit = req.department;
+
+        const malote = await createMalote({
+          originUnit,
+          destinationUnit,
+          createdById: user.id,
+          createdByName: user.name ?? "Compras",
+          notes: `Malote criado automaticamente após conclusão da solicitação ${req.requestNumber}`,
+        });
+
+        // Adicionar a solicitação ao malote criado
+        await addRequestToMalote({
+          maloteId: malote.id,
+          requestId: req.id,
+          requestCode: req.requestNumber,
+          requesterName: req.requesterName,
+          application: req.application,
+          addedById: user.id,
+          addedByName: user.name ?? "Compras",
+        });
+
+        console.log(`[Malote] Malote ${malote.maloteCode} criado automaticamente para solicitação ${req.requestNumber}`);
+      }
+    }
+  } catch (e) {
+    console.warn("[Malote] Falha ao criar malote automático:", e);
+  }
+
   // Notificar solicitante
   try {
     const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
