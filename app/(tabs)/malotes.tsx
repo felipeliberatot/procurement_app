@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { ConfirmModal } from "@/components/confirm-modal";
 import {
   View,
   Text,
@@ -221,6 +222,7 @@ export default function MalotesScreen() {
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterUnit, setFilterUnit] = useState<string>("todas");
   const [showUnitPicker, setShowUnitPicker] = useState<"filter" | null>(null);
+  const [confirmSendMaloteId, setConfirmSendMaloteId] = useState<number | null>(null);
 
   const { data: maloteDetail } = trpc.malotes.getById.useQuery(
     { id: selectedMalote?.id ?? 0 },
@@ -271,19 +273,7 @@ export default function MalotesScreen() {
   };
 
   const handleSend = (maloteId: number) => {
-    Alert.alert("Enviar Malote", "Confirma o envio deste malote para a unidade de destino?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Enviar",
-        onPress: () => sendMutation.mutate(
-          { maloteId },
-          {
-            onSuccess: () => { setShowDetail(false); Alert.alert("Sucesso", "Malote enviado!"); },
-            onError: (e) => Alert.alert("Erro", e.message),
-          }
-        ),
-      },
-    ]);
+    setConfirmSendMaloteId(maloteId);
   };
 
   const handleAddRequest = (req: { id: number; requestNumber: string; requesterName: string; application: string }) => {
@@ -764,6 +754,26 @@ export default function MalotesScreen() {
           </View>
         </View>
       </Modal>
+
+      <ConfirmModal
+        visible={confirmSendMaloteId !== null}
+        title="Enviar Malote"
+        message="Confirma o envio deste malote para a unidade de destino?"
+        confirmText="Enviar"
+        onConfirm={() => {
+          if (confirmSendMaloteId !== null) {
+            sendMutation.mutate(
+              { maloteId: confirmSendMaloteId },
+              {
+                onSuccess: () => { setShowDetail(false); Alert.alert("Sucesso", "Malote enviado!"); },
+                onError: (e) => Alert.alert("Erro", e.message),
+              }
+            );
+          }
+          setConfirmSendMaloteId(null);
+        }}
+        onCancel={() => setConfirmSendMaloteId(null)}
+      />
     </ScreenContainer>
   );
 }

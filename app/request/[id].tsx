@@ -1,5 +1,6 @@
 import { ScreenContainer } from "@/components/screen-container";
 import { StatusBadge, UrgencyBadge, DeadlineTimer } from "@/components/procurement/Badges";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { ApprovalTimeline } from "@/components/procurement/ApprovalTimeline";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
@@ -421,6 +422,37 @@ export default function RequestDetailScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
 
+  // Modais de confirmação cross-platform (substitui Alert.alert com callbacks na web)
+  const [confirmModal, setConfirmModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
+
+  const showConfirm = (opts: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    destructive?: boolean;
+    onConfirm: () => void;
+  }) => {
+    setConfirmModal({ visible: true, ...opts });
+  };
+
+  const hideConfirm = () => {
+    setConfirmModal(prev => ({ ...prev, visible: false }));
+  };
+
   const requestId = parseInt(id ?? "0");
 
   const { data: request, isLoading } = trpc.requests.getById.useQuery(
@@ -760,14 +792,12 @@ export default function RequestDetailScreen() {
     if (!selectedPaymentMethod) { Alert.alert("Campo obrigatório", "Selecione o método de pagamento antes de avançar."); return; }
     if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe os dados de pagamento antes de avançar."); return; }
     const methodLabel = PAYMENT_METHOD_LABELS[selectedPaymentMethod];
-    Alert.alert(
-      "Confirmar Emissão de OC",
-      `Confirmar pagamento via ${methodLabel} e encaminhar para Aprovação Financeiro?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", paymentInfo, paymentMethod: selectedPaymentMethod, paymentObservations: paymentObservations.trim() || undefined }) },
-      ]
-    );
+    showConfirm({
+      title: "Confirmar Emissão de OC",
+      message: `Confirmar pagamento via ${methodLabel} e encaminhar para Aprovação Financeiro?`,
+      confirmText: "Confirmar",
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", paymentInfo, paymentMethod: selectedPaymentMethod, paymentObservations: paymentObservations.trim() || undefined }),
+    });
   };
 
   const handleFinalize = () => {
@@ -806,10 +836,12 @@ export default function RequestDetailScreen() {
   };
 
   const handleFinalizeOC = () => {
-    Alert.alert("📦 Finalizar Ordem de Compra", "Confirma que o comprovante de pagamento foi verificado e deseja encerrar esta OC? Ela será habilitada nos Malotes.", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Finalizar OC", onPress: () => finalizeOCMutation.mutate({ requestId: request.id }) },
-    ]);
+    showConfirm({
+      title: "📦 Finalizar Ordem de Compra",
+      message: "Confirma que o comprovante de pagamento foi verificado e deseja encerrar esta OC? Ela será habilitada nos Malotes.",
+      confirmText: "Finalizar OC",
+      onConfirm: () => finalizeOCMutation.mutate({ requestId: request.id }),
+    });
   };
 
   return (
@@ -1049,14 +1081,12 @@ export default function RequestDetailScreen() {
                   {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert(
-                          "📤 Enviar Orçamento",
-                          "Confirma o envio do orçamento? O fluxo avançará para a Controladoria.",
-                          [
-                            { text: "Cancelar", style: "cancel" },
-                            { text: "Enviar", onPress: () => submitBudgetMutation.mutate({ requestId: request.id }) },
-                          ]
-                        );
+                        showConfirm({
+                          title: "📤 Enviar Orçamento",
+                          message: "Confirma o envio do orçamento? O fluxo avançará para a Controladoria.",
+                          confirmText: "Enviar",
+                          onConfirm: () => submitBudgetMutation.mutate({ requestId: request.id }),
+                        });
                       }}
                       disabled={submitBudgetMutation.isPending}
                       style={{
@@ -1237,10 +1267,13 @@ export default function RequestDetailScreen() {
                   <View style={{ flexDirection: "row", gap: 10 }}>
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert("🚫 Recusar Compra", "Deseja recusar esta compra? Ela retornará para o Compras revisar.", [
-                          { text: "Voltar", style: "cancel" },
-                          { text: "Recusar", style: "destructive", onPress: () => rejectMutation.mutate({ requestId: request.id, comment: "Compra recusada pelo Financeiro" }) },
-                        ]);
+                        showConfirm({
+                          title: "🚫 Recusar Compra",
+                          message: "Deseja recusar esta compra? Ela retornará para o Compras revisar.",
+                          confirmText: "Recusar",
+                          destructive: true,
+                          onConfirm: () => rejectMutation.mutate({ requestId: request.id, comment: "Compra recusada pelo Financeiro" }),
+                        });
                       }}
                       disabled={rejectMutation.isPending || approveMutation.isPending}
                       style={{ flex: 1, backgroundColor: `${colors.error}15`, borderWidth: 1.5, borderColor: `${colors.error}50`, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
@@ -1250,10 +1283,12 @@ export default function RequestDetailScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert("✅ Aprovar Compra", "Confirmar a aprovação desta compra e avançar para o Comprovante de Pagamento? (Fluxo 8)", [
-                          { text: "Voltar", style: "cancel" },
-                          { text: "Aprovar", onPress: () => approveMutation.mutate({ requestId: request.id }) },
-                        ]);
+                        showConfirm({
+                          title: "✅ Aprovar Compra",
+                          message: "Confirmar a aprovação desta compra e avançar para o Comprovante de Pagamento?",
+                          confirmText: "Aprovar",
+                          onConfirm: () => approveMutation.mutate({ requestId: request.id }),
+                        });
                       }}
                       disabled={approveMutation.isPending || rejectMutation.isPending}
                       style={{ flex: 1, backgroundColor: `${colors.success}15`, borderWidth: 1.5, borderColor: `${colors.success}50`, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
@@ -1723,6 +1758,21 @@ export default function RequestDetailScreen() {
         onClose={() => setShowCancelModal(false)}
         onConfirm={(reason) => cancelMutation.mutate({ requestId: request.id, reason })}
         isLoading={cancelMutation.isPending}
+      />
+
+      {/* Modal de confirmação cross-platform */}
+      <ConfirmModal
+        visible={confirmModal.visible}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        confirmDestructive={confirmModal.destructive}
+        onConfirm={() => {
+          hideConfirm();
+          confirmModal.onConfirm();
+        }}
+        onCancel={hideConfirm}
       />
     </ScreenContainer>
   );

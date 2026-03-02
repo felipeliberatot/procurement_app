@@ -1,4 +1,5 @@
 import { ScreenContainer } from "@/components/screen-container";
+import { ConfirmModal } from "@/components/confirm-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
@@ -34,6 +35,7 @@ export default function ProfileScreen() {
   const [phone, setPhone] = useState("");
   const [department, setDepartment] = useState("");
   const [saved, setSaved] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Sync form fields when fullUser data arrives
   useEffect(() => {
@@ -186,16 +188,23 @@ export default function ProfileScreen() {
 
           {/* Sair */}
           <TouchableOpacity
-            onPress={() => Alert.alert("Sair", "Deseja sair da sua conta?", [
-              { text: "Cancelar", style: "cancel" },
-              { text: "Sair", style: "destructive", onPress: handleLogout },
-            ])}
+            onPress={() => setShowLogoutConfirm(true)}
             className="border border-error/30 rounded-2xl py-4 items-center"
           >
             <Text className="text-error font-semibold">Sair da Conta</Text>
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ConfirmModal
+        visible={showLogoutConfirm}
+        title="Sair da Conta"
+        message="Deseja sair da sua conta?"
+        confirmText="Sair"
+        confirmDestructive
+        onConfirm={() => { setShowLogoutConfirm(false); handleLogout(); }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </ScreenContainer>
   );
 }

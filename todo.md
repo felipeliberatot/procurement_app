@@ -385,3 +385,7 @@
 - [ ] Painel de cobertura de aprovadores com alertas visuais quando nível sem responsável
 - [ ] Filtro "Aguardando Minha Ação" na tela de Solicitações
 - [x] Bug: botão Emitir OC bloqueado pela OC Siagri obrigatória — corrigido: OC Siagri é opcional, botão habilitado com método de pagamento + dados preenchidos
+
+## Bugs Desktop e Financeiro
+- [ ] Bug: na versão desktop, nenhum botão de aprovação avança o fluxo (Alert.alert não funciona na web)
+- [ ] Bug: card de aprovação do Financeiro não aparece na aba Aprovações para usuários com papel financeiro

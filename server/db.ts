@@ -603,14 +603,19 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
       pendingStatuses.add("aguardando_ordem_compra");
       pendingStatuses.add("aguardando_verificacao_compras");
     } else {
-      const singleStatusMap: Record<string, string> = {
-        gerente: "aguardando_gerente",
-        controladoria: "aguardando_controladoria",
-        diretoria: "aguardando_diretoria",
-        financeiro: "aguardando_comprovante_pagamento",
-      };
-      const s = singleStatusMap[r];
-      if (s) pendingStatuses.add(s);
+      if (r === "financeiro") {
+        // Financeiro responde por 2 etapas: aprovação de compra + comprovante de pagamento
+        pendingStatuses.add("aguardando_aprovacao_compra");
+        pendingStatuses.add("aguardando_comprovante_pagamento");
+      } else {
+        const singleStatusMap: Record<string, string> = {
+          gerente: "aguardando_gerente",
+          controladoria: "aguardando_controladoria",
+          diretoria: "aguardando_diretoria",
+        };
+        const s = singleStatusMap[r];
+        if (s) pendingStatuses.add(s);
+      }
     }
   }
 
