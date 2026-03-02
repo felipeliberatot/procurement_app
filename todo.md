@@ -384,3 +384,4 @@
 - [ ] Reordenação de níveis de aprovação por arrastar no formulário de cadastro de usuários
 - [ ] Painel de cobertura de aprovadores com alertas visuais quando nível sem responsável
 - [ ] Filtro "Aguardando Minha Ação" na tela de Solicitações
+- [x] Bug: botão Emitir OC bloqueado pela OC Siagri obrigatória — corrigido: OC Siagri é opcional, botão habilitado com método de pagamento + dados preenchidos

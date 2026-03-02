@@ -1137,7 +1137,7 @@ export default function RequestDetailScreen() {
                   />
 
                   {/* Upload OC Siagri */}
-                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>OC Siagri (opcional)</Text>
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>OC Siagri <Text style={{ color: colors.muted, fontWeight: "400" }}>(opcional)</Text></Text>
                   <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o PDF da Ordem de Compra gerada no Siagri</Text>
                   <TouchableOpacity
                     onPress={async () => {
@@ -1165,19 +1165,12 @@ export default function RequestDetailScreen() {
                   )}
 
                   {/* Botão Emitir OC */}
-                  {/* Aviso OC Siagri obrigatória */}
-                  {!ocSiagriFileName && !(request as any).ocSiagriUrl && (
-                    <View style={{ backgroundColor: `${colors.warning}15`, borderRadius: 10, padding: 10, marginBottom: 12, flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <Text style={{ fontSize: 14 }}>⚠️</Text>
-                      <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "600", flex: 1 }}>Anexe a OC Siagri (PDF) antes de emitir a OC.</Text>
-                    </View>
-                  )}
 
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending || !selectedPaymentMethod || !paymentInfo.trim() || (!ocSiagriFileName && !(request as any).ocSiagriUrl)}
+                    disabled={approveMutation.isPending || !selectedPaymentMethod || !paymentInfo.trim()}
                     style={{
-                      backgroundColor: (paymentInfo.trim() && (ocSiagriFileName || (request as any).ocSiagriUrl)) ? colors.primary : colors.border,
+                      backgroundColor: (selectedPaymentMethod && paymentInfo.trim()) ? colors.primary : colors.border,
                       borderRadius: 12,
                       paddingVertical: 14,
                       alignItems: "center",
@@ -1192,7 +1185,7 @@ export default function RequestDetailScreen() {
                       : (
                         <>
                           <Text style={{ fontSize: 16 }}>📤</Text>
-                          <Text style={{ color: (paymentInfo.trim() && (ocSiagriFileName || (request as any).ocSiagriUrl)) ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
+                          <Text style={{ color: (selectedPaymentMethod && paymentInfo.trim()) ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
                             Emitir OC e Enviar ao Financeiro
                           </Text>
                         </>
