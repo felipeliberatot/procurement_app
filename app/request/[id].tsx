@@ -454,6 +454,23 @@ export default function RequestDetailScreen() {
     },
   });
 
+  const submitBudgetMutation = trpc.requests.submitBudget.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setBudgetFileName(null);
+      Alert.alert(
+        "✅ Orçamento Enviado!",
+        "O orçamento foi enviado com sucesso e a solicitação avançou para a próxima etapa.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao enviar orçamento", e.message);
+    },
+  });
+
   const uploadPaymentProofMutation = trpc.requests.uploadPaymentProof.useMutation({
     onSuccess: () => {
       invalidateAll();
@@ -1001,14 +1018,14 @@ export default function RequestDetailScreen() {
                       onPress={() => {
                         Alert.alert(
                           "📤 Enviar Orçamento",
-                          "Confirma o envio do orçamento para apreciação? O fluxo avançará para a próxima etapa.",
+                          "Confirma o envio do orçamento? O fluxo avançará para a Controladoria.",
                           [
                             { text: "Cancelar", style: "cancel" },
-                            { text: "Enviar", onPress: () => approveMutation.mutate({ requestId: request.id }) },
+                            { text: "Enviar", onPress: () => submitBudgetMutation.mutate({ requestId: request.id }) },
                           ]
                         );
                       }}
-                      disabled={approveMutation.isPending}
+                      disabled={submitBudgetMutation.isPending}
                       style={{
                         marginTop: 12,
                         backgroundColor: colors.success,
@@ -1018,10 +1035,10 @@ export default function RequestDetailScreen() {
                         flexDirection: "row",
                         justifyContent: "center",
                         gap: 8,
-                        opacity: approveMutation.isPending ? 0.7 : 1,
+                        opacity: submitBudgetMutation.isPending ? 0.7 : 1,
                       }}
                     >
-                      {approveMutation.isPending ? (
+                      {submitBudgetMutation.isPending ? (
                         <ActivityIndicator color="white" />
                       ) : (
                         <><Text style={{ fontSize: 18 }}>📤</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Enviar Orçamento</Text></>

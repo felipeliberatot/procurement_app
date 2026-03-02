@@ -725,6 +725,39 @@ function getRejectFlow(urgencyLevel: string) {
 // Compatível com código legado
 const REJECT_FLOW = REJECT_FLOW_NORMAL;
 
+export async function submitBudget(
+  requestId: number,
+  user: User
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+  if (!request) throw new Error("Solicitação não encontrada");
+  if (request.status !== "aguardando_orcamento") throw new Error("Esta solicitação não está aguardando orçamento.");
+  if (!request.budgetFileUrl) throw new Error("Anexe o PDF do orçamento antes de enviar.");
+
+  const stepFlow = getStepFlow(request.urgencyLevel);
+  const flow = stepFlow["aguardando_orcamento"];
+  if (!flow) throw new Error("Fluxo de orçamento não configurado");
+
+  await db.update(purchaseRequests).set({
+    status: flow.nextStatus as any,
+    stepDeadlineAt: getStepDeadline(),
+  }).where(eq(purchaseRequests.id, requestId));
+
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: user.id,
+    userName: user.name ?? "Usuário",
+    step: "orcamento" as any,
+    action: "aprovada" as any,
+    comment: "Orçamento enviado",
+  });
+
+  return { success: true, nextStatus: flow.nextStatus };
+}
+
 export async function approveRequest(
   requestId: number,
   user: User,

@@ -355,3 +355,9 @@
 
 ## Bug Fluxo Orçamento
 - [x] Bug: fluxo de orçamento não avançava ao clicar em "Enviar Orçamento" — attachBudget estava forçando status para aguardando_controladoria ao fazer upload; corrigido para apenas salvar o arquivo, avanço ocorre somente ao clicar em Enviar Orçamento
+
+## Bug Crítico Orçamento (persistente)
+- [ ] Bug: etapa de orçamento continua não avançando mesmo após correção anterior — investigar validação de papel no servidor e lógica do botão no app
+
+## Bug Crítico Orçamento (persistente)
+- [x] Bug: etapa de orçamento corrigida definitivamente — criada mutation dedicada submitBudget no servidor com validações explícitas e feedback visual claro no app (Alert de sucesso + router.back())

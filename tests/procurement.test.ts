@@ -19,24 +19,68 @@ function getStepDeadlineHours(): number {
   return 48;
 }
 
-// Status flow logic (mirrors server/db.ts STEP_FLOW)
-const STEP_FLOW: Record<string, { step: string; nextStatus: string }> = {
-  aguardando_gerente: { step: "gerente", nextStatus: "aguardando_orcamento" },
-  aguardando_orcamento: { step: "orcamento", nextStatus: "aguardando_controladoria" },
-  aguardando_controladoria: { step: "controladoria", nextStatus: "aguardando_diretoria" },
-  aguardando_diretoria: { step: "diretoria", nextStatus: "aguardando_ordem_compra" },
-  aguardando_ordem_compra: { step: "ordem_compra", nextStatus: "aguardando_financeiro" },
-  aguardando_financeiro: { step: "financeiro", nextStatus: "concluida" },
+// ─── Fluxo NORMAL: Gerente → Orçamento → Controladoria → Diretoria → OC → Financeiro → Comprovante → Verificação
+const STEP_FLOW_NORMAL: Record<string, { step: string; nextStatus: string; action: string }> = {
+  aguardando_gerente:               { step: "gerente",           nextStatus: "aguardando_orcamento",              action: "aprovada" },
+  aguardando_orcamento:             { step: "orcamento",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
+  aguardando_controladoria:         { step: "controladoria",     nextStatus: "aguardando_diretoria",              action: "aprovada" },
+  aguardando_diretoria:             { step: "diretoria",         nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
+  aguardando_ordem_compra:          { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_compra",       action: "ordem_emitida" },
+  aguardando_aprovacao_compra:      { step: "aprovacao_compra",  nextStatus: "aguardando_comprovante_pagamento",  action: "compra_aprovada" },
+  aguardando_comprovante_pagamento: { step: "financeiro",        nextStatus: "aguardando_verificacao_compras",    action: "comprovante_aprovado" },
+  rejeitada:                        { step: "gerente",           nextStatus: "aguardando_gerente",                action: "reaberta" },
 };
 
-const REJECT_FLOW: Record<string, string> = {
-  aguardando_gerente: "aguardando_gerente",
-  aguardando_orcamento: "aguardando_orcamento",
-  aguardando_controladoria: "aguardando_orcamento",
-  aguardando_diretoria: "aguardando_controladoria",
-  aguardando_ordem_compra: "aguardando_diretoria",
-  aguardando_financeiro: "aguardando_ordem_compra",
+// ─── Fluxo URGENTE/EMERGENCIAL: Gerente → Diretoria → Orçamento → Controladoria → OC → Financeiro → Comprovante → Verificação
+const STEP_FLOW_URGENT: Record<string, { step: string; nextStatus: string; action: string }> = {
+  aguardando_gerente:               { step: "gerente",           nextStatus: "aguardando_diretoria",              action: "aprovada" },
+  aguardando_diretoria:             { step: "diretoria",         nextStatus: "aguardando_orcamento",              action: "aprovada" },
+  aguardando_orcamento:             { step: "orcamento",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
+  aguardando_controladoria:         { step: "controladoria",     nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
+  aguardando_ordem_compra:          { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_compra",       action: "ordem_emitida" },
+  aguardando_aprovacao_compra:      { step: "aprovacao_compra",  nextStatus: "aguardando_comprovante_pagamento",  action: "compra_aprovada" },
+  aguardando_comprovante_pagamento: { step: "financeiro",        nextStatus: "aguardando_verificacao_compras",    action: "comprovante_aprovado" },
+  rejeitada:                        { step: "gerente",           nextStatus: "aguardando_gerente",                action: "reaberta" },
 };
+
+function getStepFlow(urgencyLevel: string) {
+  return (urgencyLevel === "urgente" || urgencyLevel === "emergencial")
+    ? STEP_FLOW_URGENT
+    : STEP_FLOW_NORMAL;
+}
+
+// ─── Fluxo de rejeição NORMAL
+const REJECT_FLOW_NORMAL: Record<string, string> = {
+  aguardando_gerente:               "aguardando_gerente",
+  aguardando_orcamento:             "aguardando_orcamento",
+  aguardando_controladoria:         "aguardando_orcamento",
+  aguardando_diretoria:             "aguardando_controladoria",
+  aguardando_ordem_compra:          "aguardando_diretoria",
+  aguardando_aprovacao_compra:      "aguardando_ordem_compra",
+  aguardando_comprovante_pagamento: "rejeitada",
+};
+
+// ─── Fluxo de rejeição URGENTE/EMERGENCIAL
+const REJECT_FLOW_URGENT: Record<string, string> = {
+  aguardando_gerente:               "aguardando_gerente",
+  aguardando_diretoria:             "aguardando_gerente",
+  aguardando_orcamento:             "aguardando_orcamento",
+  aguardando_controladoria:         "aguardando_orcamento",
+  aguardando_ordem_compra:          "aguardando_controladoria",
+  aguardando_aprovacao_compra:      "aguardando_ordem_compra",
+  aguardando_comprovante_pagamento: "rejeitada",
+};
+
+// ─── submitBudget validation logic (mirrors server/db.ts)
+function validateSubmitBudget(request: { status: string; budgetFileUrl: string | null }): { valid: boolean; error?: string } {
+  if (request.status !== "aguardando_orcamento") {
+    return { valid: false, error: "Esta solicitação não está aguardando orçamento." };
+  }
+  if (!request.budgetFileUrl) {
+    return { valid: false, error: "Anexe o PDF do orçamento antes de enviar." };
+  }
+  return { valid: true };
+}
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
@@ -76,72 +120,160 @@ describe("Procurement: Deadline Calculation", () => {
   });
 });
 
-describe("Procurement: Approval Flow", () => {
+describe("Procurement: Normal Approval Flow", () => {
   it("Initial status should be aguardando_gerente", () => {
-    const initialStatus = "aguardando_gerente";
-    expect(STEP_FLOW[initialStatus]).toBeDefined();
-    expect(STEP_FLOW[initialStatus].step).toBe("gerente");
+    const flow = STEP_FLOW_NORMAL["aguardando_gerente"];
+    expect(flow).toBeDefined();
+    expect(flow.step).toBe("gerente");
   });
 
-  it("Approval by gerente should advance to aguardando_orcamento", () => {
-    const flow = STEP_FLOW["aguardando_gerente"];
+  it("Normal: gerente → aguardando_orcamento", () => {
+    const flow = STEP_FLOW_NORMAL["aguardando_gerente"];
     expect(flow.nextStatus).toBe("aguardando_orcamento");
   });
 
-  it("Approval by controladoria should advance to aguardando_diretoria", () => {
-    const flow = STEP_FLOW["aguardando_controladoria"];
+  it("Normal: orcamento → aguardando_controladoria", () => {
+    const flow = STEP_FLOW_NORMAL["aguardando_orcamento"];
+    expect(flow.nextStatus).toBe("aguardando_controladoria");
+  });
+
+  it("Normal: controladoria → aguardando_diretoria", () => {
+    const flow = STEP_FLOW_NORMAL["aguardando_controladoria"];
     expect(flow.nextStatus).toBe("aguardando_diretoria");
   });
 
-  it("Approval by financeiro should conclude the request", () => {
-    const flow = STEP_FLOW["aguardando_financeiro"];
-    expect(flow.nextStatus).toBe("concluida");
+  it("Normal: diretoria → aguardando_ordem_compra", () => {
+    const flow = STEP_FLOW_NORMAL["aguardando_diretoria"];
+    expect(flow.nextStatus).toBe("aguardando_ordem_compra");
   });
 
-  it("Full approval flow should have 6 steps", () => {
-    const steps = Object.keys(STEP_FLOW);
-    expect(steps).toHaveLength(6);
+  it("Normal: ordem_compra → aguardando_aprovacao_compra", () => {
+    const flow = STEP_FLOW_NORMAL["aguardando_ordem_compra"];
+    expect(flow.nextStatus).toBe("aguardando_aprovacao_compra");
   });
 
-  it("Rejection at controladoria should return to aguardando_orcamento", () => {
-    const prevStatus = REJECT_FLOW["aguardando_controladoria"];
+  it("Normal: aprovacao_compra → aguardando_comprovante_pagamento", () => {
+    const flow = STEP_FLOW_NORMAL["aguardando_aprovacao_compra"];
+    expect(flow.nextStatus).toBe("aguardando_comprovante_pagamento");
+  });
+
+  it("Normal: comprovante_pagamento → aguardando_verificacao_compras", () => {
+    const flow = STEP_FLOW_NORMAL["aguardando_comprovante_pagamento"];
+    expect(flow.nextStatus).toBe("aguardando_verificacao_compras");
+  });
+
+  it("Normal rejection at controladoria should return to aguardando_orcamento", () => {
+    const prevStatus = REJECT_FLOW_NORMAL["aguardando_controladoria"];
     expect(prevStatus).toBe("aguardando_orcamento");
   });
 
-  it("Rejection at diretoria should return to aguardando_controladoria", () => {
-    const prevStatus = REJECT_FLOW["aguardando_diretoria"];
+  it("Normal rejection at diretoria should return to aguardando_controladoria", () => {
+    const prevStatus = REJECT_FLOW_NORMAL["aguardando_diretoria"];
     expect(prevStatus).toBe("aguardando_controladoria");
   });
+});
 
-  it("Rejection at gerente should stay at aguardando_gerente", () => {
-    const prevStatus = REJECT_FLOW["aguardando_gerente"];
+describe("Procurement: Urgent/Emergency Approval Flow", () => {
+  it("Urgent: gerente → aguardando_diretoria (different from normal)", () => {
+    const flow = STEP_FLOW_URGENT["aguardando_gerente"];
+    expect(flow.nextStatus).toBe("aguardando_diretoria");
+  });
+
+  it("Urgent: diretoria → aguardando_orcamento (different from normal)", () => {
+    const flow = STEP_FLOW_URGENT["aguardando_diretoria"];
+    expect(flow.nextStatus).toBe("aguardando_orcamento");
+  });
+
+  it("Urgent: orcamento → aguardando_controladoria", () => {
+    const flow = STEP_FLOW_URGENT["aguardando_orcamento"];
+    expect(flow.nextStatus).toBe("aguardando_controladoria");
+  });
+
+  it("Urgent: controladoria → aguardando_ordem_compra (skips diretoria)", () => {
+    const flow = STEP_FLOW_URGENT["aguardando_controladoria"];
+    expect(flow.nextStatus).toBe("aguardando_ordem_compra");
+  });
+
+  it("Urgent rejection at diretoria should return to aguardando_gerente", () => {
+    const prevStatus = REJECT_FLOW_URGENT["aguardando_diretoria"];
     expect(prevStatus).toBe("aguardando_gerente");
+  });
+
+  it("Urgent rejection at controladoria should return to aguardando_orcamento", () => {
+    const prevStatus = REJECT_FLOW_URGENT["aguardando_controladoria"];
+    expect(prevStatus).toBe("aguardando_orcamento");
+  });
+
+  it("getStepFlow returns urgent flow for 'urgente'", () => {
+    const flow = getStepFlow("urgente");
+    expect(flow["aguardando_gerente"].nextStatus).toBe("aguardando_diretoria");
+  });
+
+  it("getStepFlow returns urgent flow for 'emergencial'", () => {
+    const flow = getStepFlow("emergencial");
+    expect(flow["aguardando_gerente"].nextStatus).toBe("aguardando_diretoria");
+  });
+
+  it("getStepFlow returns normal flow for 'normal'", () => {
+    const flow = getStepFlow("normal");
+    expect(flow["aguardando_gerente"].nextStatus).toBe("aguardando_orcamento");
+  });
+});
+
+describe("Procurement: submitBudget Validation", () => {
+  it("Should fail if status is not aguardando_orcamento", () => {
+    const result = validateSubmitBudget({ status: "aguardando_gerente", budgetFileUrl: "http://example.com/file.pdf" });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("aguardando orçamento");
+  });
+
+  it("Should fail if budgetFileUrl is null", () => {
+    const result = validateSubmitBudget({ status: "aguardando_orcamento", budgetFileUrl: null });
+    expect(result.valid).toBe(false);
+    expect(result.error).toContain("PDF do orçamento");
+  });
+
+  it("Should succeed when status is correct and file is attached", () => {
+    const result = validateSubmitBudget({ status: "aguardando_orcamento", budgetFileUrl: "http://example.com/budget.pdf" });
+    expect(result.valid).toBe(true);
+    expect(result.error).toBeUndefined();
+  });
+
+  it("Normal flow: submitBudget advances to aguardando_controladoria", () => {
+    const flow = STEP_FLOW_NORMAL["aguardando_orcamento"];
+    expect(flow.nextStatus).toBe("aguardando_controladoria");
+    expect(flow.step).toBe("orcamento");
+    expect(flow.action).toBe("aprovada");
+  });
+
+  it("Urgent flow: submitBudget also advances to aguardando_controladoria", () => {
+    const flow = STEP_FLOW_URGENT["aguardando_orcamento"];
+    expect(flow.nextStatus).toBe("aguardando_controladoria");
+    expect(flow.step).toBe("orcamento");
+    expect(flow.action).toBe("aprovada");
   });
 });
 
 describe("Procurement: Request Number Generation", () => {
-  function generateRequestNumber(): string {
-    const now = new Date();
-    const y = now.getFullYear();
-    const m = String(now.getMonth() + 1).padStart(2, "0");
-    const d = String(now.getDate()).padStart(2, "0");
-    const rand = Math.floor(Math.random() * 9000) + 1000;
-    return `REQ-${y}${m}${d}-${rand}`;
+  function generateRequestNumber(year: number, sequence: number): string {
+    const seq = String(sequence).padStart(4, "0");
+    return `SOL-${year}-${seq}`;
   }
 
-  it("Request number should follow REQ-YYYYMMDD-XXXX format", () => {
-    const number = generateRequestNumber();
-    expect(number).toMatch(/^REQ-\d{8}-\d{4}$/);
+  it("Request number should follow SOL-YYYY-NNNN format", () => {
+    const number = generateRequestNumber(2026, 1);
+    expect(number).toMatch(/^SOL-\d{4}-\d{4}$/);
   });
 
-  it("Request number should start with REQ-", () => {
-    const number = generateRequestNumber();
-    expect(number.startsWith("REQ-")).toBe(true);
+  it("Request number should start with SOL-", () => {
+    const number = generateRequestNumber(2026, 1);
+    expect(number.startsWith("SOL-")).toBe(true);
   });
 
-  it("Two generated numbers should be different (with high probability)", () => {
-    const numbers = new Set(Array.from({ length: 10 }, () => generateRequestNumber()));
-    expect(numbers.size).toBeGreaterThan(1);
+  it("Sequence should be zero-padded to 4 digits", () => {
+    expect(generateRequestNumber(2026, 1)).toBe("SOL-2026-0001");
+    expect(generateRequestNumber(2026, 42)).toBe("SOL-2026-0042");
+    expect(generateRequestNumber(2026, 1000)).toBe("SOL-2026-1000");
   });
 });
 

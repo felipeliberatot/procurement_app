@@ -374,6 +374,11 @@ export const appRouter = router({
         return { url };
       }),
 
+    // Enviar orçamento (Orçamento - avança para Controladoria após anexar PDF)
+    submitBudget: protectedProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(({ ctx, input }) => db.submitBudget(input.requestId, ctx.user)),
+
     // Finalizar OC (Compras - encerra o fluxo e habilita nos Malotes)
     finalizeOC: protectedProcedure
       .input(z.object({ requestId: z.number() }))
