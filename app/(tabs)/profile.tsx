@@ -55,7 +55,13 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     await authLogout();
-    router.replace("/login" as any);
+    // Na web, forçar reload completo da página para limpar todo o estado React
+    // e garantir que o cookie de sessão seja descartado antes de navegar
+    if (Platform.OS === "web") {
+      window.location.href = "/login";
+    } else {
+      router.replace("/login" as any);
+    }
   };
 
   const handleSave = () => {

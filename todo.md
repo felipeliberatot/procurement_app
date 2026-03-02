@@ -364,3 +364,6 @@
 
 ## Bug Upload PDF na Web
 - [x] Bug: expo-file-system.readAsStringAsync não funciona na web — usar FileReader API do browser como alternativa para todas as funções de upload de PDF
+
+## Bug Logout Web/Desktop
+- [x] Bug: logout não funciona na versão web/desktop — corrigido usando window.location.href para forçar reload completo na web
