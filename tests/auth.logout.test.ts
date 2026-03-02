@@ -25,6 +25,8 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
     phone: null,
     jobTitle: null,
     approvalLevel: "nenhum",
+    extraRoles: null,
+    extraApprovalLevels: null,
     pinHash: null,
     passwordHash: null,
     active: true,

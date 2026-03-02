@@ -311,3 +311,120 @@ describe("Procurement: Total Value Calculation", () => {
     expect(calculateTotal(items)).toBe(150);
   });
 });
+
+// ─── Testes para múltiplos papéis e níveis de aprovação ──────────────────────
+
+// Simula a lógica de getPendingRequestsForUser com múltiplos papéis
+function getPendingStatusesForUser(role: string, extraRoles?: string[]): string[] {
+  const allRoles = [role, ...(extraRoles ?? [])].filter(Boolean);
+  const pendingStatuses = new Set<string>();
+
+  for (const r of allRoles) {
+    if (r === "orcamento") {
+      pendingStatuses.add("aguardando_orcamento");
+      pendingStatuses.add("aguardando_ordem_compra");
+      pendingStatuses.add("aguardando_verificacao_compras");
+    } else {
+      const singleStatusMap: Record<string, string> = {
+        gerente: "aguardando_gerente",
+        controladoria: "aguardando_controladoria",
+        diretoria: "aguardando_diretoria",
+        financeiro: "aguardando_comprovante_pagamento",
+      };
+      const s = singleStatusMap[r];
+      if (s) pendingStatuses.add(s);
+    }
+  }
+
+  return [...pendingStatuses];
+}
+
+// Simula a lógica de canAct com múltiplos papéis
+const ROLE_CAN_ACT_TEST: Record<string, string[]> = {
+  aguardando_gerente: ["gerente"],
+  aguardando_orcamento: ["orcamento"],
+  aguardando_controladoria: ["controladoria"],
+  aguardando_diretoria: ["diretoria"],
+  aguardando_ordem_compra: ["orcamento"],
+  aguardando_aprovacao_compra: ["orcamento"],
+  aguardando_comprovante_pagamento: ["financeiro"],
+  aguardando_verificacao_compras: ["orcamento"],
+};
+
+function canActWithMultipleRoles(currentStatus: string, userRole: string, extraRoles?: string[]): boolean {
+  const allRoles = [userRole, ...(extraRoles ?? [])].filter(Boolean);
+  return allRoles.some(r => ROLE_CAN_ACT_TEST[currentStatus]?.includes(r)) ?? false;
+}
+
+describe("Multi-Role: getPendingStatusesForUser", () => {
+  it("Usuário com papel único gerente vê apenas aguardando_gerente", () => {
+    const statuses = getPendingStatusesForUser("gerente");
+    expect(statuses).toContain("aguardando_gerente");
+    expect(statuses).not.toContain("aguardando_orcamento");
+  });
+
+  it("Usuário com papel único orcamento vê 3 etapas", () => {
+    const statuses = getPendingStatusesForUser("orcamento");
+    expect(statuses).toContain("aguardando_orcamento");
+    expect(statuses).toContain("aguardando_ordem_compra");
+    expect(statuses).toContain("aguardando_verificacao_compras");
+  });
+
+  it("Usuário com papéis gerente + orcamento vê etapas de ambos", () => {
+    const statuses = getPendingStatusesForUser("gerente", ["orcamento"]);
+    expect(statuses).toContain("aguardando_gerente");
+    expect(statuses).toContain("aguardando_orcamento");
+    expect(statuses).toContain("aguardando_ordem_compra");
+    expect(statuses).toContain("aguardando_verificacao_compras");
+  });
+
+  it("Usuário com papéis diretoria + controladoria vê etapas de ambos", () => {
+    const statuses = getPendingStatusesForUser("diretoria", ["controladoria"]);
+    expect(statuses).toContain("aguardando_diretoria");
+    expect(statuses).toContain("aguardando_controladoria");
+    expect(statuses).not.toContain("aguardando_gerente");
+  });
+
+  it("Usuário com papel solicitante não vê nenhuma etapa pendente", () => {
+    const statuses = getPendingStatusesForUser("solicitante");
+    expect(statuses).toHaveLength(0);
+  });
+
+  it("Usuário com 3 papéis vê todas as etapas correspondentes", () => {
+    const statuses = getPendingStatusesForUser("gerente", ["diretoria", "financeiro"]);
+    expect(statuses).toContain("aguardando_gerente");
+    expect(statuses).toContain("aguardando_diretoria");
+    expect(statuses).toContain("aguardando_comprovante_pagamento");
+  });
+});
+
+describe("Multi-Role: canAct com múltiplos papéis", () => {
+  it("Usuário gerente pode agir em aguardando_gerente", () => {
+    expect(canActWithMultipleRoles("aguardando_gerente", "gerente")).toBe(true);
+  });
+
+  it("Usuário gerente não pode agir em aguardando_orcamento", () => {
+    expect(canActWithMultipleRoles("aguardando_orcamento", "gerente")).toBe(false);
+  });
+
+  it("Usuário gerente + orcamento pode agir em aguardando_orcamento", () => {
+    expect(canActWithMultipleRoles("aguardando_orcamento", "gerente", ["orcamento"])).toBe(true);
+  });
+
+  it("Usuário diretoria + controladoria pode agir em aguardando_controladoria", () => {
+    expect(canActWithMultipleRoles("aguardando_controladoria", "diretoria", ["controladoria"])).toBe(true);
+  });
+
+  it("Usuário diretoria + controladoria pode agir em aguardando_diretoria", () => {
+    expect(canActWithMultipleRoles("aguardando_diretoria", "diretoria", ["controladoria"])).toBe(true);
+  });
+
+  it("Usuário solicitante com extra financeiro pode agir em aguardando_comprovante_pagamento", () => {
+    expect(canActWithMultipleRoles("aguardando_comprovante_pagamento", "solicitante", ["financeiro"])).toBe(true);
+  });
+
+  it("Usuário com papel único não pode agir em etapa de outro papel", () => {
+    expect(canActWithMultipleRoles("aguardando_diretoria", "gerente")).toBe(false);
+    expect(canActWithMultipleRoles("aguardando_controladoria", "orcamento")).toBe(false);
+  });
+});

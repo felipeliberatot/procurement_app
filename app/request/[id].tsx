@@ -600,7 +600,20 @@ export default function RequestDetailScreen() {
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
   const isMasterUser = (user as any)?.approvalLevel === "master";
   const currentStatus = request.status as RequestStatus;
-  const canAct = ROLE_CAN_ACT[currentStatus]?.includes(userRole) ?? false;
+
+  // Combinar todos os papéis do usuário (primário + extras + approvalLevel + extraApprovalLevels)
+  const parseJsonArr = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    try { return JSON.parse(val); } catch { return []; }
+  };
+  const allUserRoles: string[] = [
+    userRole,
+    ...parseJsonArr((user as any)?.extraRoles),
+    ...((user as any)?.approvalLevel && (user as any)?.approvalLevel !== "nenhum" && (user as any)?.approvalLevel !== "master" ? [(user as any).approvalLevel] : []),
+    ...parseJsonArr((user as any)?.extraApprovalLevels).filter((l: string) => l !== "nenhum" && l !== "master"),
+  ];
+  const canAct = allUserRoles.some(r => ROLE_CAN_ACT[currentStatus]?.includes(r as ProcurementRole)) ?? false;
   const isRejected = currentStatus === "rejeitada";
   const isCancelled = currentStatus === "cancelada";
   const isDone = currentStatus === "concluida";

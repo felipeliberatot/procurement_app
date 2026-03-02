@@ -261,8 +261,22 @@ function UserFormModal({
   const [phone, setPhone] = useState(user?.phone ?? "");
   const [department, setDepartment] = useState(user?.department ?? "");
   const [jobTitle, setJobTitle] = useState(user?.jobTitle ?? "");
-  const [role, setRole] = useState<ProcurementRole>(user?.procurementRole ?? "solicitante");
-  const [approvalLevel, setApprovalLevel] = useState<ApprovalLevel>(user?.approvalLevel ?? "nenhum");
+  // Papel primário + extras (seleção múltipla)
+  const parseJsonArray = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    try { return JSON.parse(val); } catch { return []; }
+  };
+  const [roles, setRoles] = useState<ProcurementRole[]>(() => {
+    const primary = user?.procurementRole ?? "solicitante";
+    const extras = parseJsonArray(user?.extraRoles) as ProcurementRole[];
+    return [primary, ...extras.filter((r: ProcurementRole) => r !== primary)];
+  });
+  const [approvalLevels, setApprovalLevels] = useState<ApprovalLevel[]>(() => {
+    const primary = user?.approvalLevel ?? "nenhum";
+    const extras = parseJsonArray(user?.extraApprovalLevels) as ApprovalLevel[];
+    return [primary, ...extras.filter((l: ApprovalLevel) => l !== primary)];
+  });
   const [active, setActive] = useState(user?.active !== false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -279,8 +293,12 @@ function UserFormModal({
     setPhone(user?.phone ?? "");
     setDepartment(user?.department ?? "");
     setJobTitle(user?.jobTitle ?? "");
-    setRole(user?.procurementRole ?? "solicitante");
-    setApprovalLevel(user?.approvalLevel ?? "nenhum");
+    const primary2 = user?.procurementRole ?? "solicitante";
+    const extras2 = parseJsonArray(user?.extraRoles) as ProcurementRole[];
+    setRoles([primary2, ...extras2.filter((r: ProcurementRole) => r !== primary2)]);
+    const primaryL = user?.approvalLevel ?? "nenhum";
+    const extrasL = parseJsonArray(user?.extraApprovalLevels) as ApprovalLevel[];
+    setApprovalLevels([primaryL, ...extrasL.filter((l: ApprovalLevel) => l !== primaryL)]);
     setActive(user?.active !== false);
     setPassword("");
     setNewPassword("");
@@ -327,6 +345,10 @@ function UserFormModal({
       Alert.alert("Campo obrigatório", "Defina uma senha para o novo usuário.");
       return;
     }
+    const primaryRole = roles[0] ?? "solicitante";
+    const extraRolesArr = roles.slice(1);
+    const primaryLevel = approvalLevels[0] ?? "nenhum";
+    const extraLevelsArr = approvalLevels.slice(1);
     onSave({
       id: user?.id,
       name: name.trim(),
@@ -334,8 +356,10 @@ function UserFormModal({
       phone: phone.trim() || undefined,
       department: department.trim() || undefined,
       jobTitle: jobTitle.trim() || undefined,
-      procurementRole: role,
-      approvalLevel,
+      procurementRole: primaryRole,
+      extraRoles: extraRolesArr,
+      approvalLevel: primaryLevel,
+      extraApprovalLevels: extraLevelsArr,
       active,
       password: password.trim() || undefined,
     });
@@ -639,21 +663,31 @@ function UserFormModal({
             Permissões e Acesso
           </Text>
 
-          {/* Nível de Aprovação */}
+          {/* Nível de Aprovação - seleção múltipla */}
           <View>
             <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 4 }}>
               Nível de Aprovação
             </Text>
             <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 10 }}>
-              Define em qual etapa do fluxo de compras este usuário pode aprovar
+              Selecione um ou mais níveis de aprovação para este usuário
             </Text>
             <View style={{ gap: 8 }}>
               {APPROVAL_LEVELS.filter(l => isMasterCaller || l.key !== "master").map((level) => {
-                const selected = approvalLevel === level.key;
+                const selected = approvalLevels.includes(level.key);
+                const isPrimary = approvalLevels[0] === level.key;
                 return (
                   <Pressable
                     key={level.key}
-                    onPress={() => setApprovalLevel(level.key)}
+                    onPress={() => {
+                      if (selected) {
+                        // Desmarcar: se for o único, não permite; senão remove
+                        if (approvalLevels.length === 1) return;
+                        setApprovalLevels(prev => prev.filter(l => l !== level.key));
+                      } else {
+                        // Marcar: adiciona ao final
+                        setApprovalLevels(prev => [...prev, level.key]);
+                      }
+                    }}
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                   >
                     <View
@@ -667,11 +701,12 @@ function UserFormModal({
                         backgroundColor: selected ? `${level.color}15` : colors.surface,
                       }}
                     >
+                      {/* Checkbox em vez de radio */}
                       <View
                         style={{
                           width: 20,
                           height: 20,
-                          borderRadius: 10,
+                          borderRadius: 4,
                           borderWidth: 2,
                           borderColor: selected ? level.color : colors.border,
                           alignItems: "center",
@@ -681,19 +716,26 @@ function UserFormModal({
                         }}
                       >
                         {selected && (
-                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "white" }} />
+                          <Text style={{ color: "white", fontSize: 12, fontWeight: "700", lineHeight: 16 }}>✓</Text>
                         )}
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "600",
-                            color: selected ? level.color : colors.foreground,
-                          }}
-                        >
-                          {level.label}
-                        </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontWeight: "600",
+                              color: selected ? level.color : colors.foreground,
+                            }}
+                          >
+                            {level.label}
+                          </Text>
+                          {isPrimary && selected && (
+                            <View style={{ backgroundColor: level.color, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                              <Text style={{ color: "white", fontSize: 9, fontWeight: "700" }}>PRIMÁRIO</Text>
+                            </View>
+                          )}
+                        </View>
                         <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
                           {level.description}
                         </Text>
@@ -705,19 +747,30 @@ function UserFormModal({
             </View>
           </View>
 
-          {/* Papel / Perfil */}
+          {/* Papel / Perfil - seleção múltipla */}
           <View>
-            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 8 }}>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 4 }}>
               Perfil de Acesso *
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 10 }}>
+              Selecione um ou mais perfis de acesso para este usuário
             </Text>
             <View style={{ gap: 8 }}>
               {ROLES.map((r) => {
-                const selected = role === r;
+                const selected = roles.includes(r);
+                const isPrimaryRole = roles[0] === r;
                 const roleColor = ROLE_COLORS[r];
                 return (
                   <Pressable
                     key={r}
-                    onPress={() => setRole(r)}
+                    onPress={() => {
+                      if (selected) {
+                        if (roles.length === 1) return; // pelo menos 1 obrigatório
+                        setRoles(prev => prev.filter(x => x !== r));
+                      } else {
+                        setRoles(prev => [...prev, r]);
+                      }
+                    }}
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                   >
                     <View
@@ -731,11 +784,12 @@ function UserFormModal({
                         backgroundColor: selected ? `${roleColor}15` : colors.surface,
                       }}
                     >
+                      {/* Checkbox */}
                       <View
                         style={{
                           width: 20,
                           height: 20,
-                          borderRadius: 10,
+                          borderRadius: 4,
                           borderWidth: 2,
                           borderColor: selected ? roleColor : colors.border,
                           alignItems: "center",
@@ -745,19 +799,26 @@ function UserFormModal({
                         }}
                       >
                         {selected && (
-                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "white" }} />
+                          <Text style={{ color: "white", fontSize: 12, fontWeight: "700", lineHeight: 16 }}>✓</Text>
                         )}
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text
-                          style={{
-                            fontSize: 14,
-                            fontWeight: "600",
-                            color: selected ? roleColor : colors.foreground,
-                          }}
-                        >
-                          {ROLE_LABELS[r]}
-                        </Text>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Text
+                            style={{
+                              fontSize: 14,
+                              fontWeight: "600",
+                              color: selected ? roleColor : colors.foreground,
+                            }}
+                          >
+                            {ROLE_LABELS[r]}
+                          </Text>
+                          {isPrimaryRole && selected && (
+                            <View style={{ backgroundColor: roleColor, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                              <Text style={{ color: "white", fontSize: 9, fontWeight: "700" }}>PRIMÁRIO</Text>
+                            </View>
+                          )}
+                        </View>
                         <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
                           {r === "solicitante" && "Cria solicitações de compra"}
                           {r === "gerente" && "Aprova na 1ª etapa do fluxo"}
@@ -828,8 +889,8 @@ function UserFormModal({
               <Switch
                 value={active}
                 onValueChange={setActive}
-                trackColor={{ false: colors.border, true: `${ROLE_COLORS[role]}80` }}
-                thumbColor={active ? ROLE_COLORS[role] : colors.muted}
+                trackColor={{ false: colors.border, true: `${ROLE_COLORS[roles[0] ?? "solicitante"]}80` }}
+                thumbColor={active ? ROLE_COLORS[roles[0] ?? "solicitante"] : colors.muted}
               />
             </View>
           )}
@@ -2290,21 +2351,48 @@ export default function RegistersScreen() {
                       {(item as any).phone && (
                         <Text style={{ fontSize: 11, color: colors.muted }}>📱 {(item as any).phone}</Text>
                       )}
-                      {(item as any).approvalLevel && (item as any).approvalLevel !== "nenhum" && (item as any).approvalLevel !== "master" && (
-                        <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>
-                          ✓ Aprova: {APPROVAL_LEVELS.find(l => l.key === (item as any).approvalLevel)?.label ?? (item as any).approvalLevel}
-                        </Text>
-                      )}
+                      {(() => {
+                        const allLevels: string[] = [];
+                        if ((item as any).approvalLevel && (item as any).approvalLevel !== "nenhum" && (item as any).approvalLevel !== "master") {
+                          allLevels.push((item as any).approvalLevel);
+                        }
+                        try {
+                          if ((item as any).extraApprovalLevels) {
+                            const extras = JSON.parse((item as any).extraApprovalLevels);
+                            extras.forEach((l: string) => { if (l !== "nenhum" && l !== "master" && !allLevels.includes(l)) allLevels.push(l); });
+                          }
+                        } catch {}
+                        if (allLevels.length === 0) return null;
+                        return (
+                          <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>
+                            ✓ Aprova: {allLevels.map(l => APPROVAL_LEVELS.find(a => a.key === l)?.label ?? l).join(", ")}
+                          </Text>
+                        );
+                      })()}
                     </View>
                   </View>
 
-                  {/* Right side: role badge + edit + toggle */}
-                  <View style={{ alignItems: "flex-end", gap: 6 }}>
+                  {/* Right side: role badges + edit + toggle */}
+                  <View style={{ alignItems: "flex-end", gap: 4 }}>
+                    {/* Badge papel primário */}
                     <View style={{ backgroundColor: `${roleColor}15`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, borderWidth: 1, borderColor: `${roleColor}30` }}>
                       <Text style={{ fontSize: 11, fontWeight: "700", color: roleColor }}>
                         {ROLE_LABELS[(item as any).procurementRole as ProcurementRole] ?? "—"}
                       </Text>
                     </View>
+                    {/* Badges de papéis extras */}
+                    {(() => {
+                      const extras: string[] = [];
+                      try { if ((item as any).extraRoles) extras.push(...JSON.parse((item as any).extraRoles)); } catch {}
+                      return extras.map((r: string) => {
+                        const ec = ROLE_COLORS[r as ProcurementRole] ?? colors.muted;
+                        return (
+                          <View key={r} style={{ backgroundColor: `${ec}15`, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: `${ec}30` }}>
+                            <Text style={{ fontSize: 10, fontWeight: "600", color: ec }}>{ROLE_LABELS[r as ProcurementRole] ?? r}</Text>
+                          </View>
+                        );
+                      });
+                    })()}
                     {(item as any).approvalLevel === "master" && (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: 2, backgroundColor: "#7C3AED20", borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: "#7C3AED40" }}>
                         <Text style={{ fontSize: 9 }}>⭐</Text>

@@ -168,10 +168,12 @@ export async function upsertUserByAdmin(data: {
   name: string;
   email?: string;
   procurementRole: string;
+  extraRoles?: string[];
   department?: string;
   phone?: string;
   jobTitle?: string;
   approvalLevel?: string;
+  extraApprovalLevels?: string[];
   active?: boolean;
   passwordHash?: string;
   password?: string;
@@ -196,16 +198,26 @@ export async function upsertUserByAdmin(data: {
     }
   }
 
+  // Serializar arrays como JSON (remover duplicatas e o valor primário dos extras)
+  const extraRolesJson = data.extraRoles && data.extraRoles.length > 0
+    ? JSON.stringify([...new Set(data.extraRoles.filter(r => r !== data.procurementRole))])
+    : null;
+  const extraApprovalLevelsJson = data.extraApprovalLevels && data.extraApprovalLevels.length > 0
+    ? JSON.stringify([...new Set(data.extraApprovalLevels.filter(l => l !== (data.approvalLevel ?? "nenhum")))])
+    : null;
+
   if (data.id) {
     // UPDATE existing user
     await db.update(users).set({
       name: data.name,
       email: data.email ?? null,
       procurementRole: data.procurementRole as User["procurementRole"],
+      extraRoles: extraRolesJson,
       department: data.department ?? null,
       phone: data.phone ?? null,
       jobTitle: data.jobTitle ?? null,
       approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
+      extraApprovalLevels: extraApprovalLevelsJson,
       active: data.active ?? true,
       ...(finalPasswordHash !== undefined ? { passwordHash: finalPasswordHash } : {}),
     }).where(eq(users.id, data.id));
@@ -219,10 +231,12 @@ export async function upsertUserByAdmin(data: {
       name: data.name,
       email: data.email || null,
       procurementRole: data.procurementRole as User["procurementRole"],
+      extraRoles: extraRolesJson,
       department: data.department ?? null,
       phone: data.phone ?? null,
       jobTitle: data.jobTitle ?? null,
       approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
+      extraApprovalLevels: extraApprovalLevelsJson,
       active: data.active ?? true,
       lastSignedIn: new Date(),
       ...(finalPasswordHash !== undefined ? { passwordHash: finalPasswordHash } : {}),
@@ -572,29 +586,38 @@ export async function getRequestsByRequester(requesterId: number) {
   return db.select().from(purchaseRequests).where(eq(purchaseRequests.requesterId, requesterId)).orderBy(desc(purchaseRequests.createdAt));
 }
 
-export async function getPendingRequestsForUser(role: string) {
+export async function getPendingRequestsForUser(role: string, extraRoles?: string[]) {
   const db = await getDb();
   if (!db) return [];
 
-  // Role orcamento responde por 3 etapas: orçamento, emissão de OC e verificação final
-  if (role === "orcamento") {
-    return db.select().from(purchaseRequests)
-      .where(inArray(purchaseRequests.status, ["aguardando_orcamento", "aguardando_ordem_compra", "aguardando_verificacao_compras"] as any[]))
-      .orderBy(purchaseRequests.urgencyLevel, purchaseRequests.deadlineAt);
+  // Combinar papel primário + extras
+  const allRoles = [role, ...(extraRoles ?? [])].filter(Boolean);
+
+  // Coletar todos os status pendentes para todos os papéis do usuário
+  const pendingStatuses = new Set<string>();
+
+  for (const r of allRoles) {
+    if (r === "orcamento") {
+      // Role orcamento responde por 3 etapas
+      pendingStatuses.add("aguardando_orcamento");
+      pendingStatuses.add("aguardando_ordem_compra");
+      pendingStatuses.add("aguardando_verificacao_compras");
+    } else {
+      const singleStatusMap: Record<string, string> = {
+        gerente: "aguardando_gerente",
+        controladoria: "aguardando_controladoria",
+        diretoria: "aguardando_diretoria",
+        financeiro: "aguardando_comprovante_pagamento",
+      };
+      const s = singleStatusMap[r];
+      if (s) pendingStatuses.add(s);
+    }
   }
 
-  const singleStatusMap: Record<string, string> = {
-    gerente: "aguardando_gerente",
-    controladoria: "aguardando_controladoria",
-    diretoria: "aguardando_diretoria",
-    financeiro: "aguardando_comprovante_pagamento",
-  };
-
-  const status = singleStatusMap[role];
-  if (!status) return [];
+  if (pendingStatuses.size === 0) return [];
 
   return db.select().from(purchaseRequests)
-    .where(eq(purchaseRequests.status, status as any))
+    .where(inArray(purchaseRequests.status, [...pendingStatuses] as any[]))
     .orderBy(purchaseRequests.urgencyLevel, purchaseRequests.deadlineAt);
 }
 

@@ -42,6 +42,9 @@ export const users = mysqlTable("users", {
     "financeiro",
     "master",
   ]).default("nenhum").notNull(),
+  // Papéis e níveis adicionais (JSON array de strings, ex: '["gerente","orcamento"]')
+  extraRoles: text("extraRoles"), // JSON array de ProcurementRole extras
+  extraApprovalLevels: text("extraApprovalLevels"), // JSON array de ApprovalLevel extras
   pinHash: varchar("pinHash", { length: 255 }), // Hashed PIN for master quick access
   passwordHash: varchar("passwordHash", { length: 255 }), // Hashed password for email+password login
   active: boolean("active").default(true).notNull(),

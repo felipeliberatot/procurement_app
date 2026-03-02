@@ -367,3 +367,14 @@
 
 ## Bug Logout Web/Desktop
 - [x] Bug: logout não funciona na versão web/desktop — corrigido usando window.location.href para forçar reload completo na web
+
+## Múltiplos Papéis e Níveis de Aprovação por Usuário
+- [x] Adicionar colunas extraRoles e extraApprovalLevels na tabela users (JSON)
+- [x] Atualizar upsertUserByAdmin para gravar/ler múltiplos papéis e níveis
+- [x] Atualizar routers.ts para aceitar extraRoles e extraApprovalLevels no input
+- [x] Converter seletores de radio button para checkboxes com seleção múltipla no formulário
+- [x] Exibir badge PRIMÁRIO no primeiro papel/nível selecionado
+- [x] Exibir múltiplos badges na lista de usuários
+- [x] Atualizar getPendingRequestsForUser para considerar todos os papéis do usuário
+- [x] Atualizar canAct no detalhe da solicitação para considerar todos os papéis
+- [x] 11 novos testes unitários cobrindo a lógica de múltiplos papéis

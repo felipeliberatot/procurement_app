@@ -37,10 +37,12 @@ export const appRouter = router({
         name: z.string().min(1),
         email: z.string().email().optional().or(z.literal("")),
         procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"]),
+        extraRoles: z.array(z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"])).optional(),
         department: z.string().optional(),
         phone: z.string().optional(),
         jobTitle: z.string().optional(),
         approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"]).optional(),
+        extraApprovalLevels: z.array(z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"])).optional(),
         active: z.boolean().optional(),
         password: z.string().min(6).optional(),
       }))
@@ -277,9 +279,24 @@ export const appRouter = router({
       db.getRequestsByRequester(ctx.user.id)
     ),
 
-    pendingForMe: protectedProcedure.query(({ ctx }) =>
-      db.getPendingRequestsForUser(ctx.user.procurementRole)
-    ),
+    pendingForMe: protectedProcedure.query(({ ctx }) => {
+      const user = ctx.user as any;
+      // Combinar papel primário + extras (approvalLevel e extraApprovalLevels também contam)
+      const extraRoles: string[] = [];
+      if (user.extraRoles) {
+        try { extraRoles.push(...JSON.parse(user.extraRoles)); } catch {}
+      }
+      if (user.approvalLevel && user.approvalLevel !== "nenhum" && user.approvalLevel !== "master") {
+        extraRoles.push(user.approvalLevel);
+      }
+      if (user.extraApprovalLevels) {
+        try {
+          const levels = JSON.parse(user.extraApprovalLevels);
+          extraRoles.push(...levels.filter((l: string) => l !== "nenhum" && l !== "master"));
+        } catch {}
+      }
+      return db.getPendingRequestsForUser(ctx.user.procurementRole, extraRoles);
+    }),
 
     all: protectedProcedure
       .input(z.object({ department: z.string().optional() }).optional())
