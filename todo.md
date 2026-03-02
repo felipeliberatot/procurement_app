@@ -361,3 +361,6 @@
 
 ## Bug Crítico Orçamento (persistente)
 - [x] Bug: etapa de orçamento corrigida definitivamente — criada mutation dedicada submitBudget no servidor com validações explícitas e feedback visual claro no app (Alert de sucesso + router.back())
+
+## Bug Upload PDF na Web
+- [x] Bug: expo-file-system.readAsStringAsync não funciona na web — usar FileReader API do browser como alternativa para todas as funções de upload de PDF

@@ -28,6 +28,28 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RequestStatus, ProcurementRole, PaymentMethod } from "@/shared/types";
 import { STEP_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ICONS } from "@/shared/types";
 
+// Lê um arquivo como base64 — compatível com web (FileReader) e nativo (expo-file-system)
+async function readFileAsBase64(uri: string): Promise<string> {
+  if (Platform.OS === "web") {
+    // Na web, o DocumentPicker retorna um blob URL (blob:http://...)
+    const response = await fetch(uri);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove o prefixo "data:...;base64,"
+        const base64 = result.split(",")[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } else {
+    return FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+  }
+}
+
 const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
   rascunho: ["solicitante", "admin"],
   aguardando_gerente: ["gerente", "admin"],
@@ -708,9 +730,7 @@ export default function RequestDetailScreen() {
       if (result.canceled) return;
       const file = result.assets[0];
       setBudgetFileName(file.name);
-      const base64 = await FileSystem.readAsStringAsync(file.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const base64 = await readFileAsBase64(file.uri);
       uploadFileMutation.mutate({
         requestId: request.id,
         fileName: file.name,
@@ -752,7 +772,7 @@ export default function RequestDetailScreen() {
       if (result.canceled) return;
       const file = result.assets[0];
       setPaymentProofFileName(file.name);
-      const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+      const base64 = await readFileAsBase64(file.uri);
       uploadPaymentProofMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
     } catch (err) {
       Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
@@ -765,7 +785,7 @@ export default function RequestDetailScreen() {
       if (result.canceled) return;
       const file = result.assets[0];
       setInvoiceFileName(file.name);
-      const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+      const base64 = await readFileAsBase64(file.uri);
       uploadInvoiceMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
     } catch (err) {
       Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
@@ -1111,7 +1131,7 @@ export default function RequestDetailScreen() {
                       const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
                       if (result.canceled || !result.assets?.[0]) return;
                       const file = result.assets[0];
-                      const base64 = await FileSystem.readAsStringAsync(file.uri, { encoding: FileSystem.EncodingType.Base64 });
+                      const base64 = await readFileAsBase64(file.uri);
                       setOcSiagriFileName(file.name);
                       uploadOCSiagriMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
                     }}
