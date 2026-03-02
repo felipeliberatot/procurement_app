@@ -378,3 +378,9 @@
 - [x] Atualizar getPendingRequestsForUser para considerar todos os papéis do usuário
 - [x] Atualizar canAct no detalhe da solicitação para considerar todos os papéis
 - [x] 11 novos testes unitários cobrindo a lógica de múltiplos papéis
+
+## Melhorias de UX no Cadastro de Usuários (Lote 3)
+- [ ] Reordenação de papéis por arrastar (drag-and-drop) no formulário de cadastro de usuários
+- [ ] Reordenação de níveis de aprovação por arrastar no formulário de cadastro de usuários
+- [ ] Painel de cobertura de aprovadores com alertas visuais quando nível sem responsável
+- [ ] Filtro "Aguardando Minha Ação" na tela de Solicitações

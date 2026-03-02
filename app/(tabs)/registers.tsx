@@ -663,28 +663,29 @@ function UserFormModal({
             Permissões e Acesso
           </Text>
 
-          {/* Nível de Aprovação - seleção múltipla */}
+          {/* Nível de Aprovação - seleção múltipla com reordenação */}
           <View>
             <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 4 }}>
               Nível de Aprovação
             </Text>
             <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 10 }}>
-              Selecione um ou mais níveis de aprovação para este usuário
+              Selecione um ou mais níveis. Use ↑↓ para definir o nível primário.
             </Text>
             <View style={{ gap: 8 }}>
               {APPROVAL_LEVELS.filter(l => isMasterCaller || l.key !== "master").map((level) => {
                 const selected = approvalLevels.includes(level.key);
+                const levelIdx = approvalLevels.indexOf(level.key);
                 const isPrimary = approvalLevels[0] === level.key;
+                const canMoveUp = selected && levelIdx > 0;
+                const canMoveDown = selected && levelIdx < approvalLevels.length - 1;
                 return (
                   <Pressable
                     key={level.key}
                     onPress={() => {
                       if (selected) {
-                        // Desmarcar: se for o único, não permite; senão remove
                         if (approvalLevels.length === 1) return;
                         setApprovalLevels(prev => prev.filter(l => l !== level.key));
                       } else {
-                        // Marcar: adiciona ao final
                         setApprovalLevels(prev => [...prev, level.key]);
                       }
                     }}
@@ -701,7 +702,7 @@ function UserFormModal({
                         backgroundColor: selected ? `${level.color}15` : colors.surface,
                       }}
                     >
-                      {/* Checkbox em vez de radio */}
+                      {/* Checkbox */}
                       <View
                         style={{
                           width: 20,
@@ -721,13 +722,7 @@ function UserFormModal({
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                          <Text
-                            style={{
-                              fontSize: 14,
-                              fontWeight: "600",
-                              color: selected ? level.color : colors.foreground,
-                            }}
-                          >
+                          <Text style={{ fontSize: 14, fontWeight: "600", color: selected ? level.color : colors.foreground }}>
                             {level.label}
                           </Text>
                           {isPrimary && selected && (
@@ -735,11 +730,65 @@ function UserFormModal({
                               <Text style={{ color: "white", fontSize: 9, fontWeight: "700" }}>PRIMÁRIO</Text>
                             </View>
                           )}
+                          {selected && !isPrimary && (
+                            <View style={{ backgroundColor: `${level.color}30`, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                              <Text style={{ color: level.color, fontSize: 9, fontWeight: "600" }}>#{levelIdx + 1}</Text>
+                            </View>
+                          )}
                         </View>
                         <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
                           {level.description}
                         </Text>
                       </View>
+                      {/* Botões de reordenação */}
+                      {selected && approvalLevels.length > 1 && (
+                        <View style={{ flexDirection: "column", gap: 2, marginLeft: 8 }}>
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              if (!canMoveUp) return;
+                              setApprovalLevels(prev => {
+                                const arr = [...prev];
+                                [arr[levelIdx - 1], arr[levelIdx]] = [arr[levelIdx], arr[levelIdx - 1]];
+                                return arr;
+                              });
+                            }}
+                            style={({ pressed }) => ({
+                              opacity: canMoveUp ? (pressed ? 0.5 : 1) : 0.2,
+                              backgroundColor: canMoveUp ? `${level.color}20` : colors.border,
+                              borderRadius: 6,
+                              width: 26,
+                              height: 26,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            })}
+                          >
+                            <Text style={{ fontSize: 13, color: canMoveUp ? level.color : colors.muted, fontWeight: "700" }}>↑</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              if (!canMoveDown) return;
+                              setApprovalLevels(prev => {
+                                const arr = [...prev];
+                                [arr[levelIdx + 1], arr[levelIdx]] = [arr[levelIdx], arr[levelIdx + 1]];
+                                return arr;
+                              });
+                            }}
+                            style={({ pressed }) => ({
+                              opacity: canMoveDown ? (pressed ? 0.5 : 1) : 0.2,
+                              backgroundColor: canMoveDown ? `${level.color}20` : colors.border,
+                              borderRadius: 6,
+                              width: 26,
+                              height: 26,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            })}
+                          >
+                            <Text style={{ fontSize: 13, color: canMoveDown ? level.color : colors.muted, fontWeight: "700" }}>↓</Text>
+                          </Pressable>
+                        </View>
+                      )}
                     </View>
                   </Pressable>
                 );
@@ -747,25 +796,28 @@ function UserFormModal({
             </View>
           </View>
 
-          {/* Papel / Perfil - seleção múltipla */}
+          {/* Papel / Perfil - seleção múltipla com reordenação */}
           <View>
             <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 4 }}>
               Perfil de Acesso *
             </Text>
             <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 10 }}>
-              Selecione um ou mais perfis de acesso para este usuário
+              Selecione um ou mais perfis. Use ↑↓ para definir o papel primário.
             </Text>
             <View style={{ gap: 8 }}>
               {ROLES.map((r) => {
                 const selected = roles.includes(r);
+                const roleIdx = roles.indexOf(r);
                 const isPrimaryRole = roles[0] === r;
                 const roleColor = ROLE_COLORS[r];
+                const canMoveUp = selected && roleIdx > 0;
+                const canMoveDown = selected && roleIdx < roles.length - 1;
                 return (
                   <Pressable
                     key={r}
                     onPress={() => {
                       if (selected) {
-                        if (roles.length === 1) return; // pelo menos 1 obrigatório
+                        if (roles.length === 1) return;
                         setRoles(prev => prev.filter(x => x !== r));
                       } else {
                         setRoles(prev => [...prev, r]);
@@ -804,18 +856,17 @@ function UserFormModal({
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                          <Text
-                            style={{
-                              fontSize: 14,
-                              fontWeight: "600",
-                              color: selected ? roleColor : colors.foreground,
-                            }}
-                          >
+                          <Text style={{ fontSize: 14, fontWeight: "600", color: selected ? roleColor : colors.foreground }}>
                             {ROLE_LABELS[r]}
                           </Text>
                           {isPrimaryRole && selected && (
                             <View style={{ backgroundColor: roleColor, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
                               <Text style={{ color: "white", fontSize: 9, fontWeight: "700" }}>PRIMÁRIO</Text>
+                            </View>
+                          )}
+                          {selected && !isPrimaryRole && (
+                            <View style={{ backgroundColor: `${roleColor}30`, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                              <Text style={{ color: roleColor, fontSize: 9, fontWeight: "600" }}>#{roleIdx + 1}</Text>
                             </View>
                           )}
                         </View>
@@ -829,6 +880,55 @@ function UserFormModal({
                           {r === "admin" && "Acesso total ao sistema"}
                         </Text>
                       </View>
+                      {/* Botões de reordenação - apenas quando selecionado e há mais de 1 */}
+                      {selected && roles.length > 1 && (
+                        <View style={{ flexDirection: "column", gap: 2, marginLeft: 8 }}>
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              if (!canMoveUp) return;
+                              setRoles(prev => {
+                                const arr = [...prev];
+                                [arr[roleIdx - 1], arr[roleIdx]] = [arr[roleIdx], arr[roleIdx - 1]];
+                                return arr;
+                              });
+                            }}
+                            style={({ pressed }) => ({
+                              opacity: canMoveUp ? (pressed ? 0.5 : 1) : 0.2,
+                              backgroundColor: canMoveUp ? `${roleColor}20` : colors.border,
+                              borderRadius: 6,
+                              width: 26,
+                              height: 26,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            })}
+                          >
+                            <Text style={{ fontSize: 13, color: canMoveUp ? roleColor : colors.muted, fontWeight: "700" }}>↑</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={(e) => {
+                              e.stopPropagation?.();
+                              if (!canMoveDown) return;
+                              setRoles(prev => {
+                                const arr = [...prev];
+                                [arr[roleIdx + 1], arr[roleIdx]] = [arr[roleIdx], arr[roleIdx + 1]];
+                                return arr;
+                              });
+                            }}
+                            style={({ pressed }) => ({
+                              opacity: canMoveDown ? (pressed ? 0.5 : 1) : 0.2,
+                              backgroundColor: canMoveDown ? `${roleColor}20` : colors.border,
+                              borderRadius: 6,
+                              width: 26,
+                              height: 26,
+                              alignItems: "center",
+                              justifyContent: "center",
+                            })}
+                          >
+                            <Text style={{ fontSize: 13, color: canMoveDown ? roleColor : colors.muted, fontWeight: "700" }}>↓</Text>
+                          </Pressable>
+                        </View>
+                      )}
                     </View>
                   </Pressable>
                 );
@@ -2200,65 +2300,96 @@ export default function RegistersScreen() {
                 )}
 
                 {/* Approval Levels Panel */}
-                {usersList && usersList.length > 0 && (
-                  <View style={{ paddingBottom: 4 }}>
-                    <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                      Painel de Aprovadores
-                    </Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      <View style={{ flexDirection: "row", gap: 8 }}>
-                        {[
-                          { key: "master", label: "Master", icon: "⭐", color: "#7C3AED" },
-                          { key: "gerente", label: "Gerente", icon: "🏢", color: "#0EA5E9" },
-                          { key: "orcamento", label: "Orçamento", icon: "📋", color: "#8B5CF6" },
-                          { key: "controladoria", label: "Controladoria", icon: "📊", color: "#F59E0B" },
-                          { key: "diretoria", label: "Diretoria", icon: "🏆", color: "#EF4444" },
-                          { key: "financeiro", label: "Financeiro", icon: "💰", color: "#10B981" },
-                        ].map((lvl) => {
-                          const responsible = usersList.filter(
-                            (u) => (u as any).approvalLevel === lvl.key && (u as any).active !== false
-                          );
-                          const isEmpty = responsible.length === 0;
-                          return (
-                            <View
-                              key={lvl.key}
-                              style={{
-                                backgroundColor: isEmpty ? `${colors.error}10` : `${lvl.color}12`,
-                                borderWidth: 1,
-                                borderColor: isEmpty ? `${colors.error}40` : `${lvl.color}30`,
-                                borderRadius: 12,
-                                padding: 10,
-                                minWidth: 120,
-                                maxWidth: 160,
-                              }}
-                            >
-                              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
-                                <Text style={{ fontSize: 14 }}>{lvl.icon}</Text>
-                                <Text style={{ fontSize: 11, fontWeight: "700", color: isEmpty ? colors.error : lvl.color }}>
-                                  {lvl.label}
-                                </Text>
-                              </View>
-                              {isEmpty ? (
-                                <Text style={{ fontSize: 10, color: colors.error, fontWeight: "600" }}>
-                                  ⚠️ Sem responsável
-                                </Text>
-                              ) : (
-                                responsible.slice(0, 2).map((u) => (
-                                  <Text key={(u as any).id} style={{ fontSize: 10, color: colors.foreground, marginBottom: 1 }} numberOfLines={1}>
-                                    • {(u as any).name ?? (u as any).email ?? "—"}
+                {usersList && usersList.length > 0 && (() => {
+                  const approverLevels = [
+                    { key: "master", label: "Master", icon: "⭐", color: "#7C3AED" },
+                    { key: "gerente", label: "Gerente", icon: "🏢", color: "#0EA5E9" },
+                    { key: "orcamento", label: "Orçamento", icon: "📋", color: "#8B5CF6" },
+                    { key: "controladoria", label: "Controladoria", icon: "📊", color: "#F59E0B" },
+                    { key: "diretoria", label: "Diretoria", icon: "🏆", color: "#EF4444" },
+                    { key: "financeiro", label: "Financeiro", icon: "💰", color: "#10B981" },
+                  ];
+                  // Verifica cobertura considerando approvalLevel primário + extraApprovalLevels
+                  const getResponsible = (levelKey: string) => usersList.filter((u) => {
+                    if ((u as any).active === false) return false;
+                    if ((u as any).approvalLevel === levelKey) return true;
+                    try {
+                      const extras: string[] = JSON.parse((u as any).extraApprovalLevels ?? "[]");
+                      return extras.includes(levelKey);
+                    } catch { return false; }
+                  });
+                  const uncoveredLevels = approverLevels.filter(l => l.key !== "master" && getResponsible(l.key).length === 0);
+                  return (
+                    <View style={{ paddingBottom: 4, gap: 8 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Painel de Aprovadores
+                      </Text>
+                      {/* Alerta consolidado quando há níveis sem cobertura */}
+                      {uncoveredLevels.length > 0 && (
+                        <View style={{ backgroundColor: `${colors.error}12`, borderWidth: 1, borderColor: `${colors.error}40`, borderRadius: 10, padding: 10, flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                          <Text style={{ fontSize: 16 }}>⚠️</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.error, marginBottom: 2 }}>
+                              {uncoveredLevels.length} nível{uncoveredLevels.length > 1 ? "is" : ""} sem aprovador ativo
+                            </Text>
+                            <Text style={{ fontSize: 11, color: colors.error }}>
+                              {uncoveredLevels.map(l => l.label).join(", ")} — solicitações podem ficar travadas nestas etapas.
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                        <View style={{ flexDirection: "row", gap: 8 }}>
+                          {approverLevels.map((lvl) => {
+                            const responsible = getResponsible(lvl.key);
+                            const isEmpty = responsible.length === 0;
+                            const isCritical = isEmpty && lvl.key !== "master";
+                            return (
+                              <View
+                                key={lvl.key}
+                                style={{
+                                  backgroundColor: isCritical ? `${colors.error}10` : `${lvl.color}12`,
+                                  borderWidth: isCritical ? 1.5 : 1,
+                                  borderColor: isCritical ? `${colors.error}50` : `${lvl.color}30`,
+                                  borderRadius: 12,
+                                  padding: 10,
+                                  minWidth: 120,
+                                  maxWidth: 160,
+                                }}
+                              >
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 }}>
+                                  <Text style={{ fontSize: 14 }}>{lvl.icon}</Text>
+                                  <Text style={{ fontSize: 11, fontWeight: "700", color: isCritical ? colors.error : lvl.color }}>
+                                    {lvl.label}
                                   </Text>
-                                ))
-                              )}
-                              {responsible.length > 2 && (
-                                <Text style={{ fontSize: 10, color: colors.muted }}>+{responsible.length - 2} mais</Text>
-                              )}
-                            </View>
-                          );
-                        })}
-                      </View>
-                    </ScrollView>
-                  </View>
-                )}
+                                  {responsible.length > 0 && (
+                                    <View style={{ backgroundColor: `${lvl.color}25`, borderRadius: 8, paddingHorizontal: 5, paddingVertical: 1 }}>
+                                      <Text style={{ fontSize: 9, fontWeight: "700", color: lvl.color }}>{responsible.length}</Text>
+                                    </View>
+                                  )}
+                                </View>
+                                {isEmpty ? (
+                                  <Text style={{ fontSize: 10, color: isCritical ? colors.error : colors.muted, fontWeight: "600" }}>
+                                    {isCritical ? "⚠️ Sem responsável" : "— Não configurado"}
+                                  </Text>
+                                ) : (
+                                  responsible.slice(0, 2).map((u) => (
+                                    <Text key={(u as any).id} style={{ fontSize: 10, color: colors.foreground, marginBottom: 1 }} numberOfLines={1}>
+                                      • {(u as any).name ?? (u as any).email ?? "—"}
+                                    </Text>
+                                  ))
+                                )}
+                                {responsible.length > 2 && (
+                                  <Text style={{ fontSize: 10, color: colors.muted }}>+{responsible.length - 2} mais</Text>
+                                )}
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </ScrollView>
+                    </View>
+                  );
+                })()}
 
                 {/* Results count */}
                 <Text style={{ fontSize: 12, color: colors.muted, paddingBottom: 4 }}>

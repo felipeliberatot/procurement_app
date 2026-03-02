@@ -42,8 +42,19 @@ const URGENCY_FILTERS = [
   { key: "normal", label: "🟢 Normal", color: "bg-success border-success", textColor: "text-white" },
 ];
 
+// Mapa de status que cada papel pode agir
+const ROLE_PENDING_STATUSES: Record<string, string[]> = {
+  gerente: ["aguardando_gerente"],
+  orcamento: ["aguardando_orcamento", "aguardando_ordem_compra", "aguardando_verificacao_compras"],
+  controladoria: ["aguardando_controladoria"],
+  diretoria: ["aguardando_diretoria"],
+  financeiro: ["aguardando_comprovante_pagamento", "aguardando_aprovacao_compra"],
+  admin: [],
+  solicitante: [],
+};
+
 export default function RequestsScreen() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { isDesktop } = useBreakpoint();
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -51,6 +62,21 @@ export default function RequestsScreen() {
   const [activeFilter, setActiveFilter] = useState(params.filter ?? "all");
   const [activeUrgency, setActiveUrgency] = useState(params.urgency ?? "all");
   const [activeDepartment, setActiveDepartment] = useState<string>("all");
+  const [myActionOnly, setMyActionOnly] = useState(false);
+
+  // Calcula os status pendentes para o usuário logado (todos os papéis)
+  const myPendingStatuses = React.useMemo(() => {
+    const allRoles: string[] = [];
+    const primaryRole = (user as any)?.procurementRole;
+    if (primaryRole) allRoles.push(primaryRole);
+    try {
+      const extras: string[] = JSON.parse((user as any)?.extraRoles ?? "[]");
+      extras.forEach(r => { if (!allRoles.includes(r)) allRoles.push(r); });
+    } catch {}
+    const statuses = new Set<string>();
+    allRoles.forEach(r => (ROLE_PENDING_STATUSES[r] ?? []).forEach(s => statuses.add(s)));
+    return [...statuses];
+  }, [user]);
 
   // Sincroniza filtros sempre que a tela recebe foco (inclui navegação por tab)
   useFocusEffect(
@@ -82,7 +108,8 @@ export default function RequestsScreen() {
       : r.status === activeFilter;
     const urgencyMatch = activeUrgency === "all" ? true : r.urgencyLevel === activeUrgency;
     const deptMatch = activeDepartment === "all" ? true : r.department === activeDepartment;
-    return statusMatch && urgencyMatch && deptMatch;
+    const myActionMatch = myActionOnly ? myPendingStatuses.includes(r.status) : true;
+    return statusMatch && urgencyMatch && deptMatch && myActionMatch;
   });
 
   if (isDesktop) {
@@ -137,6 +164,26 @@ export default function RequestsScreen() {
                 <Text style={{ fontSize: 13, fontWeight: activeDepartment === dept.name ? "700" : "500", color: activeDepartment === dept.name ? colors.primary : colors.foreground }} numberOfLines={1}>{dept.name}</Text>
               </Pressable>
             ))}
+            {myPendingStatuses.length > 0 && (
+              <>
+                <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12 }} />
+                <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 8, paddingHorizontal: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Minha Ação</Text>
+                <Pressable
+                  onPress={() => setMyActionOnly(v => !v)}
+                  style={({ pressed }) => ({
+                    flexDirection: "row", alignItems: "center", gap: 8,
+                    paddingHorizontal: 10, paddingVertical: 8, borderRadius: 8, marginBottom: 2,
+                    backgroundColor: myActionOnly ? `${colors.warning}20` : pressed ? `${colors.primary}08` : "transparent",
+                    opacity: pressed ? 0.85 : 1,
+                  })}
+                >
+                  <View style={{ width: 16, height: 16, borderRadius: 4, borderWidth: 2, borderColor: myActionOnly ? colors.warning : colors.border, backgroundColor: myActionOnly ? colors.warning : "transparent", alignItems: "center", justifyContent: "center" }}>
+                    {myActionOnly && <Text style={{ color: "white", fontSize: 10, fontWeight: "700", lineHeight: 14 }}>✓</Text>}
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: myActionOnly ? "700" : "500", color: myActionOnly ? colors.warning : colors.foreground, flex: 1 }}>Aguardando Minha Ação</Text>
+                </Pressable>
+              </>
+            )}
             <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 12 }} />
             <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 8, paddingHorizontal: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Urgência</Text>
             {URGENCY_FILTERS.map((uf) => (
@@ -221,6 +268,33 @@ export default function RequestsScreen() {
         </View>
         <Text className="text-sm text-muted">{filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}</Text>
       </View>
+
+      {/* Filtro rápido: Aguardando Minha Ação */}
+      {myPendingStatuses.length > 0 && (
+        <View style={{ paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+          <Pressable
+            onPress={() => setMyActionOnly(v => !v)}
+            style={({ pressed }) => ({
+              flexDirection: "row", alignItems: "center", gap: 8,
+              backgroundColor: myActionOnly ? `${colors.warning}18` : colors.surface,
+              borderWidth: 1.5, borderColor: myActionOnly ? colors.warning : colors.border,
+              paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12,
+              opacity: pressed ? 0.8 : 1,
+              alignSelf: "flex-start",
+            })}
+          >
+            <View style={{ width: 16, height: 16, borderRadius: 4, borderWidth: 2, borderColor: myActionOnly ? colors.warning : colors.border, backgroundColor: myActionOnly ? colors.warning : "transparent", alignItems: "center", justifyContent: "center" }}>
+              {myActionOnly && <Text style={{ color: "white", fontSize: 10, fontWeight: "700", lineHeight: 14 }}>✓</Text>}
+            </View>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: myActionOnly ? colors.warning : colors.foreground }}>⏳ Aguardando Minha Ação</Text>
+            {myActionOnly && (
+              <View style={{ backgroundColor: colors.warning, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 1 }}>
+                <Text style={{ color: "white", fontSize: 10, fontWeight: "700" }}>{filtered.length}</Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+      )}
 
       {/* Filtro por status */}
       <View className="border-b border-border">
