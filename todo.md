@@ -352,3 +352,6 @@
 
 ## Badge Tab Malotes
 - [x] Badge com contador de malotes "Abertos" no ícone da tab de Malotes — badge vermelho com número, atualiza a cada 30 segundos
+
+## Bug Fluxo Orçamento
+- [x] Bug: fluxo de orçamento não avançava ao clicar em "Enviar Orçamento" — attachBudget estava forçando status para aguardando_controladoria ao fazer upload; corrigido para apenas salvar o arquivo, avanço ocorre somente ao clicar em Enviar Orçamento

@@ -644,10 +644,9 @@ export async function attachBudget(requestId: number, userId: number, userName: 
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
+  // Apenas salva o arquivo — o avanço do fluxo acontece quando o usuário clica em "Enviar Orçamento"
   await db.update(purchaseRequests).set({
     budgetFileUrl: fileUrl,
-    status: "aguardando_controladoria",
-    stepDeadlineAt: getStepDeadline(),
   }).where(eq(purchaseRequests.id, requestId));
 
   await db.insert(approvalHistory).values({
@@ -656,7 +655,7 @@ export async function attachBudget(requestId: number, userId: number, userName: 
     userName,
     step: "orcamento",
     action: "orcamento_anexado",
-    comment: "Orçamento em PDF anexado",
+    comment: "Orçamento em PDF anexado — aguardando envio",
   });
 }
 
