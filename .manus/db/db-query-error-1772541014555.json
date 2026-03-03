@@ -1,0 +1,8 @@
+{
+  "query": "\nINSERT INTO purchaseRequests (\n  requestNumber, requesterId, requesterName, department, application, \n  justification, urgencyLevel, status, totalEstimated, createdAt, updatedAt\n) VALUES (\n  'SOL-2026-TEST-FIN', 570087, 'Teste Financeiro', 'TI', 'Teste',\n  'Solicitação de teste para validar fluxo financeiro', 'normal', \n  'aguardando_aprovacao_compra', 1000.00, NOW(), NOW()\n);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nINSERT INTO purchaseRequests (\n  requestNumber, requesterId, requesterName, department, application, \n  justification, urgencyLevel, status, totalEstimated, createdAt, updatedAt\n) VALUES (\n  'SOL-2026-TEST-FIN', 570087, 'Teste Financeiro', 'TI', 'Teste',\n  'Solicitação de teste para validar fluxo financeiro', 'normal', \n  'aguardando_aprovacao_compra', 1000.00, NOW(), NOW()\n);\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'justification' in 'field list'"
+  ]
+}

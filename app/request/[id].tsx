@@ -811,7 +811,10 @@ export default function RequestDetailScreen() {
 
   const handlePickPaymentProof = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"],
+        copyToCacheDirectory: true,
+      });
       if (result.canceled) return;
       const file = result.assets[0];
       setPaymentProofFileName(file.name);
@@ -824,7 +827,10 @@ export default function RequestDetailScreen() {
 
   const handlePickInvoice = async () => {
     try {
-      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"],
+        copyToCacheDirectory: true,
+      });
       if (result.canceled) return;
       const file = result.assets[0];
       setInvoiceFileName(file.name);
@@ -1331,7 +1337,7 @@ export default function RequestDetailScreen() {
                     {isPix && (
                       <>
                         <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Comprovante PIX *</Text>
-                        <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o comprovante do PIX realizado (obrigatório)</Text>
+                        <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o comprovante do PIX realizado (PDF, JPEG, PNG — obrigatório)</Text>
                         {hasProof ? (
                           <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
@@ -1352,7 +1358,7 @@ export default function RequestDetailScreen() {
                             {uploadPaymentProofMutation.isPending ? (
                               <><ActivityIndicator size="small" /><Text style={{ color: colors.primary, fontSize: 14, marginLeft: 8 }}>Enviando...</Text></>
                             ) : (
-                              <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.error, fontWeight: "600", fontSize: 14 }}>{paymentProofFileName ?? "Selecionar Comprovante PIX (obrigatório)"}</Text></>
+                              <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.error, fontWeight: "600", fontSize: 14 }}>{paymentProofFileName ?? "Selecionar Comprovante PIX (PDF/Imagem)"}</Text></>
                             )}
                           </TouchableOpacity>
                         )}
@@ -1406,7 +1412,7 @@ export default function RequestDetailScreen() {
                             {uploadPaymentProofMutation.isPending ? (
                               <ActivityIndicator size="small" color={colors.primary} />
                             ) : (
-                              <><Text style={{ fontSize: 20 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>{paymentProofFileName ?? "Anexar comprovante (opcional)"}</Text></>
+                              <><Text style={{ fontSize: 20 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>{paymentProofFileName ?? "Anexar comprovante (PDF/Imagem — opcional)"}</Text></>
                             )}
                           </TouchableOpacity>
                         )}
