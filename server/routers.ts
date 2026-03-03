@@ -337,8 +337,8 @@ export const appRouter = router({
         const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
         const key = `budgets/${input.requestId}/${Date.now()}_${safeName}`;
         const { url } = await storagePut(key, buffer, input.mimeType);
-        // Attach the budget URL to the request
-        await db.attachBudget(input.requestId, ctx.user.id, ctx.user.name ?? "Usuário", url);
+        // Attach the budget URL to the request (passa fileName para rastreabilidade no histórico)
+        await db.attachBudget(input.requestId, ctx.user.id, ctx.user.name ?? "Usuário", url, input.fileName);
         return { url };
       }),
 

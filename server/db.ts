@@ -752,11 +752,24 @@ export async function getApprovalHistory(requestId: number) {
   return db.select().from(approvalHistory).where(eq(approvalHistory.requestId, requestId)).orderBy(approvalHistory.createdAt);
 }
 
-export async function attachBudget(requestId: number, userId: number, userName: string, fileUrl: string) {
+export async function attachBudget(requestId: number, userId: number, userName: string, fileUrl: string, fileName?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
-  // Apenas salva o arquivo — o avanço do fluxo acontece quando o usuário clica em "Enviar Orçamento"
+  // Verifica se já existe um orçamento anexado (substituição vs. primeiro anexo)
+  const [existing] = await db
+    .select({ budgetFileUrl: purchaseRequests.budgetFileUrl })
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.id, requestId))
+    .limit(1);
+  const isSubstitution = !!(existing?.budgetFileUrl);
+  const fileLabel = fileName ? `"${fileName}"` : "PDF";
+  const now = new Date().toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    day: "2-digit", month: "2-digit", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+
   await db.update(purchaseRequests).set({
     budgetFileUrl: fileUrl,
   }).where(eq(purchaseRequests.id, requestId));
@@ -767,7 +780,9 @@ export async function attachBudget(requestId: number, userId: number, userName: 
     userName,
     step: "orcamento",
     action: "orcamento_anexado",
-    comment: "Orçamento em PDF anexado — aguardando envio",
+    comment: isSubstitution
+      ? `Orçamento substituído por ${userName} em ${now} — Arquivo: ${fileLabel}`
+      : `Orçamento em PDF anexado — aguardando envio`,
   });
 }
 

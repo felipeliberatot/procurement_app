@@ -416,3 +416,7 @@
 ## Edição de Orçamento nos Fluxos Subsequentes
 - [x] Fluxo Normal: botão de edição do orçamento no bloco do fluxo 04 (aguardando_controladoria), abaixo de observação, visível para orcamento/compras/master
 - [x] Fluxo Urgente/Emergencial: botão de edição do orçamento no bloco do fluxo 05 (aguardando_diretoria), abaixo de observação, visível para orcamento/compras/master
+
+## Histórico e Bloqueio de Orçamento
+- [x] Registrar substituição do PDF no histórico de aprovações (nome do arquivo, data, usuário)
+- [x] Exibir mensagem "Orçamento bloqueado — etapa já aprovada" no card de PDF quando status passou da etapa editável
