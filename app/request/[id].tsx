@@ -517,11 +517,8 @@ export default function RequestDetailScreen() {
       invalidateAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setBudgetFileName(null);
-      Alert.alert(
-        "✅ Orçamento Enviado!",
-        "O orçamento foi enviado com sucesso e a solicitação avançou para a próxima etapa.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      // Navega imediatamente — Alert.alert com callback não funciona na web
+      router.back();
     },
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -569,11 +566,8 @@ export default function RequestDetailScreen() {
     onSuccess: () => {
       invalidateAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "✅ OC Finalizada!",
-        "A Ordem de Compra foi encerrada com sucesso e habilitada nos Malotes.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      // Navega imediatamente — Alert.alert com callback não funciona na web
+      router.back();
     },
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

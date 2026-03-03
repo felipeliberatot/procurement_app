@@ -401,3 +401,7 @@
 - [x] Aba "Relatório" adicionada no tab bar e no sidebar desktop
 - [x] Botão "Relatório" nas Ações Rápidas do Dashboard
 - [x] 15 novos testes unitários para lógica de agrupamento do relatório mensal
+
+## Bug Etapa de Orçamento — Tela não avança
+- [x] Bug: após enviar PDF e clicar em "Enviar Orçamento", a tela não navegava de volta — Alert.alert com callback onPress não funciona na web; corrigido chamando router.back() diretamente no onSuccess
+- [x] Mesmo padrão corrigido no finalizeOCMutation (OC Finalizada)
