@@ -15,6 +15,7 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -414,7 +415,9 @@ export default function RequestDetailScreen() {
   const [paymentObservations, setPaymentObservations] = useState("");
   const [budgetFileName, setBudgetFileName] = useState<string | null>(null);
   const [paymentProofFileName, setPaymentProofFileName] = useState<string | null>(null);
+  const [paymentProofLocalUri, setPaymentProofLocalUri] = useState<string | null>(null); // URI local para pré-visualização antes do upload
   const [invoiceFileName, setInvoiceFileName] = useState<string | null>(null);
+  const [invoiceLocalUri, setInvoiceLocalUri] = useState<string | null>(null); // URI local para pré-visualização da nota fiscal
   const [ocSiagriFileName, setOcSiagriFileName] = useState<string | null>(null);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -818,6 +821,9 @@ export default function RequestDetailScreen() {
       if (result.canceled) return;
       const file = result.assets[0];
       setPaymentProofFileName(file.name);
+      // Salvar URI local para pré-visualização de imagens
+      const isImage = file.mimeType?.startsWith("image/") ?? false;
+      setPaymentProofLocalUri(isImage ? file.uri : null);
       const base64 = await readFileAsBase64(file.uri);
       uploadPaymentProofMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
     } catch (err) {
@@ -834,6 +840,9 @@ export default function RequestDetailScreen() {
       if (result.canceled) return;
       const file = result.assets[0];
       setInvoiceFileName(file.name);
+      // Salvar URI local para pré-visualização de imagens
+      const isImage = file.mimeType?.startsWith("image/") ?? false;
+      setInvoiceLocalUri(isImage ? file.uri : null);
       const base64 = await readFileAsBase64(file.uri);
       uploadInvoiceMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
     } catch (err) {
@@ -1340,25 +1349,51 @@ export default function RequestDetailScreen() {
                         <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o comprovante do PIX realizado (PDF, JPEG, PNG — obrigatório)</Text>
                         {hasProof ? (
                           <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                              <Text style={{ fontSize: 22 }}>📄</Text>
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante Anexado</Text>
-                                <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                            {/* Miniatura se for imagem, caso contrário ícone de PDF */}
+                            {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
+                              <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
+                                <Image source={{ uri: (request as any).paymentProofUrl }} style={{ width: "100%", height: 180, resizeMode: "cover" }} />
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: `${colors.success}20`, paddingHorizontal: 12, paddingVertical: 8 }}>
+                                  <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>🖼️ Comprovante Anexado</Text>
+                                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ampliar</Text>
+                                </View>
                               </View>
-                              <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
-                            </View>
+                            ) : (
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                                <Text style={{ fontSize: 22 }}>📄</Text>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante Anexado</Text>
+                                  <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                                </View>
+                                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
+                              </View>
+                            )}
                           </Pressable>
                         ) : (
                           <TouchableOpacity
                             onPress={handlePickPaymentProof}
                             disabled={uploadPaymentProofMutation.isPending}
-                            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.error}60`, borderRadius: 12, paddingVertical: 20, marginBottom: 12, opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
+                            style={{ borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.error}60`, borderRadius: 12, overflow: "hidden", marginBottom: 12, opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
                           >
                             {uploadPaymentProofMutation.isPending ? (
-                              <><ActivityIndicator size="small" /><Text style={{ color: colors.primary, fontSize: 14, marginLeft: 8 }}>Enviando...</Text></>
+                              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20 }}>
+                                <ActivityIndicator size="small" />
+                                <Text style={{ color: colors.primary, fontSize: 14 }}>Enviando...</Text>
+                              </View>
+                            ) : paymentProofLocalUri ? (
+                              // Pré-visualização local antes do upload completar
+                              <View>
+                                <Image source={{ uri: paymentProofLocalUri }} style={{ width: "100%", height: 160, resizeMode: "cover" }} />
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 10, backgroundColor: `${colors.warning}15` }}>
+                                  <Text style={{ fontSize: 16 }}>⏳</Text>
+                                  <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "600" }}>{paymentProofFileName} — Enviando...</Text>
+                                </View>
+                              </View>
                             ) : (
-                              <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.error, fontWeight: "600", fontSize: 14 }}>{paymentProofFileName ?? "Selecionar Comprovante PIX (PDF/Imagem)"}</Text></>
+                              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20 }}>
+                                <Text style={{ fontSize: 24 }}>📎</Text>
+                                <Text style={{ color: colors.error, fontWeight: "600", fontSize: 14 }}>{paymentProofFileName ?? "Selecionar Comprovante PIX (PDF/Imagem)"}</Text>
+                              </View>
                             )}
                           </TouchableOpacity>
                         )}
@@ -1395,24 +1430,48 @@ export default function RequestDetailScreen() {
                         <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Comprovante (opcional)</Text>
                         {hasProof ? (
                           <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-                            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                              <Text style={{ fontSize: 22 }}>📄</Text>
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante Anexado</Text>
-                                <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                            {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
+                              <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
+                                <Image source={{ uri: (request as any).paymentProofUrl }} style={{ width: "100%", height: 160, resizeMode: "cover" }} />
+                                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: `${colors.success}20`, paddingHorizontal: 12, paddingVertical: 8 }}>
+                                  <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>🖼️ Comprovante Anexado</Text>
+                                  <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ampliar</Text>
+                                </View>
                               </View>
-                            </View>
+                            ) : (
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                                <Text style={{ fontSize: 22 }}>📄</Text>
+                                <View style={{ flex: 1 }}>
+                                  <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante Anexado</Text>
+                                  <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                                </View>
+                              </View>
+                            )}
                           </Pressable>
                         ) : (
                           <TouchableOpacity
                             onPress={handlePickPaymentProof}
                             disabled={uploadPaymentProofMutation.isPending}
-                            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}40`, borderRadius: 12, paddingVertical: 16, marginBottom: 12, opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
+                            style={{ borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}40`, borderRadius: 12, overflow: "hidden", marginBottom: 12, opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
                           >
                             {uploadPaymentProofMutation.isPending ? (
-                              <ActivityIndicator size="small" color={colors.primary} />
+                              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 }}>
+                                <ActivityIndicator size="small" color={colors.primary} />
+                                <Text style={{ color: colors.primary, fontSize: 13 }}>Enviando...</Text>
+                              </View>
+                            ) : paymentProofLocalUri ? (
+                              <View>
+                                <Image source={{ uri: paymentProofLocalUri }} style={{ width: "100%", height: 140, resizeMode: "cover" }} />
+                                <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 10, backgroundColor: `${colors.warning}15` }}>
+                                  <Text style={{ fontSize: 14 }}>⏳</Text>
+                                  <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "600" }}>{paymentProofFileName} — Enviando...</Text>
+                                </View>
+                              </View>
                             ) : (
-                              <><Text style={{ fontSize: 20 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>{paymentProofFileName ?? "Anexar comprovante (PDF/Imagem — opcional)"}</Text></>
+                              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 }}>
+                                <Text style={{ fontSize: 20 }}>📎</Text>
+                                <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>{paymentProofFileName ?? "Anexar comprovante (PDF/Imagem — opcional)"}</Text>
+                              </View>
                             )}
                           </TouchableOpacity>
                         )}
@@ -1461,39 +1520,73 @@ export default function RequestDetailScreen() {
                   {/* Comprovante para visualização */}
                   {(request as any).paymentProofUrl && (
                     <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                        <Text style={{ fontSize: 20 }}>💳</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante de Pagamento</Text>
-                          <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                      {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
+                        <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
+                          <Image source={{ uri: (request as any).paymentProofUrl }} style={{ width: "100%", height: 160, resizeMode: "cover" }} />
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: `${colors.success}20`, paddingHorizontal: 12, paddingVertical: 8 }}>
+                            <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>🖼️ Comprovante de Pagamento</Text>
+                            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ampliar</Text>
+                          </View>
                         </View>
-                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
-                      </View>
+                      ) : (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                          <Text style={{ fontSize: 20 }}>💳</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante de Pagamento</Text>
+                            <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                          </View>
+                          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
+                        </View>
+                      )}
                     </Pressable>
                   )}
 
                   {/* Nota Fiscal */}
                   {(request as any).invoiceUrl ? (
                     <Pressable onPress={() => Linking.openURL((request as any).invoiceUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                        <Text style={{ fontSize: 20 }}>🧾</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Nota Fiscal Anexada</Text>
-                          <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                      {(request as any).invoiceUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
+                        <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
+                          <Image source={{ uri: (request as any).invoiceUrl }} style={{ width: "100%", height: 160, resizeMode: "cover" }} />
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: `${colors.success}20`, paddingHorizontal: 12, paddingVertical: 8 }}>
+                            <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>🖼️ Nota Fiscal Anexada</Text>
+                            <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ampliar</Text>
+                          </View>
                         </View>
-                        <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
-                      </View>
+                      ) : (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                          <Text style={{ fontSize: 20 }}>🧾</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Nota Fiscal Anexada</Text>
+                            <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                          </View>
+                          <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ver</Text>
+                        </View>
+                      )}
                     </Pressable>
                   ) : (
                     <TouchableOpacity
                       onPress={handlePickInvoice}
                       disabled={uploadInvoiceMutation.isPending}
-                      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.warning}60`, borderRadius: 12, paddingVertical: 20, marginBottom: 12, opacity: uploadInvoiceMutation.isPending ? 0.6 : 1 }}
+                      style={{ borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.warning}60`, borderRadius: 12, overflow: "hidden", marginBottom: 12, opacity: uploadInvoiceMutation.isPending ? 0.6 : 1 }}
                     >
                       {uploadInvoiceMutation.isPending ? (
-                        <><ActivityIndicator size="small" /><Text style={{ color: colors.warning, fontSize: 14, marginLeft: 8 }}>Enviando...</Text></>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20 }}>
+                          <ActivityIndicator size="small" />
+                          <Text style={{ color: colors.warning, fontSize: 14, marginLeft: 8 }}>Enviando...</Text>
+                        </View>
+                      ) : invoiceLocalUri ? (
+                        <View>
+                          <Image source={{ uri: invoiceLocalUri }} style={{ width: "100%", height: 140, resizeMode: "cover" }} />
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 10, backgroundColor: `${colors.warning}15` }}>
+                            <Text style={{ fontSize: 14 }}>⏳</Text>
+                            <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "600" }}>{invoiceFileName} — Enviando...</Text>
+                          </View>
+                        </View>
                       ) : (
-                        <><Text style={{ fontSize: 24 }}>🧾</Text><Text style={{ color: colors.warning, fontWeight: "600", fontSize: 14 }}>{invoiceFileName ?? "Anexar Nota Fiscal (PDF)"}</Text></>
+                        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20 }}>
+                          <Text style={{ fontSize: 24 }}>🧾</Text>
+                          <Text style={{ color: colors.warning, fontWeight: "600", fontSize: 14 }}>{invoiceFileName ?? "Anexar Nota Fiscal (PDF/Imagem)"}</Text>
+                        </View>
                       )}
                     </TouchableOpacity>
                   )}
