@@ -405,3 +405,7 @@
 ## Bug Etapa de Orçamento — Tela não avança
 - [x] Bug: após enviar PDF e clicar em "Enviar Orçamento", a tela não navegava de volta — Alert.alert com callback onPress não funciona na web; corrigido chamando router.back() diretamente no onSuccess
 - [x] Mesmo padrão corrigido no finalizeOCMutation (OC Finalizada)
+
+## Bug Botões de Aprovação na Web
+- [x] Bug: Alert.alert com callback onPress não funciona na web — botão "Aprovar Pagamento" (fluxo 08 comprovante) não disparava approveMutation; corrigido com showConfirm cross-platform
+- [x] Bug: handleFinalize usava Alert.alert com callback; corrigido com showConfirm

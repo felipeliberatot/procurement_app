@@ -801,10 +801,12 @@ export default function RequestDetailScreen() {
   const handleFinalize = () => {
     // Mantido para compatibilidade — não usado diretamente na UI
     if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe as informações de pagamento."); return; }
-    Alert.alert("Confirmar Dados de Pagamento", "Confirmar os dados de pagamento e avançar para o Financeiro?", [
-      { text: "Cancelar", style: "cancel" },
-      { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, paymentInfo }) },
-    ]);
+    showConfirm({
+      title: "Confirmar Dados de Pagamento",
+      message: "Confirmar os dados de pagamento e avançar para o Financeiro?",
+      confirmText: "Confirmar",
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, paymentInfo }),
+    });
   };
 
   const handlePickPaymentProof = async () => {
@@ -1563,10 +1565,12 @@ export default function RequestDetailScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => {
-                          Alert.alert("✅ Aprovar Comprovante", "Confirmar o pagamento e avançar para verificação do Compras?", [
-                            { text: "Cancelar", style: "cancel" },
-                            { text: "Confirmar", onPress: () => approveMutation.mutate({ requestId: request.id, paymentObservations: !isPix ? paymentObservations.trim() : undefined }) },
-                          ]);
+                          showConfirm({
+                            title: "✅ Aprovar Comprovante",
+                            message: "Confirmar o pagamento e avançar para verificação do Compras?",
+                            confirmText: "Confirmar",
+                            onConfirm: () => approveMutation.mutate({ requestId: request.id, paymentObservations: !isPix ? paymentObservations.trim() : undefined }),
+                          });
                         }}
                         disabled={approveMutation.isPending || rejectMutation.isPending || !canApprove}
                         style={{ flex: 2, backgroundColor: canApprove ? colors.success : colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
