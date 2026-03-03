@@ -420,3 +420,6 @@
 ## Histórico e Bloqueio de Orçamento
 - [x] Registrar substituição do PDF no histórico de aprovações (nome do arquivo, data, usuário)
 - [x] Exibir mensagem "Orçamento bloqueado — etapa já aprovada" no card de PDF quando status passou da etapa editável
+
+## Correção Botão Editar Orçamento
+- [x] Corrigir canEditBudget: botão de edição unificado em aguardando_controladoria para todos os fluxos (fluxo 04 normal, fluxo 05 urgente/emergencial)

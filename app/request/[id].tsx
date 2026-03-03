@@ -1024,12 +1024,15 @@ export default function RequestDetailScreen() {
 
           {/* PDF de orçamento */}
           {request.budgetFileUrl && (() => {
-            // Status em que o orçamento pode ser editado (fluxo normal: controladoria; urgente: diretoria)
+            // Status em que o orçamento pode ser editado:
+            // - Fluxo Normal:              Gerente → Orçamento → Controladoria* → Diretoria → ...
+            // - Fluxo Urgente/Emergencial: Gerente → Diretoria → Orçamento → Controladoria* → ...
+            // Em ambos os fluxos, a etapa editável é aguardando_controladoria (imediatamente após o orçamento)
             const canEditBudget =
-              (currentStatus === "aguardando_controladoria" || currentStatus === "aguardando_diretoria") &&
+              currentStatus === "aguardando_controladoria" &&
               (allUserRoles.some(r => ["orcamento", "admin"].includes(r)) || isMasterUser);
             // Status em que o orçamento já passou da etapa editável (bloqueado)
-            const EDITABLE_STATUSES: RequestStatus[] = ["aguardando_orcamento", "aguardando_controladoria", "aguardando_diretoria"];
+            const EDITABLE_STATUSES: RequestStatus[] = ["aguardando_orcamento", "aguardando_controladoria"];
             const isBudgetLocked =
               !EDITABLE_STATUSES.includes(currentStatus) &&
               !isDone && !isCancelled && !isRejected &&
@@ -1221,38 +1224,14 @@ export default function RequestDetailScreen() {
                 </View>
               )}
 
-              {/* Edição de Orçamento — Fluxo Normal: visível em aguardando_controladoria para orcamento/admin/master */}
+              {/* Edição de Orçamento:
+                  - Fluxo Normal:              aguardando_controladoria = fluxo 04 (logo após orçamento)
+                  - Fluxo Urgente/Emergencial: aguardando_controladoria = fluxo 05 (logo após orçamento)
+                  Em ambos os casos, a etapa editável é aguardando_controladoria */}
               {currentStatus === "aguardando_controladoria" && (allUserRoles.some(r => ["orcamento", "admin"].includes(r)) || isMasterUser) && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">✏️ Editar Orçamento</Text>
-                  <Text className="text-xs text-muted mb-3">O fluxo 04 ainda não foi concluído. Você pode substituir o PDF do orçamento enquanto aguarda a aprovação da Controladoria.</Text>
-                  <TouchableOpacity
-                    onPress={handlePickBudget}
-                    disabled={uploadFileMutation.isPending}
-                    style={{
-                      flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
-                      borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.warning}60`,
-                      borderRadius: 12, paddingVertical: 16,
-                      opacity: uploadFileMutation.isPending ? 0.6 : 1,
-                    }}
-                  >
-                    {uploadFileMutation.isPending ? (
-                      <><ActivityIndicator size="small" /><Text style={{ color: colors.warning, fontSize: 14, marginLeft: 8 }}>Enviando PDF...</Text></>
-                    ) : (
-                      <><Text style={{ fontSize: 20 }}>📎</Text><Text style={{ color: colors.warning, fontWeight: "600", fontSize: 14 }}>{budgetFileName ?? (request.budgetFileUrl ? "Substituir PDF do Orçamento" : "Selecionar PDF do Orçamento")}</Text></>
-                    )}
-                  </TouchableOpacity>
-                  {budgetFileName && !uploadFileMutation.isPending && (
-                    <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName} — PDF substituído com sucesso</Text>
-                  )}
-                </View>
-              )}
-
-              {/* Edição de Orçamento — Fluxo Urgente/Emergencial: visível em aguardando_diretoria para orcamento/admin/master */}
-              {currentStatus === "aguardando_diretoria" && (allUserRoles.some(r => ["orcamento", "admin"].includes(r)) || isMasterUser) && (
-                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-                  <Text className="text-sm font-bold text-foreground mb-1">✏️ Editar Orçamento</Text>
-                  <Text className="text-xs text-muted mb-3">O fluxo 05 ainda não foi concluído. Você pode substituir o PDF do orçamento enquanto aguarda a aprovação da Diretoria.</Text>
+                  <Text className="text-xs text-muted mb-3">A etapa de orçamento ainda não foi concluída. Você pode substituir o PDF do orçamento enquanto aguarda a aprovação da Controladoria.</Text>
                   <TouchableOpacity
                     onPress={handlePickBudget}
                     disabled={uploadFileMutation.isPending}
