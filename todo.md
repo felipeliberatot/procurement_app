@@ -412,3 +412,7 @@
 
 ## Edição de Orçamento
 - [x] Botão de edição do orçamento na tela de detalhe: visível apenas quando status = aguardando_controladoria (fluxo 04 não concluído), permitindo substituir o PDF e/ou valor do orçamento
+
+## Edição de Orçamento nos Fluxos Subsequentes
+- [x] Fluxo Normal: botão de edição do orçamento no bloco do fluxo 04 (aguardando_controladoria), abaixo de observação, visível para orcamento/compras/master
+- [x] Fluxo Urgente/Emergencial: botão de edição do orçamento no bloco do fluxo 05 (aguardando_diretoria), abaixo de observação, visível para orcamento/compras/master
