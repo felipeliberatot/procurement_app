@@ -392,3 +392,12 @@
 
 ## Câmera para Comprovante e Nota Fiscal
 - [ ] Feature: Botão "Fotografar" nos campos de comprovante e nota fiscal para capturar imagem diretamente pela câmera
+
+## Relatório Mensal de Compras
+- [x] Endpoint getMonthlyReport no servidor (db.ts + routers.ts) com filtro por mês/ano, agrupamento por departamento e status
+- [x] Tela de relatório (app/(tabs)/report.tsx) com seletor de mês/ano, abas Resumo/Departamentos/Detalhes
+- [x] Exportação PDF via expo-print + expo-sharing (HTML gerado no cliente)
+- [x] Exportação CSV com download direto na web e sharing nativo no mobile
+- [x] Aba "Relatório" adicionada no tab bar e no sidebar desktop
+- [x] Botão "Relatório" nas Ações Rápidas do Dashboard
+- [x] 15 novos testes unitários para lógica de agrupamento do relatório mensal

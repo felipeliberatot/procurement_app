@@ -306,6 +306,10 @@ export const appRouter = router({
       db.getDashboardStats(ctx.user.id, ctx.user.procurementRole)
     ),
 
+    monthlyReport: protectedProcedure
+      .input(z.object({ year: z.number().int().min(2020).max(2100), month: z.number().int().min(1).max(12) }))
+      .query(({ input }) => db.getMonthlyReport(input.year, input.month)),
+
     history: protectedProcedure
       .input(z.object({ requestId: z.number() }))
       .query(({ input }) => db.getApprovalHistory(input.requestId)),

@@ -1,5 +1,5 @@
 import {
-  and, desc, eq, gte, inArray, or, sql
+  and, desc, eq, gte, inArray, lte, or, sql
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -660,6 +660,90 @@ export async function getDashboardStats(userId: number, role: string) {
     r.deadlineAt <= in24h
   ).length;
   return { total: all.length, pending, approved, rejected, cancelled, urgent, emergency, expiringSoon };
+}
+
+export async function getMonthlyReport(year: number, month: number) {
+  const db = await getDb();
+  if (!db) return { requests: [], summary: { total: 0, concluidas: 0, pendentes: 0, rejeitadas: 0, canceladas: 0, totalValue: 0 }, byDepartment: [], byStatus: [], byUrgency: [] };
+
+  // Filtrar pelo mês/ano selecionado
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0, 23, 59, 59);
+
+  const all = await db.select().from(purchaseRequests)
+    .where(and(
+      gte(purchaseRequests.createdAt, startDate),
+      lte(purchaseRequests.createdAt, endDate)
+    ))
+    .orderBy(purchaseRequests.createdAt);
+
+  // Buscar itens de todas as solicitações do período
+  const allIds = all.map(r => r.id);
+  const items = allIds.length > 0
+    ? await db.select().from(requestItems).where(inArray(requestItems.requestId, allIds))
+    : [];
+
+  // Calcular valor total real (soma dos itens)
+  const totalValue = items.reduce((sum, item) => sum + parseFloat(item.totalPrice ?? "0"), 0);
+
+  // Resumo geral
+  const summary = {
+    total: all.length,
+    concluidas: all.filter(r => r.status === "concluida").length,
+    pendentes: all.filter(r => r.status.startsWith("aguardando")).length,
+    rejeitadas: all.filter(r => r.status === "rejeitada").length,
+    canceladas: all.filter(r => r.status === "cancelada").length,
+    totalValue,
+  };
+
+  // Agrupamento por departamento
+  const deptMap = new Map<string, { department: string; total: number; concluidas: number; pendentes: number; rejeitadas: number; totalValue: number }>();
+  for (const r of all) {
+    const dept = r.department || "Não informado";
+    if (!deptMap.has(dept)) deptMap.set(dept, { department: dept, total: 0, concluidas: 0, pendentes: 0, rejeitadas: 0, totalValue: 0 });
+    const entry = deptMap.get(dept)!;
+    entry.total++;
+    if (r.status === "concluida") entry.concluidas++;
+    else if (r.status.startsWith("aguardando")) entry.pendentes++;
+    else if (r.status === "rejeitada" || r.status === "cancelada") entry.rejeitadas++;
+    // Somar valor dos itens desta solicitação
+    const reqItems = items.filter(i => i.requestId === r.id);
+    entry.totalValue += reqItems.reduce((sum, i) => sum + parseFloat(i.totalPrice ?? "0"), 0);
+  }
+  const byDepartment = Array.from(deptMap.values()).sort((a, b) => b.total - a.total);
+
+  // Agrupamento por status
+  const statusMap = new Map<string, number>();
+  for (const r of all) {
+    statusMap.set(r.status, (statusMap.get(r.status) ?? 0) + 1);
+  }
+  const byStatus = Array.from(statusMap.entries()).map(([status, count]) => ({ status, count })).sort((a, b) => b.count - a.count);
+
+  // Agrupamento por urgência
+  const urgencyMap = new Map<string, number>();
+  for (const r of all) {
+    urgencyMap.set(r.urgencyLevel, (urgencyMap.get(r.urgencyLevel) ?? 0) + 1);
+  }
+  const byUrgency = Array.from(urgencyMap.entries()).map(([urgency, count]) => ({ urgency, count }));
+
+  // Lista detalhada de solicitações
+  const requests = all.map(r => ({
+    id: r.id,
+    requestNumber: r.requestNumber,
+    requesterName: r.requesterName,
+    department: r.department,
+    application: r.application,
+    status: r.status,
+    urgencyLevel: r.urgencyLevel,
+    totalEstimatedValue: r.totalEstimatedValue,
+    createdAt: r.createdAt,
+    paymentMethod: r.paymentMethod,
+    purchaseOrderNumber: r.purchaseOrderNumber,
+    itemCount: items.filter(i => i.requestId === r.id).length,
+    totalValue: items.filter(i => i.requestId === r.id).reduce((sum, i) => sum + parseFloat(i.totalPrice ?? "0"), 0),
+  }));
+
+  return { requests, summary, byDepartment, byStatus, byUrgency };
 }
 
 export async function getApprovalHistory(requestId: number) {

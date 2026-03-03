@@ -162,9 +162,9 @@ export default function DashboardScreen() {
                     <Text className="text-2xl">✅</Text>
                     <Text className="text-xs font-semibold text-foreground text-center">Aprovações</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(tabs)/registers" as any)} className="flex-1 bg-surface border border-border rounded-2xl p-4 items-center gap-2">
-                    <Text className="text-2xl">📂</Text>
-                    <Text className="text-xs font-semibold text-foreground text-center">Cadastros</Text>
+                  <TouchableOpacity activeOpacity={0.8} onPress={() => router.push("/(tabs)/report" as any)} className="flex-1 bg-surface border border-border rounded-2xl p-4 items-center gap-2">
+                    <Text className="text-2xl">📊</Text>
+                    <Text className="text-xs font-semibold text-foreground text-center">Relatório</Text>
                   </TouchableOpacity>
                 </View>
               </View>

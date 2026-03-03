@@ -18,6 +18,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Solicitações",  icon: "📋", route: "/(tabs)/requests" },
   { label: "Aprovações",    icon: "✅", route: "/(tabs)/approvals" },
   { label: "Malotes",       icon: "📦", route: "/(tabs)/malotes" },
+  { label: "Relatório",     icon: "📊", route: "/(tabs)/report" },
   { label: "Cadastros",     icon: "🗂️", route: "/(tabs)/registers" },
   { label: "Perfil",        icon: "👤", route: "/(tabs)/profile" },
 ];
