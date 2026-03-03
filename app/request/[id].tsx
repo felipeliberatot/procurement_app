@@ -504,7 +504,8 @@ export default function RequestDetailScreen() {
     onSuccess: () => {
       invalidateAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("✅ PDF anexado com sucesso!", "O orçamento já está disponível para visualização.");
+      setBudgetFileName(null);
+      Alert.alert("✅ PDF atualizado com sucesso!", "O orçamento foi substituído e já está disponível para visualização.");
     },
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -1023,19 +1024,46 @@ export default function RequestDetailScreen() {
 
           {/* PDF de orçamento */}
           {request.budgetFileUrl && (
-            <Pressable
-              onPress={() => Linking.openURL(request.budgetFileUrl!)}
-              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
-            >
-              <View className="bg-success/10 border border-success/30 rounded-2xl p-4 mb-4 flex-row items-center gap-3">
+            <View className="bg-success/10 border border-success/30 rounded-2xl p-4 mb-4">
+              <View className="flex-row items-center gap-3">
                 <Text className="text-2xl">📄</Text>
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-success">Orçamento Anexado</Text>
                   <Text className="text-xs text-muted" numberOfLines={1}>Toque para visualizar o PDF</Text>
                 </View>
-                <Text className="text-primary text-xs font-semibold">👁 Ver</Text>
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(request.budgetFileUrl!)}
+                  style={{ paddingHorizontal: 10, paddingVertical: 6 }}
+                >
+                  <Text className="text-primary text-xs font-semibold">👁 Ver</Text>
+                </TouchableOpacity>
+                {/* Botão de edição: visível apenas quando aguardando_controladoria e usuário tem papel orcamento/admin */}
+                {currentStatus === "aguardando_controladoria" && allUserRoles.some(r => ["orcamento", "admin"].includes(r)) && (
+                  <TouchableOpacity
+                    onPress={handlePickBudget}
+                    disabled={uploadFileMutation.isPending}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      backgroundColor: uploadFileMutation.isPending ? undefined : `${colors.warning}20`,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: `${colors.warning}50`,
+                    }}
+                  >
+                    {uploadFileMutation.isPending ? (
+                      <ActivityIndicator size="small" color={colors.warning} />
+                    ) : (
+                      <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "700" }}>✏️ Editar</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
               </View>
-            </Pressable>
+              {/* Feedback de substituição em andamento */}
+              {currentStatus === "aguardando_controladoria" && allUserRoles.some(r => ["orcamento", "admin"].includes(r)) && budgetFileName && (
+                <Text style={{ color: colors.warning, fontSize: 11, marginTop: 8 }}>⚠️ Novo arquivo selecionado: {budgetFileName} — aguardando upload...</Text>
+              )}
+            </View>
           )}
 
           {/* Fluxo de aprovação */}

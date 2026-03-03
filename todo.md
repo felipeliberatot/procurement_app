@@ -409,3 +409,6 @@
 ## Bug Botões de Aprovação na Web
 - [x] Bug: Alert.alert com callback onPress não funciona na web — botão "Aprovar Pagamento" (fluxo 08 comprovante) não disparava approveMutation; corrigido com showConfirm cross-platform
 - [x] Bug: handleFinalize usava Alert.alert com callback; corrigido com showConfirm
+
+## Edição de Orçamento
+- [x] Botão de edição do orçamento na tela de detalhe: visível apenas quando status = aguardando_controladoria (fluxo 04 não concluído), permitindo substituir o PDF e/ou valor do orçamento
