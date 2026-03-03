@@ -91,6 +91,13 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
+      "expo-image-picker",
+      {
+        photosPermission: "Permite selecionar imagens da galeria para comprovantes e notas fiscais.",
+        cameraPermission: "Permite fotografar comprovantes e notas fiscais diretamente pelo app.",
+      },
+    ],
+    [
       "expo-audio",
       {
         microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",

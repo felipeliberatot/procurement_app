@@ -389,3 +389,6 @@
 ## Bugs Desktop e Financeiro
 - [ ] Bug: na versão desktop, nenhum botão de aprovação avança o fluxo (Alert.alert não funciona na web)
 - [ ] Bug: card de aprovação do Financeiro não aparece na aba Aprovações para usuários com papel financeiro
+
+## Câmera para Comprovante e Nota Fiscal
+- [ ] Feature: Botão "Fotografar" nos campos de comprovante e nota fiscal para capturar imagem diretamente pela câmera
