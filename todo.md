@@ -430,3 +430,6 @@
 ## Gráfico de Tempo de Aprovação no Dashboard
 - [x] Endpoint getApprovalTimingStats: tempo médio por etapa a partir do histórico
 - [x] Gráfico de barras horizontais no Dashboard ranqueando etapas mais lentas
+
+## Bug: Master não recebe solicitações aguardando Diretoria
+- [x] Corrigir pendingForMe/approvals para incluir aguardando_diretoria para usuários master

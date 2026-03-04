@@ -160,6 +160,9 @@ export default function ApprovalsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
+  const isMasterUser = (user as any)?.approvalLevel === "master";
+  // Para exibição: master usa descrição de admin (vê tudo)
+  const displayRole: ProcurementRole = isMasterUser ? "admin" : userRole;
   const utils = trpc.useUtils();
 
   const [rejectTarget, setRejectTarget] = useState<{ id: number; requestNumber: string } | null>(null);
@@ -201,20 +204,9 @@ export default function ApprovalsScreen() {
   });
 
   const handleQuickApprove = (item: any) => {
-    Alert.alert(
-      "Confirmar Aprovação",
-      `Aprovar a solicitação ${item.requestNumber}?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Aprovar",
-          onPress: () => {
-            setApprovingId(item.id);
-            approveMutation.mutate({ requestId: item.id });
-          },
-        },
-      ]
-    );
+    // Alert.alert callbacks não funcionam na web — aprovar diretamente
+    setApprovingId(item.id);
+    approveMutation.mutate({ requestId: item.id });
   };
 
   const handleQuickReject = (item: any) => {
@@ -244,7 +236,9 @@ export default function ApprovalsScreen() {
     <ScreenContainer>
       <View style={{ paddingHorizontal: isDesktop ? 24 : 20, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
         <Text style={{ fontSize: isDesktop ? 24 : 22, fontWeight: "800", color: colors.foreground }}>Aprovações</Text>
-        <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{ROLE_LABELS[userRole] ?? "Usuário"}</Text>
+        <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>
+          {isMasterUser ? "Master — Todas as etapas" : (ROLE_LABELS[userRole] ?? "Usuário")}
+        </Text>
         {pending && pending.length > 0 && (
           <View style={{ marginTop: 8, backgroundColor: `${colors.warning}18`, borderWidth: 1, borderColor: `${colors.warning}40`, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8 }}>
             <Text style={{ fontSize: 12, color: colors.warning, fontWeight: "700" }}>
@@ -274,7 +268,7 @@ export default function ApprovalsScreen() {
           ListEmptyComponent={
             <EmptyState
               title="Nenhuma aprovação pendente"
-              description={ROLE_DESCRIPTIONS[userRole]}
+              description={ROLE_DESCRIPTIONS[displayRole]}
               icon="✅"
             />
           }

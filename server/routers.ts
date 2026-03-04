@@ -281,6 +281,13 @@ export const appRouter = router({
 
     pendingForMe: protectedProcedure.query(({ ctx }) => {
       const user = ctx.user as any;
+
+      // Usuário master vê TODAS as solicitações pendentes de qualquer etapa de aprovação
+      const isMaster = user.approvalLevel === "master";
+      if (isMaster) {
+        return db.getPendingRequestsForUser("master", []);
+      }
+
       // Combinar papel primário + extras (approvalLevel e extraApprovalLevels também contam)
       const extraRoles: string[] = [];
       if (user.extraRoles) {

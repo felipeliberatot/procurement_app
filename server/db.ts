@@ -596,6 +596,23 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
   // Coletar todos os status pendentes para todos os papéis do usuário
   const pendingStatuses = new Set<string>();
 
+  // Usuário master vê todas as etapas pendentes de aprovação
+  if (allRoles.includes("master")) {
+    const allPendingStatuses = [
+      "aguardando_gerente",
+      "aguardando_orcamento",
+      "aguardando_controladoria",
+      "aguardando_diretoria",
+      "aguardando_ordem_compra",
+      "aguardando_aprovacao_compra",
+      "aguardando_comprovante_pagamento",
+      "aguardando_verificacao_compras",
+    ];
+    return db.select().from(purchaseRequests)
+      .where(inArray(purchaseRequests.status, allPendingStatuses as any[]))
+      .orderBy(purchaseRequests.urgencyLevel, purchaseRequests.deadlineAt);
+  }
+
   for (const r of allRoles) {
     if (r === "orcamento") {
       // Role orcamento responde por 3 etapas
