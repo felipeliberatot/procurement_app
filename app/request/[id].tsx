@@ -1089,8 +1089,8 @@ export default function RequestDetailScreen() {
           })()}
 
 
-          {/* Comprovante de pagamento — visível para todos na etapa de verificação final e quando concluída */}
-          {(currentStatus === "aguardando_verificacao_compras" || currentStatus === "concluida") && (request as any).paymentProofUrl && (
+          {/* Comprovante de pagamento — visível para todos nas etapas 8 e 9 e quando concluída */}
+          {(currentStatus === "aguardando_comprovante_pagamento" || currentStatus === "aguardando_verificacao_compras" || currentStatus === "concluida") && (request as any).paymentProofUrl && (
             <Pressable
               onPress={() => Linking.openURL((request as any).paymentProofUrl)}
               style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginBottom: 16 }]}
