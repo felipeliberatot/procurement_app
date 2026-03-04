@@ -752,6 +752,86 @@ export async function getApprovalHistory(requestId: number) {
   return db.select().from(approvalHistory).where(eq(approvalHistory.requestId, requestId)).orderBy(approvalHistory.createdAt);
 }
 
+/**
+ * Calcula o tempo médio (em horas) que cada etapa de aprovação leva para ser concluída.
+ * Usa o histórico de aprovações: para cada solicitação, calcula o intervalo entre
+ * a entrada na etapa (registro anterior) e a aprovação/rejeição (registro atual).
+ * Retorna as etapas ranqueadas da mais lenta para a mais rápida.
+ */
+export async function getApprovalTimingStats() {
+  const db = await getDb();
+  if (!db) return [];
+
+  // Busca todo o histórico de aprovações com ações de decisão (aprovada/rejeitada)
+  const history = await db
+    .select()
+    .from(approvalHistory)
+    .where(inArray(approvalHistory.action, ["aprovada", "rejeitada", "compra_aprovada", "compra_cancelada", "oc_finalizada", "pagamento_verificado"]))
+    .orderBy(approvalHistory.requestId, approvalHistory.createdAt);
+
+  // Para cada registro de decisão, busca o registro anterior da mesma solicitação
+  // para calcular o tempo de espera naquela etapa
+  const allHistory = await db
+    .select()
+    .from(approvalHistory)
+    .orderBy(approvalHistory.requestId, approvalHistory.createdAt);
+
+  // Agrupa histórico por requestId
+  const byRequest = new Map<number, typeof allHistory>();
+  for (const h of allHistory) {
+    if (!byRequest.has(h.requestId)) byRequest.set(h.requestId, []);
+    byRequest.get(h.requestId)!.push(h);
+  }
+
+  // Labels amigáveis por step
+  const STEP_LABELS: Record<string, string> = {
+    gerente:             "Gerente",
+    orcamento:           "Orçamento",
+    controladoria:       "Controladoria",
+    diretoria:           "Diretoria",
+    ordem_compra:        "Emissão de OC",
+    aprovacao_compra:    "Financeiro",
+    financeiro:          "Comprovante",
+    verificacao_compras: "Verificação Final",
+  };
+
+  // Acumula tempos por step
+  const stepTimes = new Map<string, { totalHours: number; count: number }>();
+
+  for (const decision of history) {
+    const reqHistory = byRequest.get(decision.requestId) ?? [];
+    const idx = reqHistory.findIndex(h => h.id === decision.id);
+    if (idx <= 0) continue; // sem registro anterior
+
+    const prev = reqHistory[idx - 1];
+    const diffMs = new Date(decision.createdAt).getTime() - new Date(prev.createdAt).getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+
+    // Ignora tempos negativos ou absurdamente longos (> 30 dias = dados inconsistentes)
+    if (diffHours <= 0 || diffHours > 720) continue;
+
+    const step = decision.step;
+    if (!STEP_LABELS[step]) continue; // ignora etapas sem label (criacao, cancelamento, etc)
+
+    if (!stepTimes.has(step)) stepTimes.set(step, { totalHours: 0, count: 0 });
+    const entry = stepTimes.get(step)!;
+    entry.totalHours += diffHours;
+    entry.count++;
+  }
+
+  // Monta resultado ranqueado do mais lento para o mais rápido
+  const result = Array.from(stepTimes.entries())
+    .map(([step, { totalHours, count }]) => ({
+      step,
+      label: STEP_LABELS[step] ?? step,
+      avgHours: Math.round((totalHours / count) * 10) / 10,
+      count,
+    }))
+    .sort((a, b) => b.avgHours - a.avgHours);
+
+  return result;
+}
+
 export async function attachBudget(requestId: number, userId: number, userName: string, fileUrl: string, fileName?: string) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1187,48 +1267,6 @@ export async function finalizeOC(requestId: number, user: User): Promise<void> {
     action: "oc_finalizada" as any,
     comment: "Ordem de Compra finalizada. Nota fiscal verificada.",
   });
-
-  // Criar malote automaticamente com os itens da solicitação
-  try {
-    const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
-    if (req) {
-      // Verificar se a solicitação já está em algum malote
-      const existingMaloteItem = await db
-        .select()
-        .from(maloteItems)
-        .where(eq(maloteItems.requestId, requestId))
-        .limit(1);
-
-      if (existingMaloteItem.length === 0) {
-        // Criar novo malote com origem = departamento de Compras, destino = departamento do solicitante
-        const originUnit = user.department ?? "Compras";
-        const destinationUnit = req.department;
-
-        const malote = await createMalote({
-          originUnit,
-          destinationUnit,
-          createdById: user.id,
-          createdByName: user.name ?? "Compras",
-          notes: `Malote criado automaticamente após conclusão da solicitação ${req.requestNumber}`,
-        });
-
-        // Adicionar a solicitação ao malote criado
-        await addRequestToMalote({
-          maloteId: malote.id,
-          requestId: req.id,
-          requestCode: req.requestNumber,
-          requesterName: req.requesterName,
-          application: req.application,
-          addedById: user.id,
-          addedByName: user.name ?? "Compras",
-        });
-
-        console.log(`[Malote] Malote ${malote.maloteCode} criado automaticamente para solicitação ${req.requestNumber}`);
-      }
-    }
-  } catch (e) {
-    console.warn("[Malote] Falha ao criar malote automático:", e);
-  }
 
   // Notificar solicitante
   try {

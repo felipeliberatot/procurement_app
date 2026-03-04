@@ -9,15 +9,144 @@ import React, { useEffect } from "react";
 import {
   ActivityIndicator,
   Image,
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
+import Svg, { Rect, Text as SvgText, G } from "react-native-svg";
 import type { ProcurementRole, RequestStatus } from "@/shared/types";
 import { ROLE_LABELS, STATUS_LABELS } from "@/shared/types";
 import { useColors } from "@/hooks/use-colors";
 
+// ─── Gráfico de Tempo Médio de Aprovação ─────────────────────────────────────
+function ApprovalTimingChart({ data, colors }: {
+  data: { step: string; label: string; avgHours: number; count: number }[];
+  colors: ReturnType<typeof useColors>;
+}) {
+  const { width: screenWidth } = useWindowDimensions();
+  const isDesktop = screenWidth >= 768;
+
+  if (!data || data.length === 0) {
+    return (
+      <View className="bg-surface border border-border rounded-2xl p-6 items-center">
+        <Text className="text-3xl mb-2">⏱️</Text>
+        <Text className="text-sm text-muted text-center">Sem dados suficientes ainda.{"\n"}Os tempos aparecerão após as primeiras aprovações.</Text>
+      </View>
+    );
+  }
+
+  const maxHours = Math.max(...data.map(d => d.avgHours), 1);
+  const BAR_HEIGHT = 28;
+  const ROW_GAP = 14;
+  const LABEL_WIDTH = isDesktop ? 140 : 110;
+  const VALUE_WIDTH = 60;
+  const PADDING_H = 16;
+  const chartWidth = Math.min(screenWidth - (isDesktop ? 0 : 40), 700);
+  const barAreaWidth = chartWidth - LABEL_WIDTH - VALUE_WIDTH - PADDING_H * 2;
+  const svgHeight = data.length * (BAR_HEIGHT + ROW_GAP) + 8;
+
+  // Cores por ranking: vermelho → laranja → amarelo → verde
+  const barColor = (index: number, total: number) => {
+    if (total === 1) return colors.warning;
+    const t = index / (total - 1); // 0 = mais lento, 1 = mais rápido
+    if (t < 0.33) return colors.error;
+    if (t < 0.66) return colors.warning;
+    return colors.success;
+  };
+
+  const formatHours = (h: number) => {
+    if (h < 1) return `${Math.round(h * 60)}min`;
+    if (h < 24) return `${h.toFixed(1)}h`;
+    return `${(h / 24).toFixed(1)}d`;
+  };
+
+  return (
+    <View className="bg-surface border border-border rounded-2xl overflow-hidden">
+      <View style={{ paddingHorizontal: PADDING_H, paddingTop: 16, paddingBottom: 12 }}>
+        <Svg width={chartWidth - PADDING_H * 2} height={svgHeight}>
+          {data.map((item, i) => {
+            const y = i * (BAR_HEIGHT + ROW_GAP);
+            const barW = Math.max((item.avgHours / maxHours) * barAreaWidth, 4);
+            const color = barColor(i, data.length);
+            const labelFontSize = isDesktop ? 12 : 10;
+            const valueFontSize = isDesktop ? 12 : 10;
+
+            return (
+              <G key={item.step} y={y}>
+                {/* Label da etapa */}
+                <SvgText
+                  x={0}
+                  y={BAR_HEIGHT / 2 + labelFontSize * 0.35}
+                  fontSize={labelFontSize}
+                  fill={colors.foreground}
+                  fontWeight="500"
+                >
+                  {item.label}
+                </SvgText>
+                {/* Barra de fundo (track) */}
+                <Rect
+                  x={LABEL_WIDTH}
+                  y={0}
+                  width={barAreaWidth}
+                  height={BAR_HEIGHT}
+                  rx={6}
+                  fill={`${color}20`}
+                />
+                {/* Barra de valor */}
+                <Rect
+                  x={LABEL_WIDTH}
+                  y={0}
+                  width={barW}
+                  height={BAR_HEIGHT}
+                  rx={6}
+                  fill={color}
+                />
+                {/* Valor numérico */}
+                <SvgText
+                  x={LABEL_WIDTH + barAreaWidth + 8}
+                  y={BAR_HEIGHT / 2 + valueFontSize * 0.35}
+                  fontSize={valueFontSize}
+                  fill={colors.foreground}
+                  fontWeight="700"
+                >
+                  {formatHours(item.avgHours)}
+                </SvgText>
+                {/* Contador de amostras */}
+                <SvgText
+                  x={LABEL_WIDTH + barAreaWidth + 8}
+                  y={BAR_HEIGHT / 2 + valueFontSize * 0.35 + valueFontSize + 2}
+                  fontSize={valueFontSize - 1}
+                  fill={colors.muted}
+                >
+                  {item.count}x
+                </SvgText>
+              </G>
+            );
+          })}
+        </Svg>
+      </View>
+      {/* Legenda */}
+      <View style={{ flexDirection: "row", gap: 16, paddingHorizontal: PADDING_H, paddingBottom: 12 }}>
+        {[
+          { color: colors.error, label: "Mais lento" },
+          { color: colors.warning, label: "Médio" },
+          { color: colors.success, label: "Mais rápido" },
+        ].map(leg => (
+          <View key={leg.label} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+            <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: leg.color }} />
+            <Text style={{ fontSize: 10, color: colors.muted }}>{leg.label}</Text>
+          </View>
+        ))}
+        <Text style={{ fontSize: 10, color: colors.muted, marginLeft: "auto" }}>Tempo médio · Nº de aprovações</Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const { user, isAuthenticated, loading } = useAuth();
   const { isDesktop } = useBreakpoint();
@@ -46,6 +175,10 @@ export default function DashboardScreen() {
   });
 
   const { data: pending } = trpc.requests.pendingForMe.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+
+  const { data: timingStats, isLoading: timingLoading } = trpc.requests.approvalTimingStats.useQuery(undefined, {
     enabled: isAuthenticated,
   });
 
@@ -170,6 +303,22 @@ export default function DashboardScreen() {
               </View>
             </View>
 
+            {/* Gráfico de Tempo de Aprovação */}
+            <View className="px-5 mb-5" style={isDesktop ? { paddingHorizontal: 0 } : {}}>
+              <View className="flex-row items-center justify-between mb-3">
+                <View>
+                  <Text className="text-sm font-bold text-foreground">Tempo Médio por Etapa</Text>
+                  <Text className="text-xs text-muted mt-0.5">Ranqueado do mais lento ao mais rápido</Text>
+                </View>
+                <Text className="text-lg">⏱️</Text>
+              </View>
+              {timingLoading ? (
+                <View className="items-center py-6"><ActivityIndicator /></View>
+              ) : (
+                <ApprovalTimingChart data={timingStats ?? []} colors={colors} />
+              )}
+            </View>
+
           </View>{/* end left column */}
 
           {/* Right column (desktop only) */}
@@ -217,6 +366,7 @@ export default function DashboardScreen() {
                     { icon: "✅", label: "Aprovações", desc: "Revisar e aprovar", route: "/(tabs)/approvals" },
                     { icon: "📦", label: "Malotes", desc: "Envio e recebimento", route: "/(tabs)/malotes" },
                     { icon: "📂", label: "Cadastros", desc: "Bens, fazendas, unidades", route: "/(tabs)/registers" },
+                    { icon: "👤", label: "Perfil", desc: "Dados e configurações", route: "/(tabs)/profile" },
                   ].map((item, index, arr) => (
                     <TouchableOpacity key={item.route} activeOpacity={0.7} onPress={() => router.push(item.route as any)}
                       style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: index < arr.length - 1 ? 1 : 0, borderBottomColor: "transparent" }}
@@ -305,7 +455,6 @@ export default function DashboardScreen() {
         )}
 
         {/* Todas as Solicitações — somente visualização */}
-        {/* Helper para converter token de cor em valor real */}
         <View className="px-5 mt-6 mb-5" style={isDesktop ? { paddingHorizontal: 0 } : {}}>
           <View className="flex-row items-center justify-between mb-3">
             <Text className="text-sm font-bold text-foreground">Todas as Solicitações</Text>

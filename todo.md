@@ -423,3 +423,10 @@
 
 ## Correção Botão Editar Orçamento
 - [x] Corrigir canEditBudget: botão de edição unificado em aguardando_controladoria para todos os fluxos (fluxo 04 normal, fluxo 05 urgente/emergencial)
+
+## Malote — Inserção Manual
+- [ ] Remover inserção automática de solicitações no malote (deve ser apenas manual)
+
+## Gráfico de Tempo de Aprovação no Dashboard
+- [x] Endpoint getApprovalTimingStats: tempo médio por etapa a partir do histórico
+- [x] Gráfico de barras horizontais no Dashboard ranqueando etapas mais lentas
