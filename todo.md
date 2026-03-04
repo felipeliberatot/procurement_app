@@ -457,3 +457,6 @@
 - [x] Exibir nota fiscal anexada para todos os usuários quando a solicitação estiver concluída
 - [x] Exibir itens da solicitação para todos os aprovadores ao abrir uma solicitação
 - [x] Exibir itens da solicitação no card de aprovação (lista de aprovações pendentes)
+- [x] Limitar itens no card com botão Ver mais (máx 3 visíveis)
+- [x] Adicionar nome do solicitante no card
+- [x] Exibir itens na tela Minhas Solicitações

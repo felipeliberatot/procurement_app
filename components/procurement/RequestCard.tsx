@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
 import { StatusBadge, UrgencyBadge, DeadlineTimer } from "./Badges";
 import { useColors } from "@/hooks/use-colors";
 import type { RequestStatus, UrgencyLevel } from "@/shared/types";
+
+const MAX_ITEMS_VISIBLE = 3;
 
 interface RequestItem {
   id: number;
@@ -18,6 +20,7 @@ interface RequestCardProps {
     requestNumber: string;
     department: string;
     application: string;
+    requesterName?: string | null;
     urgencyLevel: string;
     status: string;
     totalEstimatedValue?: string | null;
@@ -54,6 +57,10 @@ export function RequestCard({
   const colors = useColors();
   const showActions = !!onApprove;
   const hasItems = request.items && request.items.length > 0;
+  const totalItems = request.items?.length ?? 0;
+  const [expanded, setExpanded] = useState(false);
+  const visibleItems = expanded ? request.items : request.items?.slice(0, MAX_ITEMS_VISIBLE);
+  const hiddenCount = totalItems - MAX_ITEMS_VISIBLE;
 
   return (
     <Pressable
@@ -87,6 +94,13 @@ export function RequestCard({
                 {request.application}
               </Text>
               <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{request.department}</Text>
+              {/* Nome do solicitante */}
+              {request.requesterName && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4 }}>
+                  <Text style={{ fontSize: 11, color: colors.muted }}>👤</Text>
+                  <Text style={{ fontSize: 11, color: colors.muted }}>{request.requesterName}</Text>
+                </View>
+              )}
             </View>
             <StatusBadge status={request.status as RequestStatus} />
           </View>
@@ -95,9 +109,9 @@ export function RequestCard({
           {hasItems && (
             <View style={{ backgroundColor: colors.background, borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
               <Text style={{ fontSize: 11, color: colors.muted, fontWeight: "700", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                📦 Itens Solicitados
+                📦 Itens Solicitados ({totalItems})
               </Text>
-              {request.items!.map((item, index) => (
+              {visibleItems!.map((item, index) => (
                 <View
                   key={item.id}
                   style={{
@@ -125,6 +139,17 @@ export function RequestCard({
                   )}
                 </View>
               ))}
+              {/* Botão Ver mais / Ver menos */}
+              {totalItems > MAX_ITEMS_VISIBLE && (
+                <TouchableOpacity
+                  onPress={(e) => { e.stopPropagation?.(); setExpanded(prev => !prev); }}
+                  style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 0.5, borderTopColor: colors.border, alignItems: "center" }}
+                >
+                  <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>
+                    {expanded ? "▲ Ver menos" : `▼ Ver mais ${hiddenCount} ${hiddenCount === 1 ? "item" : "itens"}`}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 

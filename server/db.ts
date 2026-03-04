@@ -583,7 +583,11 @@ export async function getPurchaseRequestWithDetails(id: number) {
 export async function getRequestsByRequester(requesterId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(purchaseRequests).where(eq(purchaseRequests.requesterId, requesterId)).orderBy(desc(purchaseRequests.createdAt));
+  const reqs = await db.select().from(purchaseRequests).where(eq(purchaseRequests.requesterId, requesterId)).orderBy(desc(purchaseRequests.createdAt));
+  if (reqs.length === 0) return [];
+  const ids = reqs.map(r => r.id);
+  const allItems = await db.select().from(requestItems).where(inArray(requestItems.requestId, ids));
+  return reqs.map(r => ({ ...r, items: allItems.filter(i => i.requestId === r.id) }));
 }
 
 export async function getPendingRequestsForUser(role: string, extraRoles?: string[]) {
@@ -654,12 +658,13 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
 export async function getAllRequests(departmentFilter?: string) {
   const db = await getDb();
   if (!db) return [];
-  if (departmentFilter) {
-    return db.select().from(purchaseRequests)
-      .where(eq(purchaseRequests.department, departmentFilter))
-      .orderBy(desc(purchaseRequests.createdAt));
-  }
-  return db.select().from(purchaseRequests).orderBy(desc(purchaseRequests.createdAt));
+  const reqs = departmentFilter
+    ? await db.select().from(purchaseRequests).where(eq(purchaseRequests.department, departmentFilter)).orderBy(desc(purchaseRequests.createdAt))
+    : await db.select().from(purchaseRequests).orderBy(desc(purchaseRequests.createdAt));
+  if (reqs.length === 0) return [];
+  const ids = reqs.map(r => r.id);
+  const allItems = await db.select().from(requestItems).where(inArray(requestItems.requestId, ids));
+  return reqs.map(r => ({ ...r, items: allItems.filter(i => i.requestId === r.id) }));
 }
 
 export async function getDashboardStats(userId: number, role: string) {
