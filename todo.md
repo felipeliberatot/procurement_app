@@ -454,3 +454,4 @@
 - [x] Exibir card de dados de pagamento (método + info + observações) na etapa 9 para conferência completa do comprovante
 - [x] Bug: Comprovante de pagamento não aparecia na etapa 9 para usuários sem permissão de agir — card estava dentro do bloco canAct; corrigido adicionando card de visualização fora do bloco canAct, visível para todos
 - [x] Exibir comprovante de pagamento na etapa 8 (aguardando_comprovante_pagamento) para todos os usuários que acompanham a solicitação
+- [x] Exibir nota fiscal anexada para todos os usuários quando a solicitação estiver concluída
