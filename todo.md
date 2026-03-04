@@ -433,3 +433,10 @@
 
 ## Bug: Master não recebe solicitações aguardando Diretoria
 - [x] Corrigir pendingForMe/approvals para incluir aguardando_diretoria para usuários master
+
+## Rankings no Relatório
+- [x] Endpoint getRankingByCostCenter: top 10 centros de custo por valor total gasto no mês
+- [x] Endpoint getRankingByItem: top 10 bens/itens mais solicitados por valor total no mês
+- [x] Aba "Rankings" no Relatório Mensal com gráficos de barras horizontais
+- [x] Gráfico de barras por Centro de Custo com valor, quantidade de solicitações e gradiente de cores
+- [x] Gráfico de barras por Bem/Item com valor, ocorrências e unidades

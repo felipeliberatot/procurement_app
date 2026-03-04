@@ -319,6 +319,12 @@ export const appRouter = router({
     monthlyReport: protectedProcedure
       .input(z.object({ year: z.number().int().min(2020).max(2100), month: z.number().int().min(1).max(12) }))
       .query(({ input }) => db.getMonthlyReport(input.year, input.month)),
+    rankingByCostCenter: protectedProcedure
+      .input(z.object({ year: z.number().int().min(2020).max(2100), month: z.number().int().min(1).max(12) }))
+      .query(({ input }) => db.getRankingByCostCenter(input.year, input.month)),
+    rankingByItem: protectedProcedure
+      .input(z.object({ year: z.number().int().min(2020).max(2100), month: z.number().int().min(1).max(12) }))
+      .query(({ input }) => db.getRankingByItem(input.year, input.month)),
 
     history: protectedProcedure
       .input(z.object({ requestId: z.number() }))

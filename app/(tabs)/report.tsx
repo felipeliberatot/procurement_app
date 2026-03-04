@@ -15,6 +15,7 @@ import {
 } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { STATUS_LABELS, URGENCY_LABELS } from "@/shared/types";
@@ -39,10 +40,21 @@ export default function ReportScreen() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [activeTab, setActiveTab] = useState<"resumo" | "departamentos" | "detalhes">("resumo");
+  const [activeTab, setActiveTab] = useState<"resumo" | "departamentos" | "rankings" | "detalhes">("resumo");
   const [exporting, setExporting] = useState(false);
+  const { isDesktop } = useBreakpoint();
 
   const { data, isLoading, refetch } = trpc.requests.monthlyReport.useQuery(
+    { year: selectedYear, month: selectedMonth },
+    { placeholderData: (prev: any) => prev }
+  );
+
+  const { data: rankingCC, isLoading: loadingCC } = trpc.requests.rankingByCostCenter.useQuery(
+    { year: selectedYear, month: selectedMonth },
+    { placeholderData: (prev: any) => prev }
+  );
+
+  const { data: rankingItem, isLoading: loadingItem } = trpc.requests.rankingByItem.useQuery(
     { year: selectedYear, month: selectedMonth },
     { placeholderData: (prev: any) => prev }
   );
@@ -180,19 +192,19 @@ export default function ReportScreen() {
       </ScrollView>
 
       {/* Tabs */}
-      <View style={styles.tabRow}>
-        {(["resumo", "departamentos", "detalhes"] as const).map(tab => (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabRow}>
+        {(["resumo", "departamentos", "rankings", "detalhes"] as const).map(tab => (
           <Pressable
             key={tab}
             style={[styles.tab, activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
             onPress={() => setActiveTab(tab)}
           >
             <Text style={[styles.tabText, activeTab === tab && { color: colors.primary, fontWeight: "700" }]}>
-              {tab === "resumo" ? "Resumo" : tab === "departamentos" ? "Departamentos" : "Detalhes"}
+              {tab === "resumo" ? "Resumo" : tab === "departamentos" ? "Departamentos" : tab === "rankings" ? "Rankings" : "Detalhes"}
             </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Conteúdo */}
       {isLoading ? (
@@ -208,6 +220,16 @@ export default function ReportScreen() {
         <ResumoTab data={data} colors={colors} styles={styles} />
       ) : activeTab === "departamentos" ? (
         <DepartamentosTab data={data} colors={colors} styles={styles} />
+      ) : activeTab === "rankings" ? (
+        <RankingsTab
+          rankingCC={rankingCC ?? []}
+          rankingItem={rankingItem ?? []}
+          loadingCC={loadingCC}
+          loadingItem={loadingItem}
+          colors={colors}
+          styles={styles}
+          isDesktop={isDesktop}
+        />
       ) : (
         <DetalhesTab data={data} colors={colors} styles={styles} />
       )}
@@ -339,6 +361,93 @@ function DetalhesTab({ data, colors, styles }: any) {
         </View>
       )}
     />
+  );
+}
+
+// ── Aba Rankings ─────────────────────────────────────────────────────────────
+function HorizontalBar({ label, value, maxValue, color, subtitle, isDesktop }: {
+  label: string; value: number; maxValue: number; color: string; subtitle: string; isDesktop: boolean;
+}) {
+  const barWidth = maxValue > 0 ? Math.max((value / maxValue) * 100, 2) : 2;
+  return (
+    <View style={{ marginBottom: 12 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
+        <Text style={{ fontSize: isDesktop ? 13 : 12, fontWeight: "600", color: "#374151", flex: 1, marginRight: 8 }} numberOfLines={1}>
+          {label}
+        </Text>
+        <Text style={{ fontSize: isDesktop ? 13 : 12, fontWeight: "700", color }}>
+          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)}
+        </Text>
+      </View>
+      <View style={{ height: isDesktop ? 14 : 12, backgroundColor: "#f3f4f6", borderRadius: 6, overflow: "hidden" }}>
+        <View style={{ width: `${barWidth}%`, height: "100%", backgroundColor: color, borderRadius: 6 }} />
+      </View>
+      <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{subtitle}</Text>
+    </View>
+  );
+}
+
+function RankingsTab({ rankingCC, rankingItem, loadingCC, loadingItem, colors, isDesktop }: any) {
+  const maxCC = rankingCC.length > 0 ? rankingCC[0].total : 1;
+  const maxItem = rankingItem.length > 0 ? rankingItem[0].total : 1;
+
+  const BAR_COLORS = [
+    "#0a7ea4", "#0891b2", "#0e7490", "#155e75", "#164e63",
+    "#1d4ed8", "#2563eb", "#3b82f6", "#60a5fa", "#93c5fd",
+  ];
+
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      {/* Ranking por Centro de Custo */}
+      <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
+        <Text style={{ fontSize: isDesktop ? 15 : 14, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
+          🏢 Ranking por Centro de Custo
+        </Text>
+        <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Top 10 centros de custo por valor total gasto</Text>
+        {loadingCC ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : rankingCC.length === 0 ? (
+          <Text style={{ color: colors.muted, fontSize: 13, textAlign: "center", paddingVertical: 16 }}>Sem dados para o período</Text>
+        ) : (
+          rankingCC.map((item: any, idx: number) => (
+            <HorizontalBar
+              key={item.code}
+              label={`${idx + 1}. ${item.label}`}
+              value={item.total}
+              maxValue={maxCC}
+              color={BAR_COLORS[idx % BAR_COLORS.length]}
+              subtitle={`${item.count} solicitaç${item.count !== 1 ? "ões" : "ão"}`}
+              isDesktop={isDesktop}
+            />
+          ))
+        )}
+      </View>
+
+      {/* Ranking por Bem/Item */}
+      <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border }}>
+        <Text style={{ fontSize: isDesktop ? 15 : 14, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
+          📦 Ranking por Bem / Item
+        </Text>
+        <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Top 10 itens mais solicitados por valor total</Text>
+        {loadingItem ? (
+          <ActivityIndicator size="small" color={colors.primary} />
+        ) : rankingItem.length === 0 ? (
+          <Text style={{ color: colors.muted, fontSize: 13, textAlign: "center", paddingVertical: 16 }}>Sem dados para o período</Text>
+        ) : (
+          rankingItem.map((item: any, idx: number) => (
+            <HorizontalBar
+              key={item.label + idx}
+              label={`${idx + 1}. ${item.label}`}
+              value={item.total}
+              maxValue={maxItem}
+              color={BAR_COLORS[idx % BAR_COLORS.length]}
+              subtitle={`${item.count} ocorrênc${item.count !== 1 ? "ias" : "ia"} · ${item.quantity} unid.`}
+              isDesktop={isDesktop}
+            />
+          ))
+        )}
+      </View>
+    </ScrollView>
   );
 }
 

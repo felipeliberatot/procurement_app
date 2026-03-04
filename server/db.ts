@@ -1930,3 +1930,104 @@ export async function getNextDepartmentCode(): Promise<string> {
   const next = nums.length > 0 ? Math.max(...nums) + 1 : 1;
   return `DEP-${String(next).padStart(3, "0")}`;
 }
+
+// ─── Ranking por Centro de Custo ─────────────────────────────────────────────
+export async function getRankingByCostCenter(year: number, month: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 1);
+
+  // Busca todas as solicitações do mês (excluindo canceladas e rascunhos)
+  const requests = await db
+    .select({
+      costCenterCode: purchaseRequests.costCenterCode,
+      costCenterId: purchaseRequests.costCenterId,
+      department: purchaseRequests.department,
+      totalEstimatedValue: purchaseRequests.totalEstimatedValue,
+      status: purchaseRequests.status,
+    })
+    .from(purchaseRequests)
+    .where(
+      and(
+        gte(purchaseRequests.createdAt, startDate),
+        lte(purchaseRequests.createdAt, endDate),
+        sql`${purchaseRequests.status} NOT IN ('cancelada', 'rascunho')`
+      )
+    );
+
+  // Busca nomes dos centros de custo
+  const ccList = await db.select().from(costCenters);
+  const ccMap = new Map(ccList.map(cc => [cc.code, cc.name]));
+
+  // Agrupa por centro de custo
+  const grouped = new Map<string, { label: string; total: number; count: number }>();
+  for (const req of requests) {
+    const key = req.costCenterCode ?? req.department ?? "Sem Centro de Custo";
+    const label = req.costCenterCode
+      ? (ccMap.get(req.costCenterCode) ?? req.costCenterCode)
+      : (req.department ?? "Sem Centro de Custo");
+    if (!grouped.has(key)) grouped.set(key, { label, total: 0, count: 0 });
+    const entry = grouped.get(key)!;
+    entry.total += parseFloat(req.totalEstimatedValue ?? "0");
+    entry.count++;
+  }
+
+  return Array.from(grouped.entries())
+    .map(([code, { label, total, count }]) => ({ code, label, total: Math.round(total * 100) / 100, count }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10); // top 10
+}
+
+// ─── Ranking por Bem/Item ─────────────────────────────────────────────────────
+export async function getRankingByItem(year: number, month: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 1);
+
+  // Busca IDs das solicitações do mês (excluindo canceladas e rascunhos)
+  const requests = await db
+    .select({ id: purchaseRequests.id })
+    .from(purchaseRequests)
+    .where(
+      and(
+        gte(purchaseRequests.createdAt, startDate),
+        lte(purchaseRequests.createdAt, endDate),
+        sql`${purchaseRequests.status} NOT IN ('cancelada', 'rascunho')`
+      )
+    );
+
+  if (requests.length === 0) return [];
+
+  const requestIds = requests.map(r => r.id);
+
+  // Busca todos os itens dessas solicitações
+  const items = await db
+    .select()
+    .from(requestItems)
+    .where(inArray(requestItems.requestId, requestIds));
+
+  // Agrupa por descrição do item (normaliza para lowercase)
+  const grouped = new Map<string, { label: string; total: number; quantity: number; count: number }>();
+  for (const item of items) {
+    const key = item.description.toLowerCase().trim();
+    if (!grouped.has(key)) grouped.set(key, { label: item.description, total: 0, quantity: 0, count: 0 });
+    const entry = grouped.get(key)!;
+    entry.total += parseFloat(item.totalPrice ?? item.unitPrice ?? "0");
+    entry.quantity += parseFloat(item.quantity ?? "1");
+    entry.count++;
+  }
+
+  return Array.from(grouped.entries())
+    .map(([, { label, total, quantity, count }]) => ({
+      label,
+      total: Math.round(total * 100) / 100,
+      quantity: Math.round(quantity * 100) / 100,
+      count,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10); // top 10
+}
