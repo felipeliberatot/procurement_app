@@ -1,0 +1,70 @@
+{
+  "query": "SELECT id, requestNumber, status, urgencyLevel FROM purchaseRequests ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, requestNumber, status, urgencyLevel FROM purchaseRequests ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "570004",
+      "requestNumber": "SOL-2026-0049",
+      "status": "aguardando_ordem_compra",
+      "urgencyLevel": "emergencial"
+    },
+    {
+      "id": "570003",
+      "requestNumber": "SOL-2026-0048",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial"
+    },
+    {
+      "id": "570002",
+      "requestNumber": "SOL-2026-0047",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial"
+    },
+    {
+      "id": "570001",
+      "requestNumber": "SOL-2026-0046",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial"
+    },
+    {
+      "id": "540003",
+      "requestNumber": "SOL-2026-0045",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "normal"
+    },
+    {
+      "id": "540002",
+      "requestNumber": "SOL-2026-0044",
+      "status": "aguardando_aprovacao_compra",
+      "urgencyLevel": "emergencial"
+    },
+    {
+      "id": "540001",
+      "requestNumber": "SOL-2026-0043",
+      "status": "cancelada",
+      "urgencyLevel": "emergencial"
+    },
+    {
+      "id": "510002",
+      "requestNumber": "SOL-2026-0042",
+      "status": "aguardando_diretoria",
+      "urgencyLevel": "emergencial"
+    },
+    {
+      "id": "510001",
+      "requestNumber": "SOL-2026-0041",
+      "status": "aguardando_diretoria",
+      "urgencyLevel": "urgente"
+    },
+    {
+      "id": "480001",
+      "requestNumber": "SOL-2026-TEST-FIN",
+      "status": "cancelada",
+      "urgencyLevel": "normal"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tstatus\turgencyLevel\n570004\tSOL-2026-0049\taguardando_ordem_compra\temergencial\n570003\tSOL-2026-0048\taguardando_orcamento\temergencial\n570002\tSOL-2026-0047\taguardando_orcamento\temergencial\n570001\tSOL-2026-0046\taguardando_orcamento\temergencial\n540003\tSOL-2026-0045\taguardando_orcamento\tnormal\n540002\tSOL-2026-0044\taguardando_aprovacao_compra\temergencial\n540001\tSOL-2026-0043\tcancelada\temergencial\n510002\tSOL-2026-0042\taguardando_diretoria\temergencial\n510001\tSOL-2026-0041\taguardando_diretoria\turgente\n480001\tSOL-2026-TEST-FIN\tcancelada\tnormal\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}
