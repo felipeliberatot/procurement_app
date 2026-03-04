@@ -596,6 +596,18 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
   // Coletar todos os status pendentes para todos os papéis do usuário
   const pendingStatuses = new Set<string>();
 
+  // Helper: busca solicitações e enriquece com itens
+  const dbConn = db;
+  async function fetchWithItems(statuses: string[]) {
+    const reqs = await dbConn.select().from(purchaseRequests)
+      .where(inArray(purchaseRequests.status, statuses as any[]))
+      .orderBy(purchaseRequests.urgencyLevel, purchaseRequests.deadlineAt);
+    if (reqs.length === 0) return [];
+    const ids = reqs.map(r => r.id);
+    const allItems = await dbConn.select().from(requestItems).where(inArray(requestItems.requestId, ids));
+    return reqs.map(r => ({ ...r, items: allItems.filter(i => i.requestId === r.id) }));
+  }
+
   // Usuário master vê todas as etapas pendentes de aprovação
   if (allRoles.includes("master")) {
     const allPendingStatuses = [
@@ -608,9 +620,7 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
       "aguardando_comprovante_pagamento",
       "aguardando_verificacao_compras",
     ];
-    return db.select().from(purchaseRequests)
-      .where(inArray(purchaseRequests.status, allPendingStatuses as any[]))
-      .orderBy(purchaseRequests.urgencyLevel, purchaseRequests.deadlineAt);
+    return fetchWithItems(allPendingStatuses);
   }
 
   for (const r of allRoles) {
@@ -638,9 +648,7 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
 
   if (pendingStatuses.size === 0) return [];
 
-  return db.select().from(purchaseRequests)
-    .where(inArray(purchaseRequests.status, [...pendingStatuses] as any[]))
-    .orderBy(purchaseRequests.urgencyLevel, purchaseRequests.deadlineAt);
+  return fetchWithItems([...pendingStatuses]);
 }
 
 export async function getAllRequests(departmentFilter?: string) {

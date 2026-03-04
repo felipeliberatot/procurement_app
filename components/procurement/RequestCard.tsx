@@ -4,6 +4,14 @@ import { StatusBadge, UrgencyBadge, DeadlineTimer } from "./Badges";
 import { useColors } from "@/hooks/use-colors";
 import type { RequestStatus, UrgencyLevel } from "@/shared/types";
 
+interface RequestItem {
+  id: number;
+  description: string;
+  quantity: string | number;
+  unit: string;
+  totalPrice?: string | null;
+}
+
 interface RequestCardProps {
   request: {
     id: number;
@@ -15,6 +23,7 @@ interface RequestCardProps {
     totalEstimatedValue?: string | null;
     deadlineAt?: Date | string | null;
     createdAt: Date | string;
+    items?: RequestItem[];
   };
   onPress: () => void;
   /** Se fornecido, exibe botões de ação rápida Aprovar/Rejeitar no card */
@@ -44,6 +53,7 @@ export function RequestCard({
 }: RequestCardProps) {
   const colors = useColors();
   const showActions = !!onApprove;
+  const hasItems = request.items && request.items.length > 0;
 
   return (
     <Pressable
@@ -80,6 +90,43 @@ export function RequestCard({
             </View>
             <StatusBadge status={request.status as RequestStatus} />
           </View>
+
+          {/* Itens da solicitação */}
+          {hasItems && (
+            <View style={{ backgroundColor: colors.background, borderRadius: 10, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
+              <Text style={{ fontSize: 11, color: colors.muted, fontWeight: "700", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                📦 Itens Solicitados
+              </Text>
+              {request.items!.map((item, index) => (
+                <View
+                  key={item.id}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    paddingTop: index > 0 ? 6 : 0,
+                    marginTop: index > 0 ? 6 : 0,
+                    borderTopWidth: index > 0 ? 0.5 : 0,
+                    borderTopColor: colors.border,
+                  }}
+                >
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={{ fontSize: 12, fontWeight: "500", color: colors.foreground }} numberOfLines={2}>
+                      {item.description}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: colors.muted }}>
+                      {item.quantity} {item.unit}
+                    </Text>
+                  </View>
+                  {item.totalPrice && (
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, flexShrink: 0 }}>
+                      {formatCurrency(item.totalPrice)}
+                    </Text>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
 
           {/* Rodapé com urgência e valor */}
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingTop: 10, borderTopWidth: 0.5, borderTopColor: colors.border }}>
