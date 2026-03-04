@@ -1089,6 +1089,39 @@ export default function RequestDetailScreen() {
           })()}
 
 
+          {/* Comprovante de pagamento — visível para todos na etapa de verificação final e quando concluída */}
+          {(currentStatus === "aguardando_verificacao_compras" || currentStatus === "concluida") && (request as any).paymentProofUrl && (
+            <Pressable
+              onPress={() => Linking.openURL((request as any).paymentProofUrl)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginBottom: 16 }]}
+            >
+              {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
+                <View style={{ borderRadius: 14, overflow: "hidden", borderWidth: 2, borderColor: colors.success }}>
+                  <Image source={{ uri: (request as any).paymentProofUrl }} style={{ width: "100%", height: 180, resizeMode: "cover" }} />
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: `${colors.success}20`, paddingHorizontal: 14, paddingVertical: 10 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Text style={{ fontSize: 18 }}>💳</Text>
+                      <View>
+                        <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13 }}>Comprovante de Pagamento</Text>
+                        <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para ampliar</Text>
+                      </View>
+                    </View>
+                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>👁 Ampliar</Text>
+                  </View>
+                </View>
+              ) : (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: `${colors.success}15`, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: `${colors.success}40` }}>
+                  <Text style={{ fontSize: 24 }}>💳</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.success, fontWeight: "700", fontSize: 14 }}>Comprovante de Pagamento</Text>
+                    <Text style={{ color: colors.muted, fontSize: 12 }}>Toque para visualizar o PDF</Text>
+                  </View>
+                  <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>👁 Ver</Text>
+                </View>
+              )}
+            </Pressable>
+          )}
+
           {/* Fluxo de aprovação */}
           <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
             <Text className="text-sm font-bold text-foreground mb-4">Fluxo de Aprovação</Text>

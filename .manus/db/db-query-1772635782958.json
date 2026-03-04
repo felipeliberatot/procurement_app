@@ -1,0 +1,26 @@
+{
+  "query": "SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'purchaseRequests' AND COLUMN_NAME LIKE 'payment%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT COLUMN_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'purchaseRequests' AND COLUMN_NAME LIKE 'payment%';",
+  "rows": [
+    {
+      "COLUMN_NAME": "paymentMethod",
+      "DATA_TYPE": "enum"
+    },
+    {
+      "COLUMN_NAME": "paymentInfo",
+      "DATA_TYPE": "text"
+    },
+    {
+      "COLUMN_NAME": "paymentProofUrl",
+      "DATA_TYPE": "longtext"
+    },
+    {
+      "COLUMN_NAME": "paymentObservations",
+      "DATA_TYPE": "text"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tDATA_TYPE\npaymentMethod\tenum\npaymentInfo\ttext\npaymentProofUrl\tlongtext\npaymentObservations\ttext\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

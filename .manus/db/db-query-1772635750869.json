@@ -1,0 +1,15 @@
+{
+  "query": "SELECT id, requestNumber, status, paymentMethod, paymentInfo, paymentProofUrl, paymentObservations FROM purchaseRequests WHERE status IN ('aguardando_comprovante_pagamento', 'aguardando_verificacao_compras', 'aguardando_aprovacao_compra') ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, requestNumber, status, paymentMethod, paymentInfo, paymentProofUrl, paymentObservations FROM purchaseRequests WHERE status IN ('aguardando_comprovante_pagamento', 'aguardando_verificacao_compras', 'aguardando_aprovacao_compra') ORDER BY id DESC LIMIT 10;",
+  "rows": [],
+  "messages": [
+    "570004\tSOL-2026-0049\taguardando_comprovante_pagamento\tpix\tPix CNPJ 37080006000126",
+    "Posto Piquiri \tNULL\tNULL",
+    "420008\tSOL-2026-0028\taguardando_comprovante_pagamento\tpix\tPIX ",
+    "CPF 04234116165 ",
+    "Renato Soares de Freitas\tNULL\tNULL"
+  ],
+  "stdout": "id\trequestNumber\tstatus\tpaymentMethod\tpaymentInfo\tpaymentProofUrl\tpaymentObservations\n570004\tSOL-2026-0049\taguardando_comprovante_pagamento\tpix\tPix CNPJ 37080006000126\nPosto Piquiri \tNULL\tNULL\n420008\tSOL-2026-0028\taguardando_comprovante_pagamento\tpix\tPIX \nCPF 04234116165 \nRenato Soares de Freitas\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 66
+}
