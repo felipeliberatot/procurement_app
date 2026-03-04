@@ -1716,6 +1716,36 @@ export default function RequestDetailScreen() {
                   <Text className="text-sm font-bold text-foreground mb-1">📝 Verificação Final — Compras</Text>
                   <Text className="text-xs text-muted mb-3">Verifique o comprovante, anexe a nota fiscal e finalize a OC</Text>
 
+                  {/* Card de dados de pagamento para conferência */}
+                  {((request as any).paymentMethod || (request as any).paymentInfo || (request as any).paymentObservations) && (
+                    <View style={{ backgroundColor: `${colors.primary}10`, borderRadius: 12, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: `${colors.primary}30` }}>
+                      <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13, marginBottom: 10 }}>💳 Dados de Pagamento</Text>
+                      {(request as any).paymentMethod && (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                          <Text style={{ fontSize: 18 }}>{PAYMENT_METHOD_ICONS[(request as any).paymentMethod as PaymentMethod] ?? "💳"}</Text>
+                          <View>
+                            <Text style={{ color: colors.muted, fontSize: 11 }}>Método</Text>
+                            <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>
+                              {PAYMENT_METHOD_LABELS[(request as any).paymentMethod as PaymentMethod] ?? (request as any).paymentMethod}
+                            </Text>
+                          </View>
+                        </View>
+                      )}
+                      {(request as any).paymentInfo && (
+                        <View style={{ marginBottom: 8 }}>
+                          <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 2 }}>Dados / Chave PIX / Banco</Text>
+                          <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 20 }}>{(request as any).paymentInfo}</Text>
+                        </View>
+                      )}
+                      {(request as any).paymentObservations && (
+                        <View>
+                          <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 2 }}>Observações</Text>
+                          <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 20 }}>{(request as any).paymentObservations}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
                   {/* Comprovante para visualização */}
                   {(request as any).paymentProofUrl && (
                     <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>

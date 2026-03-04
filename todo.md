@@ -449,3 +449,6 @@
 ## Correção Fluxo de Orçamento
 - [x] Corrigir: upload do PDF não avança o fluxo automaticamente
 - [x] Adicionar botão "Enviar Orçamento" explícito após upload do PDF em todos os fluxos
+
+## Etapa 9 — Verificação Final de Compras
+- [x] Exibir card de dados de pagamento (método + info + observações) na etapa 9 para conferência completa do comprovante
