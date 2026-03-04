@@ -415,6 +415,8 @@ export default function RequestDetailScreen() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"pix" | "boleto" | "cartao_avista" | "cartao_parcelado" | null>(null);
   const [paymentObservations, setPaymentObservations] = useState("");
   const [budgetFileName, setBudgetFileName] = useState<string | null>(null);
+  const [pendingBudgetBase64, setPendingBudgetBase64] = useState<string | null>(null);
+  const [pendingBudgetMime, setPendingBudgetMime] = useState<string>("application/pdf");
   const [paymentProofFileName, setPaymentProofFileName] = useState<string | null>(null);
   const [paymentProofLocalUri, setPaymentProofLocalUri] = useState<string | null>(null); // URI local para pré-visualização antes do upload
   const [invoiceFileName, setInvoiceFileName] = useState<string | null>(null);
@@ -504,8 +506,8 @@ export default function RequestDetailScreen() {
     onSuccess: () => {
       invalidateAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setBudgetFileName(null);
-      Alert.alert("✅ PDF atualizado com sucesso!", "O orçamento foi substituído e já está disponível para visualização.");
+      // Não limpa budgetFileName aqui — é limpo após submitBudget ou na edição
+      setPendingBudgetBase64(null);
     },
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -518,6 +520,7 @@ export default function RequestDetailScreen() {
       invalidateAll();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setBudgetFileName(null);
+      setPendingBudgetBase64(null);
       // Navega imediatamente — Alert.alert com callback não funciona na web
       router.back();
     },
@@ -774,13 +777,10 @@ export default function RequestDetailScreen() {
       if (result.canceled) return;
       const file = result.assets[0];
       setBudgetFileName(file.name);
+      // Armazena localmente — o upload ocorre ao clicar em "Enviar Orçamento"
       const base64 = await readFileAsBase64(file.uri);
-      uploadFileMutation.mutate({
-        requestId: request.id,
-        fileName: file.name,
-        base64,
-        mimeType: file.mimeType ?? "application/pdf",
-      });
+      setPendingBudgetBase64(base64);
+      setPendingBudgetMime(file.mimeType ?? "application/pdf");
     } catch (err) {
       console.error("[PDF Upload]", err);
       Alert.alert("Erro", "Não foi possível selecionar ou ler o arquivo.");
@@ -1190,18 +1190,33 @@ export default function RequestDetailScreen() {
                   {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
                     <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName ?? "Orçamento já anexado"}</Text>
                   )}
-                  {/* Botão Enviar Orçamento - habilitado após PDF anexado */}
+                  {/* Botão Enviar Orçamento - habilitado após PDF selecionado ou já anexado */}
                   {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
                     <TouchableOpacity
                       onPress={() => {
+                        if (!budgetFileName && !request.budgetFileUrl) {
+                          Alert.alert("PDF obrigatório", "Selecione o PDF do orçamento antes de enviar.");
+                          return;
+                        }
                         showConfirm({
                           title: "📤 Enviar Orçamento",
                           message: "Confirma o envio do orçamento? O fluxo avançará para a Controladoria.",
                           confirmText: "Enviar",
-                          onConfirm: () => submitBudgetMutation.mutate({ requestId: request.id }),
+                          onConfirm: () => {
+                            // Se há um arquivo pendente (novo), faz upload primeiro, depois submitBudget
+                            if (pendingBudgetBase64 && budgetFileName) {
+                              uploadFileMutation.mutate(
+                                { requestId: request.id, fileName: budgetFileName, base64: pendingBudgetBase64, mimeType: pendingBudgetMime },
+                                { onSuccess: () => submitBudgetMutation.mutate({ requestId: request.id }) }
+                              );
+                            } else {
+                              // PDF já estava anexado anteriormente, apenas envia
+                              submitBudgetMutation.mutate({ requestId: request.id });
+                            }
+                          },
                         });
                       }}
-                      disabled={submitBudgetMutation.isPending}
+                      disabled={submitBudgetMutation.isPending || uploadFileMutation.isPending}
                       style={{
                         marginTop: 12,
                         backgroundColor: colors.success,
@@ -1211,11 +1226,11 @@ export default function RequestDetailScreen() {
                         flexDirection: "row",
                         justifyContent: "center",
                         gap: 8,
-                        opacity: submitBudgetMutation.isPending ? 0.7 : 1,
+                        opacity: (submitBudgetMutation.isPending || uploadFileMutation.isPending) ? 0.7 : 1,
                       }}
                     >
-                      {submitBudgetMutation.isPending ? (
-                        <ActivityIndicator color="white" />
+                      {(submitBudgetMutation.isPending || uploadFileMutation.isPending) ? (
+                        <><ActivityIndicator color="white" /><Text style={{ color: "white", fontWeight: "700", fontSize: 15, marginLeft: 8 }}>Enviando...</Text></>
                       ) : (
                         <><Text style={{ fontSize: 18 }}>📤</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Enviar Orçamento</Text></>
                       )}
@@ -1249,7 +1264,39 @@ export default function RequestDetailScreen() {
                     )}
                   </TouchableOpacity>
                   {budgetFileName && !uploadFileMutation.isPending && (
-                    <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName} — PDF substituído com sucesso</Text>
+                    <>
+                      <Text style={{ color: colors.muted, fontSize: 12, textAlign: "center", marginTop: 8 }}>📎 {budgetFileName} selecionado</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (!pendingBudgetBase64 || !budgetFileName) return;
+                          showConfirm({
+                            title: "📤 Substituir Orçamento",
+                            message: "Confirma a substituição do PDF do orçamento?",
+                            confirmText: "Substituir",
+                            onConfirm: () => {
+                              uploadFileMutation.mutate(
+                                { requestId: request.id, fileName: budgetFileName, base64: pendingBudgetBase64, mimeType: pendingBudgetMime },
+                                { onSuccess: () => { setBudgetFileName(null); Alert.alert("✅ PDF substituído!", "O orçamento foi atualizado com sucesso."); } }
+                              );
+                            },
+                          });
+                        }}
+                        disabled={uploadFileMutation.isPending}
+                        style={{
+                          marginTop: 10,
+                          backgroundColor: colors.warning,
+                          borderRadius: 10,
+                          paddingVertical: 12,
+                          alignItems: "center",
+                          flexDirection: "row",
+                          justifyContent: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Text style={{ fontSize: 16 }}>📤</Text>
+                        <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>Salvar Substituição</Text>
+                      </TouchableOpacity>
+                    </>
                   )}
                 </View>
               )}

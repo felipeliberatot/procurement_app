@@ -1974,10 +1974,85 @@ export async function getRankingByCostCenter(year: number, month: number) {
     entry.count++;
   }
 
+  // Calcula trend dos 3 meses (m-2, m-1, m)
+  const months3 = [-2, -1, 0].map(offset => {
+    let m = month + offset;
+    let y = year;
+    if (m <= 0) { m += 12; y--; }
+    return { y, m };
+  });
+  const [totalsM2, totalsM1] = await Promise.all([
+    getCCTotalsForMonth(db, months3[0].y, months3[0].m),
+    getCCTotalsForMonth(db, months3[1].y, months3[1].m),
+  ]);
+
   return Array.from(grouped.entries())
-    .map(([code, { label, total, count }]) => ({ code, label, total: Math.round(total * 100) / 100, count }))
+    .map(([code, { label, total, count }]) => ({
+      code,
+      label,
+      total: Math.round(total * 100) / 100,
+      count,
+      trend: [
+        Math.round((totalsM2.get(code) ?? 0) * 100) / 100,
+        Math.round((totalsM1.get(code) ?? 0) * 100) / 100,
+        Math.round(total * 100) / 100,
+      ],
+    }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 10); // top 10
+}
+
+// ─── Helper: total por CC em um mês específico ───────────────────────────────
+async function getCCTotalsForMonth(db: any, year: number, month: number): Promise<Map<string, number>> {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 1);
+  const rows = await db
+    .select({
+      costCenterCode: purchaseRequests.costCenterCode,
+      department: purchaseRequests.department,
+      totalEstimatedValue: purchaseRequests.totalEstimatedValue,
+    })
+    .from(purchaseRequests)
+    .where(
+      and(
+        gte(purchaseRequests.createdAt, startDate),
+        lte(purchaseRequests.createdAt, endDate),
+        sql`${purchaseRequests.status} NOT IN ('cancelada', 'rascunho')`
+      )
+    );
+  const map = new Map<string, number>();
+  for (const r of rows) {
+    const key = r.costCenterCode ?? r.department ?? "Sem Centro de Custo";
+    map.set(key, (map.get(key) ?? 0) + parseFloat(r.totalEstimatedValue ?? "0"));
+  }
+  return map;
+}
+
+// ─── Helper: total por item em um mês específico ──────────────────────────────
+async function getItemTotalsForMonth(db: any, year: number, month: number): Promise<Map<string, number>> {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 1);
+  const requests = await db
+    .select({ id: purchaseRequests.id })
+    .from(purchaseRequests)
+    .where(
+      and(
+        gte(purchaseRequests.createdAt, startDate),
+        lte(purchaseRequests.createdAt, endDate),
+        sql`${purchaseRequests.status} NOT IN ('cancelada', 'rascunho')`
+      )
+    );
+  if (requests.length === 0) return new Map();
+  const items = await db
+    .select()
+    .from(requestItems)
+    .where(inArray(requestItems.requestId, requests.map((r: any) => r.id)));
+  const map = new Map<string, number>();
+  for (const item of items) {
+    const key = item.description.toLowerCase().trim();
+    map.set(key, (map.get(key) ?? 0) + parseFloat(item.totalPrice ?? item.unitPrice ?? "0"));
+  }
+  return map;
 }
 
 // ─── Ranking por Bem/Item ─────────────────────────────────────────────────────
@@ -2021,12 +2096,29 @@ export async function getRankingByItem(year: number, month: number) {
     entry.count++;
   }
 
+  // Calcula trend dos 3 meses (m-2, m-1, m)
+  const months3 = [-2, -1, 0].map(offset => {
+    let m = month + offset;
+    let y = year;
+    if (m <= 0) { m += 12; y--; }
+    return { y, m };
+  });
+  const [itemsM2, itemsM1] = await Promise.all([
+    getItemTotalsForMonth(db, months3[0].y, months3[0].m),
+    getItemTotalsForMonth(db, months3[1].y, months3[1].m),
+  ]);
+
   return Array.from(grouped.entries())
-    .map(([, { label, total, quantity, count }]) => ({
+    .map(([key, { label, total, quantity, count }]) => ({
       label,
       total: Math.round(total * 100) / 100,
       quantity: Math.round(quantity * 100) / 100,
       count,
+      trend: [
+        Math.round((itemsM2.get(key) ?? 0) * 100) / 100,
+        Math.round((itemsM1.get(key) ?? 0) * 100) / 100,
+        Math.round(total * 100) / 100,
+      ],
     }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 10); // top 10

@@ -440,3 +440,12 @@
 - [x] Aba "Rankings" no Relatório Mensal com gráficos de barras horizontais
 - [x] Gráfico de barras por Centro de Custo com valor, quantidade de solicitações e gradiente de cores
 - [x] Gráfico de barras por Bem/Item com valor, ocorrências e unidades
+
+## Sparkline nos Rankings
+- [ ] Atualizar endpoints para retornar histórico de 3 meses por item/CC
+- [ ] Componente Sparkline com react-native-svg
+- [ ] Integrar sparkline nos gráficos de ranking
+
+## Correção Fluxo de Orçamento
+- [x] Corrigir: upload do PDF não avança o fluxo automaticamente
+- [x] Adicionar botão "Enviar Orçamento" explícito após upload do PDF em todos os fluxos
