@@ -79,6 +79,8 @@ function buildUserResponse(
     lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString(),
     procurementRole: (user as any)?.procurementRole ?? null,
     approvalLevel: (user as any)?.approvalLevel ?? null,
+    extraRoles: (user as any)?.extraRoles ?? null,
+    extraApprovalLevels: (user as any)?.extraApprovalLevels ?? null,
     phone: (user as any)?.phone ?? null,
     active: (user as any)?.active ?? true,
   };

@@ -253,6 +253,8 @@ export default function LoginScreen() {
         lastSignedIn: new Date(result.user.lastSignedIn),
         procurementRole: (result.user as any).procurementRole ?? null,
         approvalLevel: (result.user as any).approvalLevel ?? null,
+        extraRoles: (result.user as any).extraRoles ?? null,
+        extraApprovalLevels: (result.user as any).extraApprovalLevels ?? null,
         phone: (result.user as any).phone ?? null,
         active: (result.user as any).active ?? true,
       };

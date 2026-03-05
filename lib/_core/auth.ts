@@ -11,6 +11,8 @@ export type User = {
   lastSignedIn: Date;
   procurementRole?: string | null;
   approvalLevel?: string | null;
+  extraRoles?: string | null;
+  extraApprovalLevels?: string | null;
   phone?: string | null;
   active?: boolean;
 };

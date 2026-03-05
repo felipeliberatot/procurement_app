@@ -35,6 +35,8 @@ export function useAuth(options?: UseAuthOptions) {
             lastSignedIn: new Date(apiUser.lastSignedIn),
             procurementRole: (apiUser as any).procurementRole ?? null,
             approvalLevel: (apiUser as any).approvalLevel ?? null,
+            extraRoles: (apiUser as any).extraRoles ?? null,
+            extraApprovalLevels: (apiUser as any).extraApprovalLevels ?? null,
             phone: (apiUser as any).phone ?? null,
             active: (apiUser as any).active ?? true,
           };

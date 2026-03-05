@@ -1646,7 +1646,8 @@ export default function RegistersScreen() {
   const [roleFilter, setRoleFilter] = useState<ProcurementRole | "all">("all");
 
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
-  const isAdmin = userRole === "admin";
+  const userExtraRoles: ProcurementRole[] = (() => { try { return JSON.parse((user as any)?.extraRoles ?? "[]") as ProcurementRole[]; } catch { return []; } })();
+  const isAdmin = userRole === "admin" || userExtraRoles.includes("admin");
   const isMaster = (user as any)?.approvalLevel === "master";
 
   const { data: usersList, isLoading: usersLoading } = trpc.users.list.useQuery(undefined, {
