@@ -1766,6 +1766,13 @@ export default function RegistersScreen() {
     },
     onError: (e) => Alert.alert("Erro", e.message),
   });
+  const deleteCC = trpc.costCenters.delete.useMutation({
+    onSuccess: () => {
+      utils.costCenters.list.invalidate();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
 
   const updateAsset = trpc.assets.update.useMutation({
     onSuccess: () => {
@@ -1773,6 +1780,13 @@ export default function RegistersScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowAssetModal(false);
       setEditingAsset(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+  const deleteAsset = trpc.assets.delete.useMutation({
+    onSuccess: () => {
+      utils.assets.list.invalidate();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     },
     onError: (e) => Alert.alert("Erro", e.message),
   });
@@ -2691,6 +2705,22 @@ export default function RegistersScreen() {
                     >
                       <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
                     </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        const doDelete = () => deleteCC.mutate({ id: (item as any).id });
+                        if (typeof window !== "undefined") {
+                          if (window.confirm(`Deseja excluir o centro de custo "${(item as any).name}"?`)) doDelete();
+                        } else {
+                          Alert.alert("Excluir Centro de Custo", `Deseja excluir "${(item as any).name}"?`, [
+                            { text: "Cancelar", style: "cancel" },
+                            { text: "Excluir", style: "destructive", onPress: doDelete },
+                          ]);
+                        }
+                      }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: "#FEE2E215", borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: "#FCA5A530" })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: "#EF4444" }}>🗑️ Excluir</Text>
+                    </Pressable>
                   </View>
                 )}
               </View>
@@ -2769,6 +2799,22 @@ export default function RegistersScreen() {
                       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: `${colors.primary}15`, borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: `${colors.primary}30` })}
                     >
                       <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        const doDelete = () => deleteAsset.mutate({ id: (item as any).id });
+                        if (typeof window !== "undefined") {
+                          if (window.confirm(`Deseja excluir o bem "${(item as any).description}"?`)) doDelete();
+                        } else {
+                          Alert.alert("Excluir Bem", `Deseja excluir "${(item as any).description}"?`, [
+                            { text: "Cancelar", style: "cancel" },
+                            { text: "Excluir", style: "destructive", onPress: doDelete },
+                          ]);
+                        }
+                      }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: "#FEE2E215", borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: "#FCA5A530" })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: "#EF4444" }}>🗑️ Excluir</Text>
                     </Pressable>
                   </View>
                 )}

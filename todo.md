@@ -468,3 +468,7 @@
 
 ## Permissões por Usuário
 - [x] Liberar criação de centros de custo para Oscar Oliveira: adicionado 'admin' em extraRoles no banco; isAdmin no registers.tsx agora considera extraRoles; buildUserResponse e use-auth.ts atualizados para retornar/armazenar extraRoles
+
+## Botões Editar/Excluir nos Cadastros
+- [x] Botão 🗑️ Excluir nos centros de custo (mutation deleteCC + confirmação cross-platform)
+- [x] Botão 🗑️ Excluir nos bens/assets (mutation deleteAsset + confirmação cross-platform)
