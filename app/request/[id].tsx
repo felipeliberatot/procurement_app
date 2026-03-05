@@ -788,14 +788,23 @@ export default function RequestDetailScreen() {
   };
 
   const handleIssueOrder = () => {
-    if (!selectedPaymentMethod) { Alert.alert("Campo obrigatório", "Selecione o método de pagamento antes de avançar."); return; }
-    if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe os dados de pagamento antes de avançar."); return; }
-    const methodLabel = PAYMENT_METHOD_LABELS[selectedPaymentMethod];
     showConfirm({
       title: "Confirmar Emissão de OC",
-      message: `Confirmar pagamento via ${methodLabel} e encaminhar para Aprovação Financeiro?`,
+      message: "Confirmar a emissão da OC e encaminhar para Aprovação Financeiro?",
       confirmText: "Confirmar",
-      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", paymentInfo, paymentMethod: selectedPaymentMethod, paymentObservations: paymentObservations.trim() || undefined }),
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "" }),
+    });
+  };
+
+  const handleApproveFinanceiro = () => {
+    if (!selectedPaymentMethod) { Alert.alert("Campo obrigatório", "Selecione o método de pagamento antes de aprovar."); return; }
+    if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe os dados de pagamento antes de aprovar."); return; }
+    const methodLabel = PAYMENT_METHOD_LABELS[selectedPaymentMethod];
+    showConfirm({
+      title: "✅ Aprovar Compra",
+      message: `Confirmar aprovação com pagamento via ${methodLabel} e avançar para Comprovante de Pagamento?`,
+      confirmText: "Aprovar",
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, paymentInfo, paymentMethod: selectedPaymentMethod }),
     });
   };
 
@@ -1373,6 +1382,63 @@ export default function RequestDetailScreen() {
                   <Text className="text-sm font-bold text-foreground mb-1">📋 Emissão de Ordem de Compra</Text>
                   <Text className="text-xs text-muted mb-4">Preencha os campos abaixo para emitir a OC e encaminhar ao Financeiro</Text>
 
+                  {/* Upload OC Siagri */}
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>OC Siagri <Text style={{ color: colors.muted, fontWeight: "400" }}>(opcional)</Text></Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o PDF da Ordem de Compra gerada no Siagri</Text>
+                  <TouchableOpacity
+                    onPress={async () => {
+                      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+                      if (result.canceled || !result.assets?.[0]) return;
+                      const file = result.assets[0];
+                      const base64 = await readFileAsBase64(file.uri);
+                      setOcSiagriFileName(file.name);
+                      uploadOCSiagriMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
+                    }}
+                    disabled={uploadOCSiagriMutation.isPending}
+                    style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}60`, borderRadius: 12, paddingVertical: 16, marginBottom: 16, opacity: uploadOCSiagriMutation.isPending ? 0.6 : 1 }}
+                  >
+                    {uploadOCSiagriMutation.isPending
+                      ? <ActivityIndicator color={colors.primary} />
+                      : <><Text style={{ fontSize: 22 }}>📄</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{ocSiagriFileName ?? (request as any).ocSiagriUrl ? "✅ OC Siagri anexada" : "Anexar OC Siagri (PDF)"}</Text></>
+                    }
+                  </TouchableOpacity>
+
+                  {/* Botão Emitir OC */}
+                  <TouchableOpacity
+                    onPress={handleIssueOrder}
+                    disabled={approveMutation.isPending}
+                    style={{
+                      backgroundColor: colors.primary,
+                      borderRadius: 12,
+                      paddingVertical: 14,
+                      alignItems: "center",
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      gap: 8,
+                      opacity: approveMutation.isPending ? 0.7 : 1,
+                    }}
+                  >
+                    {approveMutation.isPending
+                      ? <ActivityIndicator color="white" />
+                      : (
+                        <>
+                          <Text style={{ fontSize: 16 }}>📤</Text>
+                          <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
+                            Emitir OC e Enviar ao Financeiro
+                          </Text>
+                        </>
+                      )
+                    }
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Fluxo 07: Aprovação Financeiro */}
+              {currentStatus === "aguardando_aprovacao_compra" && (
+                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+                  <Text className="text-sm font-bold text-foreground mb-1">💰 Aprovação Financeiro</Text>
+                  <Text className="text-xs text-muted mb-4">Revise os dados da compra e aprove ou recuse (somente Financeiro)</Text>
+
                   {/* Seletor de Método de Pagamento */}
                   <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 8 }}>Método de Pagamento *</Text>
                   <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 16 }}>
@@ -1399,7 +1465,7 @@ export default function RequestDetailScreen() {
 
                   {/* Dados de Pagamento */}
                   <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Dados de Pagamento *</Text>
-                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe banco, agência, conta, valor, data prevista, etc.</Text>
+                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe banco, agência, conta, valor, data prevista, chave PIX, etc.</Text>
                   <TextInput
                     value={paymentInfo}
                     onChangeText={setPaymentInfo}
@@ -1422,92 +1488,6 @@ export default function RequestDetailScreen() {
                     }}
                   />
 
-                  {/* Upload OC Siagri */}
-                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>OC Siagri <Text style={{ color: colors.muted, fontWeight: "400" }}>(opcional)</Text></Text>
-                  <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o PDF da Ordem de Compra gerada no Siagri</Text>
-                  <TouchableOpacity
-                    onPress={async () => {
-                      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
-                      if (result.canceled || !result.assets?.[0]) return;
-                      const file = result.assets[0];
-                      const base64 = await readFileAsBase64(file.uri);
-                      setOcSiagriFileName(file.name);
-                      uploadOCSiagriMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
-                    }}
-                    disabled={uploadOCSiagriMutation.isPending}
-                    style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}60`, borderRadius: 12, paddingVertical: 16, marginBottom: 16, opacity: uploadOCSiagriMutation.isPending ? 0.6 : 1 }}
-                  >
-                    {uploadOCSiagriMutation.isPending
-                      ? <ActivityIndicator color={colors.primary} />
-                      : <><Text style={{ fontSize: 22 }}>📄</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{ocSiagriFileName ?? (request as any).ocSiagriUrl ? "✅ OC Siagri anexada" : "Anexar OC Siagri (PDF)"}</Text></>
-                    }
-                  </TouchableOpacity>
-
-                  {/* Indicador de campos obrigatórios */}
-                  {(!selectedPaymentMethod || !paymentInfo.trim()) && (
-                    <Text style={{ color: colors.error, fontSize: 11, marginBottom: 12, textAlign: "center" }}>
-                      * Selecione o método de pagamento e preencha os dados para continuar
-                    </Text>
-                  )}
-
-                  {/* Botão Emitir OC */}
-
-                  <TouchableOpacity
-                    onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending || !selectedPaymentMethod || !paymentInfo.trim()}
-                    style={{
-                      backgroundColor: (selectedPaymentMethod && paymentInfo.trim()) ? colors.primary : colors.border,
-                      borderRadius: 12,
-                      paddingVertical: 14,
-                      alignItems: "center",
-                      flexDirection: "row",
-                      justifyContent: "center",
-                      gap: 8,
-                      opacity: approveMutation.isPending ? 0.7 : 1,
-                    }}
-                  >
-                    {approveMutation.isPending
-                      ? <ActivityIndicator color="white" />
-                      : (
-                        <>
-                          <Text style={{ fontSize: 16 }}>📤</Text>
-                          <Text style={{ color: (selectedPaymentMethod && paymentInfo.trim()) ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
-                            Emitir OC e Enviar ao Financeiro
-                          </Text>
-                        </>
-                      )
-                    }
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {/* Fluxo 07: Aprovação Financeiro */}
-              {currentStatus === "aguardando_aprovacao_compra" && (
-                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-                  <Text className="text-sm font-bold text-foreground mb-1">💰 Aprovação Financeiro</Text>
-                  <Text className="text-xs text-muted mb-4">Revise os dados da compra e aprove ou recuse (somente Financeiro)</Text>
-
-                  {/* Método de pagamento selecionado */}
-                  {(request as any).paymentMethod && (
-                    <View style={{ backgroundColor: `${colors.primary}10`, borderRadius: 12, padding: 12, marginBottom: 12 }}>
-                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Método de Pagamento</Text>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                        <Text style={{ fontSize: 20 }}>{PAYMENT_METHOD_ICONS[(request as any).paymentMethod as PaymentMethod] ?? "💳"}</Text>
-                        <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>
-                          {PAYMENT_METHOD_LABELS[(request as any).paymentMethod as PaymentMethod] ?? (request as any).paymentMethod}
-                        </Text>
-                      </View>
-                    </View>
-                  )}
-
-                  {/* Dados de pagamento */}
-                  {(request as any).paymentInfo && (
-                    <View style={{ backgroundColor: `${colors.surface}`, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 12 }}>
-                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Dados de Pagamento</Text>
-                      <Text style={{ color: colors.foreground, fontSize: 13, lineHeight: 20 }}>{(request as any).paymentInfo}</Text>
-                    </View>
-                  )}
-
                   {/* Valor estimado */}
                   {request.totalEstimatedValue && (
                     <View style={{ backgroundColor: `${colors.warning}10`, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -1517,6 +1497,13 @@ export default function RequestDetailScreen() {
                         <Text style={{ color: colors.warning, fontWeight: "700", fontSize: 16 }}>{formatCurrency(request.totalEstimatedValue)}</Text>
                       </View>
                     </View>
+                  )}
+
+                  {/* Indicador de campos obrigatórios */}
+                  {(!selectedPaymentMethod || !paymentInfo.trim()) && (
+                    <Text style={{ color: colors.error, fontSize: 11, marginBottom: 12, textAlign: "center" }}>
+                      * Selecione o método de pagamento e preencha os dados para aprovar
+                    </Text>
                   )}
 
                   {/* Botões Aprovar / Cancelar */}
@@ -1538,18 +1525,11 @@ export default function RequestDetailScreen() {
                       <Text style={{ color: colors.error, fontWeight: "700", fontSize: 14 }}>Recusar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => {
-                        showConfirm({
-                          title: "✅ Aprovar Compra",
-                          message: "Confirmar a aprovação desta compra e avançar para o Comprovante de Pagamento?",
-                          confirmText: "Aprovar",
-                          onConfirm: () => approveMutation.mutate({ requestId: request.id }),
-                        });
-                      }}
-                      disabled={approveMutation.isPending || rejectMutation.isPending}
-                      style={{ flex: 1, backgroundColor: `${colors.success}15`, borderWidth: 1.5, borderColor: `${colors.success}50`, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                      onPress={handleApproveFinanceiro}
+                      disabled={approveMutation.isPending || rejectMutation.isPending || !selectedPaymentMethod || !paymentInfo.trim()}
+                      style={{ flex: 1, backgroundColor: (selectedPaymentMethod && paymentInfo.trim()) ? `${colors.success}15` : colors.border, borderWidth: 1.5, borderColor: (selectedPaymentMethod && paymentInfo.trim()) ? `${colors.success}50` : "transparent", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                     >
-                      {approveMutation.isPending ? <ActivityIndicator size="small" color={colors.success} /> : <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: colors.success, fontWeight: "700", fontSize: 14 }}>Aprovar</Text></>}
+                      {approveMutation.isPending ? <ActivityIndicator size="small" color={colors.success} /> : <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: (selectedPaymentMethod && paymentInfo.trim()) ? colors.success : colors.muted, fontWeight: "700", fontSize: 14 }}>Aprovar</Text></>}
                     </TouchableOpacity>
                   </View>
                 </View>

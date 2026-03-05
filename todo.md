@@ -461,3 +461,4 @@
 - [x] Adicionar nome do solicitante no card
 - [x] Exibir itens na tela Minhas Solicitações
 - [x] Bug: Gráfico de ranking não aparece (barras de progresso com width% não funcionam em ScrollView no React Native)
+- [x] Mover seleção de forma de pagamento do fluxo 06 (Emissão OC) para o fluxo 07 (Aprovação Financeiro)
