@@ -3,6 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { createProxyMiddleware } from "http-proxy-middleware";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -84,8 +85,41 @@ async function startServer() {
     }),
   );
 
+  // ── Proxy non-API routes to Metro (Expo web frontend on port 8081) ─────────
+  // This allows the app to be accessed via the 3000 port directly,
+  // avoiding cross-origin issues when the hostname doesn't follow the '8081-xxx' pattern.
+  // Users can access the full app at the 3000-xxx URL without any CORS issues.
+  const metroPort = parseInt(process.env.EXPO_PORT || "8081");
+  const metroProxy = createProxyMiddleware({
+    target: `http://127.0.0.1:${metroPort}`,
+    changeOrigin: false,
+    ws: true,
+    on: {
+      error: (_err, _req, res) => {
+        if (res && "writeHead" in res) {
+          (res as express.Response).status(502).json({ error: "Frontend not available" });
+        }
+      },
+    },
+  });
+
+  // Proxy all non-API routes to Metro
+  app.use((req, res, next) => {
+    if (req.path.startsWith("/api/")) {
+      return next();
+    }
+    return metroProxy(req, res, next);
+  });
+
+  // Also upgrade WebSocket connections for Metro HMR
+  server.on("upgrade", (req, socket, head) => {
+    if (!req.url?.startsWith("/api/")) {
+      (metroProxy as any).upgrade(req, socket, head);
+    }
+  });
+
   // ── Global error handlers: always return JSON, never HTML ─────────────────
-  // Catch-all for unmatched routes
+  // Catch-all for unmatched API routes
   app.use((_req, res) => {
     res.status(404).json({ error: "Not found" });
   });
