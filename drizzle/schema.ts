@@ -135,6 +135,7 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   paymentInfo: text("paymentInfo"),        // Dados de pagamento inseridos pelo Compras
   paymentProofUrl: text("paymentProofUrl"), // PDF comprovante de pagamento (Financeiro)
   paymentObservations: text("paymentObservations"), // Observações de pagamento (boleto/cartão)
+  paymentInstallments: int("paymentInstallments"),   // Número de parcelas (cartão parcelado)
   invoiceUrl: text("invoiceUrl"),           // PDF nota fiscal (Compras na verificação final)
   ocSiagriUrl: text("ocSiagriUrl"),          // PDF OC Siagri (Compras na emissão de OC)
 

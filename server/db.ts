@@ -998,7 +998,7 @@ export async function submitBudget(
 export async function approveRequest(
   requestId: number,
   user: User,
-  data: { comment?: string; purchaseOrderNumber?: string; paymentInfo?: string; paymentMethod?: string; paymentObservations?: string }
+  data: { comment?: string; purchaseOrderNumber?: string; paymentInfo?: string; paymentMethod?: string; paymentObservations?: string; paymentInstallments?: number }
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1021,6 +1021,7 @@ export async function approveRequest(
   if (data.paymentInfo) updateData.paymentInfo = data.paymentInfo;
   if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
   if (data.paymentObservations) updateData.paymentObservations = data.paymentObservations;
+  if (data.paymentInstallments) updateData.paymentInstallments = data.paymentInstallments;
 
   await db.update(purchaseRequests).set(updateData).where(eq(purchaseRequests.id, requestId));
 

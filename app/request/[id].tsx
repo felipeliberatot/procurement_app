@@ -413,6 +413,7 @@ export default function RequestDetailScreen() {
   const [orderNumber, setOrderNumber] = useState("");
   const [paymentInfo, setPaymentInfo] = useState("");
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"pix" | "boleto" | "cartao_avista" | "cartao_parcelado" | null>(null);
+  const [paymentInstallments, setPaymentInstallments] = useState<string>("");
   const [paymentObservations, setPaymentObservations] = useState("");
   const [budgetFileName, setBudgetFileName] = useState<string | null>(null);
   const [pendingBudgetBase64, setPendingBudgetBase64] = useState<string | null>(null);
@@ -799,12 +800,19 @@ export default function RequestDetailScreen() {
   const handleApproveFinanceiro = () => {
     if (!selectedPaymentMethod) { Alert.alert("Campo obrigatório", "Selecione o método de pagamento antes de aprovar."); return; }
     if (!paymentInfo.trim()) { Alert.alert("Campo obrigatório", "Informe os dados de pagamento antes de aprovar."); return; }
+    if (selectedPaymentMethod === "cartao_parcelado") {
+      const installmentsNum = parseInt(paymentInstallments, 10);
+      if (!paymentInstallments.trim() || isNaN(installmentsNum) || installmentsNum < 1 || installmentsNum > 48) {
+        Alert.alert("Campo obrigatório", "Informe o número de parcelas (1 a 48) para cartão parcelado."); return;
+      }
+    }
     const methodLabel = PAYMENT_METHOD_LABELS[selectedPaymentMethod];
+    const installmentsNum = selectedPaymentMethod === "cartao_parcelado" ? parseInt(paymentInstallments, 10) : undefined;
     showConfirm({
       title: "✅ Aprovar Compra",
-      message: `Confirmar aprovação com pagamento via ${methodLabel} e avançar para Comprovante de Pagamento?`,
+      message: `Confirmar aprovação com pagamento via ${methodLabel}${installmentsNum ? ` em ${installmentsNum}x` : ""} e avançar para Comprovante de Pagamento?`,
       confirmText: "Aprovar",
-      onConfirm: () => approveMutation.mutate({ requestId: request.id, paymentInfo, paymentMethod: selectedPaymentMethod }),
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, paymentInfo, paymentMethod: selectedPaymentMethod, paymentInstallments: installmentsNum }),
     });
   };
 
@@ -1488,6 +1496,40 @@ export default function RequestDetailScreen() {
                     }}
                   />
 
+                  {/* Campo de Parcelas (apenas para cartão parcelado) */}
+                  {selectedPaymentMethod === "cartao_parcelado" && (
+                    <View style={{ marginBottom: 16 }}>
+                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Número de Parcelas *</Text>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe em quantas vezes será parcelado (1 a 48)</Text>
+                      <TextInput
+                        value={paymentInstallments}
+                        onChangeText={(v) => setPaymentInstallments(v.replace(/[^0-9]/g, ""))}
+                        placeholder="Ex: 12"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="number-pad"
+                        maxLength={2}
+                        returnKeyType="done"
+                        style={{
+                          backgroundColor: colors.background,
+                          borderWidth: 1,
+                          borderColor: paymentInstallments.trim() ? colors.border : `${colors.error}60`,
+                          borderRadius: 12,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                          fontSize: 16,
+                          color: colors.foreground,
+                          fontWeight: "700",
+                          width: 120,
+                        }}
+                      />
+                      {paymentInstallments && (
+                        <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+                          {parseInt(paymentInstallments, 10) === 1 ? "À vista no cartão" : `${paymentInstallments}x parcelas`}
+                        </Text>
+                      )}
+                    </View>
+                  )}
+
                   {/* Valor estimado */}
                   {request.totalEstimatedValue && (
                     <View style={{ backgroundColor: `${colors.warning}10`, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -1500,9 +1542,9 @@ export default function RequestDetailScreen() {
                   )}
 
                   {/* Indicador de campos obrigatórios */}
-                  {(!selectedPaymentMethod || !paymentInfo.trim()) && (
+                  {(!selectedPaymentMethod || !paymentInfo.trim() || (selectedPaymentMethod === "cartao_parcelado" && !paymentInstallments.trim())) && (
                     <Text style={{ color: colors.error, fontSize: 11, marginBottom: 12, textAlign: "center" }}>
-                      * Selecione o método de pagamento e preencha os dados para aprovar
+                      {!selectedPaymentMethod ? "* Selecione o método de pagamento" : !paymentInfo.trim() ? "* Preencha os dados de pagamento" : "* Informe o número de parcelas"}
                     </Text>
                   )}
 
@@ -1526,10 +1568,10 @@ export default function RequestDetailScreen() {
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={handleApproveFinanceiro}
-                      disabled={approveMutation.isPending || rejectMutation.isPending || !selectedPaymentMethod || !paymentInfo.trim()}
-                      style={{ flex: 1, backgroundColor: (selectedPaymentMethod && paymentInfo.trim()) ? `${colors.success}15` : colors.border, borderWidth: 1.5, borderColor: (selectedPaymentMethod && paymentInfo.trim()) ? `${colors.success}50` : "transparent", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
+                      disabled={approveMutation.isPending || rejectMutation.isPending || !selectedPaymentMethod || !paymentInfo.trim() || (selectedPaymentMethod === "cartao_parcelado" && !paymentInstallments.trim())}
+                      style={{ flex: 1, backgroundColor: (selectedPaymentMethod && paymentInfo.trim() && !(selectedPaymentMethod === "cartao_parcelado" && !paymentInstallments.trim())) ? `${colors.success}15` : colors.border, borderWidth: 1.5, borderColor: (selectedPaymentMethod && paymentInfo.trim() && !(selectedPaymentMethod === "cartao_parcelado" && !paymentInstallments.trim())) ? `${colors.success}50` : "transparent", borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 6 }}
                     >
-                      {approveMutation.isPending ? <ActivityIndicator size="small" color={colors.success} /> : <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: (selectedPaymentMethod && paymentInfo.trim()) ? colors.success : colors.muted, fontWeight: "700", fontSize: 14 }}>Aprovar</Text></>}
+                      {approveMutation.isPending ? <ActivityIndicator size="small" color={colors.success} /> : <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: (selectedPaymentMethod && paymentInfo.trim() && !(selectedPaymentMethod === "cartao_parcelado" && !paymentInstallments.trim())) ? colors.success : colors.muted, fontWeight: "700", fontSize: 14 }}>Aprovar</Text></>}
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -1555,11 +1597,19 @@ export default function RequestDetailScreen() {
                       </View>
                     )}
 
-                    {/* Dados de pagamento do Compras */}
+                    {/* Dados de pagamento do Financeiro */}
                     {(request as any).paymentInfo && (
                       <View style={{ backgroundColor: `${colors.surface}`, borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, marginBottom: 12 }}>
-                        <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Dados de Pagamento (Compras)</Text>
+                        <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Dados de Pagamento (Financeiro)</Text>
                         <Text style={{ color: colors.foreground, fontSize: 13 }}>{(request as any).paymentInfo}</Text>
+                        {(request as any).paymentInstallments && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, backgroundColor: `${colors.primary}10`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 }}>
+                            <Text style={{ fontSize: 14 }}>📅</Text>
+                            <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>
+                              {(request as any).paymentInstallments === 1 ? "À vista no cartão" : `${(request as any).paymentInstallments}x parcelas`}
+                            </Text>
+                          </View>
+                        )}
                       </View>
                     )}
 

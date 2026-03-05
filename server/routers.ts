@@ -457,6 +457,7 @@ export const appRouter = router({
         paymentInfo: z.string().optional(),
         paymentMethod: z.enum(["pix", "boleto", "cartao_avista", "cartao_parcelado"]).optional(),
         paymentObservations: z.string().optional(),
+        paymentInstallments: z.number().int().min(1).max(48).optional(),
       }))
       .mutation(({ ctx, input }) =>
         db.approveRequest(input.requestId, ctx.user, input)

@@ -462,3 +462,5 @@
 - [x] Exibir itens na tela Minhas Solicitações
 - [x] Bug: Gráfico de ranking não aparece (barras de progresso com width% não funcionam em ScrollView no React Native)
 - [x] Mover seleção de forma de pagamento do fluxo 06 (Emissão OC) para o fluxo 07 (Aprovação Financeiro)
+- [x] Exibir dados de pagamento do Financeiro no fluxo 08 como referência
+- [x] Campo de número de parcelas para Cartão Parcelado no fluxo 07
