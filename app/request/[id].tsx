@@ -608,6 +608,18 @@ export default function RequestDetailScreen() {
     },
   });
 
+  const deleteMutation = trpc.requests.delete.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.back();
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao excluir", e.message);
+    },
+  });
+
   if (isLoading) {
     return (
       <ScreenContainer>
@@ -1996,6 +2008,56 @@ export default function RequestDetailScreen() {
                   <>
                     <Text style={{ fontSize: 16 }}>🚫</Text>
                     <Text style={{ color: colors.error, fontWeight: "700", fontSize: 15 }}>Cancelar Solicitação</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Botão Excluir Solicitação — visível somente quando cancelada, para o solicitante ou admin/master */}
+          {isCancelled && (isOwner || isMasterUser) && (
+            <View style={{ marginTop: 8, marginBottom: 16 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (Platform.OS === "web") {
+                    if (window.confirm("Tem certeza que deseja excluir esta solicitação? Esta ação é irreversível.")) {
+                      deleteMutation.mutate({ requestId: request.id });
+                    }
+                  } else {
+                    Alert.alert(
+                      "Excluir Solicitação",
+                      "Tem certeza que deseja excluir esta solicitação? Esta ação é irreversível e não poderá ser desfeita.",
+                      [
+                        { text: "Cancelar", style: "cancel" },
+                        {
+                          text: "Excluir",
+                          style: "destructive",
+                          onPress: () => deleteMutation.mutate({ requestId: request.id }),
+                        },
+                      ]
+                    );
+                  }
+                }}
+                disabled={deleteMutation.isPending}
+                style={{
+                  backgroundColor: `${colors.error}20`,
+                  borderWidth: 1.5,
+                  borderColor: colors.error,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                  opacity: deleteMutation.isPending ? 0.7 : 1,
+                }}
+              >
+                {deleteMutation.isPending ? (
+                  <ActivityIndicator size="small" color={colors.error} />
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 16 }}>🗑️</Text>
+                    <Text style={{ color: colors.error, fontWeight: "700", fontSize: 15 }}>Excluir Solicitação</Text>
                   </>
                 )}
               </TouchableOpacity>

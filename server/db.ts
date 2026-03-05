@@ -2137,3 +2137,29 @@ export async function getRankingByItem(year: number, month: number) {
     .sort((a, b) => b.total - a.total)
     .slice(0, 10); // top 10
 }
+
+export async function deletePurchaseRequest(
+  id: number,
+  requesterId: number,
+  isAdmin: boolean
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indisponível" };
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, id)).limit(1);
+  if (!request) return { success: false, error: "Solicitação não encontrada" };
+
+  if (request.status !== "cancelada") {
+    return { success: false, error: "Apenas solicitações canceladas podem ser excluídas" };
+  }
+
+  if (!isAdmin && request.requesterId !== requesterId) {
+    return { success: false, error: "Sem permissão para excluir esta solicitação" };
+  }
+
+  await db.delete(requestItems).where(eq(requestItems.requestId, id));
+  await db.delete(approvalHistory).where(eq(approvalHistory.requestId, id));
+  await db.delete(purchaseRequests).where(eq(purchaseRequests.id, id));
+
+  return { success: true };
+}

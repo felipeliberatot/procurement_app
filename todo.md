@@ -464,3 +464,4 @@
 - [x] Mover seleção de forma de pagamento do fluxo 06 (Emissão OC) para o fluxo 07 (Aprovação Financeiro)
 - [x] Exibir dados de pagamento do Financeiro no fluxo 08 como referência
 - [x] Campo de número de parcelas para Cartão Parcelado no fluxo 07
+- [x] Opção de excluir solicitação cancelada (apenas solicitante ou admin, com confirmação)

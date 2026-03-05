@@ -445,6 +445,15 @@ export const appRouter = router({
       if (!isMaster) throw new Error("Acesso restrito a usuários master.");
       return db.getAllRequests();
     }),
+
+    // Excluir solicitação cancelada (somente solicitante ou admin/master)
+    delete: protectedProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(({ ctx, input }) => {
+        const user = ctx.user as any;
+        const isAdmin = user.role === "admin" || user.approvalLevel === "master";
+        return db.deletePurchaseRequest(input.requestId, user.id, isAdmin);
+      }),
   }),
 
   // ─── Approvals ─────────────────────────────────────────────────────────────

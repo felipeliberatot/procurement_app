@@ -28,21 +28,38 @@ export const API_BASE_URL = env.apiBaseUrl;
  * Get the API base URL, deriving from current hostname if not set.
  * Metro runs on 8081, API server runs on 3000.
  * URL pattern: https://PORT-sandboxid.region.domain
+ *
+ * For the published domain (e.g. procureapp-xxx.manus.space), the server
+ * is hosted at the same origin, so we return empty string to use relative URLs.
  */
 export function getApiBaseUrl(): string {
-  // If API_BASE_URL is set, use it
+  // If API_BASE_URL is set, use it — but skip stale sandbox temporary URLs
   if (API_BASE_URL) {
-    return API_BASE_URL.replace(/\/$/, "");
+    const isSandboxTempUrl = /\d+-[a-z0-9]+-[a-z0-9]+\.us\d+\.manus\.computer/.test(API_BASE_URL);
+    if (!isSandboxTempUrl) {
+      return API_BASE_URL.replace(/\/$/, "");
+    }
   }
 
-  // On web, derive from current hostname by replacing port 8081 with 3000
+  // On web, derive from current hostname
   if (ReactNative.Platform.OS === "web" && typeof window !== "undefined" && window.location) {
     const { protocol, hostname } = window.location;
-    // Pattern: 8081-sandboxid.region.domain -> 3000-sandboxid.region.domain
+
+    // Dev mode: 8081-sandboxid.region.domain -> 3000-sandboxid.region.domain
     const apiHostname = hostname.replace(/^8081-/, "3000-");
     if (apiHostname !== hostname) {
       return `${protocol}//${apiHostname}`;
     }
+
+    // Already on the API server port (3000-xxx): use same host
+    if (/^3000-/.test(hostname)) {
+      return `${protocol}//${hostname}`;
+    }
+
+    // Published domain (e.g. procureapp-xxx.manus.space):
+    // The Express server serves both API and frontend on the same origin.
+    // Use empty string so all fetch calls use relative paths (/api/...).
+    return "";
   }
 
   // Fallback to empty (will use relative URL)
