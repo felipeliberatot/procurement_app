@@ -460,3 +460,4 @@
 - [x] Limitar itens no card com botão Ver mais (máx 3 visíveis)
 - [x] Adicionar nome do solicitante no card
 - [x] Exibir itens na tela Minhas Solicitações
+- [x] Bug: Gráfico de ranking não aparece (barras de progresso com width% não funcionam em ScrollView no React Native)

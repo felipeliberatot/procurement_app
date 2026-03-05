@@ -1,10 +1,11 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  LayoutChangeEvent,
   Platform,
   Pressable,
   ScrollView,
@@ -368,7 +369,12 @@ function DetalhesTab({ data, colors, styles }: any) {
 function HorizontalBar({ label, value, maxValue, color, subtitle, isDesktop }: {
   label: string; value: number; maxValue: number; color: string; subtitle: string; isDesktop: boolean;
 }) {
-  const barWidth = maxValue > 0 ? Math.max((value / maxValue) * 100, 2) : 2;
+  const [containerWidth, setContainerWidth] = useState(0);
+  const onLayout = useCallback((e: LayoutChangeEvent) => {
+    setContainerWidth(e.nativeEvent.layout.width);
+  }, []);
+  const ratio = maxValue > 0 ? Math.max(value / maxValue, 0.02) : 0.02;
+  const barWidth = containerWidth > 0 ? containerWidth * ratio : 0;
   return (
     <View style={{ marginBottom: 12 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 4 }}>
@@ -379,8 +385,13 @@ function HorizontalBar({ label, value, maxValue, color, subtitle, isDesktop }: {
           {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value)}
         </Text>
       </View>
-      <View style={{ height: isDesktop ? 14 : 12, backgroundColor: "#f3f4f6", borderRadius: 6, overflow: "hidden" }}>
-        <View style={{ width: `${barWidth}%`, height: "100%", backgroundColor: color, borderRadius: 6 }} />
+      <View
+        onLayout={onLayout}
+        style={{ height: isDesktop ? 14 : 12, backgroundColor: "#f3f4f6", borderRadius: 6, overflow: "hidden" }}
+      >
+        {barWidth > 0 && (
+          <View style={{ width: barWidth, height: "100%", backgroundColor: color, borderRadius: 6 }} />
+        )}
       </View>
       <Text style={{ fontSize: 10, color: "#9ca3af", marginTop: 2 }}>{subtitle}</Text>
     </View>
