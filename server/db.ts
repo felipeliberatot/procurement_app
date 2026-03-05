@@ -321,6 +321,16 @@ export async function listCostCenters() {
   if (!db) return [];
   return db.select().from(costCenters).where(eq(costCenters.active, true)).orderBy(costCenters.code);
 }
+export async function listAllCostCenters() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(costCenters).orderBy(costCenters.code);
+}
+export async function toggleCostCenterActive(id: number, active: boolean) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(costCenters).set({ active }).where(eq(costCenters.id, id));
+}
 
 export async function createCostCenter(data: { code: string; name: string; responsible?: string }) {
   const db = await getDb();

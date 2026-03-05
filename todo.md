@@ -472,3 +472,8 @@
 ## Botões Editar/Excluir nos Cadastros
 - [x] Botão 🗑️ Excluir nos centros de custo (mutation deleteCC + confirmação cross-platform)
 - [x] Botão 🗑️ Excluir nos bens/assets (mutation deleteAsset + confirmação cross-platform)
+
+## Inativar Centro de Custo
+- [x] Substituir botão Excluir por Inativar/Reativar nos centros de custo
+- [x] Exibir badge "Inativo" nos centros de custo inativos na lista de Cadastros
+- [x] Ocultar centros de custo inativos do seletor no formulário de nova solicitação

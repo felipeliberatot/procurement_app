@@ -185,6 +185,10 @@ export const appRouter = router({
   // ─── Cost Centers ──────────────────────────────────────────────────────────
   costCenters: router({
     list: protectedProcedure.query(() => db.listCostCenters()),
+    listAll: protectedProcedure.query(() => db.listAllCostCenters()),
+    toggleActive: protectedProcedure
+      .input(z.object({ id: z.number(), active: z.boolean() }))
+      .mutation(({ input }) => db.toggleCostCenterActive(input.id, input.active)),
     create: protectedProcedure
       .input(z.object({
         code: z.string().min(1),

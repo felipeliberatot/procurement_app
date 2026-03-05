@@ -1653,7 +1653,7 @@ export default function RegistersScreen() {
   const { data: usersList, isLoading: usersLoading } = trpc.users.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
-  const { data: costCentersList, isLoading: ccLoading } = trpc.costCenters.list.useQuery(undefined, {
+  const { data: costCentersList, isLoading: ccLoading } = trpc.costCenters.listAll.useQuery(undefined, {
     enabled: isAuthenticated,
   });
   const { data: assetsList, isLoading: assetsLoading } = trpc.assets.list.useQuery(undefined, {
@@ -1768,6 +1768,14 @@ export default function RegistersScreen() {
   });
   const deleteCC = trpc.costCenters.delete.useMutation({
     onSuccess: () => {
+      utils.costCenters.listAll.invalidate();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+  const toggleCCActive = trpc.costCenters.toggleActive.useMutation({
+    onSuccess: () => {
+      utils.costCenters.listAll.invalidate();
       utils.costCenters.list.invalidate();
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     },
@@ -2707,19 +2715,35 @@ export default function RegistersScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() => {
-                        const doDelete = () => deleteCC.mutate({ id: (item as any).id });
+                        const isActive = (item as any).active;
+                        const label = isActive ? "Inativar" : "Reativar";
+                        const msg = isActive
+                          ? `Inativar "${(item as any).name}"? Ele não aparecerá nas novas solicitações, mas o histórico será preservado.`
+                          : `Reativar "${(item as any).name}"? Ele voltará a aparecer nas novas solicitações.`;
+                        const doToggle = () => toggleCCActive.mutate({ id: (item as any).id, active: !isActive });
                         if (typeof window !== "undefined") {
-                          if (window.confirm(`Deseja excluir o centro de custo "${(item as any).name}"?`)) doDelete();
+                          if (window.confirm(msg)) doToggle();
                         } else {
-                          Alert.alert("Excluir Centro de Custo", `Deseja excluir "${(item as any).name}"?`, [
+                          Alert.alert(label + " Centro de Custo", msg, [
                             { text: "Cancelar", style: "cancel" },
-                            { text: "Excluir", style: "destructive", onPress: doDelete },
+                            { text: label, style: isActive ? "destructive" : "default", onPress: doToggle },
                           ]);
                         }
                       }}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: "#FEE2E215", borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: "#FCA5A530" })}
+                      style={({ pressed }) => ({
+                        opacity: pressed ? 0.6 : 1,
+                        flex: 1,
+                        backgroundColor: (item as any).active ? "#FEE2E215" : "#22C55E15",
+                        borderRadius: 8,
+                        paddingVertical: 6,
+                        alignItems: "center",
+                        borderWidth: 1,
+                        borderColor: (item as any).active ? "#FCA5A530" : "#22C55E30",
+                      })}
                     >
-                      <Text style={{ fontSize: 12, fontWeight: "700", color: "#EF4444" }}>🗑️ Excluir</Text>
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: (item as any).active ? "#EF4444" : "#22C55E" }}>
+                        {(item as any).active ? "⏸️ Inativar" : "▶️ Reativar"}
+                      </Text>
                     </Pressable>
                   </View>
                 )}
