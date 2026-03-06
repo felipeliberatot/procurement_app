@@ -490,3 +490,7 @@
 ## Visualizador de Comprovante e Nota Fiscal em Modal
 - [x] Abrir Comprovante de Pagamento em modal (pop-up) sem sair da tela de detalhes
 - [x] Abrir Nota Fiscal em modal (pop-up) sem sair da tela de detalhes
+
+## Permissão Granular de Cadastro de Bens
+- [x] Criar permissão 'assets_admin' para acesso exclusivo ao cadastro de Bens
+- [x] Aplicar 'assets_admin' nos extraRoles do usuário wellington.pires@cgs.agr.br

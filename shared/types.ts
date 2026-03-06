@@ -47,7 +47,8 @@ export type ProcurementRole =
   | "controladoria"
   | "diretoria"
   | "financeiro"
-  | "admin";
+  | "admin"
+  | "assets_admin";
 
 export type ApprovalStep =
   | "criacao"
@@ -115,6 +116,7 @@ export const ROLE_LABELS: Record<ProcurementRole, string> = {
   diretoria: "Diretoria",
   financeiro: "Financeiro",
   admin: "Administrador",
+  assets_admin: "Admin de Bens",
 };
 
 export const STEP_LABELS: Record<ApprovalStep, string> = {

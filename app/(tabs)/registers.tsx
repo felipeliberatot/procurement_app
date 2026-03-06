@@ -59,6 +59,7 @@ const ROLE_COLORS: Record<ProcurementRole, string> = {
   diretoria: "#EF4444",
   financeiro: "#10B981",
   admin: "#8B5CF6",
+  assets_admin: "#059669",
 };
 
 // ─── PIN Verification Modal ─────────────────────────────────────────────────
@@ -1625,7 +1626,17 @@ export default function RegistersScreen() {
   const insets = useSafeAreaInsets();
   const utils = trpc.useUtils();
 
-  const [activeTab, setActiveTab] = useState<Tab>("users");
+  const [activeTab, setActiveTab] = useState<Tab>(
+    // Se o usuário só tem acesso a Bens, começa nessa aba
+    (() => {
+      const extras: string[] = (() => { try { return JSON.parse((user as any)?.extraRoles ?? "[]"); } catch { return []; } })();
+      const role = (user as any)?.procurementRole ?? "solicitante";
+      const hasAdmin = role === "admin" || extras.includes("admin");
+      const hasMaster = (user as any)?.approvalLevel === "master";
+      if (!hasAdmin && !hasMaster && extras.includes("assets_admin")) return "assets";
+      return "users";
+    })()
+  );
   const [showCCModal, setShowCCModal] = useState(false);
   const [showAssetModal, setShowAssetModal] = useState(false);
   const [showUserModal, setShowUserModal] = useState(false);
@@ -1648,6 +1659,7 @@ export default function RegistersScreen() {
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
   const userExtraRoles: ProcurementRole[] = (() => { try { return JSON.parse((user as any)?.extraRoles ?? "[]") as ProcurementRole[]; } catch { return []; } })();
   const isAdmin = userRole === "admin" || userExtraRoles.includes("admin");
+  const isAssetsAdmin = userExtraRoles.includes("assets_admin") && !isAdmin;
   const isMaster = (user as any)?.approvalLevel === "master";
 
   const { data: usersList, isLoading: usersLoading } = trpc.users.list.useQuery(undefined, {
@@ -2115,9 +2127,14 @@ export default function RegistersScreen() {
             </View>
           )}
         </View>
-        {!isAdmin && !isMaster && (
+        {!isAdmin && !isMaster && !isAssetsAdmin && (
           <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
             Apenas administradores podem criar ou editar registros
+          </Text>
+        )}
+        {isAssetsAdmin && (
+          <Text style={{ fontSize: 12, color: "#059669", marginTop: 2 }}>
+            Acesso restrito — você pode cadastrar e editar Bens
           </Text>
         )}
         {isMaster && (
@@ -2756,7 +2773,7 @@ export default function RegistersScreen() {
       {/* ── Assets Tab ── */}
       {activeTab === "assets" && (
         <View style={{ flex: 1 }}>
-          {isAdmin && (
+          {(isAdmin || isAssetsAdmin) && (
             <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => setShowAssetModal(true)}
@@ -2816,7 +2833,7 @@ export default function RegistersScreen() {
                     📍 {item.location}
                   </Text>
                 )}
-                {isAdmin && (
+                {(isAdmin || isAssetsAdmin) && (
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
                     <Pressable
                       onPress={() => { setEditingAsset(item); setShowAssetModal(true); }}

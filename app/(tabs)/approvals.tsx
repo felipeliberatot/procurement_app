@@ -33,6 +33,7 @@ const ROLE_DESCRIPTIONS: Record<ProcurementRole, string> = {
   diretoria: "Solicitações aguardando aprovação da Diretoria.",
   financeiro: "Solicitações aguardando comprovante de pagamento.",
   admin: "Todas as solicitações pendentes no sistema.",
+  assets_admin: "Você não tem pendências de aprovação.",
 };
 
 // Etapas que só têm ação especial (sem botão Rejeitar direto)
