@@ -477,3 +477,6 @@
 - [x] Substituir botão Excluir por Inativar/Reativar nos centros de custo
 - [x] Exibir badge "Inativo" nos centros de custo inativos na lista de Cadastros
 - [x] Ocultar centros de custo inativos do seletor no formulário de nova solicitação
+
+## Visualização da OC em todos os fluxos
+- [x] Exibir bloco da OC (número + arquivo) em todos os fluxos após o Fluxo 06 (Emissão de OC)

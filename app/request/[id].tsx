@@ -1118,6 +1118,32 @@ export default function RequestDetailScreen() {
           })()}
 
 
+          {/* OC — visível para todos nos fluxos 07, 08, 09 e concluída (após emissão pelo Compras) */}
+          {(currentStatus === "aguardando_aprovacao_compra" || currentStatus === "aguardando_comprovante_pagamento" || currentStatus === "aguardando_verificacao_compras" || currentStatus === "concluida") && (request.purchaseOrderNumber || (request as any).ocSiagriUrl) && (
+            <View style={{ marginBottom: 16 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: `${colors.primary}12`, borderRadius: 14, padding: 14, borderWidth: 1.5, borderColor: `${colors.primary}30` }}>
+                <Text style={{ fontSize: 24 }}>🛒</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>Ordem de Compra</Text>
+                  {request.purchaseOrderNumber ? (
+                    <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginTop: 2 }}>N° {request.purchaseOrderNumber}</Text>
+                  ) : null}
+                  {(request as any).ocSiagriUrl ? (
+                    <Text style={{ color: colors.muted, fontSize: 11, marginTop: 1 }}>PDF Siagri disponível</Text>
+                  ) : null}
+                </View>
+                {(request as any).ocSiagriUrl && (
+                  <Pressable
+                    onPress={() => Linking.openURL((request as any).ocSiagriUrl)}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 })}
+                  >
+                    <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>👁 Ver OC</Text>
+                  </Pressable>
+                )}
+              </View>
+            </View>
+          )}
+
           {/* Comprovante de pagamento — visível para todos nas etapas 8 e 9 e quando concluída */}
           {(currentStatus === "aguardando_comprovante_pagamento" || currentStatus === "aguardando_verificacao_compras" || currentStatus === "concluida") && (request as any).paymentProofUrl && (
             <Pressable
