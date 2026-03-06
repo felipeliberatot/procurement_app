@@ -1,4 +1,5 @@
 import { ScreenContainer } from "@/components/screen-container";
+import { PdfViewerModal } from "@/components/pdf-viewer-modal";
 import { StatusBadge, UrgencyBadge, DeadlineTimer } from "@/components/procurement/Badges";
 import { ConfirmModal } from "@/components/confirm-modal";
 import { ApprovalTimeline } from "@/components/procurement/ApprovalTimeline";
@@ -423,6 +424,7 @@ export default function RequestDetailScreen() {
   const [invoiceFileName, setInvoiceFileName] = useState<string | null>(null);
   const [invoiceLocalUri, setInvoiceLocalUri] = useState<string | null>(null); // URI local para pré-visualização da nota fiscal
   const [ocSiagriFileName, setOcSiagriFileName] = useState<string | null>(null);
+  const [showOCViewer, setShowOCViewer] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showPaymentRejectModal, setShowPaymentRejectModal] = useState(false);
@@ -1134,7 +1136,7 @@ export default function RequestDetailScreen() {
                 </View>
                 {(request as any).ocSiagriUrl && (
                   <Pressable
-                    onPress={() => Linking.openURL((request as any).ocSiagriUrl)}
+                    onPress={() => setShowOCViewer(true)}
                     style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, backgroundColor: colors.primary, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 })}
                   >
                     <Text style={{ color: "white", fontWeight: "700", fontSize: 12 }}>👁 Ver OC</Text>
@@ -2282,6 +2284,16 @@ export default function RequestDetailScreen() {
         onConfirm={(reason) => cancelMutation.mutate({ requestId: request.id, reason })}
         isLoading={cancelMutation.isPending}
       />
+
+      {/* Modal visualizador de PDF da OC Siagri */}
+      {(request as any)?.ocSiagriUrl && (
+        <PdfViewerModal
+          visible={showOCViewer}
+          url={(request as any).ocSiagriUrl}
+          title={request?.purchaseOrderNumber ? `OC N° ${request.purchaseOrderNumber}` : "Ordem de Compra"}
+          onClose={() => setShowOCViewer(false)}
+        />
+      )}
 
       {/* Modal de confirmação cross-platform */}
       <ConfirmModal

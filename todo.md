@@ -480,3 +480,6 @@
 
 ## Visualização da OC em todos os fluxos
 - [x] Exibir bloco da OC (número + arquivo) em todos os fluxos após o Fluxo 06 (Emissão de OC)
+
+## Visualizador de PDF em Modal
+- [x] Abrir PDF da OC Siagri em modal (pop-up) sem sair da tela de detalhes
