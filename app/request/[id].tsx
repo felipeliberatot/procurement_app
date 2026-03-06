@@ -426,6 +426,8 @@ export default function RequestDetailScreen() {
   const [ocSiagriFileName, setOcSiagriFileName] = useState<string | null>(null);
   const [showOCViewer, setShowOCViewer] = useState(false);
   const [showBudgetViewer, setShowBudgetViewer] = useState(false);
+  const [showPaymentProofViewer, setShowPaymentProofViewer] = useState(false);
+  const [showInvoiceViewer, setShowInvoiceViewer] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showPaymentRejectModal, setShowPaymentRejectModal] = useState(false);
@@ -1150,7 +1152,7 @@ export default function RequestDetailScreen() {
           {/* Comprovante de pagamento — visível para todos nas etapas 8 e 9 e quando concluída */}
           {(currentStatus === "aguardando_comprovante_pagamento" || currentStatus === "aguardando_verificacao_compras" || currentStatus === "concluida") && (request as any).paymentProofUrl && (
             <Pressable
-              onPress={() => Linking.openURL((request as any).paymentProofUrl)}
+              onPress={() => setShowPaymentProofViewer(true)}
               style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginBottom: 16 }]}
             >
               {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
@@ -1183,7 +1185,7 @@ export default function RequestDetailScreen() {
           {/* Nota Fiscal — visível para todos na etapa 9 e quando concluída */}
           {(currentStatus === "aguardando_verificacao_compras" || currentStatus === "concluida") && (request as any).invoiceUrl && (
             <Pressable
-              onPress={() => Linking.openURL((request as any).invoiceUrl)}
+              onPress={() => setShowInvoiceViewer(true)}
               style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1, marginBottom: 16 }]}
             >
               {(request as any).invoiceUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
@@ -1660,7 +1662,7 @@ export default function RequestDetailScreen() {
                         <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Comprovante PIX *</Text>
                         <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o comprovante do PIX realizado (PDF, JPEG, PNG — obrigatório)</Text>
                         {hasProof ? (
-                          <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                          <Pressable onPress={() => setShowPaymentProofViewer(true)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                             {/* Miniatura se for imagem, caso contrário ícone de PDF */}
                             {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
                               <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
@@ -1752,7 +1754,7 @@ export default function RequestDetailScreen() {
                         {/* Comprovante opcional para boleto/cartão */}
                         <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Comprovante (opcional)</Text>
                         {hasProof ? (
-                          <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                          <Pressable onPress={() => setShowPaymentProofViewer(true)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                             {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
                               <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
                                 <Image source={{ uri: (request as any).paymentProofUrl }} style={{ width: "100%", height: 160, resizeMode: "cover" }} />
@@ -1885,7 +1887,7 @@ export default function RequestDetailScreen() {
 
                   {/* Comprovante para visualização */}
                   {(request as any).paymentProofUrl && (
-                    <Pressable onPress={() => Linking.openURL((request as any).paymentProofUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                    <Pressable onPress={() => setShowPaymentProofViewer(true)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                       {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
                         <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
                           <Image source={{ uri: (request as any).paymentProofUrl }} style={{ width: "100%", height: 160, resizeMode: "cover" }} />
@@ -1909,7 +1911,7 @@ export default function RequestDetailScreen() {
 
                   {/* Nota Fiscal */}
                   {(request as any).invoiceUrl ? (
-                    <Pressable onPress={() => Linking.openURL((request as any).invoiceUrl)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                    <Pressable onPress={() => setShowInvoiceViewer(true)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                       {(request as any).invoiceUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
                         <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
                           <Image source={{ uri: (request as any).invoiceUrl }} style={{ width: "100%", height: 160, resizeMode: "cover" }} />
@@ -2285,6 +2287,26 @@ export default function RequestDetailScreen() {
         onConfirm={(reason) => cancelMutation.mutate({ requestId: request.id, reason })}
         isLoading={cancelMutation.isPending}
       />
+
+      {/* Modal visualizador do Comprovante de Pagamento */}
+      {(request as any)?.paymentProofUrl && (
+        <PdfViewerModal
+          visible={showPaymentProofViewer}
+          url={(request as any).paymentProofUrl}
+          title="Comprovante de Pagamento"
+          onClose={() => setShowPaymentProofViewer(false)}
+        />
+      )}
+
+      {/* Modal visualizador da Nota Fiscal */}
+      {(request as any)?.invoiceUrl && (
+        <PdfViewerModal
+          visible={showInvoiceViewer}
+          url={(request as any).invoiceUrl}
+          title="Nota Fiscal"
+          onClose={() => setShowInvoiceViewer(false)}
+        />
+      )}
 
       {/* Modal visualizador de PDF do Orçamento */}
       {request?.budgetFileUrl && (

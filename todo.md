@@ -486,3 +486,7 @@
 
 ## Visualizador de Orçamento em Modal
 - [x] Abrir PDF do orçamento anexado em modal (pop-up) sem sair da tela de detalhes
+
+## Visualizador de Comprovante e Nota Fiscal em Modal
+- [x] Abrir Comprovante de Pagamento em modal (pop-up) sem sair da tela de detalhes
+- [x] Abrir Nota Fiscal em modal (pop-up) sem sair da tela de detalhes
