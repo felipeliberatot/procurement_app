@@ -483,3 +483,6 @@
 
 ## Visualizador de PDF em Modal
 - [x] Abrir PDF da OC Siagri em modal (pop-up) sem sair da tela de detalhes
+
+## Visualizador de Orçamento em Modal
+- [x] Abrir PDF do orçamento anexado em modal (pop-up) sem sair da tela de detalhes

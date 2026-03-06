@@ -425,6 +425,7 @@ export default function RequestDetailScreen() {
   const [invoiceLocalUri, setInvoiceLocalUri] = useState<string | null>(null); // URI local para pré-visualização da nota fiscal
   const [ocSiagriFileName, setOcSiagriFileName] = useState<string | null>(null);
   const [showOCViewer, setShowOCViewer] = useState(false);
+  const [showBudgetViewer, setShowBudgetViewer] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [showPaymentRejectModal, setShowPaymentRejectModal] = useState(false);
@@ -1077,7 +1078,7 @@ export default function RequestDetailScreen() {
                     <Text className="text-xs text-muted" numberOfLines={1}>Toque para visualizar o PDF</Text>
                   </View>
                   <TouchableOpacity
-                    onPress={() => Linking.openURL(request.budgetFileUrl!)}
+                    onPress={() => setShowBudgetViewer(true)}
                     style={{ paddingHorizontal: 10, paddingVertical: 6 }}
                   >
                     <Text className="text-primary text-xs font-semibold">👁 Ver</Text>
@@ -2284,6 +2285,16 @@ export default function RequestDetailScreen() {
         onConfirm={(reason) => cancelMutation.mutate({ requestId: request.id, reason })}
         isLoading={cancelMutation.isPending}
       />
+
+      {/* Modal visualizador de PDF do Orçamento */}
+      {request?.budgetFileUrl && (
+        <PdfViewerModal
+          visible={showBudgetViewer}
+          url={request.budgetFileUrl}
+          title="Orçamento Anexado"
+          onClose={() => setShowBudgetViewer(false)}
+        />
+      )}
 
       {/* Modal visualizador de PDF da OC Siagri */}
       {(request as any)?.ocSiagriUrl && (
