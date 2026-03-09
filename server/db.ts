@@ -2,6 +2,7 @@ import {
   and, desc, eq, gte, inArray, lte, or, sql
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { createPool, type Pool } from "mysql2";
 import {
   approvalHistory,
   assets,
@@ -40,15 +41,27 @@ const STEP_LABELS_SERVER: Record<string, string> = {
   concluida:                       "Concluída",
 };
 
+let _pool: Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      _db = drizzle(process.env.DATABASE_URL);
+      // Use connection pool for automatic reconnection on ECONNRESET/timeout
+      _pool = createPool({
+        uri: process.env.DATABASE_URL,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000,
+      });
+      _db = drizzle(_pool);
+      console.log("[Database] Connection pool created successfully");
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
+      _pool = null;
     }
   }
   return _db;

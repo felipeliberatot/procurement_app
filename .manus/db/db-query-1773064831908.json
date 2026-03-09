@@ -1,0 +1,49 @@
+{
+  "query": "SHOW CREATE TABLE purchaseRequests;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SHOW CREATE TABLE purchaseRequests;",
+  "rows": [
+    {
+      "Table": "purchaseRequests",
+      "Create Table": "CREATE TABLE `purchaseRequests` ("
+    }
+  ],
+  "messages": [
+    "  `id` int NOT NULL AUTO_INCREMENT,",
+    "  `requestNumber` varchar(32) NOT NULL,",
+    "  `requesterId` int NOT NULL,",
+    "  `requesterName` varchar(128) NOT NULL,",
+    "  `department` varchar(128) NOT NULL,",
+    "  `costCenterId` int DEFAULT NULL,",
+    "  `costCenterCode` varchar(32) DEFAULT NULL,",
+    "  `application` varchar(255) NOT NULL,",
+    "  `urgencyLevel` enum('normal','urgente','emergencial') NOT NULL DEFAULT 'normal',",
+    "  `observations` text DEFAULT NULL,",
+    "  `totalEstimatedValue` decimal(14,2) DEFAULT NULL,",
+    "  `status` enum('rascunho','aguardando_gerente','aguardando_orcamento','aguardando_controladoria','aguardando_diretoria','aguardando_ordem_compra','aguardando_aprovacao_compra','aguardando_comprovante_pagamento','aguardando_verificacao_compras','concluida','rejeitada','cancelada') NOT NULL DEFAULT 'aguardando_gerente',",
+    "  `budgetFileUrl` text DEFAULT NULL,",
+    "  `purchaseOrderNumber` varchar(64) DEFAULT NULL,",
+    "  `paymentMethod` enum('pix','boleto','cartao_avista','cartao_parcelado') DEFAULT NULL,",
+    "  `paymentInfo` text DEFAULT NULL,",
+    "  `deadlineAt` timestamp NULL DEFAULT NULL,",
+    "  `stepDeadlineAt` timestamp NULL DEFAULT NULL,",
+    "  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,",
+    "  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,",
+    "  `paymentProofUrl` longtext DEFAULT NULL,",
+    "  `paymentObservations` text DEFAULT NULL,",
+    "  `invoiceUrl` longtext DEFAULT NULL,",
+    "  `isEnabledInMalotes` tinyint(1) NOT NULL DEFAULT '0',",
+    "  `cancellationDeadlineAt` timestamp NULL DEFAULT NULL,",
+    "  `cancellationWarningSentAt` timestamp NULL DEFAULT NULL,",
+    "  `ocSiagriUrl` text DEFAULT NULL,",
+    "  `orcamentoFeitoUrgente` tinyint(1) NOT NULL DEFAULT '0',",
+    "  `osMyfarm` varchar(64) DEFAULT NULL,",
+    "  `paymentInstallments` int DEFAULT NULL,",
+    "  `aiAnalysis` longtext DEFAULT NULL,",
+    "  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,",
+    "  UNIQUE KEY `purchaseRequests_requestNumber_unique` (`requestNumber`)",
+    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin AUTO_INCREMENT=1080001"
+  ],
+  "stdout": "Table\tCreate Table\npurchaseRequests\tCREATE TABLE `purchaseRequests` (\n  `id` int NOT NULL AUTO_INCREMENT,\n  `requestNumber` varchar(32) NOT NULL,\n  `requesterId` int NOT NULL,\n  `requesterName` varchar(128) NOT NULL,\n  `department` varchar(128) NOT NULL,\n  `costCenterId` int DEFAULT NULL,\n  `costCenterCode` varchar(32) DEFAULT NULL,\n  `application` varchar(255) NOT NULL,\n  `urgencyLevel` enum('normal','urgente','emergencial') NOT NULL DEFAULT 'normal',\n  `observations` text DEFAULT NULL,\n  `totalEstimatedValue` decimal(14,2) DEFAULT NULL,\n  `status` enum('rascunho','aguardando_gerente','aguardando_orcamento','aguardando_controladoria','aguardando_diretoria','aguardando_ordem_compra','aguardando_aprovacao_compra','aguardando_comprovante_pagamento','aguardando_verificacao_compras','concluida','rejeitada','cancelada') NOT NULL DEFAULT 'aguardando_gerente',\n  `budgetFileUrl` text DEFAULT NULL,\n  `purchaseOrderNumber` varchar(64) DEFAULT NULL,\n  `paymentMethod` enum('pix','boleto','cartao_avista','cartao_parcelado') DEFAULT NULL,\n  `paymentInfo` text DEFAULT NULL,\n  `deadlineAt` timestamp NULL DEFAULT NULL,\n  `stepDeadlineAt` timestamp NULL DEFAULT NULL,\n  `createdAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,\n  `updatedAt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n  `paymentProofUrl` longtext DEFAULT NULL,\n  `paymentObservations` text DEFAULT NULL,\n  `invoiceUrl` longtext DEFAULT NULL,\n  `isEnabledInMalotes` tinyint(1) NOT NULL DEFAULT '0',\n  `cancellationDeadlineAt` timestamp NULL DEFAULT NULL,\n  `cancellationWarningSentAt` timestamp NULL DEFAULT NULL,\n  `ocSiagriUrl` text DEFAULT NULL,\n  `orcamentoFeitoUrgente` tinyint(1) NOT NULL DEFAULT '0',\n  `osMyfarm` varchar(64) DEFAULT NULL,\n  `paymentInstallments` int DEFAULT NULL,\n  `aiAnalysis` longtext DEFAULT NULL,\n  PRIMARY KEY (`id`) /*T![clustered_index] CLUSTERED */,\n  UNIQUE KEY `purchaseRequests_requestNumber_unique` (`requestNumber`)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin AUTO_INCREMENT=1080001\n",
+  "stderr": "",
+  "execution_time_ms": 76
+}

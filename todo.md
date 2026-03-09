@@ -518,3 +518,6 @@
 - [x] Atualizar endpoint analyzeBudget para buscar preços reais antes de chamar o LLM
 - [x] Exibir links de referência do Google Shopping no modal de parecer
 - [x] Badge indicando se a análise usou preços reais ou base de conhecimento IA
+
+## Bug: Erro ao Criar Nova Solicitação
+- [x] Corrigir erro de INSERT na tabela purchaseRequests: substituída conexão singleton por connection pool MySQL com reconexão automática (resolve ECONNRESET/timeout após inatividade)
