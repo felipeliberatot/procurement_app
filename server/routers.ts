@@ -275,7 +275,22 @@ export const appRouter = router({
           unitPrice: z.string().optional(),
         })).min(1),
       }))
-      .mutation(({ ctx, input }) => db.createPurchaseRequest(ctx.user, input)),
+      .mutation(async ({ ctx, input }) => {
+        try {
+          const result = await db.createPurchaseRequest(ctx.user, input);
+          return result;
+        } catch (err: any) {
+          const cause = err?.cause ?? err;
+          console.error("[requests.create] ERROR:", err?.message ?? err);
+          console.error("[requests.create] CAUSE message:", cause?.message ?? cause);
+          console.error("[requests.create] CAUSE sqlMessage:", cause?.sqlMessage);
+          console.error("[requests.create] CAUSE code:", cause?.code);
+          console.error("[requests.create] CAUSE errno:", cause?.errno);
+          console.error("[requests.create] QUERY:", err?.query ?? cause?.sql);
+          console.error("[requests.create] PARAMS:", JSON.stringify(err?.params));
+          throw err;
+        }
+      }),
 
     getById: protectedProcedure
       .input(z.object({ id: z.number() }))

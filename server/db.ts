@@ -2,7 +2,8 @@ import {
   and, desc, eq, gte, inArray, lte, or, sql
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { createPool, type Pool } from "mysql2";
+import { createPool as createPromisePool } from "mysql2/promise";
+import type { Pool as CallbackPool } from "mysql2";
 import {
   approvalHistory,
   assets,
@@ -41,27 +42,26 @@ const STEP_LABELS_SERVER: Record<string, string> = {
   concluida:                       "Concluída",
 };
 
-let _pool: Pool | null = null;
 let _db: ReturnType<typeof drizzle> | null = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      // Use connection pool for automatic reconnection on ECONNRESET/timeout
-      _pool = createPool({
+      // Use promise-based connection pool for automatic reconnection on ECONNRESET/timeout
+      // Cast needed because drizzle types reference mysql2 callback Pool but runtime uses promise Pool
+      const pool = createPromisePool({
         uri: process.env.DATABASE_URL,
         waitForConnections: true,
         connectionLimit: 10,
         queueLimit: 0,
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
-      });
-      _db = drizzle(_pool);
+      }) as unknown as CallbackPool;
+      _db = drizzle(pool);
       console.log("[Database] Connection pool created successfully");
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
-      _pool = null;
     }
   }
   return _db;
@@ -453,10 +453,13 @@ export async function importAssetsBatch(rows: Array<{
 async function generateRequestNumber(db: Awaited<ReturnType<typeof getDb>>): Promise<string> {
   const now = new Date();
   const year = now.getFullYear();
-  // Count existing requests this year to generate sequential code
-  const startOfYear = new Date(year, 0, 1);
-  const [{ count }] = await db!.select({ count: sql<number>`COUNT(*)` }).from(purchaseRequests).where(gte(purchaseRequests.createdAt, startOfYear));
-  const seq = String((Number(count) + 1)).padStart(4, "0");
+  // Use MAX of existing sequence numbers to avoid duplicates when records are deleted/cancelled
+  const prefix = `SOL-${year}-`;
+  const [row] = await db!.select({ maxNum: sql<string | null>`MAX(CAST(SUBSTRING(${purchaseRequests.requestNumber}, ${prefix.length + 1}) AS UNSIGNED))` })
+    .from(purchaseRequests)
+    .where(sql`${purchaseRequests.requestNumber} LIKE ${prefix + '%'}`);
+  const lastSeq = row?.maxNum ? Number(row.maxNum) : 0;
+  const seq = String(lastSeq + 1).padStart(4, "0");
   return `SOL-${year}-${seq}`;
 }
 
