@@ -2427,6 +2427,15 @@ export default function RequestDetailScreen() {
             };
             return (
               <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+                {/* Badge de fonte da análise */}
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "flex-end", marginBottom: 10 }}>
+                  <View style={{ backgroundColor: analysis.usedWebSearch ? "#DCFCE7" : "#F0F9FF", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, borderWidth: 1, borderColor: analysis.usedWebSearch ? "#86EFAC" : "#BAE6FD", flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Text style={{ fontSize: 11 }}>{analysis.usedWebSearch ? "🌐" : "🧠"}</Text>
+                    <Text style={{ fontSize: 11, fontWeight: "600", color: analysis.usedWebSearch ? "#15803D" : "#0369A1" }}>
+                      {analysis.usedWebSearch ? "Preços reais do Google Shopping" : "Base de conhecimento IA"}
+                    </Text>
+                  </View>
+                </View>
                 {/* Recomendação geral */}
                 <View style={{ backgroundColor: `${recColor[analysis.recommendation] ?? "#687076"}15`, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: `${recColor[analysis.recommendation] ?? "#687076"}40` }}>
                   <Text style={{ fontSize: 18, fontWeight: "800", color: recColor[analysis.recommendation] ?? "#687076", marginBottom: 4 }}>
@@ -2470,6 +2479,18 @@ export default function RequestDetailScreen() {
                       </Text>
                     )}
                     <Text style={{ fontSize: 11, color: "#687076", marginTop: 4, fontStyle: "italic" }}>{item.justification}</Text>
+                    {/* Fontes do Google Shopping */}
+                    {item.sources && item.sources.length > 0 && (
+                      <View style={{ marginTop: 8, borderTopWidth: 1, borderTopColor: "#E5E7EB", paddingTop: 6 }}>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: "#687076", marginBottom: 4 }}>🌐 Referências encontradas:</Text>
+                        {item.sources.map((src: any, si: number) => (
+                          <TouchableOpacity key={si} onPress={() => src.link && Linking.openURL(src.link)} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
+                            <Text style={{ fontSize: 10, color: "#0a7ea4", flex: 1, marginRight: 4 }} numberOfLines={1}>{src.source || src.title}</Text>
+                            <Text style={{ fontSize: 10, fontWeight: "700", color: "#11181C" }}>R$ {Number(src.price ?? 0).toFixed(2)}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
                   </View>
                 ))}
                 {/* Totais */}

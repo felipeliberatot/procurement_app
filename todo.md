@@ -496,10 +496,10 @@
 - [x] Aplicar 'assets_admin' nos extraRoles do usuário wellington.pires@cgs.agr.br
 
 ## Análise de Orçamento com IA
-- [ ] Criar endpoint backend para análise de orçamento via GPT-4 Vision
-- [ ] Botão "✨ Analisar com IA" no bloco do orçamento anexado
-- [ ] Exibir parecer estruturado com tabela de itens e avaliação de preços
-- [ ] Salvar o parecer no banco de dados para consulta futura
+- [x] Criar endpoint backend para análise de orçamento via GPT-4 Vision
+- [x] Botão "✨ Analisar com IA" no bloco do orçamento anexado
+- [x] Exibir parecer estruturado com tabela de itens e avaliação de preços
+- [x] Salvar o parecer no banco de dados para consulta futura
 
 ## Gráfico Comparativo IA no Dashboard
 - [x] Endpoint backend: buscar compras concluídas agrupadas por categoria com valores
@@ -512,3 +512,9 @@
 - [x] Botão "✨ Analisar Orçamento com IA" na tela de detalhes/aprovação
 - [x] Extração de itens do PDF de orçamento via GPT-4 Vision e parecer de preços
 - [x] Exibição do parecer estruturado (tabela de itens com avaliação) na tela de detalhes
+
+## Análise IA Fase 2 — Busca Web em Tempo Real
+- [x] Integrar Serper API (Google Shopping) para busca de preços reais por item
+- [x] Atualizar endpoint analyzeBudget para buscar preços reais antes de chamar o LLM
+- [x] Exibir links de referência do Google Shopping no modal de parecer
+- [x] Badge indicando se a análise usou preços reais ou base de conhecimento IA

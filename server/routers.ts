@@ -4,6 +4,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { invokeLLM, type Message } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { ENV } from "./_core/env";
 import * as db from "./db";
 
 export const appRouter = router({
@@ -721,66 +722,92 @@ export const appRouter = router({
         })).optional(),
       }))
       .mutation(async ({ input }) => {
-        const systemPrompt = `Você é um especialista em compras e análise de orçamentos para o setor agrícola brasileiro.
-Sua função é analisar orçamentos anexados a solicitações de compra e emitir um parecer técnico detalhado.
+        // Fase 1: Extrair itens do PDF via LLM
+        const extractionPrompt = "Você é um assistente especializado em leitura de documentos.\nLeia o PDF do orçamento em anexo e extraia TODOS os itens listados.\nRetorne APENAS um JSON: {\"items\":[{\"name\":\"nome\",\"quantity\":1,\"unitPrice\":100.00,\"totalPrice\":100.00}],\"supplier\":\"fornecedor\",\"totalBudget\":1000.00}\nSe algum campo não estiver visível, use null.";
 
-Ao analisar o orçamento, você deve:
-1. Extrair todos os itens com nome, quantidade e preço unitário
-2. Avaliar se cada preço é condizente com o mercado brasileiro atual (2024-2025)
-3. Classificar cada item como: ADEQUADO, ACIMA_DO_MERCADO ou ABAIXO_DO_MERCADO
-4. Calcular a variação percentual estimada em relação ao preço de mercado
-5. Fornecer uma justificativa técnica para cada avaliação
-6. Emitir uma conclusão geral com recomendação (APROVADO, APROVADO_COM_RESSALVAS ou REQUER_NOVA_COTACAO)
-
-Base sua análise no seu conhecimento de preços praticados no mercado brasileiro para insumos agrícolas, equipamentos, materiais de construção, serviços e demais categorias.
-Seja objetivo e profissional. Responda SEMPRE em português brasileiro.
-
-Retorne um JSON com a seguinte estrutura:
-{
-  "items": [
-    {
-      "name": "nome do item",
-      "quantity": 1,
-      "unitPrice": 100.00,
-      "totalPrice": 100.00,
-      "marketPriceMin": 80.00,
-      "marketPriceMax": 120.00,
-      "variation": 0,
-      "status": "ADEQUADO",
-      "justification": "Preço dentro da faixa de mercado para..."
-    }
-  ],
-  "totalBudget": 1000.00,
-  "totalMarketMin": 900.00,
-  "totalMarketMax": 1100.00,
-  "overallVariation": 0,
-  "recommendation": "APROVADO",
-  "summary": "Resumo geral do parecer...",
-  "alerts": ["Alerta 1", "Alerta 2"]
-}`;
-
-        const userContent: Message["content"] = [
-          {
-            type: "text",
-            text: `Analise o orçamento em anexo para a solicitação: "${input.requestDescription}".${
-              input.requestItems && input.requestItems.length > 0
-                ? `\n\nItens solicitados originalmente:\n${input.requestItems.map(i => `- ${i.name}: ${i.quantity}x (preço estimado: ${i.unitPrice ? `R$ ${i.unitPrice}` : 'não informado'})`).join('\n')}`
-                : ''
-            }\n\nExtraia os itens do PDF do orçamento e avalie os preços.`,
-          },
-          {
-            type: "file_url",
-            file_url: {
-              url: input.budgetFileUrl,
-              mime_type: "application/pdf",
-            },
-          },
+        const extractionContent: Message["content"] = [
+          { type: "text", text: `Extraia os itens do orçamento para: "${input.requestDescription}"` },
+          { type: "file_url", file_url: { url: input.budgetFileUrl, mime_type: "application/pdf" } },
         ];
+
+        const extractionResponse = await invokeLLM({
+          messages: [
+            { role: "system", content: extractionPrompt },
+            { role: "user", content: extractionContent },
+          ],
+          response_format: { type: "json_object" },
+        });
+
+        const extractedRaw = extractionResponse.choices[0].message.content;
+        const extractedStr = typeof extractedRaw === "string" ? extractedRaw : JSON.stringify(extractedRaw);
+        type ExtractedItem = { name: string; quantity: number; unitPrice: number | null; totalPrice: number | null };
+        type Extracted = { items: ExtractedItem[]; supplier?: string; totalBudget?: number };
+        let extracted: Extracted;
+        try {
+          extracted = JSON.parse(extractedStr) as Extracted;
+        } catch {
+          extracted = { items: input.requestItems?.map(i => ({ name: i.name, quantity: i.quantity, unitPrice: i.unitPrice, totalPrice: i.unitPrice ? i.unitPrice * i.quantity : null })) ?? [] };
+        }
+
+        // Fase 2: Buscar preços reais no Google Shopping via Serper API
+        const serperKey = ENV.serperApiKey;
+        type WebPriceEntry = { min: number; max: number; avg: number; sources: Array<{ title: string; price: number; link: string; source: string }> };
+        const webPrices: Record<string, WebPriceEntry> = {};
+
+        if (serperKey && extracted.items.length > 0) {
+          const searchPromises = extracted.items.slice(0, 8).map(async (item) => {
+            try {
+              const resp = await fetch("https://google.serper.dev/shopping", {
+                method: "POST",
+                headers: { "X-API-KEY": serperKey, "Content-Type": "application/json" },
+                body: JSON.stringify({ q: `${item.name} preço`, gl: "br", hl: "pt-br", num: 5 }),
+              });
+              if (!resp.ok) return;
+              const data = await resp.json() as { shopping?: Array<{ title: string; price: string; link: string; source: string }> };
+              const prices = (data.shopping ?? [])
+                .map(r => ({ title: r.title, price: parseFloat((r.price ?? "").replace(/[R$\s.]/g, "").replace(",", ".")), link: r.link, source: r.source }))
+                .filter(r => !isNaN(r.price) && r.price > 0);
+              if (prices.length > 0) {
+                const vals = prices.map(p => p.price);
+                webPrices[item.name] = {
+                  min: Math.min(...vals),
+                  max: Math.max(...vals),
+                  avg: vals.reduce((a, b) => a + b, 0) / vals.length,
+                  sources: prices.slice(0, 3),
+                };
+              }
+            } catch { /* ignore */ }
+          });
+          await Promise.all(searchPromises);
+        }
+
+        // Fase 3: Gerar parecer com LLM usando preços reais do Google Shopping
+        const hasWebPrices = Object.keys(webPrices).length > 0;
+        const webPricesLines = hasWebPrices
+          ? Object.entries(webPrices).map(([name, data]) =>
+              `- ${name}: min R$ ${data.min.toFixed(2)}, max R$ ${data.max.toFixed(2)}, média R$ ${data.avg.toFixed(2)} | ${data.sources.map(s => `${s.source} R$${s.price.toFixed(2)}`).join(", ")}`
+            ).join("\n")
+          : "";
+        const webPricesContext = hasWebPrices
+          ? `\n\nPREÇOS REAIS DO GOOGLE SHOPPING (referência principal):\n${webPricesLines}`
+          : "";
+
+        const refSource = hasWebPrices
+          ? "Use os PREÇOS REAIS DO GOOGLE SHOPPING fornecidos como referência principal."
+          : "Use seu conhecimento de preços do mercado brasileiro (2024-2025).";
+        const sourcesInstruction = hasWebPrices
+          ? "5. Inclua as fontes de preço no campo 'sources' de cada item."
+          : "";
+
+        const systemPrompt = `Você é um especialista em compras e análise de orçamentos para o setor agrícola brasileiro.\n${refSource}\n\nPara cada item:\n1. Compare o preço do orçamento com os preços de mercado\n2. Classifique: ADEQUADO (±15%), ACIMA_DO_MERCADO (15-30% acima), MUITO_ACIMA (>30% acima), ABAIXO_DO_MERCADO (>15% abaixo)\n3. Calcule a variação percentual\n4. Forneça uma justificativa técnica\n${sourcesInstruction}\n\nRetorne JSON:\n{"items":[{"name":"","quantity":1,"unitPrice":0,"totalPrice":0,"marketPriceMin":0,"marketPriceMax":0,"variation":0,"status":"ADEQUADO","justification":"","sources":[{"title":"","price":0,"link":"","source":""}]}],"totalBudget":0,"totalMarketMin":0,"totalMarketMax":0,"overallVariation":0,"recommendation":"APROVADO","summary":"","alerts":[],"usedWebSearch":${hasWebPrices}}`;
+
+        const itemsText = extracted.items.map(i => `- ${i.name}: ${i.quantity}x R$${(i.unitPrice ?? 0).toFixed(2)} = R$${(i.totalPrice ?? 0).toFixed(2)}`).join("\n");
+        const userText = `Orçamento: "${input.requestDescription}" | Fornecedor: ${extracted.supplier ?? "N/A"} | Total: R$ ${(extracted.totalBudget ?? 0).toFixed(2)}\n\nItens:\n${itemsText}${webPricesContext}\n\nEmita o parecer completo.`;
 
         const response = await invokeLLM({
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: userContent },
+            { role: "user", content: userText },
           ],
           response_format: { type: "json_object" },
         });
@@ -788,10 +815,9 @@ Retorne um JSON com a seguinte estrutura:
         const rawContent = response.choices[0].message.content;
         const contentStr = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
         const analysis = JSON.parse(contentStr);
+        analysis.usedWebSearch = hasWebPrices;
 
-        // Salvar o parecer no banco
         await db.saveBudgetAnalysis(input.requestId, JSON.stringify(analysis));
-
         return analysis;
       }),
 
