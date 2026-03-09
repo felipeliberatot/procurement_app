@@ -5,7 +5,7 @@ import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { trpc } from "@/lib/trpc";
 import { router } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -146,6 +146,174 @@ function ApprovalTimingChart({ data, colors }: {
   );
 }
 
+// ─── Gráfico Comparativo IA por Categoria ───────────────────────────────────
+type CategoryAnalysis = {
+  name: string;
+  totalPaid: number;
+  marketMin: number;
+  marketMax: number;
+  variation: number;
+  status: "OTIMO" | "BOM" | "ADEQUADO" | "ATENCAO" | "CRITICO";
+  observation: string;
+};
+
+type CategoryAnalysisResult = {
+  categories: CategoryAnalysis[];
+  overallEfficiency: number;
+  summary: string;
+  topOpportunity: string;
+  generatedAt: string;
+};
+
+function CategoryComparisonChart({
+  data,
+  colors,
+  isDesktop,
+}: {
+  data: CategoryAnalysisResult;
+  colors: ReturnType<typeof useColors>;
+  isDesktop: boolean;
+}) {
+  const { width: screenWidth } = useWindowDimensions();
+
+  const statusColor = (status: CategoryAnalysis["status"]) => {
+    switch (status) {
+      case "OTIMO": return colors.success;
+      case "BOM": return "#4ADE80";
+      case "ADEQUADO": return colors.primary;
+      case "ATENCAO": return colors.warning;
+      case "CRITICO": return colors.error;
+    }
+  };
+  const statusLabel = (status: CategoryAnalysis["status"]) => {
+    switch (status) {
+      case "OTIMO": return "Ótimo";
+      case "BOM": return "Bom";
+      case "ADEQUADO": return "Adequado";
+      case "ATENCAO": return "Atenção";
+      case "CRITICO": return "Crítico";
+    }
+  };
+
+  const effColor = data.overallEfficiency <= -10 ? colors.success
+    : data.overallEfficiency <= 0 ? colors.primary
+    : data.overallEfficiency <= 20 ? colors.warning
+    : colors.error;
+
+  const BAR_HEIGHT = 22;
+  const ROW_GAP = 10;
+  const LABEL_WIDTH = isDesktop ? 150 : 120;
+  const VALUE_WIDTH = 70;
+  const PADDING_H = 16;
+  const chartWidth = Math.min(screenWidth - (isDesktop ? 0 : 40), 700);
+  const barAreaWidth = chartWidth - LABEL_WIDTH - VALUE_WIDTH - PADDING_H * 2;
+
+  const maxPaid = Math.max(...data.categories.map(c => c.totalPaid), 1);
+  const svgHeight = data.categories.length * (BAR_HEIGHT + ROW_GAP) + 8;
+  const labelFontSize = isDesktop ? 11 : 10;
+
+  const formatCurrency = (v: number) => {
+    if (v >= 1000000) return `R$${(v / 1000000).toFixed(1)}M`;
+    if (v >= 1000) return `R$${(v / 1000).toFixed(0)}k`;
+    return `R$${v.toFixed(0)}`;
+  };
+
+  return (
+    <View className="bg-surface border border-border rounded-2xl overflow-hidden">
+      {/* Card de eficiência geral */}
+      <View style={{ backgroundColor: `${effColor}15`, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 11, color: colors.muted, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 }}>Eficiência Geral de Compras</Text>
+            <Text style={{ fontSize: 22, fontWeight: "800", color: effColor, marginTop: 2 }}>
+              {data.overallEfficiency > 0 ? "+" : ""}{data.overallEfficiency.toFixed(1)}% vs mercado
+            </Text>
+          </View>
+          <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: `${effColor}20`, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontSize: 22 }}>
+              {data.overallEfficiency <= -10 ? "🏆" : data.overallEfficiency <= 0 ? "✅" : data.overallEfficiency <= 20 ? "⚠️" : "🚨"}
+            </Text>
+          </View>
+        </View>
+        <Text style={{ fontSize: 12, color: colors.muted, marginTop: 6, lineHeight: 16 }}>{data.summary}</Text>
+      </View>
+
+      {/* Gráfico de barras por categoria */}
+      <View style={{ paddingHorizontal: PADDING_H, paddingTop: 16, paddingBottom: 8 }}>
+        <Svg width={chartWidth - PADDING_H * 2} height={svgHeight}>
+          {data.categories.map((cat, i) => {
+            const y = i * (BAR_HEIGHT + ROW_GAP);
+            const barW = Math.max((cat.totalPaid / maxPaid) * barAreaWidth, 4);
+            const marketMidW = Math.max(((cat.marketMin + cat.marketMax) / 2 / maxPaid) * barAreaWidth, 4);
+            const color = statusColor(cat.status);
+            const shortName = cat.name.length > 18 ? cat.name.substring(0, 16) + "…" : cat.name;
+            return (
+              <G key={cat.name} y={y}>
+                {/* Label */}
+                <SvgText x={0} y={BAR_HEIGHT / 2 + labelFontSize * 0.35} fontSize={labelFontSize} fill={colors.foreground} fontWeight="500">{shortName}</SvgText>
+                {/* Track */}
+                <Rect x={LABEL_WIDTH} y={0} width={barAreaWidth} height={BAR_HEIGHT} rx={5} fill={`${color}18`} />
+                {/* Barra pago */}
+                <Rect x={LABEL_WIDTH} y={0} width={barW} height={BAR_HEIGHT} rx={5} fill={color} opacity={0.85} />
+                {/* Linha de mercado médio */}
+                <Rect x={LABEL_WIDTH + marketMidW - 1} y={-2} width={2} height={BAR_HEIGHT + 4} rx={1} fill={colors.foreground} opacity={0.4} />
+                {/* Valor */}
+                <SvgText x={LABEL_WIDTH + barAreaWidth + 4} y={BAR_HEIGHT / 2 + labelFontSize * 0.35} fontSize={labelFontSize} fill={color} fontWeight="700">{formatCurrency(cat.totalPaid)}</SvgText>
+              </G>
+            );
+          })}
+        </Svg>
+      </View>
+
+      {/* Legenda */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: PADDING_H, paddingBottom: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <View style={{ width: 2, height: 14, backgroundColor: colors.foreground, opacity: 0.4, borderRadius: 1 }} />
+          <Text style={{ fontSize: 10, color: colors.muted }}>Preço médio de mercado</Text>
+        </View>
+        <Text style={{ fontSize: 10, color: colors.muted }}>· Barra = valor pago</Text>
+      </View>
+
+      {/* Lista de categorias com status */}
+      <View style={{ borderTopWidth: 1, borderTopColor: colors.border }}>
+        {data.categories.map((cat, i) => (
+          <View key={cat.name} style={{
+            flexDirection: "row", alignItems: "center", gap: 10,
+            paddingHorizontal: 16, paddingVertical: 10,
+            borderBottomWidth: i < data.categories.length - 1 ? 1 : 0,
+            borderBottomColor: colors.border,
+          }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: statusColor(cat.status), flexShrink: 0 }} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.foreground }} numberOfLines={1}>{cat.name}</Text>
+              <Text style={{ fontSize: 10, color: colors.muted, marginTop: 1 }} numberOfLines={1}>{cat.observation}</Text>
+            </View>
+            <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20, backgroundColor: `${statusColor(cat.status)}20` }}>
+              <Text style={{ fontSize: 10, fontWeight: "700", color: statusColor(cat.status) }}>{statusLabel(cat.status)}</Text>
+            </View>
+            <Text style={{ fontSize: 11, fontWeight: "700", color: cat.variation > 0 ? colors.error : colors.success, minWidth: 40, textAlign: "right" }}>
+              {cat.variation > 0 ? "+" : ""}{cat.variation.toFixed(1)}%
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* Oportunidade de economia */}
+      {data.topOpportunity && (
+        <View style={{ padding: 12, backgroundColor: `${colors.warning}10`, borderTopWidth: 1, borderTopColor: colors.border }}>
+          <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "700" }}>💡 Oportunidade de Economia</Text>
+          <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>{data.topOpportunity}</Text>
+        </View>
+      )}
+
+      {/* Timestamp */}
+      <View style={{ paddingHorizontal: 16, paddingBottom: 12, paddingTop: 4 }}>
+        <Text style={{ fontSize: 10, color: colors.muted }}>Análise gerada em {new Date(data.generatedAt).toLocaleString("pt-BR")}</Text>
+      </View>
+    </View>
+  );
+}
+
 // ─── Dashboard Screen ─────────────────────────────────────────────────────────
 export default function DashboardScreen() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -180,6 +348,18 @@ export default function DashboardScreen() {
 
   const { data: timingStats, isLoading: timingLoading } = trpc.requests.approvalTimingStats.useQuery(undefined, {
     enabled: isAuthenticated,
+  });
+
+  const [categoryAnalysis, setCategoryAnalysis] = useState<CategoryAnalysisResult | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const analyzeCategories = trpc.ai.analyzePurchasesByCategory.useMutation({
+    onSuccess: (data) => {
+      setCategoryAnalysis(data as CategoryAnalysisResult);
+      setAnalysisError(null);
+    },
+    onError: (err) => {
+      setAnalysisError(err.message);
+    },
   });
 
   const pendingCount = (pending ?? []).length;
@@ -316,6 +496,57 @@ export default function DashboardScreen() {
                 <View className="items-center py-6"><ActivityIndicator /></View>
               ) : (
                 <ApprovalTimingChart data={timingStats ?? []} colors={colors} />
+              )}
+            </View>
+
+            {/* Gráfico Comparativo IA por Categoria */}
+            <View className="px-5 mb-5" style={isDesktop ? { paddingHorizontal: 0 } : {}}>
+              <View className="flex-row items-center justify-between mb-3">
+                <View style={{ flex: 1 }}>
+                  <Text className="text-sm font-bold text-foreground">Análise de Compras por Categoria</Text>
+                  <Text className="text-xs text-muted mt-0.5">Comparativo IA: valor pago vs. preço de mercado</Text>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => analyzeCategories.mutate()}
+                  style={{
+                    flexDirection: "row", alignItems: "center", gap: 6,
+                    paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20,
+                    backgroundColor: analyzeCategories.isPending ? colors.muted + "30" : colors.primary,
+                  }}
+                >
+                  {analyzeCategories.isPending ? (
+                    <ActivityIndicator size="small" color={colors.background} />
+                  ) : (
+                    <Text style={{ fontSize: 13 }}>✨</Text>
+                  )}
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: analyzeCategories.isPending ? colors.muted : colors.background }}>
+                    {analyzeCategories.isPending ? "Analisando..." : categoryAnalysis ? "Atualizar" : "Analisar com IA"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {analysisError && (
+                <View className="bg-error/10 border border-error/30 rounded-2xl p-4 mb-3">
+                  <Text className="text-sm text-error">❌ {analysisError}</Text>
+                </View>
+              )}
+
+              {categoryAnalysis ? (
+                <CategoryComparisonChart data={categoryAnalysis} colors={colors} isDesktop={isDesktop} />
+              ) : !analyzeCategories.isPending && (
+                <View className="bg-surface border border-border rounded-2xl p-6 items-center">
+                  <Text className="text-4xl mb-3">🧠</Text>
+                  <Text className="text-sm font-semibold text-foreground mb-1">Análise Inteligente de Compras</Text>
+                  <Text className="text-xs text-muted text-center mb-4">A IA avalia suas compras concluídas e compara com os preços de mercado, identificando onde você está economizando e onde há oportunidades de melhoria.</Text>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => analyzeCategories.mutate()}
+                    style={{ backgroundColor: colors.primary, paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 }}
+                  >
+                    <Text style={{ color: colors.background, fontWeight: "700", fontSize: 13 }}>✨ Gerar Análise Agora</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
 

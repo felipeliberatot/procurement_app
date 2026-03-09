@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { invokeLLM, type Message } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import * as db from "./db";
@@ -707,6 +708,187 @@ export const appRouter = router({
   }),
 
   // ─── Malotes ──────────────────────────────────────────────────────────────
+  ai: router({
+    analyzeBudget: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        budgetFileUrl: z.string().url(),
+        requestDescription: z.string(),
+        requestItems: z.array(z.object({
+          name: z.string(),
+          quantity: z.number(),
+          unitPrice: z.number().nullable(),
+        })).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const systemPrompt = `Você é um especialista em compras e análise de orçamentos para o setor agrícola brasileiro.
+Sua função é analisar orçamentos anexados a solicitações de compra e emitir um parecer técnico detalhado.
+
+Ao analisar o orçamento, você deve:
+1. Extrair todos os itens com nome, quantidade e preço unitário
+2. Avaliar se cada preço é condizente com o mercado brasileiro atual (2024-2025)
+3. Classificar cada item como: ADEQUADO, ACIMA_DO_MERCADO ou ABAIXO_DO_MERCADO
+4. Calcular a variação percentual estimada em relação ao preço de mercado
+5. Fornecer uma justificativa técnica para cada avaliação
+6. Emitir uma conclusão geral com recomendação (APROVADO, APROVADO_COM_RESSALVAS ou REQUER_NOVA_COTACAO)
+
+Base sua análise no seu conhecimento de preços praticados no mercado brasileiro para insumos agrícolas, equipamentos, materiais de construção, serviços e demais categorias.
+Seja objetivo e profissional. Responda SEMPRE em português brasileiro.
+
+Retorne um JSON com a seguinte estrutura:
+{
+  "items": [
+    {
+      "name": "nome do item",
+      "quantity": 1,
+      "unitPrice": 100.00,
+      "totalPrice": 100.00,
+      "marketPriceMin": 80.00,
+      "marketPriceMax": 120.00,
+      "variation": 0,
+      "status": "ADEQUADO",
+      "justification": "Preço dentro da faixa de mercado para..."
+    }
+  ],
+  "totalBudget": 1000.00,
+  "totalMarketMin": 900.00,
+  "totalMarketMax": 1100.00,
+  "overallVariation": 0,
+  "recommendation": "APROVADO",
+  "summary": "Resumo geral do parecer...",
+  "alerts": ["Alerta 1", "Alerta 2"]
+}`;
+
+        const userContent: Message["content"] = [
+          {
+            type: "text",
+            text: `Analise o orçamento em anexo para a solicitação: "${input.requestDescription}".${
+              input.requestItems && input.requestItems.length > 0
+                ? `\n\nItens solicitados originalmente:\n${input.requestItems.map(i => `- ${i.name}: ${i.quantity}x (preço estimado: ${i.unitPrice ? `R$ ${i.unitPrice}` : 'não informado'})`).join('\n')}`
+                : ''
+            }\n\nExtraia os itens do PDF do orçamento e avalie os preços.`,
+          },
+          {
+            type: "file_url",
+            file_url: {
+              url: input.budgetFileUrl,
+              mime_type: "application/pdf",
+            },
+          },
+        ];
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userContent },
+          ],
+          response_format: { type: "json_object" },
+        });
+
+        const rawContent = response.choices[0].message.content;
+        const contentStr = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
+        const analysis = JSON.parse(contentStr);
+
+        // Salvar o parecer no banco
+        await db.saveBudgetAnalysis(input.requestId, JSON.stringify(analysis));
+
+        return analysis;
+      }),
+
+    getBudgetAnalysis: protectedProcedure
+      .input(z.object({ requestId: z.number() }))
+      .query(async ({ input }) => {
+        const result = await db.getBudgetAnalysis(input.requestId);
+        if (!result) return null;
+        try {
+          return JSON.parse(result);
+        } catch {
+          return null;
+        }
+      }),
+
+    analyzePurchasesByCategory: protectedProcedure
+      .mutation(async () => {
+        // Buscar todas as solicitações concluídas com seus itens
+        const completed = await db.getCompletedRequestsWithItems();
+
+        if (!completed || completed.length === 0) {
+          return { categories: [], generatedAt: new Date().toISOString(), summary: "Nenhuma compra concluída encontrada." };
+        }
+
+        // Agrupar por aplicação/categoria
+        const categoryMap = new Map<string, { totalPaid: number; items: string[]; count: number }>();
+        for (const req of completed) {
+          const cat = req.application || "Outros";
+          if (!categoryMap.has(cat)) categoryMap.set(cat, { totalPaid: 0, items: [], count: 0 });
+          const entry = categoryMap.get(cat)!;
+          entry.totalPaid += Number(req.totalValue ?? 0);
+          entry.count += 1;
+          for (const item of req.items) {
+            entry.items.push(`${item.description} (${item.quantity}x R$${Number(item.unitPrice ?? 0).toFixed(2)})`);
+          }
+        }
+
+        const categorySummary = Array.from(categoryMap.entries())
+          .sort((a, b) => b[1].totalPaid - a[1].totalPaid)
+          .slice(0, 10) // top 10 categorias
+          .map(([name, data]) => ({
+            name,
+            totalPaid: data.totalPaid,
+            count: data.count,
+            sampleItems: data.items.slice(0, 5),
+          }));
+
+        const systemPrompt = `Você é um especialista em compras e análise de mercado para o setor agrícola brasileiro.
+Analise os dados de compras concluídas agrupadas por categoria e compare com os preços de mercado.
+
+Para cada categoria, estime:
+1. O valor de mercado esperado (min e max) para os itens comprados
+2. A variação percentual entre o valor pago e o mercado
+3. Uma avaliação: OTIMO (>10% abaixo do mercado), BOM (até 10% abaixo), ADEQUADO (±10%), ATENCAO (até 20% acima), CRITICO (>20% acima)
+4. Uma observação curta sobre a categoria
+
+Retorne JSON:
+{
+  "categories": [
+    {
+      "name": "nome da categoria",
+      "totalPaid": 1000.00,
+      "marketMin": 900.00,
+      "marketMax": 1100.00,
+      "variation": -5.0,
+      "status": "ADEQUADO",
+      "observation": "Preços dentro do esperado para insumos agrícolas"
+    }
+  ],
+  "overallEfficiency": -3.5,
+  "summary": "Resumo geral da eficiência de compras...",
+  "topOpportunity": "Categoria com maior potencial de economia..."
+}`;
+
+        const userText = `Analise as seguintes categorias de compras concluídas:\n\n${categorySummary.map(c =>
+          `Categoria: "${c.name}"\nTotal pago: R$ ${c.totalPaid.toFixed(2)}\nNúmero de compras: ${c.count}\nItens de exemplo: ${c.sampleItems.join("; ")}`
+        ).join("\n\n")}`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userText },
+          ],
+          response_format: { type: "json_object" },
+        });
+
+        const rawContent = response.choices[0].message.content;
+        const contentStr = typeof rawContent === "string" ? rawContent : JSON.stringify(rawContent);
+        const analysis = JSON.parse(contentStr);
+
+        return {
+          ...analysis,
+          generatedAt: new Date().toISOString(),
+        };
+      }),
+  }),
+
   malotes: router({
     list: protectedProcedure.query(() => db.listMalotes()),
     stats: protectedProcedure.query(() => db.getMaloteStats()),
@@ -785,5 +967,6 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
+
 
 // ─── Malotes ────────────────────────────────────────────────────────────────

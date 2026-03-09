@@ -2173,3 +2173,66 @@ export async function deletePurchaseRequest(
 
   return { success: true };
 }
+
+// ─── AI Budget Analysis ────────────────────────────────────────────────────────────────────────────────
+
+export async function saveBudgetAnalysis(requestId: number, analysisJson: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível");
+  await db
+    .update(purchaseRequests)
+    .set({ aiAnalysis: analysisJson, updatedAt: new Date() })
+    .where(eq(purchaseRequests.id, requestId));
+}
+
+export async function getBudgetAnalysis(requestId: number): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db
+    .select({ aiAnalysis: purchaseRequests.aiAnalysis })
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.id, requestId))
+    .limit(1);
+  return row?.aiAnalysis ?? null;
+}
+
+export async function getCompletedRequestsWithItems() {
+  const db = await getDb();
+  if (!db) return [];
+
+  const reqs = await db
+    .select({
+      id: purchaseRequests.id,
+      application: purchaseRequests.application,
+      totalValue: purchaseRequests.totalEstimatedValue,
+    })
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.status, "concluida"))
+    .orderBy(desc(purchaseRequests.createdAt))
+    .limit(200);
+
+  if (reqs.length === 0) return [];
+
+  const reqIds = reqs.map(r => r.id);
+  const items = await db
+    .select({
+      requestId: requestItems.requestId,
+      description: requestItems.description,
+      quantity: requestItems.quantity,
+      unitPrice: requestItems.unitPrice,
+      totalPrice: requestItems.totalPrice,
+    })
+    .from(requestItems)
+    .where(inArray(requestItems.requestId, reqIds));
+
+  const itemsByRequest = new Map<number, typeof items>();
+  for (const item of items) {
+    if (!itemsByRequest.has(item.requestId)) itemsByRequest.set(item.requestId, []);
+    itemsByRequest.get(item.requestId)!.push(item);
+  }
+
+  return reqs.map(r => ({
+    ...r,
+    items: itemsByRequest.get(r.id) ?? [],
+  }));
+}

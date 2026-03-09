@@ -154,6 +154,9 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   cancellationDeadlineAt: timestamp("cancellationDeadlineAt"), // 10-day deadline before auto-cancel (set on rejection/expiry)
   cancellationWarningSentAt: timestamp("cancellationWarningSentAt"), // When the 1-day warning was sent (prevents duplicates)
 
+  // AI Analysis
+  aiAnalysis: text("aiAnalysis"),  // JSON do parecer de análise de orçamento pela IA
+
   // Timestamps
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

@@ -494,3 +494,15 @@
 ## Permissão Granular de Cadastro de Bens
 - [x] Criar permissão 'assets_admin' para acesso exclusivo ao cadastro de Bens
 - [x] Aplicar 'assets_admin' nos extraRoles do usuário wellington.pires@cgs.agr.br
+
+## Análise de Orçamento com IA
+- [ ] Criar endpoint backend para análise de orçamento via GPT-4 Vision
+- [ ] Botão "✨ Analisar com IA" no bloco do orçamento anexado
+- [ ] Exibir parecer estruturado com tabela de itens e avaliação de preços
+- [ ] Salvar o parecer no banco de dados para consulta futura
+
+## Gráfico Comparativo IA no Dashboard
+- [x] Endpoint backend: buscar compras concluídas agrupadas por categoria com valores
+- [x] Endpoint IA: gerar análise comparativa de preços por categoria vs. mercado
+- [x] Gráfico de barras duplas no Dashboard: valor pago vs. valor de mercado por categoria
+- [x] Card de resumo com índice geral de eficiência de compras (% abaixo/acima do mercado)
