@@ -2471,6 +2471,15 @@ export default function RequestDetailScreen() {
                     </Text>
                   )}
                 </View>
+                {/* Comparativo Regional Sinop-MT */}
+                {(analysis.regionalComparison || analysis.summary?.includes('Sinop')) && (
+                  <View style={{ backgroundColor: "#F0FDF4", borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: "#86EFAC" }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#166534", marginBottom: 6 }}>📍 Comparativo Regional — Sinop-MT</Text>
+                    <Text style={{ fontSize: 12, color: "#166534", lineHeight: 18 }}>
+                      {analysis.regionalComparison || analysis.summary}
+                    </Text>
+                  </View>
+                )}
                 {/* Alertas */}
                 {analysis.alerts && analysis.alerts.length > 0 && (
                   <View style={{ backgroundColor: "#FEF3C7", borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: "#FCD34D" }}>

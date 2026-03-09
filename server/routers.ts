@@ -805,7 +805,7 @@ export const appRouter = router({
               const resp = await fetch("https://google.serper.dev/shopping", {
                 method: "POST",
                 headers: { "X-API-KEY": serperKey, "Content-Type": "application/json" },
-                body: JSON.stringify({ q: `${item.name} preço`, gl: "br", hl: "pt-br", num: 5 }),
+                body: JSON.stringify({ q: `${item.name} preço Sinop MT Mato Grosso`, gl: "br", hl: "pt-br", num: 8 }),
               });
               if (!resp.ok) return;
               const data = await resp.json() as { shopping?: Array<{ title: string; price: string; link: string; source: string }> };
@@ -838,13 +838,13 @@ export const appRouter = router({
           : "";
 
         const refSource = hasWebPrices
-          ? "Use os PREÇOS REAIS DO GOOGLE SHOPPING fornecidos como referência principal."
-          : "Use seu conhecimento de preços do mercado brasileiro (2024-2025).";
+          ? "Use os PREÇOS REAIS DO GOOGLE SHOPPING fornecidos como referência principal. Esses preços foram buscados com foco em Sinop-MT e região (Mato Grosso)."
+          : "Use seu conhecimento de preços do mercado de Sinop-MT e região (Mato Grosso) para 2024-2025. Considere que Sinop é um polo agrícola do Centro-Oeste com preços influenciados pela logística regional.";
         const sourcesInstruction = hasWebPrices
           ? "5. Inclua as fontes de preço no campo 'sources' de cada item."
           : "";
 
-        const systemPrompt = `Você é um especialista em compras e análise de orçamentos para o setor agrícola brasileiro.\n${refSource}\n\nPara cada item:\n1. Compare o preço do orçamento com os preços de mercado\n2. Classifique: ADEQUADO (±15%), ACIMA_DO_MERCADO (15-30% acima), MUITO_ACIMA (>30% acima), ABAIXO_DO_MERCADO (>15% abaixo)\n3. Calcule a variação percentual\n4. Forneça uma justificativa técnica\n${sourcesInstruction}\n\nRetorne JSON:\n{"items":[{"name":"","quantity":1,"unitPrice":0,"totalPrice":0,"marketPriceMin":0,"marketPriceMax":0,"variation":0,"status":"ADEQUADO","justification":"","sources":[{"title":"","price":0,"link":"","source":""}]}],"totalBudget":0,"totalMarketMin":0,"totalMarketMax":0,"overallVariation":0,"recommendation":"APROVADO","summary":"","alerts":[],"usedWebSearch":${hasWebPrices}}`;
+        const systemPrompt = `Você é um especialista em compras e análise de orçamentos para o setor agrícola, com profundo conhecimento do mercado de Sinop-MT e região (Mato Grosso).\n${refSource}\n\nPara cada item do orçamento:\n1. Compare o preço cotado com os preços praticados em Sinop-MT e região\n2. Classifique: ADEQUADO (±15%), ACIMA_DO_MERCADO (15-30% acima), MUITO_ACIMA (>30% acima), ABAIXO_DO_MERCADO (>15% abaixo)\n3. Calcule a variação percentual em relação ao preço médio regional\n4. Forneça uma justificativa técnica considerando fatores regionais (frete, disponibilidade local, sazonalidade agrícola do MT)\n5. No campo 'justification', mencione explicitamente se o preço está compatível com o mercado de Sinop-MT\n${sourcesInstruction}\n\nNo campo 'summary', inclua obrigatoriamente:\n- Um parágrafo de comparativo regional: como os preços deste orçamento se comparam ao mercado de Sinop-MT e região\n- Observações sobre disponibilidade local vs. necessidade de compra fora da região\n- Recomendação de fornecedores locais quando aplicável\n\nRetorne JSON:\n{"items":[{"name":"","quantity":1,"unitPrice":0,"totalPrice":0,"marketPriceMin":0,"marketPriceMax":0,"variation":0,"status":"ADEQUADO","justification":"","sources":[{"title":"","price":0,"link":"","source":""}]}],"totalBudget":0,"totalMarketMin":0,"totalMarketMax":0,"overallVariation":0,"recommendation":"APROVADO","summary":"","regionalComparison":"","alerts":[],"usedWebSearch":${hasWebPrices}}`;
 
         const itemsText = extracted.items.map(i => `- ${i.name}: ${i.quantity}x R$${(i.unitPrice ?? 0).toFixed(2)} = R$${(i.totalPrice ?? 0).toFixed(2)}`).join("\n");
         const userText = `Orçamento: "${input.requestDescription}" | Fornecedor: ${extracted.supplier ?? "N/A"} | Total: R$ ${(extracted.totalBudget ?? 0).toFixed(2)}\n\nItens:\n${itemsText}${webPricesContext}\n\nEmita o parecer completo.`;

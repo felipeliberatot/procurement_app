@@ -529,3 +529,8 @@
 - [x] Frontend: tela app/request/edit/[id].tsx (formulário pré-preenchido)
 - [x] Frontend: botão "Editar" na tela de detalhe (visível quando status é editável)
 - [x] Notificação WhatsApp ao gerente após edição
+
+## Comparativo de Preços Sinop-MT na Análise IA
+- [x] Atualizar busca Google Shopping para incluir "Sinop MT" na query de preços
+- [x] Atualizar prompt da IA para solicitar comparativo regional com Sinop-MT e região
+- [x] Exibir seção de comparativo regional no modal de parecer
