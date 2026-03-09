@@ -2073,6 +2073,29 @@ export default function RequestDetailScreen() {
             </View>
           )}
 
+          {/* Botão Editar Solicitação — visível para qualquer usuário quando status é editável */}
+          {["aguardando_gerente", "aguardando_orcamento", "rejeitada"].includes(currentStatus) && (
+            <View style={{ marginTop: 16, marginBottom: 8 }}>
+              <TouchableOpacity
+                onPress={() => router.push(`/request/edit/${request.id}` as any)}
+                style={{
+                  backgroundColor: `${colors.warning}12`,
+                  borderWidth: 1.5,
+                  borderColor: `${colors.warning}40`,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <Text style={{ fontSize: 16 }}>✏️</Text>
+                <Text style={{ color: colors.warning, fontWeight: "700", fontSize: 15 }}>Editar Solicitação</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Botão Cancelar Solicitação — visível para o solicitante que abriu ou master */}
           {canCancel && (
             <View style={{ marginTop: 16, marginBottom: 8 }}>

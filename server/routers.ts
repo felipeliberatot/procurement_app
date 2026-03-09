@@ -467,6 +467,36 @@ export const appRouter = router({
       return db.getAllRequests();
     }),
 
+    // Editar solicitação aberta (qualquer usuário autenticado, status editável)
+    update: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        department: z.string().min(1),
+        costCenterId: z.number().optional(),
+        costCenterCode: z.string().optional(),
+        application: z.string().min(1),
+        urgencyLevel: z.enum(["normal", "urgente", "emergencial"]),
+        observations: z.string().optional(),
+        osMyfarm: z.string().optional(),
+        items: z.array(z.object({
+          description: z.string().min(1),
+          quantity: z.string(),
+          unit: z.string().default("un"),
+          unitPrice: z.string().optional(),
+        })).min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const { requestId, ...data } = input;
+        const result = await db.updatePurchaseRequest(
+          requestId,
+          ctx.user.id,
+          ctx.user.name ?? "Usuário",
+          data
+        );
+        if (!result.success) throw new Error(result.error ?? "Erro ao editar solicitação");
+        return result;
+      }),
+
     // Excluir solicitação cancelada (somente solicitante ou admin/master)
     delete: protectedProcedure
       .input(z.object({ requestId: z.number() }))

@@ -2256,3 +2256,133 @@ export async function getCompletedRequestsWithItems() {
     items: itemsByRequest.get(r.id) ?? [],
   }));
 }
+
+// ─── Update Purchase Request (edição com reinício de aprovação) ────────────────
+
+/** Status que permitem edição (até o orçamento ser enviado) */
+const EDITABLE_STATUSES = [
+  "aguardando_gerente",
+  "aguardando_orcamento",
+  "rejeitada",
+] as const;
+
+export async function updatePurchaseRequest(
+  requestId: number,
+  editorId: number,
+  editorName: string,
+  input: {
+    department: string;
+    costCenterId?: number;
+    costCenterCode?: string;
+    application: string;
+    urgencyLevel: "normal" | "urgente" | "emergencial";
+    observations?: string;
+    osMyfarm?: string;
+    items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indisponível" };
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+  if (!request) return { success: false, error: "Solicitação não encontrada" };
+
+  if (!EDITABLE_STATUSES.includes(request.status as any)) {
+    return { success: false, error: `Solicitações com status "${request.status}" não podem ser editadas. Apenas solicitações aguardando gerente, aguardando orçamento ou rejeitadas podem ser editadas.` };
+  }
+
+  // Recalcular total
+  let total = 0;
+  for (const item of input.items) {
+    const qty = parseFloat(item.quantity) || 0;
+    const price = parseFloat(item.unitPrice ?? "0") || 0;
+    total += qty * price;
+  }
+
+  const deadlineAt = getDeadlineDate(input.urgencyLevel);
+  const stepDeadlineAt = getStepDeadline();
+
+  // Atualizar a solicitação e reiniciar o fluxo de aprovação
+  await db.update(purchaseRequests)
+    .set({
+      department: input.department,
+      costCenterId: input.costCenterId ?? null,
+      costCenterCode: input.costCenterCode ?? null,
+      application: input.application,
+      urgencyLevel: input.urgencyLevel,
+      observations: input.observations ?? null,
+      osMyfarm: input.osMyfarm ?? null,
+      totalEstimatedValue: total > 0 ? String(total) : null,
+      status: "aguardando_gerente",
+      deadlineAt,
+      stepDeadlineAt,
+      // Limpar campos de etapas anteriores
+      budgetFileUrl: null,
+      purchaseOrderNumber: null,
+      aiAnalysis: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(purchaseRequests.id, requestId));
+
+  // Substituir itens: deletar os antigos e inserir os novos
+  await db.delete(requestItems).where(eq(requestItems.requestId, requestId));
+  for (const item of input.items) {
+    const qty = parseFloat(item.quantity) || 0;
+    const price = parseFloat(item.unitPrice ?? "0") || 0;
+    await db.insert(requestItems).values({
+      requestId,
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+      unitPrice: item.unitPrice ?? null,
+      totalPrice: price > 0 ? String(qty * price) : null,
+    });
+  }
+
+  // Registrar no histórico
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: editorId,
+    userName: editorName,
+    step: "edicao",
+    action: "editada",
+    comment: `Solicitação editada por ${editorName}. Processo de aprovação reiniciado. Novo prazo: ${deadlineAt.toLocaleDateString("pt-BR")}`,
+  });
+
+  // Notificar aprovadores via WhatsApp
+  try {
+    const isUrgent = input.urgencyLevel === "urgente" || input.urgencyLevel === "emergencial";
+    const approverRole = isUrgent ? "diretoria" : "gerente";
+    const stepLabel = isUrgent ? "Diretoria" : "Gerente de Unidade";
+    const approvers = await db
+      .select()
+      .from(users)
+      .where(and(
+        eq(users.active, true),
+        or(
+          eq(users.procurementRole, approverRole as any),
+          eq(users.approvalLevel, approverRole as any),
+        ),
+      ));
+    const uniqueApprovers = [...new Map(approvers.map(a => [a.id, a])).values()];
+    for (const approver of uniqueApprovers) {
+      if (approver.phone) {
+        await WA.notifyNewRequest({
+          approverPhone: approver.phone,
+          approverName: approver.name ?? "Aprovador",
+          requestNumber: request.requestNumber,
+          requestId,
+          requesterName: request.requesterName,
+          application: input.application,
+          urgencyLevel: input.urgencyLevel,
+          department: input.department,
+          stepLabel,
+        });
+      }
+    }
+  } catch (e) {
+    console.warn("[WhatsApp] Failed to notify approvers after edit:", e);
+  }
+
+  return { success: true };
+}

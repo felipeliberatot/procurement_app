@@ -522,3 +522,10 @@
 ## Bug: Erro ao Criar Nova Solicitação
 - [x] Corrigir erro de INSERT na tabela purchaseRequests: substituída conexão singleton por connection pool MySQL com reconexão automática (resolve ECONNRESET/timeout após inatividade)
 - [x] Corrigir erro "Duplicate entry for key requestNumber_unique": substituída função generateRequestNumber de COUNT(*) para MAX(seq) para evitar colisões quando registros são deletados/cancelados
+
+## Edição de Solicitações Abertas
+- [x] Backend: função db.updatePurchaseRequest (atualiza campos + itens + reinicia aprovação)
+- [x] Backend: rota tRPC requests.update com validação de status editável
+- [x] Frontend: tela app/request/edit/[id].tsx (formulário pré-preenchido)
+- [x] Frontend: botão "Editar" na tela de detalhe (visível quando status é editável)
+- [x] Notificação WhatsApp ao gerente após edição

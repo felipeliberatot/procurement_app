@@ -200,6 +200,7 @@ export const approvalHistory = mysqlTable("approvalHistory", {
     "verificacao_compras",
     "cancelamento",
     "reabertura",
+    "edicao",
   ]).notNull(),
   action: mysqlEnum("action", [
     "criada",
@@ -218,6 +219,7 @@ export const approvalHistory = mysqlTable("approvalHistory", {
     "reaberta",
     "compra_aprovada",
     "compra_cancelada",
+    "editada",
   ]).notNull(),
   comment: text("comment"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
