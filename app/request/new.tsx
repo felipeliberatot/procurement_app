@@ -79,12 +79,18 @@ export default function NewRequestScreen() {
       utils.requests.all.invalidate();
       utils.requests.myRequests.invalidate();
       utils.requests.dashboardStats.invalidate();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "✅ Solicitação Criada!",
-        "Sua solicitação foi enviada para aprovação do Gerente de Unidade.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          "✅ Solicitação Criada!",
+          "Sua solicitação foi enviada para aprovação do Gerente de Unidade.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      } else {
+        // No web, Alert.alert não bloqueia a execução — navegar primeiro, depois exibir mensagem
+        router.back();
+        setTimeout(() => Alert.alert("✅ Solicitação Criada!", "Sua solicitação foi enviada para aprovação do Gerente de Unidade."), 400);
+      }
     },
     onError: (error) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);

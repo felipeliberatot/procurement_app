@@ -534,3 +534,6 @@
 - [x] Atualizar busca Google Shopping para incluir "Sinop MT" na query de preços
 - [x] Atualizar prompt da IA para solicitar comparativo regional com Sinop-MT e região
 - [x] Exibir seção de comparativo regional no modal de parecer
+
+## Bug: Navegação pós-criação no Desktop
+- [x] Corrigir: após criar solicitação no desktop (web), a tela não navega — no web, router.back() é chamado imediatamente sem aguardar o Alert.alert (que não bloqueia no browser)

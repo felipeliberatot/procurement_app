@@ -112,12 +112,17 @@ export default function EditRequestScreen() {
       utils.requests.myRequests.invalidate();
       utils.requests.pendingForMe.invalidate();
       utils.requests.dashboardStats.invalidate();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        "✅ Solicitação Atualizada!",
-        "A solicitação foi editada e o processo de aprovação foi reiniciado. O Gerente de Unidade será notificado.",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Alert.alert(
+          "✅ Solicitação Atualizada!",
+          "A solicitação foi editada e o processo de aprovação foi reiniciado. O Gerente de Unidade será notificado.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      } else {
+        router.back();
+        setTimeout(() => Alert.alert("✅ Solicitação Atualizada!", "A solicitação foi editada e o processo de aprovação foi reiniciado."), 400);
+      }
     },
     onError: (error) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
