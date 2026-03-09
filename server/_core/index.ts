@@ -2,6 +2,7 @@ import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
+import path from "path";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { registerOAuthRoutes } from "./oauth";
@@ -84,6 +85,11 @@ async function startServer() {
       createContext,
     }),
   );
+
+  // ── Rota pública: Política de Privacidade ──────────────────────────────────
+  app.get("/privacidade", (_req, res) => {
+    res.sendFile(path.resolve(process.cwd(), "public", "privacidade.html"));
+  });
 
   // ── Proxy non-API routes to Metro (Expo web frontend on port 8081) ─────────
   // This allows the app to be accessed via the 3000 port directly,
