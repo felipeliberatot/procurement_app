@@ -506,3 +506,9 @@
 - [x] Endpoint IA: gerar análise comparativa de preços por categoria vs. mercado
 - [x] Gráfico de barras duplas no Dashboard: valor pago vs. valor de mercado por categoria
 - [x] Card de resumo com índice geral de eficiência de compras (% abaixo/acima do mercado)
+
+## Refinamento da Análise IA
+- [x] Filtrar análise do Dashboard apenas para solicitações a partir do Fluxo 07 (aprovação financeira)
+- [x] Botão "✨ Analisar Orçamento com IA" na tela de detalhes/aprovação
+- [x] Extração de itens do PDF de orçamento via GPT-4 Vision e parecer de preços
+- [x] Exibição do parecer estruturado (tabela de itens com avaliação) na tela de detalhes

@@ -2207,10 +2207,14 @@ export async function getCompletedRequestsWithItems() {
       totalValue: purchaseRequests.totalEstimatedValue,
     })
     .from(purchaseRequests)
-    .where(eq(purchaseRequests.status, "concluida"))
+    .where(inArray(purchaseRequests.status, [
+      "aguardando_aprovacao_compra",
+      "aguardando_comprovante_pagamento",
+      "aguardando_verificacao_compras",
+      "concluida",
+    ] as any[]))
     .orderBy(desc(purchaseRequests.createdAt))
     .limit(200);
-
   if (reqs.length === 0) return [];
 
   const reqIds = reqs.map(r => r.id);

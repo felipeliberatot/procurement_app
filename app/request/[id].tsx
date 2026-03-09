@@ -430,6 +430,7 @@ export default function RequestDetailScreen() {
   const [showInvoiceViewer, setShowInvoiceViewer] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showBudgetAnalysis, setShowBudgetAnalysis] = useState(false);
   const [showPaymentRejectModal, setShowPaymentRejectModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -624,6 +625,24 @@ export default function RequestDetailScreen() {
       Alert.alert("Erro ao excluir", e.message);
     },
   });
+
+  // ─── Análise IA do orçamento ───
+  const [budgetAnalysisResult, setBudgetAnalysisResult] = useState<any>(null);
+  const analyzeBudgetMutation = trpc.ai.analyzeBudget.useMutation({
+    onSuccess: (data) => {
+      setBudgetAnalysisResult(data);
+      setShowBudgetAnalysis(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro na análise", e.message);
+    },
+  });
+  const { data: savedBudgetAnalysis } = trpc.ai.getBudgetAnalysis.useQuery(
+    { requestId: Number(id) },
+    { enabled: !!id && !!request?.budgetFileUrl }
+  );
 
   if (isLoading) {
     return (
@@ -1084,6 +1103,46 @@ export default function RequestDetailScreen() {
                     style={{ paddingHorizontal: 10, paddingVertical: 6 }}
                   >
                     <Text className="text-primary text-xs font-semibold">👁 Ver</Text>
+                  </TouchableOpacity>
+                  {/* Botão de análise IA: visível sempre que há orçamento */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (budgetAnalysisResult || savedBudgetAnalysis) {
+                        setShowBudgetAnalysis(true);
+                      } else {
+                        analyzeBudgetMutation.mutate({
+                          requestId: Number(id),
+                          budgetFileUrl: request.budgetFileUrl!,
+                          requestDescription: request.application ?? "",
+                          requestItems: (request as any).items?.map((item: any) => ({
+                            name: item.description,
+                            quantity: Number(item.quantity ?? 1),
+                            unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
+                          })) ?? [],
+                        });
+                      }
+                    }}
+                    disabled={analyzeBudgetMutation.isPending}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 6,
+                      backgroundColor: analyzeBudgetMutation.isPending ? undefined : `${colors.primary}15`,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: `${colors.primary}40`,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                    }}
+                  >
+                    {analyzeBudgetMutation.isPending ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Text style={{ fontSize: 12 }}>✨</Text>
+                    )}
+                    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "700" }}>
+                      {analyzeBudgetMutation.isPending ? "Analisando..." : (budgetAnalysisResult || savedBudgetAnalysis) ? "Ver Parecer" : "IA"}
+                    </Text>
                   </TouchableOpacity>
                   {/* Botão de edição: visível apenas nas etapas editáveis */}
                   {canEditBudget && (
@@ -2327,6 +2386,125 @@ export default function RequestDetailScreen() {
           onClose={() => setShowOCViewer(false)}
         />
       )}
+
+      {/* Modal de Parecer IA do Orçamento */}
+      <Modal
+        visible={showBudgetAnalysis}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowBudgetAnalysis(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: "#fff" }}>
+          {/* Header */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: "#E5E7EB", paddingTop: 52 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={{ fontSize: 20 }}>✨</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#11181C" }}>Parecer IA — Orçamento</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowBudgetAnalysis(false)} style={{ padding: 8 }}>
+              <Text style={{ fontSize: 16, color: "#687076" }}>✕ Fechar</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Conteúdo */}
+          {(() => {
+            const analysis = budgetAnalysisResult ?? savedBudgetAnalysis;
+            if (!analysis) return null;
+            const statusColor: Record<string, string> = {
+              ADEQUADO: "#22C55E",
+              ABAIXO_DO_MERCADO: "#0a7ea4",
+              ACIMA_DO_MERCADO: "#F59E0B",
+              MUITO_ACIMA: "#EF4444",
+            };
+            const recColor: Record<string, string> = {
+              APROVADO: "#22C55E",
+              APROVADO_COM_RESSALVAS: "#F59E0B",
+              REQUER_NOVA_COTACAO: "#EF4444",
+            };
+            const recLabel: Record<string, string> = {
+              APROVADO: "✅ Aprovado",
+              APROVADO_COM_RESSALVAS: "⚠️ Aprovado com Ressalvas",
+              REQUER_NOVA_COTACAO: "❌ Requer Nova Cotação",
+            };
+            return (
+              <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+                {/* Recomendação geral */}
+                <View style={{ backgroundColor: `${recColor[analysis.recommendation] ?? "#687076"}15`, borderRadius: 12, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: `${recColor[analysis.recommendation] ?? "#687076"}40` }}>
+                  <Text style={{ fontSize: 18, fontWeight: "800", color: recColor[analysis.recommendation] ?? "#687076", marginBottom: 4 }}>
+                    {recLabel[analysis.recommendation] ?? analysis.recommendation}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: "#687076", lineHeight: 20 }}>{analysis.summary}</Text>
+                  {analysis.overallVariation !== undefined && (
+                    <Text style={{ fontSize: 12, color: "#687076", marginTop: 8 }}>
+                      Variação geral: <Text style={{ fontWeight: "700", color: analysis.overallVariation > 10 ? "#EF4444" : analysis.overallVariation < -5 ? "#0a7ea4" : "#22C55E" }}>{analysis.overallVariation > 0 ? "+" : ""}{analysis.overallVariation?.toFixed(1)}% vs. mercado</Text>
+                    </Text>
+                  )}
+                </View>
+                {/* Alertas */}
+                {analysis.alerts && analysis.alerts.length > 0 && (
+                  <View style={{ backgroundColor: "#FEF3C7", borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: "#FCD34D" }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#92400E", marginBottom: 6 }}>⚠️ Alertas</Text>
+                    {analysis.alerts.map((alert: string, i: number) => (
+                      <Text key={i} style={{ fontSize: 12, color: "#92400E", marginBottom: 2 }}>• {alert}</Text>
+                    ))}
+                  </View>
+                )}
+                {/* Tabela de itens */}
+                <Text style={{ fontSize: 14, fontWeight: "700", color: "#11181C", marginBottom: 10 }}>Análise por Item</Text>
+                {(analysis.items ?? []).map((item: any, i: number) => (
+                  <View key={i} style={{ backgroundColor: "#F9FAFB", borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: "#E5E7EB" }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#11181C", flex: 1, marginRight: 8 }}>{item.name}</Text>
+                      <View style={{ backgroundColor: `${statusColor[item.status] ?? "#687076"}20`, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: statusColor[item.status] ?? "#687076" }}>{item.status?.replace(/_/g, " ")}</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 16, marginBottom: 6 }}>
+                      <Text style={{ fontSize: 12, color: "#687076" }}>Qtd: <Text style={{ fontWeight: "600", color: "#11181C" }}>{item.quantity}</Text></Text>
+                      <Text style={{ fontSize: 12, color: "#687076" }}>Unit: <Text style={{ fontWeight: "600", color: "#11181C" }}>R$ {Number(item.unitPrice ?? 0).toFixed(2)}</Text></Text>
+                      <Text style={{ fontSize: 12, color: "#687076" }}>Total: <Text style={{ fontWeight: "600", color: "#11181C" }}>R$ {Number(item.totalPrice ?? 0).toFixed(2)}</Text></Text>
+                    </View>
+                    <Text style={{ fontSize: 11, color: "#687076" }}>Mercado estimado: <Text style={{ fontWeight: "600" }}>R$ {Number(item.marketPriceMin ?? 0).toFixed(2)} – R$ {Number(item.marketPriceMax ?? 0).toFixed(2)}</Text></Text>
+                    {item.variation !== undefined && (
+                      <Text style={{ fontSize: 11, color: item.variation > 15 ? "#EF4444" : item.variation < -5 ? "#0a7ea4" : "#22C55E", marginTop: 2 }}>
+                        Variação: {item.variation > 0 ? "+" : ""}{item.variation?.toFixed(1)}% vs. mercado
+                      </Text>
+                    )}
+                    <Text style={{ fontSize: 11, color: "#687076", marginTop: 4, fontStyle: "italic" }}>{item.justification}</Text>
+                  </View>
+                ))}
+                {/* Totais */}
+                {analysis.totalBudget !== undefined && (
+                  <View style={{ backgroundColor: "#F0F9FF", borderRadius: 10, padding: 12, marginTop: 4, borderWidth: 1, borderColor: "#BAE6FD" }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#0369A1", marginBottom: 4 }}>Resumo Financeiro</Text>
+                    <Text style={{ fontSize: 12, color: "#687076" }}>Total orçado: <Text style={{ fontWeight: "700", color: "#11181C" }}>R$ {Number(analysis.totalBudget).toFixed(2)}</Text></Text>
+                    <Text style={{ fontSize: 12, color: "#687076" }}>Faixa de mercado: <Text style={{ fontWeight: "700", color: "#11181C" }}>R$ {Number(analysis.totalMarketMin ?? 0).toFixed(2)} – R$ {Number(analysis.totalMarketMax ?? 0).toFixed(2)}</Text></Text>
+                  </View>
+                )}
+                {/* Botão reanalisar */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setBudgetAnalysisResult(null);
+                    setShowBudgetAnalysis(false);
+                    analyzeBudgetMutation.mutate({
+                      requestId: Number(id),
+                      budgetFileUrl: request!.budgetFileUrl!,
+                      requestDescription: request!.application ?? "",
+                      requestItems: (request as any).items?.map((item: any) => ({
+                        name: item.description,
+                        quantity: Number(item.quantity ?? 1),
+                        unitPrice: item.unitPrice ? Number(item.unitPrice) : null,
+                      })) ?? [],
+                    });
+                  }}
+                  style={{ marginTop: 20, backgroundColor: "#0a7ea415", borderRadius: 10, padding: 12, alignItems: "center", borderWidth: 1, borderColor: "#0a7ea440" }}
+                >
+                  <Text style={{ color: "#0a7ea4", fontWeight: "700", fontSize: 13 }}>🔄 Reanalisar Orçamento</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            );
+          })()}
+        </View>
+      </Modal>
 
       {/* Modal de confirmação cross-platform */}
       <ConfirmModal
