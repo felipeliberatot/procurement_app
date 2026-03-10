@@ -83,6 +83,7 @@ export const assets = mysqlTable("assets", {
   hasChassi: boolean("hasChassi").default(false).notNull(),        // Possui chassi/placa?
   chassiNumber: varchar("chassiNumber", { length: 64 }),           // Nº do chassi (opcional)
   licensePlate: varchar("licensePlate", { length: 16 }),           // Placa (opcional)
+  patrimonialCode: varchar("patrimonialCode", { length: 16 }),     // Código patrimonial sequencial (PAT-00001)
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

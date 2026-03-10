@@ -1267,9 +1267,19 @@ function AssetModal({
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+          {/* Código Patrimonial (somente leitura) */}
+          <View style={{ backgroundColor: `${colors.primary}12`, borderRadius: 12, padding: 12, flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Text style={{ fontSize: 20 }}>🏷️</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.muted, fontSize: 10, fontWeight: "700", letterSpacing: 0.5 }}>CÓDIGO PATRIMONIAL — NÃO EDITÁVEL</Text>
+              <Text style={{ color: colors.primary, fontSize: 20, fontWeight: "800", fontFamily: "monospace", marginTop: 2 }}>
+                {isEditing && item?.patrimonialCode ? item.patrimonialCode : "⚙️ Gerado ao salvar"}
+              </Text>
+            </View>
+          </View>
           <View>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>Código *</Text>
+              <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>Código de Identificação *</Text>
               {!isEditing && <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>⚙️ Gerado automaticamente</Text>}
             </View>
             <TextInput
@@ -1864,15 +1874,17 @@ export default function RegistersScreen() {
 
   // Exportação de Bens
   const handleExportAssets = async (format: "excel" | "pdf") => {
-    if (!assetsList || assetsList.length === 0) {
+    const exportData = filteredAssets.length > 0 ? filteredAssets : (assetsList ?? []);
+    if (exportData.length === 0) {
       Alert.alert("Sem dados", "Não há bens para exportar.");
       return;
     }
     setIsExportingAssets(true);
     try {
-      const data = filteredAssets as any[];
+      const data = exportData as any[];
       if (format === "excel") {
         const rows = data.map((a) => ({
+          "Cód. Patrimonial": a.patrimonialCode ?? "",
           "Código": a.code ?? "",
           "Descrição": a.description ?? "",
           "Categoria": a.category ?? "",
@@ -1885,42 +1897,67 @@ export default function RegistersScreen() {
           "Cadastrado em": a.createdAt ? new Date(a.createdAt).toLocaleDateString("pt-BR") : "",
         }));
         const ws = XLSX.utils.json_to_sheet(rows);
+        // Ajustar largura das colunas
+        ws["!cols"] = [
+          { wch: 16 }, { wch: 14 }, { wch: 40 }, { wch: 18 }, { wch: 20 },
+          { wch: 14 }, { wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 8 }, { wch: 14 },
+        ];
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Bens");
         const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
-        const uri = `${FileSystem.cacheDirectory}bens_${Date.now()}.xlsx`;
-        await FileSystem.writeAsStringAsync(uri, wbout, { encoding: FileSystem.EncodingType.Base64 });
-        await Sharing.shareAsync(uri, { mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", dialogTitle: "Exportar Bens" });
+        if (Platform.OS === "web") {
+          // No web: download direto via link
+          const blob = new Blob([Uint8Array.from(atob(wbout), c => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `bens_${Date.now()}.xlsx`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } else {
+          const uri = `${FileSystem.cacheDirectory}bens_${Date.now()}.xlsx`;
+          await FileSystem.writeAsStringAsync(uri, wbout, { encoding: FileSystem.EncodingType.Base64 });
+          await Sharing.shareAsync(uri, { mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", dialogTitle: "Exportar Bens" });
+        }
       } else {
         const rows = data.map((a, idx) => `
           <tr style="background:${idx % 2 === 0 ? '#f9fafb' : '#ffffff'}">
+            <td><strong>${a.patrimonialCode ?? ""}</strong></td>
             <td>${a.code ?? ""}</td>
             <td>${a.description ?? ""}</td>
             <td>${a.category ?? ""}</td>
             <td>${a.location ?? ""}</td>
-            <td style="text-align:right">${a.value ? `R$ ${a.value}` : ""}</td>
+            <td style="text-align:right">${a.value ? "R$ " + a.value : ""}</td>
             <td style="text-align:center">${a.hasChassi ? "Sim" : "Não"}</td>
             <td>${a.chassiNumber ?? ""}</td>
             <td>${a.licensePlate ?? ""}</td>
           </tr>`).join("");
         const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
           <style>
-            body { font-family: Arial, sans-serif; font-size: 10px; margin: 20px; }
-            h1 { font-size: 16px; color: #0a7ea4; margin-bottom: 4px; }
-            p { color: #666; font-size: 9px; margin-bottom: 12px; }
+            @page { size: A4 landscape; margin: 15mm; }
+            body { font-family: Arial, sans-serif; font-size: 9px; margin: 0; }
+            h1 { font-size: 14px; color: #0a7ea4; margin-bottom: 2px; }
+            p { color: #666; font-size: 8px; margin-bottom: 10px; }
             table { width: 100%; border-collapse: collapse; }
-            th { background: #0a7ea4; color: white; padding: 6px 8px; text-align: left; font-size: 9px; }
-            td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
+            th { background: #0a7ea4; color: white; padding: 5px 6px; text-align: left; font-size: 8px; white-space: nowrap; }
+            td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; font-size: 8px; }
+            tr:hover td { background: #f0f9ff; }
           </style></head><body>
-          <h1>Relatório de Bens</h1>
+          <h1>Relatório de Bens — CGS Agrícola</h1>
           <p>Gerado em: ${new Date().toLocaleString("pt-BR")} &nbsp;|&nbsp; Total: ${data.length} bens</p>
           <table>
-            <thead><tr><th>Código</th><th>Descrição</th><th>Categoria</th><th>Localização</th><th>Valor (R$)</th><th>Chassi</th><th>Nº Chassi</th><th>Placa</th></tr></thead>
+            <thead><tr><th>Cód. Patrimonial</th><th>Código</th><th>Descrição</th><th>Categoria</th><th>Localização</th><th>Valor (R$)</th><th>Chassi</th><th>Nº Chassi</th><th>Placa</th></tr></thead>
             <tbody>${rows}</tbody>
           </table>
         </body></html>`;
-        const { uri } = await Print.printToFileAsync({ html, base64: false });
-        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Exportar Bens" });
+        if (Platform.OS === "web") {
+          // No web: abrir em nova aba para imprimir
+          const win = window.open("", "_blank");
+          if (win) { win.document.write(html); win.document.close(); win.print(); }
+        } else {
+          const { uri } = await Print.printToFileAsync({ html, base64: false });
+          await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Exportar Bens" });
+        }
       }
     } catch (e: any) {
       Alert.alert("Erro ao exportar", e.message ?? "Não foi possível exportar.");
@@ -3165,9 +3202,16 @@ export default function RegistersScreen() {
                 }}
               >
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-                  <Text style={{ fontSize: 12, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>
-                    {item.code}
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    {item.patrimonialCode && (
+                      <View style={{ backgroundColor: `${colors.primary}18`, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "800" }}>{item.patrimonialCode}</Text>
+                      </View>
+                    )}
+                    <Text style={{ fontSize: 12, fontFamily: "monospace", color: colors.muted, fontWeight: "600" }}>
+                      {item.code}
+                    </Text>
+                  </View>
                   <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
                     {item.hasChassi && (
                       <View style={{ backgroundColor: "#F59E0B20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>

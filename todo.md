@@ -568,3 +568,9 @@
 - [x] Formulário de cadastro de Bens: campo Valor (obrigatório), toggle Chassi/Placa com campos nº chassi e placa
 - [x] Listagem de Bens: barra de busca + filtros por faixa de valor (mínimo/máximo)
 - [x] Botão exportar Bens: opções Excel (campos organizados) e PDF (tabela formatada)
+
+## Correções Aba de Bens (Lote 3)
+- [x] Campo patrimonialCode: código PAT-00001 gerado automaticamente, exibido no formulário e nos cards (não editável)
+- [x] Bens existentes (21) populados com PAT-00001 a PAT-00021 via ALTER TABLE + UPDATE
+- [x] Exportação corrigida: inclui Cód. Patrimonial, usa download nativo no web e share sheet no mobile
+- [x] Scroll no desktop: ScreenContainer atualizado com overflow:auto no web para todas as abas

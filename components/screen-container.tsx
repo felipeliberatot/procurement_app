@@ -63,14 +63,23 @@ export function ScreenContainer({
         "bg-background",
         containerClassName
       )}
+      style={Platform.OS === "web" ? { height: "100vh" as any, overflow: "hidden" as any } : undefined}
       {...props}
     >
       <SafeAreaView
         edges={resolvedEdges}
         className={cn("flex-1", safeAreaClassName)}
-        style={style}
+        style={[
+          Platform.OS === "web" ? { flex: 1, overflow: "hidden" as any } : undefined,
+          style,
+        ]}
       >
-        <View className={cn("flex-1", className)}>{children}</View>
+        <View
+          className={cn("flex-1", className)}
+          style={Platform.OS === "web" ? { flex: 1, overflow: "auto" as any } : undefined}
+        >
+          {children}
+        </View>
       </SafeAreaView>
     </View>
   );

@@ -401,9 +401,21 @@ export async function listAssets() {
   return db.select().from(assets).where(eq(assets.active, true)).orderBy(assets.code);
 }
 
+async function generatePatrimonialCode(db: Awaited<ReturnType<typeof getDb>>): Promise<string> {
+  // Busca o maior número sequencial existente em PAT-NNNNN
+  const [row] = await (db as any).execute(
+    "SELECT patrimonialCode FROM assets WHERE patrimonialCode LIKE 'PAT-%' ORDER BY patrimonialCode DESC LIMIT 1"
+  ) as any;
+  const last = row?.[0]?.patrimonialCode as string | undefined;
+  const lastNum = last ? parseInt(last.replace("PAT-", ""), 10) : 0;
+  const next = isNaN(lastNum) ? 1 : lastNum + 1;
+  return "PAT-" + String(next).padStart(5, "0");
+}
+
 export async function createAsset(data: { code: string; description: string; category?: string; location?: string; value?: string; hasChassi?: boolean; chassiNumber?: string; licensePlate?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  const patrimonialCode = await generatePatrimonialCode(db);
   const result = await db.insert(assets).values({
     code: data.code,
     description: data.description,
@@ -413,6 +425,7 @@ export async function createAsset(data: { code: string; description: string; cat
     hasChassi: data.hasChassi ?? false,
     chassiNumber: data.chassiNumber ?? null,
     licensePlate: data.licensePlate ?? null,
+    patrimonialCode,
   });
   return (result as unknown as [{ insertId: number }])[0].insertId;
 }
