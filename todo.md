@@ -557,3 +557,7 @@
 ## Melhorias na Edição pela Controladoria
 - [x] Adicionar botão "Editar Dados" no card de aprovações da aba Aprovações (para role controladoria)
 - [x] Corrigir formulário edit-controladoria: substituir chips de centro de custo por picker modal com busca
+
+## Bug: Edição pela Controladoria não salva
+- [x] Corrigir: removido Alert de confirmação intermediário que bloqueava o mutate
+- [x] Corrigir: após salvar, navega de volta imediatamente via router.back() no onSuccess

@@ -122,22 +122,18 @@ export default function EditByControladoriaScreen() {
 
   const updateMutation = trpc.requests.updateByControladoria.useMutation({
     onSuccess: () => {
+      // Invalidar caches
       utils.requests.getById.invalidate({ id: requestId });
       utils.requests.all.invalidate();
       utils.requests.myRequests.invalidate();
       utils.requests.pendingForMe.invalidate();
       utils.requests.dashboardStats.invalidate();
+      // Feedback háptico
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          "✅ Solicitação Atualizada!",
-          "Os dados foram editados. O fluxo de aprovação continua na etapa da Controladoria.",
-          [{ text: "OK", onPress: () => router.back() }]
-        );
-      } else {
-        router.back();
-        setTimeout(() => Alert.alert("✅ Solicitação Atualizada!", "Os dados foram editados. O fluxo continua na etapa da Controladoria."), 400);
       }
+      // Navegar de volta imediatamente
+      router.back();
     },
     onError: (error) => {
       if (Platform.OS !== "web") {
@@ -170,34 +166,23 @@ export default function EditByControladoriaScreen() {
     const validItems = items.filter((i) => i.description.trim());
     if (validItems.length === 0) { Alert.alert("Campo obrigatório", "Adicione ao menos um item com descrição."); return; }
 
-    Alert.alert(
-      "Confirmar Edição",
-      "Os dados serão atualizados. O fluxo de aprovação NÃO será reiniciado — a solicitação permanecerá na etapa da Controladoria. Deseja continuar?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Salvar",
-          onPress: () => {
-            updateMutation.mutate({
-              requestId,
-              department: department.trim(),
-              costCenterId: selectedCostCenter?.id,
-              costCenterCode: costCenterCode || undefined,
-              application: application.trim(),
-              urgencyLevel: urgency,
-              observations: observations.trim() || undefined,
-              osMyfarm: osMyfarm.trim() || undefined,
-              items: validItems.map((i) => ({
-                description: i.description.trim(),
-                quantity: i.quantity || "1",
-                unit: i.unit || "un",
-                unitPrice: i.unitPrice.replace(",", ".") || undefined,
-              })),
-            });
-          },
-        },
-      ]
-    );
+    // Salvar diretamente sem Alert de confirmação intermediário
+    updateMutation.mutate({
+      requestId,
+      department: department.trim(),
+      costCenterId: selectedCostCenter?.id,
+      costCenterCode: costCenterCode || undefined,
+      application: application.trim(),
+      urgencyLevel: urgency,
+      observations: observations.trim() || undefined,
+      osMyfarm: osMyfarm.trim() || undefined,
+      items: validItems.map((i) => ({
+        description: i.description.trim(),
+        quantity: i.quantity || "1",
+        unit: i.unit || "un",
+        unitPrice: i.unitPrice.replace(",", ".") || undefined,
+      })),
+    });
   };
 
   if (isLoadingRequest) {
