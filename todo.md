@@ -584,3 +584,7 @@
 
 ## Melhoria: Seletor de Centro de Custo na Nova Solicitação
 - [x] Substituir chips horizontais por botão que abre modal bottom-sheet com campo de busca por código ou nome
+
+## Correções Importação e Exportação de Bens (Lote 2)
+- [x] Corrigir importação: usar FileReader (web) em vez de FileSystem para ler o arquivo selecionado
+- [x] Alterar cor do botão Exportar PDF para verde esmeralda claro (#34D399), mais claro que o CSV (#059669)

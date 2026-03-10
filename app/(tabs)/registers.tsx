@@ -2204,13 +2204,28 @@ export default function RegistersScreen() {
     });
   }
 
-  // ─── CSV Import handlers ──────────────────────────────────────────────────────
+  // Lê o conteúdo do arquivo: usa FileReader no web (blob URI), FileSystem no mobile
+  async function readFileAsText(uri: string, file?: File): Promise<string> {
+    if (Platform.OS === "web" && file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string ?? "");
+        reader.onerror = () => reject(new Error("Erro ao ler arquivo"));
+        reader.readAsText(file, "utf-8");
+      });
+    }
+    return FileSystem.readAsStringAsync(uri);
+  }
+
+  // ─── CSV Import handlers ────────────────────────────────────────────────────
   async function handleImportCSV(tab: Tab) {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: ["text/csv", "text/comma-separated-values", "application/csv", "*/*"], copyToCacheDirectory: true });
       if (result.canceled) return;
       const asset = result.assets[0];
-      const text = await FileSystem.readAsStringAsync(asset.uri);
+      // No web, expo-document-picker expõe o File nativo via asset.file
+      const nativeFile: File | undefined = (asset as any).file;
+      const text = await readFileAsText(asset.uri, nativeFile);
       const rows = parseCSV(text);
       if (rows.length < 2) { Alert.alert("Arquivo vazio", "O arquivo CSV deve ter cabeçalho e pelo menos uma linha de dados."); return; }
       const header = rows[0].map(h => h.toLowerCase().replace(/\s+/g, ""));
@@ -3095,7 +3110,7 @@ export default function RegistersScreen() {
                 <TouchableOpacity
                   onPress={() => handleExportAssets("pdf")}
                   disabled={isExportingAssets}
-                  style={{ flex: 1, backgroundColor: "#9CA3AF", borderRadius: 12, paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
+                  style={{ flex: 1, backgroundColor: "#34D399", borderRadius: 12, paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
                 >
                   {isExportingAssets
                     ? <ActivityIndicator size="small" color="white" />
