@@ -537,3 +537,6 @@
 
 ## Bug: Navegação pós-criação no Desktop
 - [x] Corrigir: após criar solicitação no desktop (web), a tela não navega — no web, router.back() é chamado imediatamente sem aguardar o Alert.alert (que não bloqueia no browser)
+
+## Bug: Frontend Web não carrega em produção
+- [x] Corrigir servidor para servir o bundle estático do frontend web: adicionado expo export --platform web no build e servidor serve dist/web em produção

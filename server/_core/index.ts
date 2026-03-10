@@ -66,12 +66,12 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
-  // ── Manual trigger for daily report (admin use only) ──────────────────────
+  // Manual trigger for daily report (admin use only)
   app.post("/api/admin/daily-report", async (_req, res) => {
     console.log("[Admin] Manual daily report triggered via API");
     try {
       await runDailyReport();
-      res.json({ ok: true, message: "Relatório diário enviado com sucesso." });
+      res.json({ ok: true, message: "Relatorio diario enviado com sucesso." });
     } catch (err) {
       console.error("[Admin] Daily report error:", err);
       res.status(500).json({ ok: false, error: String(err) });
@@ -86,45 +86,68 @@ async function startServer() {
     }),
   );
 
-  // ── Rota pública: Política de Privacidade ──────────────────────────────────
+  // Rota publica: Politica de Privacidade
   app.get("/privacidade", (_req, res) => {
     res.sendFile(path.resolve(process.cwd(), "public", "privacidade.html"));
   });
 
-  // ── Proxy non-API routes to Metro (Expo web frontend on port 8081) ─────────
-  // This allows the app to be accessed via the 3000 port directly,
-  // avoiding cross-origin issues when the hostname doesn't follow the '8081-xxx' pattern.
-  // Users can access the full app at the 3000-xxx URL without any CORS issues.
-  const metroPort = parseInt(process.env.EXPO_PORT || "8081");
-  const metroProxy = createProxyMiddleware({
-    target: `http://127.0.0.1:${metroPort}`,
-    changeOrigin: false,
-    ws: true,
-    on: {
-      error: (_err, _req, res) => {
-        if (res && "writeHead" in res) {
-          (res as express.Response).status(502).json({ error: "Frontend not available" });
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (isProduction) {
+    // Em producao: servir o bundle estatico do Expo web
+    // O bundle e gerado por `expo export --platform web` e fica em dist/web
+    const webDistPath = path.resolve(process.cwd(), "dist", "web");
+    console.log(`[Server] Production mode: serving static files from ${webDistPath}`);
+
+    // Servir arquivos estaticos (JS, CSS, imagens, etc.)
+    app.use(express.static(webDistPath));
+
+    // SPA fallback: todas as rotas nao-API retornam o index.html
+    app.use((req, res, next) => {
+      if (req.path.startsWith("/api/")) {
+        return next();
+      }
+      const indexPath = path.join(webDistPath, "index.html");
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error(`[Server] Failed to serve index.html: ${err.message}`);
+          res.status(503).send("Frontend not built. Run: pnpm build:web");
         }
+      });
+    });
+  } else {
+    // Em desenvolvimento: fazer proxy para o Metro (Expo web frontend na porta 8081)
+    const metroPort = parseInt(process.env.EXPO_PORT || "8081");
+    const metroProxy = createProxyMiddleware({
+      target: `http://127.0.0.1:${metroPort}`,
+      changeOrigin: false,
+      ws: true,
+      on: {
+        error: (_err, _req, res) => {
+          if (res && "writeHead" in res) {
+            (res as express.Response).status(502).json({ error: "Frontend not available" });
+          }
+        },
       },
-    },
-  });
+    });
 
-  // Proxy all non-API routes to Metro
-  app.use((req, res, next) => {
-    if (req.path.startsWith("/api/")) {
-      return next();
-    }
-    return metroProxy(req, res, next);
-  });
+    // Proxy all non-API routes to Metro
+    app.use((req, res, next) => {
+      if (req.path.startsWith("/api/")) {
+        return next();
+      }
+      return metroProxy(req, res, next);
+    });
 
-  // Also upgrade WebSocket connections for Metro HMR
-  server.on("upgrade", (req, socket, head) => {
-    if (!req.url?.startsWith("/api/")) {
-      (metroProxy as any).upgrade(req, socket, head);
-    }
-  });
+    // Also upgrade WebSocket connections for Metro HMR
+    server.on("upgrade", (req, socket, head) => {
+      if (!req.url?.startsWith("/api/")) {
+        (metroProxy as any).upgrade(req, socket, head);
+      }
+    });
+  }
 
-  // ── Global error handlers: always return JSON, never HTML ─────────────────
+  // Global error handlers: always return JSON, never HTML
   // Catch-all for unmatched API routes
   app.use((_req, res) => {
     res.status(404).json({ error: "Not found" });
