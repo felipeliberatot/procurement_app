@@ -574,3 +574,10 @@
 - [x] Bens existentes (21) populados com PAT-00001 a PAT-00021 via ALTER TABLE + UPDATE
 - [x] Exportação corrigida: inclui Cód. Patrimonial, usa download nativo no web e share sheet no mobile
 - [x] Scroll no desktop: ScreenContainer atualizado com overflow:auto no web para todas as abas
+
+## Correções Botão Importar e Exportação de Bens
+- [x] Renomear botão para "📥 Importar Arquivo" em todas as abas (Bens, Centros de Custo, Unidades, UNs, Departamentos)
+- [x] Substituir Excel por CSV puro (sem dependências externas, BOM UTF-8 para Excel)
+- [x] Dois botões separados "📄 Exportar CSV" e "📄 Exportar PDF" (sem Alert intermediário)
+- [x] CSV: download direto no web, share sheet no mobile via expo-sharing
+- [x] PDF: nova aba com print dialog no web, share sheet no mobile via expo-print

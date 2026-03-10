@@ -1873,8 +1873,8 @@ export default function RegistersScreen() {
   }, [assetsList, assetSearch, assetMinValue, assetMaxValue]);
 
   // Exportação de Bens
-  const handleExportAssets = async (format: "excel" | "pdf") => {
-    const exportData = filteredAssets.length > 0 ? filteredAssets : (assetsList ?? []);
+  const handleExportAssets = async (format: "csv" | "pdf") => {
+    const exportData = (assetsList ?? []);
     if (exportData.length === 0) {
       Alert.alert("Sem dados", "Não há bens para exportar.");
       return;
@@ -1882,42 +1882,49 @@ export default function RegistersScreen() {
     setIsExportingAssets(true);
     try {
       const data = exportData as any[];
-      if (format === "excel") {
-        const rows = data.map((a) => ({
-          "Cód. Patrimonial": a.patrimonialCode ?? "",
-          "Código": a.code ?? "",
-          "Descrição": a.description ?? "",
-          "Categoria": a.category ?? "",
-          "Localização": a.location ?? "",
-          "Valor (R$)": a.value ?? "",
-          "Possui Chassi": a.hasChassi ? "Sim" : "Não",
-          "Nº Chassi": a.chassiNumber ?? "",
-          "Placa": a.licensePlate ?? "",
-          "Ativo": a.active ? "Sim" : "Não",
-          "Cadastrado em": a.createdAt ? new Date(a.createdAt).toLocaleDateString("pt-BR") : "",
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        // Ajustar largura das colunas
-        ws["!cols"] = [
-          { wch: 16 }, { wch: 14 }, { wch: 40 }, { wch: 18 }, { wch: 20 },
-          { wch: 14 }, { wch: 12 }, { wch: 20 }, { wch: 12 }, { wch: 8 }, { wch: 14 },
-        ];
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Bens");
-        const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+      if (format === "csv") {
+        // Gerar CSV puro (sem dependências externas)
+        const headers = ["Cód. Patrimonial", "Código", "Descrição", "Categoria", "Localização", "Valor (R$)", "Possui Chassi", "Nº Chassi", "Placa", "Ativo", "Cadastrado em"];
+        const escape = (v: any) => {
+          const s = String(v ?? "");
+          return s.includes(",") || s.includes("\"") || s.includes("\n") ? `"${s.replace(/"/g, "\"\"")}"` : s;
+        };
+        const csvRows = [
+          headers.join(","),
+          ...data.map((a) => [
+            escape(a.patrimonialCode),
+            escape(a.code),
+            escape(a.description),
+            escape(a.category),
+            escape(a.location),
+            escape(a.value),
+            a.hasChassi ? "Sim" : "Não",
+            escape(a.chassiNumber),
+            escape(a.licensePlate),
+            a.active ? "Sim" : "Não",
+            escape(a.createdAt ? new Date(a.createdAt).toLocaleDateString("pt-BR") : ""),
+          ].join(",")),
+        ].join("\n");
+        const filename = `bens_${new Date().toISOString().slice(0, 10)}.csv`;
         if (Platform.OS === "web") {
-          // No web: download direto via link
-          const blob = new Blob([Uint8Array.from(atob(wbout), c => c.charCodeAt(0))], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+          const blob = new Blob(["\uFEFF" + csvRows], { type: "text/csv;charset=utf-8;" });
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `bens_${Date.now()}.xlsx`;
+          a.download = filename;
+          document.body.appendChild(a);
           a.click();
+          document.body.removeChild(a);
           URL.revokeObjectURL(url);
         } else {
-          const uri = `${FileSystem.cacheDirectory}bens_${Date.now()}.xlsx`;
-          await FileSystem.writeAsStringAsync(uri, wbout, { encoding: FileSystem.EncodingType.Base64 });
-          await Sharing.shareAsync(uri, { mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", dialogTitle: "Exportar Bens" });
+          const uri = `${FileSystem.cacheDirectory}${filename}`;
+          await FileSystem.writeAsStringAsync(uri, csvRows, { encoding: FileSystem.EncodingType.UTF8 });
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(uri, { mimeType: "text/csv", dialogTitle: "Exportar Bens CSV", UTI: "public.comma-separated-values-text" });
+          } else {
+            Alert.alert("Arquivo salvo", `CSV salvo em: ${uri}`);
+          }
         }
       } else {
         const rows = data.map((a, idx) => `
@@ -1927,7 +1934,7 @@ export default function RegistersScreen() {
             <td>${a.description ?? ""}</td>
             <td>${a.category ?? ""}</td>
             <td>${a.location ?? ""}</td>
-            <td style="text-align:right">${a.value ? "R$ " + a.value : ""}</td>
+            <td style="text-align:right">${a.value ? "R$&nbsp;" + a.value : ""}</td>
             <td style="text-align:center">${a.hasChassi ? "Sim" : "Não"}</td>
             <td>${a.chassiNumber ?? ""}</td>
             <td>${a.licensePlate ?? ""}</td>
@@ -1941,7 +1948,6 @@ export default function RegistersScreen() {
             table { width: 100%; border-collapse: collapse; }
             th { background: #0a7ea4; color: white; padding: 5px 6px; text-align: left; font-size: 8px; white-space: nowrap; }
             td { padding: 4px 6px; border-bottom: 1px solid #e5e7eb; font-size: 8px; }
-            tr:hover td { background: #f0f9ff; }
           </style></head><body>
           <h1>Relatório de Bens — CGS Agrícola</h1>
           <p>Gerado em: ${new Date().toLocaleString("pt-BR")} &nbsp;|&nbsp; Total: ${data.length} bens</p>
@@ -1951,12 +1957,25 @@ export default function RegistersScreen() {
           </table>
         </body></html>`;
         if (Platform.OS === "web") {
-          // No web: abrir em nova aba para imprimir
           const win = window.open("", "_blank");
-          if (win) { win.document.write(html); win.document.close(); win.print(); }
+          if (win) {
+            win.document.write(html);
+            win.document.close();
+            // Aguardar carregamento antes de imprimir
+            win.onload = () => win.print();
+            // Fallback caso onload não dispare
+            setTimeout(() => { try { win.print(); } catch (_) {} }, 800);
+          } else {
+            Alert.alert("Bloqueado", "Permita pop-ups neste site para exportar o PDF.");
+          }
         } else {
           const { uri } = await Print.printToFileAsync({ html, base64: false });
-          await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Exportar Bens" });
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) {
+            await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Exportar Bens PDF", UTI: "com.adobe.pdf" });
+          } else {
+            Alert.alert("Arquivo salvo", `PDF salvo em: ${uri}`);
+          }
         }
       }
     } catch (e: any) {
@@ -2929,7 +2948,7 @@ export default function RegistersScreen() {
                 onPress={() => handleImportCSV("costcenters")}
                 style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
               >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar Arquivo</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -3046,6 +3065,7 @@ export default function RegistersScreen() {
           {/* Barra de ações: Novo, Importar, Exportar */}
           {(isAdmin || isAssetsAdmin) && (
             <View style={{ paddingHorizontal: 12, paddingTop: 12, gap: 8 }}>
+              {/* Linha 1: Novo + Importar */}
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
                   onPress={() => { setEditingAsset(null); setShowAssetModal(true); }}
@@ -3057,24 +3077,29 @@ export default function RegistersScreen() {
                   onPress={() => handleImportCSV("assets")}
                   style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
                 >
-                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>📥 CSV</Text>
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>📥 Importar Arquivo</Text>
                 </TouchableOpacity>
+              </View>
+              {/* Linha 2: Exportar CSV + Exportar PDF */}
+              <View style={{ flexDirection: "row", gap: 8 }}>
                 <TouchableOpacity
-                  onPress={() => Alert.alert(
-                    "Exportar Bens",
-                    `Exportar ${filteredAssets.length} bens filtrados`,
-                    [
-                      { text: "Cancelar", style: "cancel" },
-                      { text: "📊 Excel", onPress: () => handleExportAssets("excel") },
-                      { text: "📄 PDF", onPress: () => handleExportAssets("pdf") },
-                    ]
-                  )}
+                  onPress={() => handleExportAssets("csv")}
                   disabled={isExportingAssets}
-                  style={{ flex: 1, backgroundColor: "#059669", borderRadius: 12, paddingVertical: 11, alignItems: "center" }}
+                  style={{ flex: 1, backgroundColor: "#059669", borderRadius: 12, paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
                 >
                   {isExportingAssets
                     ? <ActivityIndicator size="small" color="white" />
-                    : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>⬇️ Exportar</Text>
+                    : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar CSV</Text>
+                  }
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleExportAssets("pdf")}
+                  disabled={isExportingAssets}
+                  style={{ flex: 1, backgroundColor: "#DC2626", borderRadius: 12, paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
+                >
+                  {isExportingAssets
+                    ? <ActivityIndicator size="small" color="white" />
+                    : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar PDF</Text>
                   }
                 </TouchableOpacity>
               </View>
@@ -3293,7 +3318,7 @@ export default function RegistersScreen() {
                 onPress={() => handleImportCSV("units")}
                 style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
               >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar Arquivo</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -3356,7 +3381,7 @@ export default function RegistersScreen() {
                 onPress={() => handleImportCSV("businessunits")}
                 style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
               >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar Arquivo</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -3430,7 +3455,7 @@ export default function RegistersScreen() {
                 onPress={() => handleImportCSV("departments")}
                 style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
               >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar Arquivo</Text>
               </TouchableOpacity>
             </View>
           )}
