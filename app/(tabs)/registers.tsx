@@ -3095,7 +3095,7 @@ export default function RegistersScreen() {
                 <TouchableOpacity
                   onPress={() => handleExportAssets("pdf")}
                   disabled={isExportingAssets}
-                  style={{ flex: 1, backgroundColor: "#DC2626", borderRadius: 12, paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
+                  style={{ flex: 1, backgroundColor: "#9CA3AF", borderRadius: 12, paddingVertical: 10, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
                 >
                   {isExportingAssets
                     ? <ActivityIndicator size="small" color="white" />
