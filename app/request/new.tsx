@@ -60,8 +60,10 @@ export default function NewRequestScreen() {
 
   const [showDeptPicker, setShowDeptPicker] = useState(false);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [showCostCenterPicker, setShowCostCenterPicker] = useState(false);
   const [assetSearch, setAssetSearch] = useState("");
   const [deptSearch, setDeptSearch] = useState("");
+  const [costCenterSearch, setCostCenterSearch] = useState("");
 
   const filteredAssets = (assets ?? []).filter((a) =>
     !assetSearch ||
@@ -72,6 +74,11 @@ export default function NewRequestScreen() {
     !deptSearch ||
     d.name.toLowerCase().includes(deptSearch.toLowerCase()) ||
     d.code.toLowerCase().includes(deptSearch.toLowerCase())
+  );
+  const filteredCostCenters = (costCenters ?? []).filter((cc) =>
+    !costCenterSearch ||
+    cc.name.toLowerCase().includes(costCenterSearch.toLowerCase()) ||
+    cc.code.toLowerCase().includes(costCenterSearch.toLowerCase())
   );
 
   const createMutation = trpc.requests.create.useMutation({
@@ -191,25 +198,40 @@ export default function NewRequestScreen() {
             </Pressable>
           </View>
 
-          {/* Centro de Custo */}
+          {/* Centro de Custo — Modal Picker */}
           <View className="mb-4">
             <Text className="text-sm font-semibold text-foreground mb-2">Centro de Custo</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                <Pressable onPress={() => setCostCenterCode("")} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-                  <View className={`px-3 py-2 rounded-xl border ${!costCenterCode ? "bg-primary border-primary" : "bg-surface border-border"}`}>
-                    <Text className={`text-xs font-medium ${!costCenterCode ? "text-white" : "text-muted"}`}>Nenhum</Text>
-                  </View>
-                </Pressable>
-                {(costCenters ?? []).map((cc) => (
-                  <Pressable key={cc.id} onPress={() => setCostCenterCode(cc.code)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
-                    <View className={`px-3 py-2 rounded-xl border ${costCenterCode === cc.code ? "bg-primary border-primary" : "bg-surface border-border"}`}>
-                      <Text className={`text-xs font-medium ${costCenterCode === cc.code ? "text-white" : "text-muted"}`}>{cc.code} — {cc.name}</Text>
-                    </View>
-                  </Pressable>
-                ))}
+            <TouchableOpacity
+              onPress={() => { setCostCenterSearch(""); setShowCostCenterPicker(true); }}
+              style={{
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: costCenterCode ? colors.primary : colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 13,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Text style={{ color: costCenterCode ? colors.foreground : colors.muted, fontSize: 14, flex: 1 }}>
+                {costCenterCode
+                  ? (() => { const cc = (costCenters ?? []).find(c => c.code === costCenterCode); return cc ? `${cc.code} — ${cc.name}` : costCenterCode; })()
+                  : "Selecionar centro de custo..."}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {costCenterCode ? (
+                  <TouchableOpacity
+                    onPress={(e) => { e.stopPropagation?.(); setCostCenterCode(""); }}
+                    style={{ padding: 2 }}
+                  >
+                    <Text style={{ color: colors.muted, fontSize: 16 }}>✕</Text>
+                  </TouchableOpacity>
+                ) : null}
+                <Text style={{ color: colors.muted, fontSize: 16 }}>▼</Text>
               </View>
-            </ScrollView>
+            </TouchableOpacity>
           </View>
 
           {/* Aplicação / Bem */}
@@ -399,6 +421,89 @@ export default function NewRequestScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal: Selecionar Centro de Custo */}
+      {showCostCenterPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>🏦 Selecionar Centro de Custo</Text>
+              <Pressable onPress={() => { setShowCostCenterPicker(false); setCostCenterSearch(""); }} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+              </Pressable>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+              <TextInput
+                value={costCenterSearch}
+                onChangeText={setCostCenterSearch}
+                placeholder="Buscar por código ou nome..."
+                placeholderTextColor={colors.muted}
+                autoFocus
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+              />
+            </View>
+            <FlatList
+              data={filteredCostCenters}
+              keyExtractor={(item) => String(item.id)}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+              ListHeaderComponent={
+                <Pressable
+                  onPress={() => { setCostCenterCode(""); setShowCostCenterPicker(false); setCostCenterSearch(""); }}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : 1,
+                    backgroundColor: !costCenterCode ? `${colors.primary}15` : colors.surface,
+                    borderWidth: 1,
+                    borderColor: !costCenterCode ? colors.primary : colors.border,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  })}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: !costCenterCode ? colors.primary : colors.muted }}>Nenhum</Text>
+                  {!costCenterCode && <Text style={{ color: colors.primary, fontSize: 16 }}>✓</Text>}
+                </Pressable>
+              }
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🏦</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhum centro de custo encontrado</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => { setCostCenterCode(item.code); setShowCostCenterPicker(false); setCostCenterSearch(""); }}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : 1,
+                    backgroundColor: costCenterCode === item.code ? `${colors.primary}15` : colors.surface,
+                    borderWidth: 1,
+                    borderColor: costCenterCode === item.code ? colors.primary : colors.border,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  })}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
+                    <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{item.code}</Text>
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{item.code}</Text>
+                    </View>
+                    {costCenterCode === item.code && <Text style={{ color: colors.primary, fontSize: 16 }}>✓</Text>}
+                  </View>
+                </Pressable>
+              )}
+            />
+          </View>
+        </View>
+      )}
 
       {/* Modal: Selecionar Departamento */}
       {showDeptPicker && (

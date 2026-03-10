@@ -581,3 +581,6 @@
 - [x] Dois botões separados "📄 Exportar CSV" e "📄 Exportar PDF" (sem Alert intermediário)
 - [x] CSV: download direto no web, share sheet no mobile via expo-sharing
 - [x] PDF: nova aba com print dialog no web, share sheet no mobile via expo-print
+
+## Melhoria: Seletor de Centro de Custo na Nova Solicitação
+- [x] Substituir chips horizontais por botão que abre modal bottom-sheet com campo de busca por código ou nome
