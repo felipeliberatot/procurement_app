@@ -37,10 +37,10 @@ interface Item {
   unitPrice: string;
 }
 
-const URGENCY_OPTIONS: Array<{ value: UrgencyLevel; label: string; icon: string; days: number; color: string }> = [
-  { value: "normal",      label: "Normal",      icon: "🔵", days: 7, color: "border-primary bg-primary/10" },
-  { value: "urgente",     label: "Urgente",     icon: "🟡", days: 3, color: "border-warning bg-warning/10" },
-  { value: "emergencial", label: "Emergencial", icon: "🔴", days: 1, color: "border-error bg-error/10" },
+const URGENCY_OPTIONS: Array<{ value: UrgencyLevel; label: string; icon: string; days: number }> = [
+  { value: "normal",      label: "Normal",      icon: "🔵", days: 7 },
+  { value: "urgente",     label: "Urgente",     icon: "🟡", days: 3 },
+  { value: "emergencial", label: "Emergencial", icon: "🔴", days: 1 },
 ];
 
 function newItem(): Item {
@@ -73,9 +73,11 @@ export default function EditByControladoriaScreen() {
   const [items, setItems] = useState<Item[]>([newItem()]);
 
   const [showDeptPicker, setShowDeptPicker] = useState(false);
+  const [showCostCenterPicker, setShowCostCenterPicker] = useState(false);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [assetSearch, setAssetSearch] = useState("");
   const [deptSearch, setDeptSearch] = useState("");
+  const [costCenterSearch, setCostCenterSearch] = useState("");
 
   // Pré-preencher formulário com dados da solicitação
   useEffect(() => {
@@ -109,8 +111,13 @@ export default function EditByControladoriaScreen() {
     d.name.toLowerCase().includes(deptSearch.toLowerCase()) ||
     d.code.toLowerCase().includes(deptSearch.toLowerCase())
   );
+  const filteredCostCenters = (costCenters ?? []).filter((cc) =>
+    !costCenterSearch ||
+    cc.name.toLowerCase().includes(costCenterSearch.toLowerCase()) ||
+    cc.code.toLowerCase().includes(costCenterSearch.toLowerCase())
+  );
 
-  // Encontrar o costCenterId pelo código
+  // Encontrar o costCenterId e nome pelo código selecionado
   const selectedCostCenter = (costCenters ?? []).find((cc) => cc.code === costCenterCode);
 
   const updateMutation = trpc.requests.updateByControladoria.useMutation({
@@ -231,104 +238,114 @@ export default function EditByControladoriaScreen() {
 
   return (
     <ScreenContainer>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
         {/* Header */}
-        <View className="flex-row items-center px-5 py-4 border-b border-border">
+        <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
           <Pressable onPress={() => router.back()} style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1 }]}>
-            <Text className="text-primary text-base">← Voltar</Text>
+            <Text style={{ color: colors.primary, fontSize: 15 }}>← Voltar</Text>
           </Pressable>
-          <Text className="flex-1 text-center text-lg font-bold text-foreground">Editar (Controladoria)</Text>
+          <Text style={{ flex: 1, textAlign: "center", fontSize: 17, fontWeight: "700", color: colors.foreground }}>Editar (Controladoria)</Text>
           <View style={{ width: 60 }} />
         </View>
 
         {/* Aviso: sem reinício de aprovação */}
-        <View className="mx-4 mt-3 mb-1 bg-success/10 border border-success/30 rounded-xl px-4 py-3 flex-row items-start gap-3">
-          <Text className="text-lg">✅</Text>
-          <View className="flex-1">
-            <Text className="text-xs font-bold text-success mb-0.5">Edição sem reinício de aprovação</Text>
-            <Text className="text-xs text-muted">O fluxo permanecerá na etapa da Controladoria após salvar as alterações.</Text>
+        <View style={{ margin: 16, marginBottom: 4, backgroundColor: `${colors.success}15`, borderWidth: 1, borderColor: `${colors.success}40`, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "flex-start", gap: 10 }}>
+          <Text style={{ fontSize: 16 }}>✅</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.success, marginBottom: 2 }}>Edição sem reinício de aprovação</Text>
+            <Text style={{ fontSize: 12, color: colors.muted }}>O fluxo permanecerá na etapa da Controladoria após salvar as alterações.</Text>
           </View>
         </View>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ padding: 20, paddingBottom: Math.max(insets.bottom + 24, 40) }}
+          contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom + 24, 40) }}
           keyboardShouldPersistTaps="handled"
         >
           {/* Número da solicitação (readonly) */}
-          <View className="mb-4 bg-surface border border-border rounded-xl p-3">
-            <Text className="text-xs text-muted mb-1">Solicitação</Text>
-            <Text className="text-sm font-bold text-primary">{request.requestNumber}</Text>
+          <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, marginBottom: 16 }}>
+            <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 2 }}>Solicitação</Text>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primary }}>{request.requestNumber}</Text>
           </View>
 
           {/* Urgência */}
-          <View className="mb-5">
-            <Text className="text-sm font-semibold text-foreground mb-2">Urgência *</Text>
-            <View className="flex-row gap-2">
-              {URGENCY_OPTIONS.map((opt) => (
-                <Pressable
-                  key={opt.value}
-                  onPress={() => setUrgency(opt.value)}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, flex: 1 })}
-                  className={`border-2 rounded-xl p-3 items-center ${urgency === opt.value ? opt.color : "border-border bg-surface"}`}
-                >
-                  <Text className="text-lg mb-1">{opt.icon}</Text>
-                  <Text className={`text-xs font-bold ${urgency === opt.value ? "text-foreground" : "text-muted"}`}>{opt.label}</Text>
-                  <Text className={`text-xs ${urgency === opt.value ? "text-muted" : "text-muted/60"}`}>{opt.days}d</Text>
-                </Pressable>
-              ))}
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 10 }}>Urgência *</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              {URGENCY_OPTIONS.map((opt) => {
+                const isSelected = urgency === opt.value;
+                const borderColor = isSelected
+                  ? (opt.value === "normal" ? colors.primary : opt.value === "urgente" ? colors.warning : colors.error)
+                  : colors.border;
+                const bgColor = isSelected
+                  ? (opt.value === "normal" ? `${colors.primary}15` : opt.value === "urgente" ? `${colors.warning}15` : `${colors.error}15`)
+                  : colors.surface;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => setUrgency(opt.value)}
+                    style={{ flex: 1, borderWidth: 2, borderColor, borderRadius: 12, padding: 12, alignItems: "center", backgroundColor: bgColor }}
+                  >
+                    <Text style={{ fontSize: 18, marginBottom: 4 }}>{opt.icon}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground }}>{opt.label}</Text>
+                    <Text style={{ fontSize: 11, color: colors.muted }}>{opt.days}d</Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
           {/* Departamento */}
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-2">Departamento *</Text>
-            <Pressable
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 8 }}>Departamento *</Text>
+            <TouchableOpacity
               onPress={() => setShowDeptPicker(true)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-              className="bg-surface border border-border rounded-xl px-4 py-3 flex-row items-center justify-between"
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
             >
-              <Text className={department ? "text-foreground text-sm" : "text-muted text-sm"}>
+              <Text style={{ fontSize: 14, color: department ? colors.foreground : colors.muted, flex: 1 }} numberOfLines={1}>
                 {department || "Selecionar departamento..."}
               </Text>
-              <Text className="text-muted text-xs">▼</Text>
-            </Pressable>
+              <Text style={{ color: colors.muted, fontSize: 12 }}>▼</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Centro de Custo */}
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-2">Centro de Custo</Text>
-            <View className="bg-surface border border-border rounded-xl px-4 py-3 flex-row flex-wrap gap-2">
-              {(costCenters ?? []).length === 0 ? (
-                <Text className="text-muted text-sm">Nenhum centro de custo cadastrado</Text>
-              ) : (
-                (costCenters ?? []).map((cc) => (
-                  <Pressable
-                    key={cc.id}
-                    onPress={() => setCostCenterCode(costCenterCode === cc.code ? "" : cc.code)}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                    className={`px-3 py-1.5 rounded-full border ${costCenterCode === cc.code ? "bg-primary border-primary" : "bg-surface border-border"}`}
+          {/* Centro de Custo — picker modal com busca */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 8 }}>Centro de Custo</Text>
+            <TouchableOpacity
+              onPress={() => setShowCostCenterPicker(true)}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: costCenterCode ? colors.primary : colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+            >
+              <Text style={{ fontSize: 14, color: costCenterCode ? colors.foreground : colors.muted, flex: 1 }} numberOfLines={1}>
+                {costCenterCode && selectedCostCenter
+                  ? `${selectedCostCenter.code} — ${selectedCostCenter.name}`
+                  : "Selecionar centro de custo..."}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {costCenterCode && (
+                  <TouchableOpacity
+                    onPress={() => setCostCenterCode("")}
+                    style={{ padding: 4 }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    <Text className={`text-xs font-semibold ${costCenterCode === cc.code ? "text-white" : "text-foreground"}`}>
-                      {cc.code} — {cc.name}
-                    </Text>
-                  </Pressable>
-                ))
-              )}
-            </View>
+                    <Text style={{ color: colors.muted, fontSize: 14 }}>✕</Text>
+                  </TouchableOpacity>
+                )}
+                <Text style={{ color: colors.muted, fontSize: 12 }}>▼</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Aplicação / Finalidade */}
-          <View className="mb-4">
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-sm font-semibold text-foreground">Aplicação / Finalidade *</Text>
-              <Pressable
+          <View style={{ marginBottom: 16 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>Aplicação / Finalidade *</Text>
+              <TouchableOpacity
                 onPress={() => setShowAssetPicker(true)}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-1"
+                style={{ backgroundColor: `${colors.primary}15`, borderWidth: 1, borderColor: `${colors.primary}40`, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
               >
-                <Text className="text-primary text-xs font-semibold">📦 Selecionar Bem</Text>
-              </Pressable>
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>📦 Selecionar Bem</Text>
+              </TouchableOpacity>
             </View>
             <TextInput
               value={application}
@@ -337,46 +354,26 @@ export default function EditByControladoriaScreen() {
               placeholderTextColor={colors.muted}
               multiline
               numberOfLines={3}
-              style={{
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 14,
-                color: colors.foreground,
-                minHeight: 80,
-                textAlignVertical: "top",
-              }}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground, minHeight: 80, textAlignVertical: "top" }}
             />
           </View>
 
           {/* OS Myfarm */}
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-2">OS Myfarm</Text>
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 8 }}>OS Myfarm</Text>
             <TextInput
               value={osMyfarm}
               onChangeText={setOsMyfarm}
               placeholder="Número da OS no Myfarm (opcional)"
               placeholderTextColor={colors.muted}
               keyboardType="numeric"
-              style={{
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 14,
-                color: colors.foreground,
-              }}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground }}
             />
           </View>
 
           {/* Observações */}
-          <View className="mb-5">
-            <Text className="text-sm font-semibold text-foreground mb-2">Observações</Text>
+          <View style={{ marginBottom: 20 }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 8 }}>Observações</Text>
             <TextInput
               value={observations}
               onChangeText={setObservations}
@@ -384,127 +381,73 @@ export default function EditByControladoriaScreen() {
               placeholderTextColor={colors.muted}
               multiline
               numberOfLines={3}
-              style={{
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 16,
-                paddingVertical: 12,
-                fontSize: 14,
-                color: colors.foreground,
-                minHeight: 80,
-                textAlignVertical: "top",
-              }}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground, minHeight: 80, textAlignVertical: "top" }}
             />
           </View>
 
           {/* Itens */}
-          <View className="mb-5">
-            <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-sm font-semibold text-foreground">Itens *</Text>
-              <Pressable
+          <View style={{ marginBottom: 20 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>Itens *</Text>
+              <TouchableOpacity
                 onPress={addItem}
-                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                className="bg-primary/10 border border-primary/30 rounded-lg px-3 py-1.5"
+                style={{ backgroundColor: `${colors.primary}15`, borderWidth: 1, borderColor: `${colors.primary}40`, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 }}
               >
-                <Text className="text-primary text-xs font-semibold">+ Adicionar Item</Text>
-              </Pressable>
+                <Text style={{ color: colors.primary, fontSize: 12, fontWeight: "600" }}>+ Adicionar Item</Text>
+              </TouchableOpacity>
             </View>
 
             {items.map((item, index) => (
-              <View key={item.id} className="bg-surface border border-border rounded-xl p-4 mb-3">
-                <View className="flex-row items-center justify-between mb-3">
-                  <Text className="text-xs font-bold text-muted">ITEM {index + 1}</Text>
+              <View key={item.id} style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, marginBottom: 10 }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted }}>ITEM {index + 1}</Text>
                   {items.length > 1 && (
-                    <Pressable
-                      onPress={() => removeItem(item.id)}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-                    >
-                      <Text className="text-error text-xs font-semibold">✕ Remover</Text>
-                    </Pressable>
+                    <TouchableOpacity onPress={() => removeItem(item.id)}>
+                      <Text style={{ color: colors.error, fontSize: 12, fontWeight: "600" }}>✕ Remover</Text>
+                    </TouchableOpacity>
                   )}
                 </View>
 
-                {/* Descrição */}
-                <Text className="text-xs text-muted mb-1">Descrição *</Text>
+                <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 4 }}>Descrição *</Text>
                 <TextInput
                   value={item.description}
                   onChangeText={(v) => updateItem(item.id, "description", v)}
                   placeholder="Ex: Filtro de óleo hidráulico"
                   placeholderTextColor={colors.muted}
-                  style={{
-                    backgroundColor: colors.background,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 10,
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    fontSize: 14,
-                    color: colors.foreground,
-                    marginBottom: 10,
-                  }}
+                  style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground, marginBottom: 10 }}
                 />
 
-                {/* Quantidade, Unidade e Preço */}
-                <View className="flex-row gap-2">
-                  <View className="flex-1">
-                    <Text className="text-xs text-muted mb-1">Qtd *</Text>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 4 }}>Qtd *</Text>
                     <TextInput
                       value={item.quantity}
                       onChangeText={(v) => updateItem(item.id, "quantity", v)}
                       placeholder="1"
                       placeholderTextColor={colors.muted}
                       keyboardType="decimal-pad"
-                      style={{
-                        backgroundColor: colors.background,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: 10,
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
-                        fontSize: 14,
-                        color: colors.foreground,
-                      }}
+                      style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
                     />
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-xs text-muted mb-1">Unidade</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 4 }}>Unidade</Text>
                     <TextInput
                       value={item.unit}
                       onChangeText={(v) => updateItem(item.id, "unit", v)}
                       placeholder="un"
                       placeholderTextColor={colors.muted}
-                      style={{
-                        backgroundColor: colors.background,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: 10,
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
-                        fontSize: 14,
-                        color: colors.foreground,
-                      }}
+                      style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
                     />
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-xs text-muted mb-1">Preço Unit.</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 4 }}>Preço Unit.</Text>
                     <TextInput
                       value={item.unitPrice}
                       onChangeText={(v) => updateItem(item.id, "unitPrice", v)}
                       placeholder="0,00"
                       placeholderTextColor={colors.muted}
                       keyboardType="decimal-pad"
-                      style={{
-                        backgroundColor: colors.background,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        borderRadius: 10,
-                        paddingHorizontal: 14,
-                        paddingVertical: 10,
-                        fontSize: 14,
-                        color: colors.foreground,
-                      }}
+                      style={{ backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
                     />
                   </View>
                 </View>
@@ -513,9 +456,9 @@ export default function EditByControladoriaScreen() {
 
             {/* Total estimado */}
             {totalValue > 0 && (
-              <View className="bg-primary/10 border border-primary/20 rounded-xl px-4 py-3 flex-row items-center justify-between">
-                <Text className="text-sm font-semibold text-foreground">Total Estimado</Text>
-                <Text className="text-base font-bold text-primary">
+              <View style={{ backgroundColor: `${colors.primary}10`, borderWidth: 1, borderColor: `${colors.primary}25`, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>Total Estimado</Text>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.primary }}>
                   {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </Text>
               </View>
@@ -523,39 +466,32 @@ export default function EditByControladoriaScreen() {
           </View>
 
           {/* Botão Salvar */}
-          <Pressable
+          <TouchableOpacity
             onPress={handleSubmit}
             disabled={updateMutation.isPending}
-            style={({ pressed }) => ({
-              opacity: pressed || updateMutation.isPending ? 0.7 : 1,
-              transform: pressed ? [{ scale: 0.98 }] : [],
-              backgroundColor: colors.success,
-              borderRadius: 16,
-              paddingVertical: 16,
-              alignItems: "center",
-              marginTop: 8,
-            })}
+            style={{ backgroundColor: colors.success, borderRadius: 14, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: updateMutation.isPending ? 0.7 : 1, marginTop: 8 }}
           >
             {updateMutation.isPending ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>
-                ✅ Salvar Alterações
-              </Text>
+              <>
+                <Text style={{ fontSize: 16 }}>✅</Text>
+                <Text style={{ color: "#fff", fontSize: 16, fontWeight: "700" }}>Salvar Alterações</Text>
+              </>
             )}
-          </Pressable>
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Modal: Selecionar Departamento */}
+      {/* ─── Modal: Selecionar Departamento ─────────────────────────────────────── */}
       {showDeptPicker && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
           <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
               <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>🏛️ Selecionar Departamento</Text>
-              <Pressable onPress={() => { setShowDeptPicker(false); setDeptSearch(""); }} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+              <TouchableOpacity onPress={() => { setShowDeptPicker(false); setDeptSearch(""); }}>
                 <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
             <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
               <TextInput
@@ -578,10 +514,9 @@ export default function EditByControladoriaScreen() {
                 </View>
               }
               renderItem={({ item }) => (
-                <Pressable
+                <TouchableOpacity
                   onPress={() => { setDepartment(item.name); setShowDeptPicker(false); setDeptSearch(""); }}
-                  style={({ pressed }) => ({
-                    opacity: pressed ? 0.7 : 1,
+                  style={{
                     backgroundColor: department === item.name ? `${colors.primary}15` : colors.surface,
                     borderWidth: 1,
                     borderColor: department === item.name ? colors.primary : colors.border,
@@ -591,7 +526,7 @@ export default function EditByControladoriaScreen() {
                     flexDirection: "row",
                     alignItems: "center",
                     justifyContent: "space-between",
-                  })}
+                  }}
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
@@ -600,22 +535,101 @@ export default function EditByControladoriaScreen() {
                   <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
                     <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{item.code}</Text>
                   </View>
-                </Pressable>
+                </TouchableOpacity>
               )}
             />
           </View>
         </View>
       )}
 
-      {/* Modal: Selecionar Bem */}
+      {/* ─── Modal: Selecionar Centro de Custo ──────────────────────────────────── */}
+      {showCostCenterPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>💰 Selecionar Centro de Custo</Text>
+              <TouchableOpacity onPress={() => { setShowCostCenterPicker(false); setCostCenterSearch(""); }}>
+                <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+              <TextInput
+                value={costCenterSearch}
+                onChangeText={setCostCenterSearch}
+                placeholder="Buscar centro de custo..."
+                placeholderTextColor={colors.muted}
+                autoFocus
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+              />
+            </View>
+            <FlatList
+              data={filteredCostCenters}
+              keyExtractor={(item) => String(item.id)}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+              ListHeaderComponent={
+                /* Opção "Nenhum" para limpar a seleção */
+                <TouchableOpacity
+                  onPress={() => { setCostCenterCode(""); setShowCostCenterPicker(false); setCostCenterSearch(""); }}
+                  style={{
+                    backgroundColor: !costCenterCode ? `${colors.primary}15` : colors.surface,
+                    borderWidth: 1,
+                    borderColor: !costCenterCode ? colors.primary : colors.border,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <Text style={{ fontSize: 16 }}>🚫</Text>
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: !costCenterCode ? colors.primary : colors.muted }}>Nenhum</Text>
+                </TouchableOpacity>
+              }
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>💰</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhum centro de custo encontrado</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => { setCostCenterCode(item.code); setShowCostCenterPicker(false); setCostCenterSearch(""); }}
+                  style={{
+                    backgroundColor: costCenterCode === item.code ? `${colors.primary}15` : colors.surface,
+                    borderWidth: 1,
+                    borderColor: costCenterCode === item.code ? colors.primary : colors.border,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
+                    {item.responsible && <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>👤 {item.responsible}</Text>}
+                  </View>
+                  <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{item.code}</Text>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* ─── Modal: Selecionar Bem ───────────────────────────────────────────────── */}
       {showAssetPicker && (
         <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
           <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
               <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>📦 Selecionar Bem</Text>
-              <Pressable onPress={() => { setShowAssetPicker(false); setAssetSearch(""); }} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+              <TouchableOpacity onPress={() => { setShowAssetPicker(false); setAssetSearch(""); }}>
                 <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
             <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
               <TextInput
@@ -639,24 +653,9 @@ export default function EditByControladoriaScreen() {
                 </View>
               }
               renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => {
-                    setApplication(`${item.code} — ${item.description}`);
-                    setShowAssetPicker(false);
-                    setAssetSearch("");
-                  }}
-                  style={({ pressed }) => ({
-                    opacity: pressed ? 0.7 : 1,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                    borderRadius: 12,
-                    padding: 14,
-                    marginBottom: 8,
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 12,
-                  })}
+                <TouchableOpacity
+                  onPress={() => { setApplication(`${item.code} — ${item.description}`); setShowAssetPicker(false); setAssetSearch(""); }}
+                  style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 14, marginBottom: 8, flexDirection: "row", alignItems: "center", gap: 12 }}
                 >
                   <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
                     <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{item.code}</Text>
@@ -666,7 +665,7 @@ export default function EditByControladoriaScreen() {
                     {item.category && <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{item.category}</Text>}
                     {item.location && <Text style={{ fontSize: 12, color: colors.muted }}>📍 {item.location}</Text>}
                   </View>
-                </Pressable>
+                </TouchableOpacity>
               )}
             />
           </View>

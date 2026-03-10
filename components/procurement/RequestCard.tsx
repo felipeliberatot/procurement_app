@@ -36,6 +36,8 @@ interface RequestCardProps {
   isRejecting?: boolean;
   /** Quando true, mostra apenas o botão Aprovar (etapas sem rejeição direta) */
   approveOnly?: boolean;
+  /** Callback para botão de edição (sem reiniciar fluxo) */
+  onEdit?: () => void;
 }
 
 function formatCurrency(value?: string | null): string {
@@ -53,6 +55,7 @@ export function RequestCard({
   isApproving,
   isRejecting,
   approveOnly,
+  onEdit,
 }: RequestCardProps) {
   const colors = useColors();
   const showActions = !!onApprove;
@@ -169,7 +172,8 @@ export function RequestCard({
 
           {/* Botões de ação rápida */}
           {showActions && (
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 12 }}>
+            <View style={{ gap: 10, marginTop: 12 }}>
+              <View style={{ flexDirection: "row", gap: 10 }}>
               {/* Botão Rejeitar — só aparece quando não é approveOnly */}
               {!approveOnly && (
                 <TouchableOpacity
@@ -230,6 +234,30 @@ export function RequestCard({
                   </>
                 )}
               </TouchableOpacity>
+              </View>
+
+              {/* Botão Editar (sem reiniciar fluxo) — só aparece quando onEdit é fornecido */}
+              {onEdit && (
+                <TouchableOpacity
+                  onPress={(e) => { e.stopPropagation?.(); onEdit(); }}
+                  disabled={isApproving || isRejecting}
+                  style={{
+                    backgroundColor: `${colors.primary}12`,
+                    borderWidth: 1.5,
+                    borderColor: `${colors.primary}40`,
+                    borderRadius: 10,
+                    paddingVertical: 9,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 5,
+                    opacity: (isApproving || isRejecting) ? 0.5 : 1,
+                  }}
+                >
+                  <Text style={{ fontSize: 13 }}>✏️</Text>
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>Editar Dados (sem reiniciar fluxo)</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
         </View>

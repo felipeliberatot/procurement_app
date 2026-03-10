@@ -553,3 +553,7 @@
 - [x] Backend: rota tRPC requests.updateByControladoria (atualiza dados sem mudar status/etapa)
 - [x] Frontend: botão "Editar" visível apenas para usuários com role controladoria na etapa correta
 - [x] Frontend: tela app/request/edit-controladoria/[id].tsx com aviso de "sem reiniciar fluxo"
+
+## Melhorias na Edição pela Controladoria
+- [x] Adicionar botão "Editar Dados" no card de aprovações da aba Aprovações (para role controladoria)
+- [x] Corrigir formulário edit-controladoria: substituir chips de centro de custo por picker modal com busca

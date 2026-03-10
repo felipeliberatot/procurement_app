@@ -214,11 +214,27 @@ export default function ApprovalsScreen() {
     setRejectTarget({ id: item.id, requestNumber: item.requestNumber });
   };
 
+  // Combinar todos os papéis do usuário para verificar se é controladoria
+  const parseJsonArr = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    try { return JSON.parse(val); } catch { return []; }
+  };
+  const allUserRoles: string[] = [
+    userRole,
+    ...parseJsonArr((user as any)?.extraRoles),
+    ...((user as any)?.approvalLevel && (user as any)?.approvalLevel !== "nenhum" && (user as any)?.approvalLevel !== "master" ? [(user as any).approvalLevel] : []),
+    ...parseJsonArr((user as any)?.extraApprovalLevels).filter((l: string) => l !== "nenhum" && l !== "master"),
+  ];
+  const isControladoria = allUserRoles.includes("controladoria") || isMasterUser;
+
   const renderItem = ({ item }: { item: any }) => {
     const status = item.status as RequestStatus;
     const isApproveOnly = APPROVE_ONLY_STATUSES.includes(status);
     const isApproving = approvingId === item.id && approveMutation.isPending;
     const isRejecting = rejectTarget?.id === item.id && rejectMutation.isPending;
+    // Mostrar botão de edição sem reiniciar fluxo apenas para controladoria na etapa correta
+    const showEditButton = isControladoria && status === "aguardando_controladoria";
     return (
       <View style={isDesktop ? { flex: 1 } : {}}>
         <RequestCard
@@ -228,6 +244,7 @@ export default function ApprovalsScreen() {
           onReject={!isApproveOnly ? () => handleQuickReject(item) : undefined}
           isApproving={isApproving}
           isRejecting={isRejecting}
+          onEdit={showEditButton ? () => router.push(`/request/edit-controladoria/${item.id}` as any) : undefined}
         />
       </View>
     );
