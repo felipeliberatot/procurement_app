@@ -540,3 +540,6 @@
 
 ## Bug: Frontend Web não carrega em produção
 - [x] Corrigir servidor para servir o bundle estático do frontend web: adicionado expo export --platform web no build e servidor serve dist/web em produção
+
+## Bug: Erro de Build Docker na Publicação
+- [x] Corrigir erro Metro no build Docker: adicionado CI=true EXPO_NO_DOTENV=1 no script build:web para desativar watchman no ambiente Docker
