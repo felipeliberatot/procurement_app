@@ -1,4 +1,6 @@
 import { ScreenContainer } from "@/components/screen-container";
+import * as XLSX from "xlsx";
+import * as Print from "expo-print";
 import { useAuth } from "@/hooks/use-auth";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { useColors } from "@/hooks/use-colors";
@@ -1186,6 +1188,10 @@ function AssetModal({
   const [description, setDescription] = useState(item?.description ?? "");
   const [category, setCategory] = useState(item?.category ?? "");
   const [location, setLocation] = useState(item?.location ?? "");
+  const [value, setValue] = useState(item?.value ?? "");
+  const [hasChassi, setHasChassi] = useState<boolean>(item?.hasChassi ?? false);
+  const [chassiNumber, setChassiNumber] = useState(item?.chassiNumber ?? "");
+  const [licensePlate, setLicensePlate] = useState(item?.licensePlate ?? "");
 
   React.useEffect(() => {
     if (!item?.id && !isEditing) {
@@ -1196,6 +1202,10 @@ function AssetModal({
     setDescription(item?.description ?? "");
     setCategory(item?.category ?? "");
     setLocation(item?.location ?? "");
+    setValue(item?.value ?? "");
+    setHasChassi(item?.hasChassi ?? false);
+    setChassiNumber(item?.chassiNumber ?? "");
+    setLicensePlate(item?.licensePlate ?? "");
   }, [item, visible]);
 
   const handleSave = () => {
@@ -1203,17 +1213,29 @@ function AssetModal({
       Alert.alert("Campos obrigatórios", "Código e descrição são obrigatórios.");
       return;
     }
+    if (!value.trim()) {
+      Alert.alert("Campo obrigatório", "Informe o valor do bem.");
+      return;
+    }
     onSave({
       code: code.trim(),
       description: description.trim(),
       category: category.trim() || undefined,
       location: location.trim() || undefined,
+      value: value.trim(),
+      hasChassi,
+      chassiNumber: hasChassi ? (chassiNumber.trim() || undefined) : undefined,
+      licensePlate: hasChassi ? (licensePlate.trim() || undefined) : undefined,
     });
     if (!isEditing) {
       setCode("");
       setDescription("");
       setCategory("");
       setLocation("");
+      setValue("");
+      setHasChassi(false);
+      setChassiNumber("");
+      setLicensePlate("");
     }
   };
 
@@ -1333,8 +1355,129 @@ function AssetModal({
                 fontSize: 14,
                 color: colors.foreground,
               }}
+              returnKeyType="next"
+            />
+          </View>
+
+          {/* Valor do Bem (Obrigatório) */}
+          <View>
+            <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+              Valor do Bem *
+            </Text>
+            <TextInput
+              value={value}
+              onChangeText={setValue}
+              placeholder="Ex: 1500,00"
+              placeholderTextColor={colors.muted}
+              keyboardType="decimal-pad"
+              style={{
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: value.trim() ? colors.border : `${colors.error}60`,
+                borderRadius: 12,
+                paddingHorizontal: 16,
+                paddingVertical: 12,
+                fontSize: 14,
+                color: colors.foreground,
+              }}
               returnKeyType="done"
             />
+            {!value.trim() && (
+              <Text style={{ color: colors.error, fontSize: 11, marginTop: 4 }}>Campo obrigatório</Text>
+            )}
+          </View>
+
+          {/* Toggle Chassi */}
+          <View
+            style={{
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: hasChassi ? colors.primary : colors.border,
+              borderRadius: 12,
+              padding: 14,
+            }}
+          >
+            <TouchableOpacity
+              onPress={() => setHasChassi((v) => !v)}
+              style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Text style={{ fontSize: 18 }}>🚗</Text>
+                <View>
+                  <Text style={{ color: colors.foreground, fontSize: 14, fontWeight: "600" }}>Possui Chassi / Placa?</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12 }}>Ative para informar o chassi e a placa</Text>
+                </View>
+              </View>
+              <View
+                style={{
+                  width: 44,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: hasChassi ? colors.primary : colors.border,
+                  justifyContent: "center",
+                  paddingHorizontal: 3,
+                }}
+              >
+                <View
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 10,
+                    backgroundColor: "white",
+                    alignSelf: hasChassi ? "flex-end" : "flex-start",
+                  }}
+                />
+              </View>
+            </TouchableOpacity>
+
+            {hasChassi && (
+              <View style={{ marginTop: 14, gap: 12 }}>
+                <View>
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Nº do Chassi</Text>
+                  <TextInput
+                    value={chassiNumber}
+                    onChangeText={setChassiNumber}
+                    placeholder="Ex: 9BWZZZ377VT004251"
+                    placeholderTextColor={colors.muted}
+                    autoCapitalize="characters"
+                    style={{
+                      backgroundColor: colors.background,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: 10,
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                      fontSize: 14,
+                      color: colors.foreground,
+                      fontFamily: "monospace",
+                    }}
+                    returnKeyType="next"
+                  />
+                </View>
+                <View>
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>Placa</Text>
+                  <TextInput
+                    value={licensePlate}
+                    onChangeText={setLicensePlate}
+                    placeholder="Ex: ABC-1234"
+                    placeholderTextColor={colors.muted}
+                    autoCapitalize="characters"
+                    style={{
+                      backgroundColor: colors.background,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: 10,
+                      paddingHorizontal: 14,
+                      paddingVertical: 10,
+                      fontSize: 14,
+                      color: colors.foreground,
+                      fontFamily: "monospace",
+                    }}
+                    returnKeyType="done"
+                  />
+                </View>
+              </View>
+            )}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -1656,6 +1799,13 @@ export default function RegistersScreen() {
   const [userSearch, setUserSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<ProcurementRole | "all">("all");
 
+  // Filters for assets tab
+  const [assetSearch, setAssetSearch] = useState("");
+  const [assetMinValue, setAssetMinValue] = useState("");
+  const [assetMaxValue, setAssetMaxValue] = useState("");
+  const [showAssetFilters, setShowAssetFilters] = useState(false);
+  const [isExportingAssets, setIsExportingAssets] = useState(false);
+
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
   const userExtraRoles: ProcurementRole[] = (() => { try { return JSON.parse((user as any)?.extraRoles ?? "[]") as ProcurementRole[]; } catch { return []; } })();
   const isAdmin = userRole === "admin" || userExtraRoles.includes("admin");
@@ -1695,6 +1845,89 @@ export default function RegistersScreen() {
       return matchSearch && matchRole;
     });
   }, [usersList, userSearch, roleFilter]);
+
+  const filteredAssets = useMemo(() => {
+    if (!assetsList) return [];
+    return assetsList.filter((a: any) => {
+      const matchSearch =
+        !assetSearch ||
+        (a.description ?? "").toLowerCase().includes(assetSearch.toLowerCase()) ||
+        (a.code ?? "").toLowerCase().includes(assetSearch.toLowerCase()) ||
+        (a.category ?? "").toLowerCase().includes(assetSearch.toLowerCase()) ||
+        (a.location ?? "").toLowerCase().includes(assetSearch.toLowerCase());
+      const numVal = parseFloat((a.value ?? "0").replace(",", ".")) || 0;
+      const matchMin = !assetMinValue || numVal >= (parseFloat(assetMinValue.replace(",", ".")) || 0);
+      const matchMax = !assetMaxValue || numVal <= (parseFloat(assetMaxValue.replace(",", ".")) || Infinity);
+      return matchSearch && matchMin && matchMax;
+    });
+  }, [assetsList, assetSearch, assetMinValue, assetMaxValue]);
+
+  // Exportação de Bens
+  const handleExportAssets = async (format: "excel" | "pdf") => {
+    if (!assetsList || assetsList.length === 0) {
+      Alert.alert("Sem dados", "Não há bens para exportar.");
+      return;
+    }
+    setIsExportingAssets(true);
+    try {
+      const data = filteredAssets as any[];
+      if (format === "excel") {
+        const rows = data.map((a) => ({
+          "Código": a.code ?? "",
+          "Descrição": a.description ?? "",
+          "Categoria": a.category ?? "",
+          "Localização": a.location ?? "",
+          "Valor (R$)": a.value ?? "",
+          "Possui Chassi": a.hasChassi ? "Sim" : "Não",
+          "Nº Chassi": a.chassiNumber ?? "",
+          "Placa": a.licensePlate ?? "",
+          "Ativo": a.active ? "Sim" : "Não",
+          "Cadastrado em": a.createdAt ? new Date(a.createdAt).toLocaleDateString("pt-BR") : "",
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Bens");
+        const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
+        const uri = `${FileSystem.cacheDirectory}bens_${Date.now()}.xlsx`;
+        await FileSystem.writeAsStringAsync(uri, wbout, { encoding: FileSystem.EncodingType.Base64 });
+        await Sharing.shareAsync(uri, { mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", dialogTitle: "Exportar Bens" });
+      } else {
+        const rows = data.map((a, idx) => `
+          <tr style="background:${idx % 2 === 0 ? '#f9fafb' : '#ffffff'}">
+            <td>${a.code ?? ""}</td>
+            <td>${a.description ?? ""}</td>
+            <td>${a.category ?? ""}</td>
+            <td>${a.location ?? ""}</td>
+            <td style="text-align:right">${a.value ? `R$ ${a.value}` : ""}</td>
+            <td style="text-align:center">${a.hasChassi ? "Sim" : "Não"}</td>
+            <td>${a.chassiNumber ?? ""}</td>
+            <td>${a.licensePlate ?? ""}</td>
+          </tr>`).join("");
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+          <style>
+            body { font-family: Arial, sans-serif; font-size: 10px; margin: 20px; }
+            h1 { font-size: 16px; color: #0a7ea4; margin-bottom: 4px; }
+            p { color: #666; font-size: 9px; margin-bottom: 12px; }
+            table { width: 100%; border-collapse: collapse; }
+            th { background: #0a7ea4; color: white; padding: 6px 8px; text-align: left; font-size: 9px; }
+            td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; }
+          </style></head><body>
+          <h1>Relatório de Bens</h1>
+          <p>Gerado em: ${new Date().toLocaleString("pt-BR")} &nbsp;|&nbsp; Total: ${data.length} bens</p>
+          <table>
+            <thead><tr><th>Código</th><th>Descrição</th><th>Categoria</th><th>Localização</th><th>Valor (R$)</th><th>Chassi</th><th>Nº Chassi</th><th>Placa</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </body></html>`;
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Exportar Bens" });
+      }
+    } catch (e: any) {
+      Alert.alert("Erro ao exportar", e.message ?? "Não foi possível exportar.");
+    } finally {
+      setIsExportingAssets(false);
+    }
+  };
 
   const saveUser = trpc.users.upsertByAdmin.useMutation({
     onSuccess: () => {
@@ -2773,26 +3006,140 @@ export default function RegistersScreen() {
       {/* ── Assets Tab ── */}
       {activeTab === "assets" && (
         <View style={{ flex: 1 }}>
+          {/* Barra de ações: Novo, Importar, Exportar */}
           {(isAdmin || isAssetsAdmin) && (
-            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => setShowAssetModal(true)}
-                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
-              >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Novo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleImportCSV("assets")}
-                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar CSV</Text>
-              </TouchableOpacity>
+            <View style={{ paddingHorizontal: 12, paddingTop: 12, gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => { setEditingAsset(null); setShowAssetModal(true); }}
+                  style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 11, alignItems: "center" }}
+                >
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>+ Novo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleImportCSV("assets")}
+                  style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 11, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>📥 CSV</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => Alert.alert(
+                    "Exportar Bens",
+                    `Exportar ${filteredAssets.length} bens filtrados`,
+                    [
+                      { text: "Cancelar", style: "cancel" },
+                      { text: "📊 Excel", onPress: () => handleExportAssets("excel") },
+                      { text: "📄 PDF", onPress: () => handleExportAssets("pdf") },
+                    ]
+                  )}
+                  disabled={isExportingAssets}
+                  style={{ flex: 1, backgroundColor: "#059669", borderRadius: 12, paddingVertical: 11, alignItems: "center" }}
+                >
+                  {isExportingAssets
+                    ? <ActivityIndicator size="small" color="white" />
+                    : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>⬇️ Exportar</Text>
+                  }
+                </TouchableOpacity>
+              </View>
+
+              {/* Barra de busca + toggle filtros */}
+              <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+                <TextInput
+                  value={assetSearch}
+                  onChangeText={setAssetSearch}
+                  placeholder="🔍 Buscar bens..."
+                  placeholderTextColor={colors.muted}
+                  style={{
+                    flex: 1,
+                    backgroundColor: colors.surface,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 9,
+                    fontSize: 13,
+                    color: colors.foreground,
+                  }}
+                />
+                <TouchableOpacity
+                  onPress={() => setShowAssetFilters((v) => !v)}
+                  style={{
+                    backgroundColor: (assetMinValue || assetMaxValue) ? colors.primary : colors.surface,
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 9,
+                    borderWidth: 1,
+                    borderColor: (assetMinValue || assetMaxValue) ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: (assetMinValue || assetMaxValue) ? "white" : colors.foreground }}>🔧 Filtros{(assetMinValue || assetMaxValue) ? " ●" : ""}</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Painel de filtros por valor */}
+              {showAssetFilters && (
+                <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border, gap: 8 }}>
+                  <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}>Filtrar por Valor (R$)</Text>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Mínimo</Text>
+                      <TextInput
+                        value={assetMinValue}
+                        onChangeText={setAssetMinValue}
+                        placeholder="0,00"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        style={{
+                          backgroundColor: colors.background,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          borderRadius: 8,
+                          paddingHorizontal: 10,
+                          paddingVertical: 8,
+                          fontSize: 13,
+                          color: colors.foreground,
+                        }}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 4 }}>Máximo</Text>
+                      <TextInput
+                        value={assetMaxValue}
+                        onChangeText={setAssetMaxValue}
+                        placeholder="999999,00"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        style={{
+                          backgroundColor: colors.background,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          borderRadius: 8,
+                          paddingHorizontal: 10,
+                          paddingVertical: 8,
+                          fontSize: 13,
+                          color: colors.foreground,
+                        }}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => { setAssetMinValue(""); setAssetMaxValue(""); }}
+                      style={{ justifyContent: "flex-end", paddingBottom: 2 }}
+                    >
+                      <Text style={{ color: colors.error, fontSize: 12, fontWeight: "600" }}>Limpar</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <Text style={{ color: colors.muted, fontSize: 11 }}>
+                    {filteredAssets.length} de {assetsList?.length ?? 0} bens
+                  </Text>
+                </View>
+              )}
             </View>
           )}
+
           <FlatList
-            data={assetsList ?? []}
-            keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
+            data={filteredAssets}
+            keyExtractor={(item: any) => String(item.id)}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingTop: 8, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               assetsLoading ? (
@@ -2801,12 +3148,12 @@ export default function RegistersScreen() {
                 <View style={{ alignItems: "center", marginTop: 60 }}>
                   <Text style={{ fontSize: 40, marginBottom: 12 }}>📦</Text>
                   <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>
-                    Nenhum bem cadastrado
+                    {assetSearch || assetMinValue || assetMaxValue ? "Nenhum bem encontrado" : "Nenhum bem cadastrado"}
                   </Text>
                 </View>
               )
             }
-            renderItem={({ item }) => (
+            renderItem={({ item }: { item: any }) => (
               <View
                 style={{
                   backgroundColor: colors.surface,
@@ -2821,17 +3168,39 @@ export default function RegistersScreen() {
                   <Text style={{ fontSize: 12, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>
                     {item.code}
                   </Text>
-                  {item.category && (
-                    <Text style={{ fontSize: 11, color: colors.muted }}>{item.category}</Text>
-                  )}
+                  <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
+                    {item.hasChassi && (
+                      <View style={{ backgroundColor: "#F59E0B20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: "#F59E0B" }}>🚗 Chassi</Text>
+                      </View>
+                    )}
+                    {item.category && (
+                      <Text style={{ fontSize: 11, color: colors.muted }}>{item.category}</Text>
+                    )}
+                  </View>
                 </View>
                 <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>
                   {item.description}
                 </Text>
+                {item.value && (
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success, marginTop: 3 }}>
+                    R$ {item.value}
+                  </Text>
+                )}
                 {item.location && (
                   <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>
                     📍 {item.location}
                   </Text>
+                )}
+                {item.hasChassi && (item.chassiNumber || item.licensePlate) && (
+                  <View style={{ flexDirection: "row", gap: 12, marginTop: 4 }}>
+                    {item.chassiNumber && (
+                      <Text style={{ fontSize: 11, color: colors.muted }}>Chassi: {item.chassiNumber}</Text>
+                    )}
+                    {item.licensePlate && (
+                      <Text style={{ fontSize: 11, color: colors.muted }}>Placa: {item.licensePlate}</Text>
+                    )}
+                  </View>
                 )}
                 {(isAdmin || isAssetsAdmin) && (
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
@@ -2843,11 +3212,11 @@ export default function RegistersScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() => {
-                        const doDelete = () => deleteAsset.mutate({ id: (item as any).id });
+                        const doDelete = () => deleteAsset.mutate({ id: item.id });
                         if (typeof window !== "undefined") {
-                          if (window.confirm(`Deseja excluir o bem "${(item as any).description}"?`)) doDelete();
+                          if (window.confirm(`Deseja excluir o bem "${item.description}"?`)) doDelete();
                         } else {
-                          Alert.alert("Excluir Bem", `Deseja excluir "${(item as any).description}"?`, [
+                          Alert.alert("Excluir Bem", `Deseja excluir "${item.description}"?`, [
                             { text: "Cancelar", style: "cancel" },
                             { text: "Excluir", style: "destructive", onPress: doDelete },
                           ]);

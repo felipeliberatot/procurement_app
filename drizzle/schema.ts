@@ -79,6 +79,10 @@ export const assets = mysqlTable("assets", {
   description: varchar("description", { length: 255 }).notNull(),
   category: varchar("category", { length: 64 }),
   location: varchar("location", { length: 128 }),
+  value: varchar("value", { length: 32 }),                        // Valor do bem (obrigatório)
+  hasChassi: boolean("hasChassi").default(false).notNull(),        // Possui chassi/placa?
+  chassiNumber: varchar("chassiNumber", { length: 64 }),           // Nº do chassi (opcional)
+  licensePlate: varchar("licensePlate", { length: 16 }),           // Placa (opcional)
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

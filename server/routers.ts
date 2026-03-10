@@ -230,6 +230,10 @@ export const appRouter = router({
         description: z.string().min(1),
         category: z.string().optional(),
         location: z.string().optional(),
+        value: z.string().optional(),
+        hasChassi: z.boolean().optional(),
+        chassiNumber: z.string().optional(),
+        licensePlate: z.string().optional(),
       }))
       .mutation(({ input }) => db.createAsset(input)),
     update: protectedProcedure
@@ -240,6 +244,10 @@ export const appRouter = router({
         category: z.string().optional(),
         location: z.string().optional(),
         active: z.boolean().optional(),
+        value: z.string().optional(),
+        hasChassi: z.boolean().optional(),
+        chassiNumber: z.string().optional(),
+        licensePlate: z.string().optional(),
       }))
       .mutation(({ input }) => db.updateAsset(input.id, input)),
     delete: protectedProcedure
@@ -252,6 +260,10 @@ export const appRouter = router({
           description: z.string().min(1),
           category: z.string().optional(),
           location: z.string().optional(),
+          value: z.string().optional(),
+          hasChassi: z.boolean().optional(),
+          chassiNumber: z.string().optional(),
+          licensePlate: z.string().optional(),
         }))
       }))
       .mutation(({ input }) => db.importAssetsBatch(input.rows)),

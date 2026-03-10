@@ -561,3 +561,10 @@
 ## Bug: Edição pela Controladoria não salva
 - [x] Corrigir: removido Alert de confirmação intermediário que bloqueava o mutate
 - [x] Corrigir: após salvar, navega de volta imediatamente via router.back() no onSuccess
+
+## Feature: Melhorias na aba de Bens
+- [x] Schema: colunas value, hasChassi, chassiNumber, licensePlate adicionadas via ALTER TABLE
+- [x] Backend: routers assets.create, assets.update e assets.importBatch atualizados com novos campos
+- [x] Formulário de cadastro de Bens: campo Valor (obrigatório), toggle Chassi/Placa com campos nº chassi e placa
+- [x] Listagem de Bens: barra de busca + filtros por faixa de valor (mínimo/máximo)
+- [x] Botão exportar Bens: opções Excel (campos organizados) e PDF (tabela formatada)

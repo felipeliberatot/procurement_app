@@ -401,7 +401,7 @@ export async function listAssets() {
   return db.select().from(assets).where(eq(assets.active, true)).orderBy(assets.code);
 }
 
-export async function createAsset(data: { code: string; description: string; category?: string; location?: string }) {
+export async function createAsset(data: { code: string; description: string; category?: string; location?: string; value?: string; hasChassi?: boolean; chassiNumber?: string; licensePlate?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   const result = await db.insert(assets).values({
@@ -409,10 +409,14 @@ export async function createAsset(data: { code: string; description: string; cat
     description: data.description,
     category: data.category ?? null,
     location: data.location ?? null,
+    value: data.value ?? null,
+    hasChassi: data.hasChassi ?? false,
+    chassiNumber: data.chassiNumber ?? null,
+    licensePlate: data.licensePlate ?? null,
   });
   return (result as unknown as [{ insertId: number }])[0].insertId;
 }
-export async function updateAsset(id: number, data: Partial<{ code: string; description: string; category: string; location: string; active: boolean }>) {
+export async function updateAsset(id: number, data: Partial<{ code: string; description: string; category: string; location: string; active: boolean; value: string; hasChassi: boolean; chassiNumber: string; licensePlate: string }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(assets).set(data).where(eq(assets.id, id));
@@ -425,7 +429,7 @@ export async function deleteAsset(id: number) {
 }
 
 export async function importAssetsBatch(rows: Array<{
-  code: string; description: string; category?: string; location?: string;
+  code: string; description: string; category?: string; location?: string; value?: string; hasChassi?: boolean; chassiNumber?: string; licensePlate?: string;
 }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -436,9 +440,9 @@ export async function importAssetsBatch(rows: Array<{
     try {
       const existing = await db.select({ id: assets.id }).from(assets).where(eq(assets.code, row.code)).limit(1);
       if (existing.length > 0) {
-        await db.update(assets).set({ description: row.description, category: row.category ?? null, location: row.location ?? null }).where(eq(assets.code, row.code));
+        await db.update(assets).set({ description: row.description, category: row.category ?? null, location: row.location ?? null, value: row.value ?? null, hasChassi: row.hasChassi ?? false, chassiNumber: row.chassiNumber ?? null, licensePlate: row.licensePlate ?? null }).where(eq(assets.code, row.code));
       } else {
-        await db.insert(assets).values({ code: row.code, description: row.description, category: row.category ?? null, location: row.location ?? null });
+        await db.insert(assets).values({ code: row.code, description: row.description, category: row.category ?? null, location: row.location ?? null, value: row.value ?? null, hasChassi: row.hasChassi ?? false, chassiNumber: row.chassiNumber ?? null, licensePlate: row.licensePlate ?? null });
       }
       imported++;
     } catch (err: any) {
