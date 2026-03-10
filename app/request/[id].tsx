@@ -2096,6 +2096,29 @@ export default function RequestDetailScreen() {
             </View>
           )}
 
+          {/* Botão Editar pela Controladoria — sem reiniciar o fluxo */}
+          {currentStatus === "aguardando_controladoria" && allUserRoles.some(r => ["controladoria"].includes(r)) && (
+            <View style={{ marginTop: 16, marginBottom: 8 }}>
+              <TouchableOpacity
+                onPress={() => router.push(`/request/edit-controladoria/${request.id}` as any)}
+                style={{
+                  backgroundColor: `${colors.primary}12`,
+                  borderWidth: 1.5,
+                  borderColor: `${colors.primary}40`,
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                }}
+              >
+                <Text style={{ fontSize: 16 }}>✏️</Text>
+                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>Editar Dados (sem reiniciar fluxo)</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Botão Cancelar Solicitação — visível para o solicitante que abriu ou master */}
           {canCancel && (
             <View style={{ marginTop: 16, marginBottom: 8 }}>

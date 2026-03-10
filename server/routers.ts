@@ -497,6 +497,40 @@ export const appRouter = router({
         return result;
       }),
 
+    // Edição pela Controladoria (sem reiniciar fluxo)
+    updateByControladoria: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        department: z.string().min(1),
+        costCenterId: z.number().optional(),
+        costCenterCode: z.string().optional(),
+        application: z.string().min(1),
+        urgencyLevel: z.enum(["normal", "urgente", "emergencial"]),
+        observations: z.string().optional(),
+        osMyfarm: z.string().optional(),
+        items: z.array(z.object({
+          description: z.string().min(1),
+          quantity: z.string(),
+          unit: z.string().default("un"),
+          unitPrice: z.string().optional(),
+        })).min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = ctx.user as any;
+        const allRoles = [user.procurementRole, ...(user.extraRoles ? JSON.parse(user.extraRoles) : [])];
+        const isControladoria = allRoles.includes("controladoria") || user.approvalLevel === "controladoria" || user.approvalLevel === "master";
+        if (!isControladoria) throw new Error("Apenas usuários da Controladoria podem usar esta edição.");
+        const { requestId, ...data } = input;
+        const result = await db.updateByControladoria(
+          requestId,
+          ctx.user.id,
+          ctx.user.name ?? "Usuário",
+          data
+        );
+        if (!result.success) throw new Error(result.error ?? "Erro ao editar solicitação");
+        return result;
+      }),
+
     // Excluir solicitação cancelada (somente solicitante ou admin/master)
     delete: protectedProcedure
       .input(z.object({ requestId: z.number() }))

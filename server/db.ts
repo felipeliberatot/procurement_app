@@ -2386,3 +2386,87 @@ export async function updatePurchaseRequest(
 
   return { success: true };
 }
+
+// ─── Edição pela Controladoria (sem reiniciar fluxo) ─────────────────────────
+// Permite que usuários com role controladoria editem dados da solicitação
+// sem alterar o status atual — a solicitação permanece na etapa em que está.
+export async function updateByControladoria(
+  requestId: number,
+  editorId: number,
+  editorName: string,
+  input: {
+    department: string;
+    costCenterId?: number;
+    costCenterCode?: string;
+    application: string;
+    urgencyLevel: "normal" | "urgente" | "emergencial";
+    observations?: string;
+    osMyfarm?: string;
+    items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indisponível" };
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+  if (!request) return { success: false, error: "Solicitação não encontrada" };
+
+  // Só permite edição quando está na etapa da controladoria
+  if (request.status !== "aguardando_controladoria") {
+    return {
+      success: false,
+      error: `Esta edição só pode ser feita quando a solicitação está na etapa da Controladoria. Status atual: "${request.status}"`,
+    };
+  }
+
+  // Recalcular total
+  let total = 0;
+  for (const item of input.items) {
+    const qty = parseFloat(item.quantity) || 0;
+    const price = parseFloat(item.unitPrice ?? "0") || 0;
+    total += qty * price;
+  }
+
+  // Atualizar apenas os dados da solicitação — NÃO altera o status
+  await db.update(purchaseRequests)
+    .set({
+      department: input.department,
+      costCenterId: input.costCenterId ?? null,
+      costCenterCode: input.costCenterCode ?? null,
+      application: input.application,
+      urgencyLevel: input.urgencyLevel,
+      observations: input.observations ?? null,
+      osMyfarm: input.osMyfarm ?? null,
+      totalEstimatedValue: total > 0 ? String(total) : null,
+      // status NÃO é alterado — permanece "aguardando_controladoria"
+      updatedAt: new Date(),
+    })
+    .where(eq(purchaseRequests.id, requestId));
+
+  // Substituir itens: deletar os antigos e inserir os novos
+  await db.delete(requestItems).where(eq(requestItems.requestId, requestId));
+  for (const item of input.items) {
+    const qty = parseFloat(item.quantity) || 0;
+    const price = parseFloat(item.unitPrice ?? "0") || 0;
+    await db.insert(requestItems).values({
+      requestId,
+      description: item.description,
+      quantity: item.quantity,
+      unit: item.unit,
+      unitPrice: item.unitPrice ?? null,
+      totalPrice: price > 0 ? String(qty * price) : null,
+    });
+  }
+
+  // Registrar no histórico
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: editorId,
+    userName: editorName,
+    step: "edicao",
+    action: "editada",
+    comment: `Dados editados pela Controladoria (${editorName}). O fluxo de aprovação não foi reiniciado.`,
+  });
+
+  return { success: true };
+}

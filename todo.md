@@ -543,3 +543,13 @@
 
 ## Bug: Erro de Build Docker na Publicação
 - [x] Corrigir erro Metro no build Docker: adicionado CI=true EXPO_NO_DOTENV=1 no script build:web para desativar watchman no ambiente Docker
+
+## Bug: Erro de Build Docker (Metro file not watched) - Persiste
+- [ ] Corrigir definitivamente o erro Metro "file is not watched" no Docker (CI=true não foi suficiente)
+
+## Feature: Botão de Edição para Controladoria
+- [x] Adicionar botão de edição na etapa da Controladoria (fluxo Normal e Urgente/Emergencial)
+- [x] A edição pela Controladoria NÃO deve reiniciar o fluxo - solicitação permanece na etapa atual
+- [x] Backend: rota tRPC requests.updateByControladoria (atualiza dados sem mudar status/etapa)
+- [x] Frontend: botão "Editar" visível apenas para usuários com role controladoria na etapa correta
+- [x] Frontend: tela app/request/edit-controladoria/[id].tsx com aviso de "sem reiniciar fluxo"
