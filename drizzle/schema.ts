@@ -84,6 +84,8 @@ export const assets = mysqlTable("assets", {
   chassiNumber: varchar("chassiNumber", { length: 64 }),           // Nº do chassi (opcional)
   licensePlate: varchar("licensePlate", { length: 16 }),           // Placa (opcional)
   patrimonialCode: varchar("patrimonialCode", { length: 16 }),     // Código patrimonial sequencial (PAT-00001)
+  costCenterId: int("costCenterId"),                                // FK para costCenters (opcional)
+  costCenterCode: varchar("costCenterCode", { length: 32 }),        // Código do centro de custo (desnormalizado)
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -374,3 +376,35 @@ export const maloteTagLinks = mysqlTable("maloteTagLinks", {
 });
 export type MaloteTagLink = typeof maloteTagLinks.$inferSelect;
 export type InsertMaloteTagLink = typeof maloteTagLinks.$inferInsert;
+
+// ─── Safras (Harvests) ───────────────────────────────────────────────────────────────────────────────
+export const harvests = mysqlTable("harvests", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  year: varchar("year", { length: 9 }).notNull(),       // ex: "2024/2025"
+  startDate: varchar("startDate", { length: 10 }),      // ISO date string
+  endDate: varchar("endDate", { length: 10 }),          // ISO date string
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Harvest = typeof harvests.$inferSelect;
+export type InsertHarvest = typeof harvests.$inferInsert;
+
+// ─── Orçamentos (Budgets) ─────────────────────────────────────────────────────────────────────────────
+export const budgets = mysqlTable("budgets", {
+  id: int("id").autoincrement().primaryKey(),
+  harvestId: int("harvestId").notNull(),                // FK para harvests
+  costCenterId: int("costCenterId"),                    // FK para costCenters (opcional)
+  costCenterCode: varchar("costCenterCode", { length: 32 }),
+  costCenterName: varchar("costCenterName", { length: 128 }),
+  category: varchar("category", { length: 64 }),        // categoria do orçamento (opcional)
+  totalValue: decimal("totalValue", { precision: 15, scale: 2 }).notNull().default("0.00"),
+  usedValue: decimal("usedValue", { precision: 15, scale: 2 }).notNull().default("0.00"),
+  notes: text("notes"),
+  createdBy: varchar("createdBy", { length: 128 }),     // nome do usuário que criou
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Budget = typeof budgets.$inferSelect;
+export type InsertBudget = typeof budgets.$inferInsert;

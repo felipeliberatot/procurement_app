@@ -7,9 +7,11 @@ import type { Pool as CallbackPool } from "mysql2";
 import {
   approvalHistory,
   assets,
+  budgets,
   businessUnits,
   costCenters,
   departments,
+  harvests,
   InsertUser,
   maloteItems,
   maloteTagLinks,
@@ -1049,10 +1051,50 @@ export async function approveRequest(
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");
 
+  // ── Verificação de permissão por etapa ─────────────────────────────────────
+  // Mapa: status atual → papel(is) que podem aprovar essa etapa
+  const STEP_ROLE_MAP: Record<string, string[]> = {
+    aguardando_gerente:               ["gerente", "master"],
+    aguardando_orcamento:             ["orcamento", "master"],
+    aguardando_controladoria:         ["controladoria", "master"],
+    aguardando_diretoria:             ["diretoria", "master"],
+    aguardando_ordem_compra:          ["orcamento", "master"],
+    aguardando_aprovacao_compra:      ["financeiro", "master"],
+    aguardando_comprovante_pagamento: ["financeiro", "master"],
+    aguardando_verificacao_compras:   ["orcamento", "master"],
+    rejeitada:                        ["master"],
+  };
+  const allowedRoles = STEP_ROLE_MAP[request.status];
+  if (allowedRoles) {
+    const userProcurementRole = (user as any).procurementRole ?? "";
+    const userApprovalLevel = (user as any).approvalLevel ?? "nenhum";
+    const userExtraRoles: string[] = (() => { try { return JSON.parse((user as any).extraRoles ?? "[]"); } catch { return []; } })();
+    const userExtraApprovalLevels: string[] = (() => { try { return JSON.parse((user as any).extraApprovalLevels ?? "[]"); } catch { return []; } })();
+    const isMaster = userApprovalLevel === "master";
+    const hasPermission = isMaster ||
+      allowedRoles.includes(userProcurementRole) ||
+      allowedRoles.includes(userApprovalLevel) ||
+      userExtraRoles.some(r => allowedRoles.includes(r)) ||
+      userExtraApprovalLevels.some(l => allowedRoles.includes(l));
+    if (!hasPermission) {
+      const stepLabel = ({
+        aguardando_gerente: "Gerente",
+        aguardando_orcamento: "Orçamento",
+        aguardando_controladoria: "Controladoria",
+        aguardando_diretoria: "Diretoria",
+        aguardando_ordem_compra: "Compras",
+        aguardando_aprovacao_compra: "Financeiro",
+        aguardando_comprovante_pagamento: "Financeiro",
+        aguardando_verificacao_compras: "Compras",
+      } as Record<string, string>)[request.status] ?? request.status;
+      throw new Error(`Você não tem permissão para aprovar a etapa "${stepLabel}". Apenas usuários com o papel correto podem executar esta ação.`);
+    }
+  }
+
   // Seleciona o fluxo correto com base na urgência do pedido
   const stepFlow = getStepFlow(request.urgencyLevel);
   const flow = stepFlow[request.status];
-  if (!flow) throw new Error("Ação não permitida neste status");
+  if (!flow) throw new Error("Ação não permitida neste status");;
 
   const effectiveNextStatus = flow.nextStatus;
 
@@ -2486,4 +2528,131 @@ export async function updateByControladoria(
   });
 
   return { success: true };
+}
+
+// ─── Safras (Harvests) ────────────────────────────────────────────────────────
+export async function listHarvests() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(harvests).orderBy(desc(harvests.createdAt));
+}
+
+export async function createHarvest(data: { name: string; year: string; startDate?: string; endDate?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(harvests).values({
+    name: data.name,
+    year: data.year,
+    startDate: data.startDate ?? null,
+    endDate: data.endDate ?? null,
+    active: true,
+  });
+  return { id: (result as any).insertId };
+}
+
+export async function updateHarvest(id: number, data: Partial<{ name: string; year: string; startDate: string; endDate: string; active: boolean }>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(harvests).set({ ...data, updatedAt: new Date() }).where(eq(harvests.id, id));
+  return { success: true };
+}
+
+export async function deleteHarvest(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(harvests).where(eq(harvests.id, id));
+  return { success: true };
+}
+
+// ─── Orçamentos (Budgets) ─────────────────────────────────────────────────────
+export async function listBudgets(harvestId?: number) {
+  const db = await getDb();
+  if (!db) return [];
+  if (harvestId) {
+    return db.select().from(budgets).where(eq(budgets.harvestId, harvestId)).orderBy(budgets.costCenterCode);
+  }
+  return db.select().from(budgets).orderBy(desc(budgets.createdAt));
+}
+
+export async function createBudget(data: {
+  harvestId: number;
+  costCenterId?: number;
+  costCenterCode?: string;
+  costCenterName?: string;
+  category?: string;
+  totalValue: string;
+  notes?: string;
+  createdBy?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(budgets).values({
+    harvestId: data.harvestId,
+    costCenterId: data.costCenterId ?? null,
+    costCenterCode: data.costCenterCode ?? null,
+    costCenterName: data.costCenterName ?? null,
+    category: data.category ?? null,
+    totalValue: data.totalValue,
+    usedValue: "0.00",
+    notes: data.notes ?? null,
+    createdBy: data.createdBy ?? null,
+  });
+  return { id: (result as any).insertId };
+}
+
+export async function updateBudget(id: number, data: Partial<{
+  harvestId: number;
+  costCenterId: number;
+  costCenterCode: string;
+  costCenterName: string;
+  category: string;
+  totalValue: string;
+  notes: string;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(budgets).set({ ...data, updatedAt: new Date() }).where(eq(budgets.id, id));
+  return { success: true };
+}
+
+export async function deleteBudget(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(budgets).where(eq(budgets.id, id));
+  return { success: true };
+}
+
+// Desconta valor do orçamento (chamado quando financeiro insere comprovante de pagamento)
+export async function deductFromBudget(params: {
+  costCenterId?: number;
+  costCenterCode?: string;
+  amount: string;
+}) {
+  const db = await getDb();
+  if (!db) return { success: true, deducted: false };
+  const amount = parseFloat(params.amount) || 0;
+  if (amount <= 0) return { success: true, deducted: false };
+
+  let rows: any[] = [];
+  if (params.costCenterId) {
+    rows = await db.select().from(budgets).where(eq(budgets.costCenterId, params.costCenterId)).orderBy(desc(budgets.createdAt)).limit(1);
+  } else if (params.costCenterCode) {
+    rows = await db.select().from(budgets).where(eq(budgets.costCenterCode, params.costCenterCode)).orderBy(desc(budgets.createdAt)).limit(1);
+  }
+  if (!rows || rows.length === 0) return { success: true, deducted: false };
+
+  const budget = rows[0];
+  const currentUsed = parseFloat(budget.usedValue) || 0;
+  const newUsed = (currentUsed + amount).toFixed(2);
+  await db.update(budgets).set({ usedValue: newUsed, updatedAt: new Date() }).where(eq(budgets.id, budget.id));
+  return { success: true, deducted: true, budgetId: budget.id };
+}
+
+// Retorna resumo de todos os orçamentos para o dashboard
+export async function getBudgetSummary() {
+  const db = await getDb();
+  if (!db) return { budgets: [], harvests: [] };
+  const allBudgets = await db.select().from(budgets).orderBy(desc(budgets.createdAt));
+  const allHarvests = await db.select().from(harvests).where(eq(harvests.active, true)).orderBy(desc(harvests.createdAt));
+  return { budgets: allBudgets, harvests: allHarvests };
 }

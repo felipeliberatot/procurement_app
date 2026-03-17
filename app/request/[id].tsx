@@ -55,17 +55,18 @@ async function readFileAsBase64(uri: string): Promise<string> {
 }
 
 const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
-  rascunho: ["solicitante", "admin"],
-  aguardando_gerente: ["gerente", "admin"],
-  aguardando_orcamento: ["orcamento", "admin"],
-  aguardando_controladoria: ["controladoria", "admin"],
-  aguardando_diretoria: ["diretoria", "admin"],
-  aguardando_ordem_compra: ["orcamento", "admin"],
-  aguardando_aprovacao_compra: ["financeiro", "admin"],
-  aguardando_comprovante_pagamento: ["financeiro", "admin"],
-  aguardando_verificacao_compras: ["orcamento", "admin"],
+  // admin não pode aprovar etapas operacionais — apenas o papel específico de cada etapa pode
+  rascunho: ["solicitante"],
+  aguardando_gerente: ["gerente"],
+  aguardando_orcamento: ["orcamento"],
+  aguardando_controladoria: ["controladoria"],
+  aguardando_diretoria: ["diretoria"],
+  aguardando_ordem_compra: ["orcamento"],
+  aguardando_aprovacao_compra: ["financeiro"],
+  aguardando_comprovante_pagamento: ["financeiro"],
+  aguardando_verificacao_compras: ["orcamento"],
   concluida: [],
-  rejeitada: ["solicitante", "admin"],
+  rejeitada: ["solicitante"],
   cancelada: [],
 };
 

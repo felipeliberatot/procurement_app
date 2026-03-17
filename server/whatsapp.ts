@@ -20,9 +20,17 @@ import { getDb } from "./db";
 import { whatsappSessions, type WhatsappSession } from "../drizzle/schema";
 import { eq, and } from "drizzle-orm";
 
-const PROVIDER = (process.env.WHATSAPP_PROVIDER ?? "").toLowerCase();
-const WHATSAPP_API_URL = process.env.WHATSAPP_API_URL ?? "";
-const WHATSAPP_API_TOKEN = process.env.WHATSAPP_API_TOKEN ?? "";
+// Z-API credentials (primary)
+const ZAPI_INSTANCE_ID = process.env.ZAPI_INSTANCE_ID ?? "";
+const ZAPI_TOKEN = process.env.ZAPI_TOKEN ?? "";
+const ZAPI_CLIENT_TOKEN = process.env.ZAPI_CLIENT_TOKEN ?? "";
+
+// Legacy env vars (fallback for other providers)
+const PROVIDER = ZAPI_INSTANCE_ID ? "zapi" : (process.env.WHATSAPP_PROVIDER ?? "").toLowerCase();
+const WHATSAPP_API_URL = ZAPI_INSTANCE_ID
+  ? `https://api.z-api.io/instances/${ZAPI_INSTANCE_ID}/token/${ZAPI_TOKEN}/send-text`
+  : (process.env.WHATSAPP_API_URL ?? "");
+const WHATSAPP_API_TOKEN = ZAPI_CLIENT_TOKEN || (process.env.WHATSAPP_API_TOKEN ?? "");
 const WHATSAPP_FROM = process.env.WHATSAPP_FROM ?? "";
 const APP_BASE_URL = process.env.APP_BASE_URL ?? "https://compras.cgsagricola.com.br";
 const WEBHOOK_BASE_URL = process.env.WEBHOOK_BASE_URL ?? "";
@@ -581,7 +589,7 @@ export function getWebhookUrl(): string {
 }
 
 export function isConfigured(): boolean {
-  return !!(WHATSAPP_API_URL && WHATSAPP_API_TOKEN);
+  return !!(ZAPI_INSTANCE_ID && ZAPI_TOKEN) || !!(WHATSAPP_API_URL && WHATSAPP_API_TOKEN);
 }
 
 export function getProviderInfo() {

@@ -588,3 +588,27 @@
 ## Correções Importação e Exportação de Bens (Lote 2)
 - [x] Corrigir importação: usar FileReader (web) em vez de FileSystem para ler o arquivo selecionado
 - [x] Alterar cor do botão Exportar PDF para verde esmeralda claro (#34D399), mais claro que o CSV (#059669)
+
+## Feature: Safras, Centro de Custo em Bens, Aba Orçamentos e Dashboard
+- [ ] Schema: tabela harvests (safras) com campos nome, ano, dataInicio, dataFim, ativo
+- [ ] Schema: tabela budgets (orçamentos) com campos centerId, harvestId, valor, valorGasto, criadoPor
+- [ ] Schema: adicionar coluna costCenterId (FK) na tabela assets
+- [ ] Backend: rotas CRUD para harvests (safras)
+- [ ] Backend: rotas CRUD para budgets (orçamentos) - somente Oscar pode criar/editar
+- [ ] Backend: desconto automático no orçamento ao inserir comprovante de pagamento (financeiro)
+- [ ] Cadastros: formulário de Safras na aba Cadastros
+- [ ] Bens: campo picker de Centro de Custo no formulário de cadastro de Bens
+- [ ] Nova aba Orçamentos (entre Relatório e Cadastros na tab bar)
+- [ ] Aba Orçamentos: listagem por safra/centro de custo com barra de progresso
+- [ ] Aba Orçamentos: CRUD de orçamento (somente Oscar)
+- [ ] Home: dashboard de Orçamentos com indicadores Normal (verde), Atenção (laranja), Crítico (vermelho)
+- [ ] Home: Normal = 0-29% usado, Atenção = 30-59%, Crítico = 60-100%
+
+## Bug: Admin aprovando etapa Diretoria
+- [x] Backend: adicionada verificação de permissão na função approveRequest (STEP_ROLE_MAP por etapa)
+- [x] Frontend: removido "admin" do ROLE_CAN_ACT em todas as etapas operacionais (gerente, orcamento, controladoria, diretoria, financeiro)
+- [x] Admin não pode mais aprovar nenhuma etapa do fluxo — apenas o papel específico de cada etapa pode
+
+## Bug: Notificações WhatsApp não funcionando
+- [x] Corrigido: módulo whatsapp.ts atualizado para ler ZAPI_INSTANCE_ID, ZAPI_TOKEN e ZAPI_CLIENT_TOKEN diretamente
+- [x] Adicionado botão "Enviar Mensagem de Teste" na tela de Perfil (verde, abre campo de telefone)

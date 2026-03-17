@@ -36,6 +36,18 @@ export default function ProfileScreen() {
   const [department, setDepartment] = useState("");
   const [saved, setSaved] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [testPhoneInput, setTestPhoneInput] = useState("");
+  const [showTestInput, setShowTestInput] = useState(false);
+
+  const testWhatsApp = trpc.whatsapp.testSend.useMutation({
+    onSuccess: () => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ Mensagem enviada!", "Verifique o WhatsApp do número informado.");
+      setShowTestInput(false);
+      setTestPhoneInput("");
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
 
   // Sync form fields when fullUser data arrives
   useEffect(() => {
@@ -174,7 +186,7 @@ export default function ProfileScreen() {
           {/* WhatsApp Setup */}
           <TouchableOpacity
             onPress={() => router.push("/whatsapp-config" as any)}
-            className="bg-surface border border-border rounded-2xl py-4 px-4 flex-row items-center justify-between mb-4"
+            className="bg-surface border border-border rounded-2xl py-4 px-4 flex-row items-center justify-between mb-3"
           >
             <View className="flex-row items-center gap-3">
               <Text className="text-xl">💬</Text>
@@ -185,6 +197,62 @@ export default function ProfileScreen() {
             </View>
             <Text className="text-muted">→</Text>
           </TouchableOpacity>
+
+          {/* Botão de Teste WhatsApp */}
+          <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+            <View className="flex-row items-center gap-2 mb-3">
+              <Text className="text-base">📲</Text>
+              <Text className="text-sm font-bold text-foreground">Testar Notificação WhatsApp</Text>
+            </View>
+            <Text className="text-xs text-muted mb-3">
+              Envie uma mensagem de teste para verificar se a integração está funcionando corretamente.
+            </Text>
+            {showTestInput ? (
+              <View className="gap-2">
+                <TextInput
+                  value={testPhoneInput}
+                  onChangeText={setTestPhoneInput}
+                  placeholder="+55 66 99999-9999"
+                  placeholderTextColor={colors.muted}
+                  className="bg-background border border-border rounded-xl px-4 py-3 text-sm text-foreground"
+                  keyboardType="phone-pad"
+                  returnKeyType="done"
+                  autoFocus
+                />
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    onPress={() => { setShowTestInput(false); setTestPhoneInput(""); }}
+                    style={{ flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingVertical: 12, alignItems: 'center' }}
+                  >
+                    <Text style={{ color: colors.muted, fontWeight: '600', fontSize: 14 }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      const p = testPhoneInput.trim();
+                      if (!p) { Alert.alert("Atenção", "Digite o número de telefone."); return; }
+                      testWhatsApp.mutate({ phone: p });
+                    }}
+                    disabled={testWhatsApp.isPending}
+                    style={{ flex: 2, backgroundColor: '#25D366', borderRadius: 12, paddingVertical: 12, alignItems: 'center', opacity: testWhatsApp.isPending ? 0.7 : 1 }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                      {testWhatsApp.isPending ? "Enviando..." : "📤 Enviar Teste"}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => {
+                  setTestPhoneInput((fullUser as any)?.phone ?? "");
+                  setShowTestInput(true);
+                }}
+                style={{ backgroundColor: '#25D366', borderRadius: 12, paddingVertical: 12, alignItems: 'center' }}
+              >
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>📲 Enviar Mensagem de Teste</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Sair */}
           <TouchableOpacity

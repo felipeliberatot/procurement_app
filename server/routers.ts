@@ -1081,9 +1081,101 @@ Retorne JSON:
         })
       ),
   }),
+
+  // ─── Safras (Harvests) ────────────────────────────────────────────────────────────────────────────────
+  harvests: router({
+    list: protectedProcedure.query(() => db.listHarvests()),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        year: z.string().min(1),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+      }))
+      .mutation(({ ctx, input }) => {
+        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
+          throw new Error("Apenas o usuário Oscar pode criar safras.");
+        }
+        return db.createHarvest(input);
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        year: z.string().optional(),
+        startDate: z.string().optional(),
+        endDate: z.string().optional(),
+        active: z.boolean().optional(),
+      }))
+      .mutation(({ ctx, input }) => {
+        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
+          throw new Error("Apenas o usuário Oscar pode editar safras.");
+        }
+        const { id, ...data } = input;
+        return db.updateHarvest(id, data);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ ctx, input }) => {
+        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
+          throw new Error("Apenas o usuário Oscar pode excluir safras.");
+        }
+        return db.deleteHarvest(input.id);
+      }),
+  }),
+
+  // ─── Orçamentos (Budgets) ─────────────────────────────────────────────────────────────────────────────
+  budgets: router({
+    list: protectedProcedure
+      .input(z.object({ harvestId: z.number().optional() }))
+      .query(({ input }) => db.listBudgets(input.harvestId)),
+    summary: protectedProcedure.query(() => db.getBudgetSummary()),
+    create: protectedProcedure
+      .input(z.object({
+        harvestId: z.number(),
+        costCenterId: z.number().optional(),
+        costCenterCode: z.string().optional(),
+        costCenterName: z.string().optional(),
+        category: z.string().optional(),
+        totalValue: z.string().min(1),
+        notes: z.string().optional(),
+      }))
+      .mutation(({ ctx, input }) => {
+        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
+          throw new Error("Apenas o usuário Oscar pode criar orçamentos.");
+        }
+        return db.createBudget({ ...input, createdBy: ctx.user.name ?? "Oscar" });
+      }),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        harvestId: z.number().optional(),
+        costCenterId: z.number().optional(),
+        costCenterCode: z.string().optional(),
+        costCenterName: z.string().optional(),
+        category: z.string().optional(),
+        totalValue: z.string().optional(),
+        notes: z.string().optional(),
+      }))
+      .mutation(({ ctx, input }) => {
+        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
+          throw new Error("Apenas o usuário Oscar pode editar orçamentos.");
+        }
+        const { id, ...data } = input;
+        return db.updateBudget(id, data as any);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ ctx, input }) => {
+        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
+          throw new Error("Apenas o usuário Oscar pode excluir orçamentos.");
+        }
+        return db.deleteBudget(input.id);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
 
 
-// ─── Malotes ────────────────────────────────────────────────────────────────
+// ─── Malotes ────────────────────────────────────────────────────────────────────────────────
