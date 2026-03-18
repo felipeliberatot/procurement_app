@@ -612,3 +612,11 @@
 ## Bug: Notificações WhatsApp não funcionando
 - [x] Corrigido: módulo whatsapp.ts atualizado para ler ZAPI_INSTANCE_ID, ZAPI_TOKEN e ZAPI_CLIENT_TOKEN diretamente
 - [x] Adicionado botão "Enviar Mensagem de Teste" na tela de Perfil (verde, abre campo de telefone)
+
+## Feature: Aprovação via WhatsApp
+- [x] Tabela whatsappSessions no banco para tokens de aprovação temporários (já existia)
+- [x] Endpoint público /api/approve?token=xxx&action=approve|reject implementado com página HTML de feedback
+- [x] Notificações WhatsApp atualizadas com links clicáveis de Aprovar e Rejeitar em cada etapa
+- [x] Webhook Z-API configurado via API (update-webhook-received) para receber respostas de texto
+- [x] Provider auto-detectado como 'zapi' quando ZAPI_INSTANCE_ID está configurado
+- [x] Aprovador pode aprovar/rejeitar clicando no link OU respondendo APROVAR/REJEITAR por texto
