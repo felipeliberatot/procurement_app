@@ -159,8 +159,8 @@ export const WORKFLOW_STEPS_URGENT: Array<{
 }> = [
   { step: "criacao",          label: "Solicitação Criada",          status: "aguardando_gerente" },
   { step: "gerente",          label: "Aprovação do Gerente",        status: "aguardando_gerente",                role: "gerente" },
-  { step: "diretoria",        label: "Aprovação Diretoria",         status: "aguardando_diretoria",              role: "diretoria" },
   { step: "orcamento",        label: "Orçamento",                    status: "aguardando_orcamento" },
+  { step: "diretoria",        label: "Aprovação Diretoria",         status: "aguardando_diretoria",              role: "diretoria" },
   { step: "controladoria",    label: "Aprovação Controladoria",     status: "aguardando_controladoria",          role: "controladoria" },
   { step: "ordem_compra",     label: "Emissão de OC (Compras)",     status: "aguardando_ordem_compra",           role: "orcamento" },
   { step: "aprovacao_compra", label: "Aprovação Financeiro",        status: "aguardando_aprovacao_compra",       role: "financeiro" },

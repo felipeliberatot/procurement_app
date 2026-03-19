@@ -955,11 +955,11 @@ const STEP_FLOW_NORMAL: Record<string, { step: string; nextStatus: string; actio
   rejeitada:                       { step: "gerente",           nextStatus: "aguardando_gerente",                action: "reaberta" },
 };
 
-// Fluxo URGENTE/EMERGENCIAL: Gerente → Diretoria → Orçamento → Controladoria → OC → Financeiro → Comprovante → Verificação
+// Fluxo URGENTE/EMERGENCIAL: Gerente → Orçamento → Diretoria → Controladoria → OC → Financeiro → Comprovante → Verificação
 const STEP_FLOW_URGENT: Record<string, { step: string; nextStatus: string; action: string }> = {
-  aguardando_gerente:              { step: "gerente",           nextStatus: "aguardando_diretoria",              action: "aprovada" },
-  aguardando_diretoria:            { step: "diretoria",         nextStatus: "aguardando_orcamento",              action: "aprovada" },
-  aguardando_orcamento:            { step: "orcamento",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
+  aguardando_gerente:              { step: "gerente",           nextStatus: "aguardando_orcamento",              action: "aprovada" },
+  aguardando_orcamento:            { step: "orcamento",         nextStatus: "aguardando_diretoria",              action: "aprovada" },
+  aguardando_diretoria:            { step: "diretoria",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
   aguardando_controladoria:        { step: "controladoria",     nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
   aguardando_ordem_compra:         { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_compra",       action: "ordem_emitida" },
   aguardando_aprovacao_compra:     { step: "aprovacao_compra",  nextStatus: "aguardando_comprovante_pagamento",  action: "compra_aprovada" },
@@ -990,9 +990,9 @@ const REJECT_FLOW_NORMAL: Record<string, string> = {
 // Fluxo de rejeição URGENTE/EMERGENCIAL
 const REJECT_FLOW_URGENT: Record<string, string> = {
   aguardando_gerente:              "aguardando_gerente",
-  aguardando_diretoria:            "aguardando_gerente",
   aguardando_orcamento:            "aguardando_orcamento",
-  aguardando_controladoria:        "aguardando_orcamento",
+  aguardando_diretoria:            "aguardando_orcamento",
+  aguardando_controladoria:        "aguardando_diretoria",
   aguardando_ordem_compra:         "aguardando_controladoria",
   aguardando_aprovacao_compra:     "aguardando_ordem_compra",
   aguardando_comprovante_pagamento:"rejeitada",
@@ -1139,7 +1139,7 @@ export async function approveRequest(
     };
 
     const isUrgentOrEmergency = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
-    if (effectiveNextStatus === "aguardando_orcamento" && (request.status === "aguardando_gerente" || (request.status === "aguardando_diretoria" && isUrgentOrEmergency))) {
+    if (effectiveNextStatus === "aguardando_orcamento" && request.status === "aguardando_gerente") {
       // Gerente aprovou OU diretoria aprovou pedido urgente/emergencial → notificar solicitante para anexar orçamento
       if (requester?.phone) {
         await WA.notifyBudgetRequired({

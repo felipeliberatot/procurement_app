@@ -620,3 +620,9 @@
 - [x] Webhook Z-API configurado via API (update-webhook-received) para receber respostas de texto
 - [x] Provider auto-detectado como 'zapi' quando ZAPI_INSTANCE_ID está configurado
 - [x] Aprovador pode aprovar/rejeitar clicando no link OU respondendo APROVAR/REJEITAR por texto
+
+## Bug: Fluxo Urgente/Emergencial — Ordem das Etapas
+- [x] Backend: STEP_FLOW_URGENT corrigido para Gerente → Orçamento → Diretoria → Controladoria → OC → Financeiro
+- [x] Backend: REJECT_FLOW_URGENT corrigido (rejeição volta para etapa anterior correta)
+- [x] Backend: notificação de orçamento agora disparada quando gerente aprova (em vez de diretoria)
+- [x] Frontend: WORKFLOW_STEPS_URGENT corrigido na timeline (Orçamento antes da Diretoria)
