@@ -248,9 +248,9 @@ export async function notifyApproverWithToken(opts: {
   const totalLine = opts.totalValue ? `*Valor estimado:* R$ ${opts.totalValue}\n` : "";
 
   // Gerar URL base do servidor para os links de aprovação
-  const serverBase = process.env.WEBHOOK_BASE_URL
-    || process.env.EXPO_PUBLIC_API_BASE_URL?.replace(":3000", "").replace("/api", "")
-    || "https://3000-iaj6j485ry6l0xxcfi7g3-3bd71b31.us2.manus.computer";
+  // Prioridade: WEBHOOK_BASE_URL (URL pública do servidor) > APP_BASE_URL (domínio do app)
+  // O APP_BASE_URL aponta para o mesmo servidor em produção (compras.cgsagricola.com.br)
+  const serverBase = (process.env.WEBHOOK_BASE_URL || APP_BASE_URL).replace(/\/$/, "");
   const approveLink = `${serverBase}/api/approve?token=${token}&action=approve`;
   const rejectLink = `${serverBase}/api/approve?token=${token}&action=reject`;
 

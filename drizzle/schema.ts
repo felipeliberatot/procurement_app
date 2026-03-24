@@ -152,6 +152,11 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   // Urgente/Emergencial: controle de retorno ao orçamento
   orcamentoFeitoUrgente: boolean("orcamentoFeitoUrgente").default(false).notNull(), // true após o orçamento ser feito pela primeira vez em pedidos urgentes/emergenciais
 
+  // Aprovação dupla da Diretoria: JSON com IDs dos diretores que já aprovaram
+  // Formato: [{userId: number, userName: string, approvedAt: string}]
+  // A etapa só avança quando Rafael (ID 480003) + pelo menos 1 outro diretor aprovarem
+  directorApprovals: text("directorApprovals"),
+
   // Malotes integration
   isEnabledInMalotes: boolean("isEnabledInMalotes").default(false).notNull(), // Habilitado nos Malotes após OC finalizada
 

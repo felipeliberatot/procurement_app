@@ -1,0 +1,24 @@
+{
+  "query": "\nSELECT id, requestNumber, urgencyLevel, status, updatedAt\nFROM purchaseRequests\nWHERE requestNumber IN ('SOL-2026-0128', 'SOL-2026-0132');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT id, requestNumber, urgencyLevel, status, updatedAt\nFROM purchaseRequests\nWHERE requestNumber IN ('SOL-2026-0128', 'SOL-2026-0132');\n",
+  "rows": [
+    {
+      "id": "1830001",
+      "requestNumber": "SOL-2026-0128",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_controladoria",
+      "updatedAt": "2026-03-21 20:55:05"
+    },
+    {
+      "id": "1920001",
+      "requestNumber": "SOL-2026-0132",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_controladoria",
+      "updatedAt": "2026-03-21 20:55:05"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\turgencyLevel\tstatus\tupdatedAt\n1830001\tSOL-2026-0128\temergencial\taguardando_controladoria\t2026-03-21 20:55:05\n1920001\tSOL-2026-0132\temergencial\taguardando_controladoria\t2026-03-21 20:55:05\n",
+  "stderr": "",
+  "execution_time_ms": 3667
+}

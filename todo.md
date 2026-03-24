@@ -626,3 +626,14 @@
 - [x] Backend: REJECT_FLOW_URGENT corrigido (rejeição volta para etapa anterior correta)
 - [x] Backend: notificação de orçamento agora disparada quando gerente aprova (em vez de diretoria)
 - [x] Frontend: WORKFLOW_STEPS_URGENT corrigido na timeline (Orçamento antes da Diretoria)
+
+## Correções e Melhorias (Lote Março 2026)
+- [x] Bug: loop eterno no fluxo Urgente/Emergencial (Diretoria aprova → volta para Orçamento)
+- [x] Correção: proteger attachBudget para não permitir upload em status incorretos
+- [x] Correção: corrigir status de 11 solicitações urgentes/emergenciais afetadas pelo loop (→ aguardando_controladoria)
+- [x] Correção: links de aprovação WhatsApp usando URL inválida (fallback hardcoded antigo)
+- [x] Correção: imports incorretos no endpoint /api/approve do whatsapp-webhook.ts
+- [x] Novo: aprovação dupla obrigatória na etapa de Diretoria (Rafael da Silva Liberato + outro diretor)
+- [x] Novo: campo directorApprovals na tabela purchaseRequests para rastrear aprovações parciais
+- [x] Novo: card visual de aprovação dupla na tela de detalhes da solicitação
+- [x] Novo: notificação WhatsApp para diretores pendentes quando aprovação parcial é registrada

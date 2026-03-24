@@ -1,0 +1,73 @@
+{
+  "query": "\n-- Solicitações urgentes/emergenciais onde a Diretoria aprovou mas o status atual é aguardando_orcamento ou aguardando_diretoria\nSELECT pr.id, pr.requestNumber, pr.urgencyLevel, pr.status,\n       COUNT(CASE WHEN ah.step = 'diretoria' AND ah.action = 'aprovada' THEN 1 END) as diretoria_aprovacoes\nFROM purchaseRequests pr\nLEFT JOIN approvalHistory ah ON pr.id = ah.requestId\nWHERE pr.urgencyLevel IN ('urgente', 'emergencial')\n  AND pr.status IN ('aguardando_orcamento', 'aguardando_diretoria')\nGROUP BY pr.id, pr.requestNumber, pr.urgencyLevel, pr.status\nHAVING COUNT(CASE WHEN ah.step = 'diretoria' AND ah.action = 'aprovada' THEN 1 END) > 0;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \n-- Solicitações urgentes/emergenciais onde a Diretoria aprovou mas o status atual é aguardando_orcamento ou aguardando_diretoria\nSELECT pr.id, pr.requestNumber, pr.urgencyLevel, pr.status,\n       COUNT(CASE WHEN ah.step = 'diretoria' AND ah.action = 'aprovada' THEN 1 END) as diretoria_aprovacoes\nFROM purchaseRequests pr\nLEFT JOIN approvalHistory ah ON pr.id = ah.requestId\nWHERE pr.urgencyLevel IN ('urgente', 'emergencial')\n  AND pr.status IN ('aguardando_orcamento', 'aguardando_diretoria')\nGROUP BY pr.id, pr.requestNumber, pr.urgencyLevel, pr.status\nHAVING COUNT(CASE WHEN ah.step = 'diretoria' AND ah.action = 'aprovada' THEN 1 END) > 0;\n",
+  "rows": [
+    {
+      "id": "1230001",
+      "requestNumber": "SOL-2026-0102",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "1"
+    },
+    {
+      "id": "1890001",
+      "requestNumber": "SOL-2026-0130",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "1"
+    },
+    {
+      "id": "1710001",
+      "requestNumber": "SOL-2026-0120",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "2"
+    },
+    {
+      "id": "1980003",
+      "requestNumber": "SOL-2026-0136",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "1"
+    },
+    {
+      "id": "1980002",
+      "requestNumber": "SOL-2026-0135",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "1"
+    },
+    {
+      "id": "1800002",
+      "requestNumber": "SOL-2026-0127",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "4"
+    },
+    {
+      "id": "1980001",
+      "requestNumber": "SOL-2026-0134",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "2"
+    },
+    {
+      "id": "1770001",
+      "requestNumber": "SOL-2026-0125",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "1"
+    },
+    {
+      "id": "2010003",
+      "requestNumber": "SOL-2026-0140",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "diretoria_aprovacoes": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\turgencyLevel\tstatus\tdiretoria_aprovacoes\n1230001\tSOL-2026-0102\turgente\taguardando_orcamento\t1\n1890001\tSOL-2026-0130\temergencial\taguardando_orcamento\t1\n1710001\tSOL-2026-0120\temergencial\taguardando_orcamento\t2\n1980003\tSOL-2026-0136\temergencial\taguardando_orcamento\t1\n1980002\tSOL-2026-0135\temergencial\taguardando_orcamento\t1\n1800002\tSOL-2026-0127\temergencial\taguardando_orcamento\t4\n1980001\tSOL-2026-0134\turgente\taguardando_orcamento\t2\n1770001\tSOL-2026-0125\turgente\taguardando_orcamento\t1\n2010003\tSOL-2026-0140\temergencial\taguardando_orcamento\t1\n",
+  "stderr": "",
+  "execution_time_ms": 123
+}

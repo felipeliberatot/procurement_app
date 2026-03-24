@@ -218,7 +218,7 @@ export function registerWhatsAppWebhook(app: Express): void {
 
     try {
       // Find session by token
-      const { getDb } = await import("../server/db");
+      const { getDb } = await import("./db");
       const { whatsappSessions } = await import("../drizzle/schema");
       const { eq } = await import("drizzle-orm");
       const db = await getDb();
@@ -241,7 +241,7 @@ export function registerWhatsAppWebhook(app: Express): void {
         return res.status(410).send(htmlPage("Link expirado", "⏰", "Este link de aprovação expirou (validade de 48h). Solicite uma nova notificação.", "#6B7280"));
       }
 
-      const { approveRequest, rejectRequest, getUserById } = await import("../server/db");
+      const { approveRequest, rejectRequest, getUserById } = await import("./db");
       const approverUser = await getUserById(session.approverId);
       if (!approverUser) {
         return res.status(404).send(htmlPage("Usuário não encontrado", "❌", "O aprovador associado a este link não foi encontrado no sistema.", "#EF4444"));

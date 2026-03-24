@@ -913,10 +913,21 @@ export async function attachBudget(requestId: number, userId: number, userName: 
 
   // Verifica se já existe um orçamento anexado (substituição vs. primeiro anexo)
   const [existing] = await db
-    .select({ budgetFileUrl: purchaseRequests.budgetFileUrl })
+    .select({ budgetFileUrl: purchaseRequests.budgetFileUrl, status: purchaseRequests.status })
     .from(purchaseRequests)
     .where(eq(purchaseRequests.id, requestId))
     .limit(1);
+
+  if (!existing) throw new Error("Solicitação não encontrada");
+
+  // Proteção anti-loop: só permite anexar/substituir orçamento nos status válidos:
+  // - aguardando_orcamento: envio inicial do orçamento
+  // - aguardando_controladoria: edição permitida enquanto aguarda Controladoria
+  const ALLOWED_BUDGET_STATUSES = ["aguardando_orcamento", "aguardando_controladoria"];
+  if (!ALLOWED_BUDGET_STATUSES.includes(existing.status)) {
+    throw new Error(`Não é possível anexar orçamento nesta etapa. A solicitação está em "${existing.status}" e o orçamento só pode ser enviado ou substituído quando aguardando orçamento ou controladoria.`);
+  }
+
   const isSubstitution = !!(existing?.budgetFileUrl);
   const fileLabel = fileName ? `"${fileName}"` : "PDF";
   const now = new Date().toLocaleString("pt-BR", {
@@ -1095,6 +1106,122 @@ export async function approveRequest(
   const stepFlow = getStepFlow(request.urgencyLevel);
   const flow = stepFlow[request.status];
   if (!flow) throw new Error("Ação não permitida neste status");;
+
+  // ── Aprovação dupla obrigatória na etapa de Diretoria ─────────────────────
+  // Rafael da Silva Liberato (ID 480003) DEVE aprovar junto com pelo menos outro diretor
+  const RAFAEL_ID = 480003;
+  if (request.status === "aguardando_diretoria") {
+    // Carregar aprovações parciais existentes
+    let partialApprovals: Array<{ userId: number; userName: string; approvedAt: string }> = [];
+    try {
+      partialApprovals = JSON.parse(request.directorApprovals ?? "[]");
+    } catch { partialApprovals = []; }
+
+    // Verificar se este usuário já aprovou
+    const alreadyApproved = partialApprovals.some(a => a.userId === user.id);
+    if (alreadyApproved) {
+      throw new Error("Você já registrou sua aprovação nesta etapa. Aguardando a aprovação do outro diretor.");
+    }
+
+    // Adicionar aprovação do usuário atual
+    partialApprovals.push({
+      userId: user.id,
+      userName: user.name ?? "Diretor",
+      approvedAt: new Date().toISOString(),
+    });
+
+    // Verificar se as duas condições foram satisfeitas:
+    // 1. Rafael (ID 480003) aprovou
+    // 2. Pelo menos outro diretor aprovou
+    const rafaelApproved = partialApprovals.some(a => a.userId === RAFAEL_ID);
+    const otherDirectorApproved = partialApprovals.some(a => a.userId !== RAFAEL_ID);
+    const bothApproved = rafaelApproved && otherDirectorApproved;
+
+    if (!bothApproved) {
+      // Aprovação parcial: salvar no banco e registrar no histórico, mas NÃO avançar o status
+      await db.update(purchaseRequests).set({
+        directorApprovals: JSON.stringify(partialApprovals),
+      }).where(eq(purchaseRequests.id, requestId));
+
+      await db.insert(approvalHistory).values({
+        requestId,
+        userId: user.id,
+        userName: user.name ?? "Usuário",
+        step: "diretoria" as any,
+        action: "aprovada" as any,
+        comment: `Aprovação parcial da Diretoria registrada. ${rafaelApproved ? 'Rafael ✓ — aguardando outro diretor' : 'Aguardando aprovação de Rafael da Silva Liberato'}.${data.comment ? ` Obs: ${data.comment}` : ''}`,
+      });
+
+      // Notificar os outros diretores que ainda não aprovaram
+      try {
+        const pendingDirectors = await db.select().from(users).where(
+          and(
+            eq(users.active, true),
+            or(
+              eq(users.procurementRole, "diretoria" as any),
+              eq(users.approvalLevel, "diretoria" as any)
+            )
+          )
+        );
+        const [reqData] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+        const items = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+        const itemsForMsg = items.map(it => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
+        for (const director of pendingDirectors) {
+          const alreadyDone = partialApprovals.some(a => a.userId === director.id);
+          if (!alreadyDone && director.phone) {
+            await WA.notifyApproverWithToken({
+              approverPhone: director.phone,
+              approverName: director.name ?? "Diretor",
+              approverId: director.id,
+              requestNumber: reqData.requestNumber,
+              requestId,
+              stepLabel: "Diretoria (aprovação dupla)",
+              step: "diretoria",
+              requesterName: reqData.requesterName,
+              department: reqData.department,
+              application: reqData.application,
+              urgencyLevel: reqData.urgencyLevel,
+              totalValue: reqData.totalEstimatedValue ?? undefined,
+              items: itemsForMsg,
+            });
+          }
+        }
+        // Notificar Rafael especificamente se ainda não aprovou e não está na lista de diretores
+        if (!rafaelApproved) {
+          const [rafaelUser] = await db.select().from(users).where(eq(users.id, RAFAEL_ID)).limit(1);
+          if (rafaelUser?.phone) {
+            const alreadyNotified = pendingDirectors.some(d => d.id === RAFAEL_ID);
+            if (!alreadyNotified) {
+              await WA.notifyApproverWithToken({
+                approverPhone: rafaelUser.phone,
+                approverName: rafaelUser.name ?? "Rafael",
+                approverId: rafaelUser.id,
+                requestNumber: reqData.requestNumber,
+                requestId,
+                stepLabel: "Diretoria (aprovação dupla obrigatória)",
+                step: "diretoria",
+                requesterName: reqData.requesterName,
+                department: reqData.department,
+                application: reqData.application,
+                urgencyLevel: reqData.urgencyLevel,
+                totalValue: reqData.totalEstimatedValue ?? undefined,
+                items: itemsForMsg,
+              });
+            }
+          }
+        }
+      } catch (notifyErr) {
+        console.error("[Director Dual Approval] Notification error:", notifyErr);
+      }
+
+      return { partialApproval: true, message: `Sua aprovação foi registrada. ${rafaelApproved ? 'Aguardando aprovação de outro diretor.' : 'Aguardando aprovação de Rafael da Silva Liberato.'}` };
+    }
+
+    // Ambos aprovaram: limpar as aprovações parciais e avançar o status
+    await db.update(purchaseRequests).set({
+      directorApprovals: null,
+    }).where(eq(purchaseRequests.id, requestId));
+  }
 
   const effectiveNextStatus = flow.nextStatus;
 
