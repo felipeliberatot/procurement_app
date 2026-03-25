@@ -1,0 +1,98 @@
+{
+  "query": "\nSELECT \n  pr.id,\n  pr.requestNumber,\n  pr.urgencyLevel,\n  pr.status,\n  pr.directorApprovals,\n  pr.updatedAt\nFROM purchaseRequests pr\nWHERE pr.urgencyLevel IN ('urgente', 'emergencial')\n  AND pr.status NOT IN ('concluida', 'cancelada', 'rejeitada')\nORDER BY pr.updatedAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT \n  pr.id,\n  pr.requestNumber,\n  pr.urgencyLevel,\n  pr.status,\n  pr.directorApprovals,\n  pr.updatedAt\nFROM purchaseRequests pr\nWHERE pr.urgencyLevel IN ('urgente', 'emergencial')\n  AND pr.status NOT IN ('concluida', 'cancelada', 'rejeitada')\nORDER BY pr.updatedAt DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "2550002",
+      "requestNumber": "SOL-2026-0166",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_gerente",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-25 10:31:58"
+    },
+    {
+      "id": "2550001",
+      "requestNumber": "SOL-2026-0165",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_gerente",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-25 10:29:55"
+    },
+    {
+      "id": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 21:57:38"
+    },
+    {
+      "id": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 21:57:32"
+    },
+    {
+      "id": "1770001",
+      "requestNumber": "SOL-2026-0125",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_ordem_compra",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 20:59:10"
+    },
+    {
+      "id": "2520002",
+      "requestNumber": "SOL-2026-0164",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_gerente",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 20:49:36"
+    },
+    {
+      "id": "2430001",
+      "requestNumber": "SOL-2026-0160",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 19:41:56"
+    },
+    {
+      "id": "1980002",
+      "requestNumber": "SOL-2026-0135",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_ordem_compra",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 12:22:10"
+    },
+    {
+      "id": "2070001",
+      "requestNumber": "SOL-2026-0144",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_orcamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-23 10:16:39"
+    },
+    {
+      "id": "1230001",
+      "requestNumber": "SOL-2026-0102",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_ordem_compra",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-22 22:12:55"
+    },
+    {
+      "id": "510002",
+      "requestNumber": "SOL-2026-0042",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_comprovante_pagamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-05 18:32:28"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\turgencyLevel\tstatus\tdirectorApprovals\tupdatedAt\n2550002\tSOL-2026-0166\turgente\taguardando_gerente\tNULL\t2026-03-25 10:31:58\n2550001\tSOL-2026-0165\temergencial\taguardando_gerente\tNULL\t2026-03-25 10:29:55\n2340003\tSOL-2026-0157\temergencial\taguardando_orcamento\tNULL\t2026-03-24 21:57:38\n2460001\tSOL-2026-0161\temergencial\taguardando_orcamento\tNULL\t2026-03-24 21:57:32\n1770001\tSOL-2026-0125\turgente\taguardando_ordem_compra\tNULL\t2026-03-24 20:59:10\n2520002\tSOL-2026-0164\temergencial\taguardando_gerente\tNULL\t2026-03-24 20:49:36\n2430001\tSOL-2026-0160\temergencial\taguardando_orcamento\tNULL\t2026-03-24 19:41:56\n1980002\tSOL-2026-0135\temergencial\taguardando_ordem_compra\tNULL\t2026-03-24 12:22:10\n2070001\tSOL-2026-0144\turgente\taguardando_orcamento\tNULL\t2026-03-23 10:16:39\n1230001\tSOL-2026-0102\turgente\taguardando_ordem_compra\tNULL\t2026-03-22 22:12:55\n510002\tSOL-2026-0042\temergencial\taguardando_comprovante_pagamento\tNULL\t2026-03-05 18:32:28\n",
+  "stderr": "",
+  "execution_time_ms": 2878
+}

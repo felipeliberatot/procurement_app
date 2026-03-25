@@ -1,0 +1,190 @@
+{
+  "query": "\nSELECT \n  ah.requestId,\n  pr.requestNumber,\n  pr.urgencyLevel,\n  ah.step,\n  ah.action,\n  ah.userName,\n  ah.comment,\n  ah.createdAt\nFROM approvalHistory ah\nJOIN purchaseRequests pr ON pr.id = ah.requestId\nWHERE pr.requestNumber IN ('SOL-2026-0157', 'SOL-2026-0161', 'SOL-2026-0160')\nORDER BY ah.requestId, ah.createdAt ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT \n  ah.requestId,\n  pr.requestNumber,\n  pr.urgencyLevel,\n  ah.step,\n  ah.action,\n  ah.userName,\n  ah.comment,\n  ah.createdAt\nFROM approvalHistory ah\nJOIN purchaseRequests pr ON pr.id = ah.requestId\nWHERE pr.requestNumber IN ('SOL-2026-0157', 'SOL-2026-0161', 'SOL-2026-0160')\nORDER BY ah.requestId, ah.createdAt ASC;\n",
+  "rows": [
+    {
+      "requestId": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "step": "criacao",
+      "action": "criada",
+      "userName": "Wellington",
+      "comment": "Solicitação criada. Prazo: 24/03/2026",
+      "createdAt": "2026-03-23 21:12:02"
+    },
+    {
+      "requestId": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "step": "gerente",
+      "action": "aprovada",
+      "userName": "Joelson Jesus",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 16:39:42"
+    },
+    {
+      "requestId": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 19:41:50"
+    },
+    {
+      "requestId": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "step": "orcamento",
+      "action": "orcamento_anexado",
+      "userName": "Wellington",
+      "comment": "Orçamento em PDF anexado — aguardando envio",
+      "createdAt": "2026-03-24 20:05:39"
+    },
+    {
+      "requestId": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "step": "orcamento",
+      "action": "aprovada",
+      "userName": "Wellington",
+      "comment": "Orçamento enviado",
+      "createdAt": "2026-03-24 20:05:40"
+    },
+    {
+      "requestId": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 21:57:38"
+    },
+    {
+      "requestId": "2430001",
+      "requestNumber": "SOL-2026-0160",
+      "urgencyLevel": "emergencial",
+      "step": "criacao",
+      "action": "criada",
+      "userName": "Wender Lopes Sampaio",
+      "comment": "Solicitação criada. Prazo: 25/03/2026",
+      "createdAt": "2026-03-24 13:54:35"
+    },
+    {
+      "requestId": "2430001",
+      "requestNumber": "SOL-2026-0160",
+      "urgencyLevel": "emergencial",
+      "step": "gerente",
+      "action": "aprovada",
+      "userName": "Joelson Jesus",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 16:39:51"
+    },
+    {
+      "requestId": "2430001",
+      "requestNumber": "SOL-2026-0160",
+      "urgencyLevel": "emergencial",
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 19:41:56"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "criacao",
+      "action": "criada",
+      "userName": "Joelson Jesus",
+      "comment": "Solicitação criada. Prazo: 25/03/2026",
+      "createdAt": "2026-03-24 18:20:19"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "gerente",
+      "action": "aprovada",
+      "userName": "Joelson Jesus",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 19:30:06"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 19:42:25"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "edicao",
+      "action": "editada",
+      "userName": "Willian Camilo",
+      "comment": "Solicitação editada por Willian Camilo. Processo de aprovação reiniciado. Novo prazo: 25/03/2026",
+      "createdAt": "2026-03-24 19:48:24"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "gerente",
+      "action": "aprovada",
+      "userName": "Joelson Jesus",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 19:51:29"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 19:59:58"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "orcamento",
+      "action": "orcamento_anexado",
+      "userName": "Wellington",
+      "comment": "Orçamento em PDF anexado — aguardando envio",
+      "createdAt": "2026-03-24 20:04:10"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "orcamento",
+      "action": "aprovada",
+      "userName": "Wellington",
+      "comment": "Orçamento enviado",
+      "createdAt": "2026-03-24 20:04:10"
+    },
+    {
+      "requestId": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-24 21:57:32"
+    }
+  ],
+  "messages": [],
+  "stdout": "requestId\trequestNumber\turgencyLevel\tstep\taction\tuserName\tcomment\tcreatedAt\n2340003\tSOL-2026-0157\temergencial\tcriacao\tcriada\tWellington\tSolicitação criada. Prazo: 24/03/2026\t2026-03-23 21:12:02\n2340003\tSOL-2026-0157\temergencial\tgerente\taprovada\tJoelson Jesus\tNULL\t2026-03-24 16:39:42\n2340003\tSOL-2026-0157\temergencial\tdiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-24 19:41:50\n2340003\tSOL-2026-0157\temergencial\torcamento\torcamento_anexado\tWellington\tOrçamento em PDF anexado — aguardando envio\t2026-03-24 20:05:39\n2340003\tSOL-2026-0157\temergencial\torcamento\taprovada\tWellington\tOrçamento enviado\t2026-03-24 20:05:40\n2340003\tSOL-2026-0157\temergencial\tdiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-24 21:57:38\n2430001\tSOL-2026-0160\temergencial\tcriacao\tcriada\tWender Lopes Sampaio\tSolicitação criada. Prazo: 25/03/2026\t2026-03-24 13:54:35\n2430001\tSOL-2026-0160\temergencial\tgerente\taprovada\tJoelson Jesus\tNULL\t2026-03-24 16:39:51\n2430001\tSOL-2026-0160\temergencial\tdiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-24 19:41:56\n2460001\tSOL-2026-0161\temergencial\tcriacao\tcriada\tJoelson Jesus\tSolicitação criada. Prazo: 25/03/2026\t2026-03-24 18:20:19\n2460001\tSOL-2026-0161\temergencial\tgerente\taprovada\tJoelson Jesus\tNULL\t2026-03-24 19:30:06\n2460001\tSOL-2026-0161\temergencial\tdiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-24 19:42:25\n2460001\tSOL-2026-0161\temergencial\tedicao\teditada\tWillian Camilo\tSolicitação editada por Willian Camilo. Processo de aprovação reiniciado. Novo prazo: 25/03/2026\t2026-03-24 19:48:24\n2460001\tSOL-2026-0161\temergencial\tgerente\taprovada\tJoelson Jesus\tNULL\t2026-03-24 19:51:29\n2460001\tSOL-2026-0161\temergencial\tdiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-24 19:59:58\n2460001\tSOL-2026-0161\temergencial\torcamento\torcamento_anexado\tWellington\tOrçamento em PDF anexado — aguardando envio\t2026-03-24 20:04:10\n2460001\tSOL-2026-0161\temergencial\torcamento\taprovada\tWellington\tOrçamento enviado\t2026-03-24 20:04:10\n2460001\tSOL-2026-0161\temergencial\tdiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-24 21:57:32\n",
+  "stderr": "",
+  "execution_time_ms": 159
+}

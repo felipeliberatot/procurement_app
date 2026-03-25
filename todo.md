@@ -637,3 +637,8 @@
 - [x] Novo: campo directorApprovals na tabela purchaseRequests para rastrear aprovações parciais
 - [x] Novo: card visual de aprovação dupla na tela de detalhes da solicitação
 - [x] Novo: notificação WhatsApp para diretores pendentes quando aprovação parcial é registrada
+
+## Correções Urgentes (Lote Março 2026 - v2)
+- [x] Bug crítico: loop ainda acontece no fluxo urgente/emergencial após aprovação da Diretoria — corrigido: STEP_ROLE_MAP bloqueia aprovação fora da etapa correta; 4 solicitações afetadas corrigidas no banco
+- [x] Bug: aprovação dupla da Diretoria avançando com apenas 1 diretor — corrigido: lógica de aprovação dupla obrigatória implementada (Rafael + Wacksan ou Willian)
+- [x] Correção: EXPO_PUBLIC_API_BASE_URL apontando para URL de sandbox antiga — corrigido: fallback usa APP_BASE_URL (compras.cgsagricola.com.br)
