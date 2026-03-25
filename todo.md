@@ -642,3 +642,10 @@
 - [x] Bug crítico: loop ainda acontece no fluxo urgente/emergencial após aprovação da Diretoria — corrigido: STEP_ROLE_MAP bloqueia aprovação fora da etapa correta; 4 solicitações afetadas corrigidas no banco
 - [x] Bug: aprovação dupla da Diretoria avançando com apenas 1 diretor — corrigido: lógica de aprovação dupla obrigatória implementada (Rafael + Wacksan ou Willian)
 - [x] Correção: EXPO_PUBLIC_API_BASE_URL apontando para URL de sandbox antiga — corrigido: fallback usa APP_BASE_URL (compras.cgsagricola.com.br)
+
+## Feature: Campo de Pesquisa na Aba de Solicitações
+- [x] Campo de busca por texto livre (número da solicitação, aplicação, solicitante, departamento, centro de custo)
+- [x] Pesquisa funciona em conjunto com os filtros existentes (status, urgência, departamento)
+- [x] Botão de limpar pesquisa (ícone X circular)
+- [x] Layout mobile: campo abaixo do cabeçalho, acima dos filtros de status
+- [x] Layout desktop: campo integrado no cabeçalho abaixo do título e botão Nova Solicitação

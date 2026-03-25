@@ -8,13 +8,14 @@ import { trpc } from "@/lib/trpc";
 import { router, useLocalSearchParams } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -53,6 +54,14 @@ const ROLE_PENDING_STATUSES: Record<string, string[]> = {
   solicitante: [],
 };
 
+/** Normaliza texto para comparação: remove acentos e converte para minúsculas */
+function normalize(str: string): string {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export default function RequestsScreen() {
   const { isAuthenticated, user } = useAuth();
   const { isDesktop } = useBreakpoint();
@@ -63,6 +72,8 @@ export default function RequestsScreen() {
   const [activeUrgency, setActiveUrgency] = useState(params.urgency ?? "all");
   const [activeDepartment, setActiveDepartment] = useState<string>("all");
   const [myActionOnly, setMyActionOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<TextInput>(null);
 
   // Calcula os status pendentes para o usuário logado (todos os papéis)
   const myPendingStatuses = React.useMemo(() => {
@@ -109,8 +120,74 @@ export default function RequestsScreen() {
     const urgencyMatch = activeUrgency === "all" ? true : r.urgencyLevel === activeUrgency;
     const deptMatch = activeDepartment === "all" ? true : r.department === activeDepartment;
     const myActionMatch = myActionOnly ? myPendingStatuses.includes(r.status) : true;
-    return statusMatch && urgencyMatch && deptMatch && myActionMatch;
+
+    // Filtro de pesquisa por texto livre
+    const searchMatch = searchQuery.trim() === "" ? true : (() => {
+      const q = normalize(searchQuery.trim());
+      return (
+        normalize(r.requestNumber ?? "").includes(q) ||
+        normalize(r.application ?? "").includes(q) ||
+        normalize(r.requesterName ?? "").includes(q) ||
+        normalize(r.department ?? "").includes(q) ||
+        normalize(r.costCenterCode ?? "").includes(q) ||
+        normalize(r.urgencyLevel ?? "").includes(q)
+      );
+    })();
+
+    return statusMatch && urgencyMatch && deptMatch && myActionMatch && searchMatch;
   });
+
+  // Componente de campo de busca reutilizável
+  const SearchBar = ({ style }: { style?: object }) => (
+    <View style={[{
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: searchQuery.trim() ? colors.primary : colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      height: 40,
+    }, style]}>
+      <Text style={{ fontSize: 15, color: colors.muted, marginRight: 6 }}>🔍</Text>
+      <TextInput
+        ref={searchInputRef}
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Buscar por número, descrição, solicitante..."
+        placeholderTextColor={colors.muted}
+        style={{
+          flex: 1,
+          fontSize: 14,
+          color: colors.foreground,
+          paddingVertical: 0,
+          height: 40,
+        }}
+        returnKeyType="search"
+        clearButtonMode="never"
+        autoCorrect={false}
+        autoCapitalize="none"
+      />
+      {searchQuery.trim() !== "" && (
+        <Pressable
+          onPress={() => { setSearchQuery(""); searchInputRef.current?.focus(); }}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 4 })}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <View style={{
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: colors.muted,
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+            <Text style={{ color: colors.background, fontSize: 11, fontWeight: "700", lineHeight: 18 }}>✕</Text>
+          </View>
+        </Pressable>
+      )}
+    </View>
+  );
 
   if (isDesktop) {
     return (
@@ -208,17 +285,22 @@ export default function RequestsScreen() {
 
           {/* Conteúdo principal */}
           <View style={{ flex: 1 }}>
-            <View style={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <View>
-                <Text style={{ fontSize: 22, fontWeight: "800", color: colors.foreground }}>Solicitações</Text>
-                <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}</Text>
+            <View style={{ paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              {/* Linha superior: título + botão Nova */}
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+                <View>
+                  <Text style={{ fontSize: 22, fontWeight: "800", color: colors.foreground }}>Solicitações</Text>
+                  <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => router.push("/request/new" as any)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 }}
+                >
+                  <Text style={{ color: "white", fontSize: 14, fontWeight: "700" }}>+ Nova Solicitação</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={() => router.push("/request/new" as any)}
-                style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
-              >
-                <Text style={{ color: "white", fontSize: 14, fontWeight: "700" }}>+ Nova Solicitação</Text>
-              </TouchableOpacity>
+              {/* Campo de busca desktop */}
+              <SearchBar />
             </View>
 
             {isLoading ? (
@@ -237,7 +319,13 @@ export default function RequestsScreen() {
                 ListEmptyComponent={
                   <EmptyState
                     title="Nenhuma solicitação"
-                    description={activeFilter !== "all" || activeUrgency !== "all" || activeDepartment !== "all" ? "Nenhuma solicitação com esses filtros." : "Clique em '+ Nova Solicitação' para criar sua primeira solicitação de compra."}
+                    description={
+                      searchQuery.trim()
+                        ? `Nenhuma solicitação encontrada para "${searchQuery.trim()}".`
+                        : activeFilter !== "all" || activeUrgency !== "all" || activeDepartment !== "all"
+                        ? "Nenhuma solicitação com esses filtros."
+                        : "Clique em '+ Nova Solicitação' para criar sua primeira solicitação de compra."
+                    }
                     icon="📋"
                   />
                 }
@@ -266,7 +354,10 @@ export default function RequestsScreen() {
             <Text className="text-white text-sm font-semibold">+ Nova</Text>
           </TouchableOpacity>
         </View>
-        <Text className="text-sm text-muted">{filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}</Text>
+        <Text className="text-sm text-muted mb-3">{filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}</Text>
+
+        {/* Campo de busca mobile */}
+        <SearchBar />
       </View>
 
       {/* Filtro rápido: Aguardando Minha Ação */}
@@ -362,7 +453,9 @@ export default function RequestsScreen() {
             <EmptyState
               title="Nenhuma solicitação"
               description={
-                activeFilter !== "all" || activeUrgency !== "all"
+                searchQuery.trim()
+                  ? `Nenhuma solicitação encontrada para "${searchQuery.trim()}".`
+                  : activeFilter !== "all" || activeUrgency !== "all"
                   ? "Nenhuma solicitação com esses filtros."
                   : activeDepartment !== "all"
                   ? "Nenhuma solicitação neste departamento."
