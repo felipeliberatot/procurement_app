@@ -1,0 +1,28 @@
+{
+  "query": "SELECT id, name, procurementRole, approvalLevel, extraRoles, extraApprovalLevels, active FROM users WHERE id = 570080 OR name LIKE '%Wacksan%' OR name LIKE '%Willian%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, procurementRole, approvalLevel, extraRoles, extraApprovalLevels, active FROM users WHERE id = 570080 OR name LIKE '%Wacksan%' OR name LIKE '%Willian%' LIMIT 5;",
+  "rows": [
+    {
+      "id": "570080",
+      "name": "Wacksan Sampaio",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "extraRoles": "NULL",
+      "extraApprovalLevels": "NULL",
+      "active": "1"
+    },
+    {
+      "id": "1260005",
+      "name": "Willian Camilo",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "extraRoles": "NULL",
+      "extraApprovalLevels": "NULL",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprocurementRole\tapprovalLevel\textraRoles\textraApprovalLevels\tactive\n570080\tWacksan Sampaio\tdiretoria\tdiretoria\tNULL\tNULL\t1\n1260005\tWillian Camilo\tdiretoria\tdiretoria\tNULL\tNULL\t1\n",
+  "stderr": "",
+  "execution_time_ms": 100
+}

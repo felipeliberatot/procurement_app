@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE whatsappSessions ws1\nJOIN (\n  SELECT requestId, approverId, MAX(id) as maxId\n  FROM whatsappSessions\n  WHERE status = 'pending'\n  GROUP BY requestId, approverId\n  HAVING COUNT(*) > 1\n) ws2 ON ws1.requestId = ws2.requestId AND ws1.approverId = ws2.approverId\nSET ws1.status = 'expired'\nWHERE ws1.status = 'pending'\n  AND ws1.id < ws2.maxId;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nUPDATE whatsappSessions ws1\nJOIN (\n  SELECT requestId, approverId, MAX(id) as maxId\n  FROM whatsappSessions\n  WHERE status = 'pending'\n  GROUP BY requestId, approverId\n  HAVING COUNT(*) > 1\n) ws2 ON ws1.requestId = ws2.requestId AND ws1.approverId = ws2.approverId\nSET ws1.status = 'expired'\nWHERE ws1.status = 'pending'\n  AND ws1.id < ws2.maxId;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 82
+}

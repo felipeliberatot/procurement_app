@@ -33,6 +33,22 @@ const WHATSAPP_API_URL = ZAPI_INSTANCE_ID
 const WHATSAPP_API_TOKEN = ZAPI_CLIENT_TOKEN || (process.env.WHATSAPP_API_TOKEN ?? "");
 const WHATSAPP_FROM = process.env.WHATSAPP_FROM ?? "";
 const APP_BASE_URL = process.env.APP_BASE_URL ?? "https://compras.cgsagricola.com.br";
+
+// Derivar a URL do servidor backend dinamicamente:
+// 1. WEBHOOK_BASE_URL (configurada manualmente) — prioridade máxima
+// 2. EXPO_PACKAGER_PROXY_URL substituindo porta 8081 por 3000 (URL dinâmica do ambiente Manus)
+// 3. APP_BASE_URL (fallback para produção com domínio fixo)
+function resolveServerBaseUrl(): string {
+  if (process.env.WEBHOOK_BASE_URL) return process.env.WEBHOOK_BASE_URL.replace(/\/$/, "");
+  const expoUrl = process.env.EXPO_PACKAGER_PROXY_URL ?? "";
+  if (expoUrl) {
+    // Substitui a porta 8081 por 3000 para obter a URL do servidor backend
+    const serverUrl = expoUrl.replace(/8081-/, "3000-").replace(/\/+$/, "");
+    if (serverUrl !== expoUrl) return serverUrl;
+  }
+  return APP_BASE_URL;
+}
+
 const WEBHOOK_BASE_URL = process.env.WEBHOOK_BASE_URL ?? "";
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
@@ -54,6 +70,23 @@ export async function createApprovalSession(opts: {
   const phone = normalizePhone(opts.approverPhone);
   const db = await getDb();
   if (!db) { console.warn("[WhatsApp] DB not available, cannot create session"); return; }
+
+  // Invalidar sessões antigas pendentes para o mesmo aprovador + solicitação
+  // Isso evita que links antigos (de reenvios) sejam clicados e causem erros
+  try {
+    await db.update(whatsappSessions)
+      .set({ status: "expired" })
+      .where(
+        and(
+          eq(whatsappSessions.requestId, opts.requestId),
+          eq(whatsappSessions.approverId, opts.approverId),
+          eq(whatsappSessions.status, "pending"),
+        )
+      );
+  } catch (e) {
+    console.warn("[WhatsApp] Could not expire old sessions:", e);
+  }
+
   await db.insert(whatsappSessions).values({
     token: opts.token,
     requestId: opts.requestId,
@@ -248,9 +281,9 @@ export async function notifyApproverWithToken(opts: {
   const totalLine = opts.totalValue ? `*Valor estimado:* R$ ${opts.totalValue}\n` : "";
 
   // Gerar URL base do servidor para os links de aprovação
-  // Prioridade: WEBHOOK_BASE_URL (URL pública do servidor) > APP_BASE_URL (domínio do app)
-  // O APP_BASE_URL aponta para o mesmo servidor em produção (compras.cgsagricola.com.br)
-  const serverBase = (process.env.WEBHOOK_BASE_URL || APP_BASE_URL).replace(/\/$/, "");
+  // resolveServerBaseUrl() detecta automaticamente a URL correta:
+  // WEBHOOK_BASE_URL > EXPO_PACKAGER_PROXY_URL (derivado) > APP_BASE_URL
+  const serverBase = resolveServerBaseUrl();
   const approveLink = `${serverBase}/api/approve?token=${token}&action=approve`;
   const rejectLink = `${serverBase}/api/approve?token=${token}&action=reject`;
 
@@ -591,6 +624,8 @@ export async function sendWhatsAppTestMessage(opts: {
 // ─── Webhook URL helper ───────────────────────────────────────────────────────
 
 export function getWebhookUrl(): string {
+  const base = resolveServerBaseUrl();
+  if (base && base !== APP_BASE_URL) return `${base}/api/whatsapp/webhook`;
   if (WEBHOOK_BASE_URL) return `${WEBHOOK_BASE_URL}/api/whatsapp/webhook`;
   return "(configure WEBHOOK_BASE_URL no servidor para obter a URL)";
 }

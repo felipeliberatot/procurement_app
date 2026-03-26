@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, token, status, expiresAt, approverId FROM whatsappSessions WHERE token = '64585d56bab7e62af371d913f756079168938f3b93005336';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, token, status, expiresAt, approverId FROM whatsappSessions WHERE token = '64585d56bab7e62af371d913f756079168938f3b93005336';",
+  "rows": [
+    {
+      "id": "5130038",
+      "token": "64585d56bab7e62af371d913f756079168938f3b93005336",
+      "status": "expired",
+      "expiresAt": "2026-03-27 14:02:07",
+      "approverId": "480003"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttoken\tstatus\texpiresAt\tapproverId\n5130038\t64585d56bab7e62af371d913f756079168938f3b93005336\texpired\t2026-03-27 14:02:07\t480003\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

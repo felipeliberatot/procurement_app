@@ -649,3 +649,9 @@
 - [x] Botão de limpar pesquisa (ícone X circular)
 - [x] Layout mobile: campo abaixo do cabeçalho, acima dos filtros de status
 - [x] Layout desktop: campo integrado no cabeçalho abaixo do título e botão Nova Solicitação
+
+## Bug: Aprovação/Recusa via WhatsApp não funciona
+- [ ] Investigar endpoint /api/approve: verificar se token é encontrado no banco
+- [ ] Verificar se a função approveRequest é chamada corretamente com o userId do aprovador
+- [ ] Verificar se o link gerado nas notificações usa a URL correta (APP_BASE_URL)
+- [ ] Corrigir qualquer erro no fluxo de aprovação via link WhatsApp

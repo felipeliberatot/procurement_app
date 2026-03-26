@@ -1,0 +1,170 @@
+{
+  "query": "SELECT ws.id, ws.requestNumber, ws.approverName, ws.step, ws.status, pr.status as requestStatus FROM whatsappSessions ws JOIN purchaseRequests pr ON ws.requestId = pr.id WHERE ws.status = 'pending' ORDER BY ws.createdAt DESC LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT ws.id, ws.requestNumber, ws.approverName, ws.step, ws.status, pr.status as requestStatus FROM whatsappSessions ws JOIN purchaseRequests pr ON ws.requestId = pr.id WHERE ws.status = 'pending' ORDER BY ws.createdAt DESC LIMIT 20;",
+  "rows": [
+    {
+      "id": "5130041",
+      "requestNumber": "SOL-2026-0170",
+      "approverName": "Wacksan Sampaio",
+      "step": "diretoria",
+      "status": "pending",
+      "requestStatus": "aguardando_diretoria"
+    },
+    {
+      "id": "5130040",
+      "requestNumber": "SOL-2026-0170",
+      "approverName": "Rafael da Silva Liberato",
+      "step": "diretoria",
+      "status": "pending",
+      "requestStatus": "aguardando_diretoria"
+    },
+    {
+      "id": "5130042",
+      "requestNumber": "SOL-2026-0170",
+      "approverName": "Willian Camilo",
+      "step": "diretoria",
+      "status": "pending",
+      "requestStatus": "aguardando_diretoria"
+    },
+    {
+      "id": "5130039",
+      "requestNumber": "SOL-2026-0169",
+      "approverName": "Wacksan Sampaio",
+      "step": "diretoria",
+      "status": "pending",
+      "requestStatus": "aguardando_diretoria"
+    },
+    {
+      "id": "5130038",
+      "requestNumber": "SOL-2026-0169",
+      "approverName": "Rafael da Silva Liberato",
+      "step": "diretoria",
+      "status": "pending",
+      "requestStatus": "aguardando_diretoria"
+    },
+    {
+      "id": "5130037",
+      "requestNumber": "SOL-2026-0125",
+      "approverName": "Jose Liberato",
+      "step": "financeiro",
+      "status": "pending",
+      "requestStatus": "aguardando_comprovante_pagamento"
+    },
+    {
+      "id": "5130032",
+      "requestNumber": "SOL-2026-0166",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130033",
+      "requestNumber": "SOL-2026-0166",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130031",
+      "requestNumber": "SOL-2026-0164",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130030",
+      "requestNumber": "SOL-2026-0164",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130029",
+      "requestNumber": "SOL-2026-0165",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130028",
+      "requestNumber": "SOL-2026-0165",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130025",
+      "requestNumber": "SOL-2026-0169",
+      "approverName": "Wacksan Sampaio",
+      "step": "diretoria",
+      "status": "pending",
+      "requestStatus": "aguardando_diretoria"
+    },
+    {
+      "id": "5130024",
+      "requestNumber": "SOL-2026-0169",
+      "approverName": "Rafael da Silva Liberato",
+      "step": "diretoria",
+      "status": "pending",
+      "requestStatus": "aguardando_diretoria"
+    },
+    {
+      "id": "5130014",
+      "requestNumber": "SOL-2026-0168",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130013",
+      "requestNumber": "SOL-2026-0168",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130011",
+      "requestNumber": "SOL-2026-0167",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130012",
+      "requestNumber": "SOL-2026-0167",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130009",
+      "requestNumber": "SOL-2026-0163",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    },
+    {
+      "id": "5130010",
+      "requestNumber": "SOL-2026-0163",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "requestStatus": "aguardando_orcamento"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tapproverName\tstep\tstatus\trequestStatus\n5130041\tSOL-2026-0170\tWacksan Sampaio\tdiretoria\tpending\taguardando_diretoria\n5130040\tSOL-2026-0170\tRafael da Silva Liberato\tdiretoria\tpending\taguardando_diretoria\n5130042\tSOL-2026-0170\tWillian Camilo\tdiretoria\tpending\taguardando_diretoria\n5130039\tSOL-2026-0169\tWacksan Sampaio\tdiretoria\tpending\taguardando_diretoria\n5130038\tSOL-2026-0169\tRafael da Silva Liberato\tdiretoria\tpending\taguardando_diretoria\n5130037\tSOL-2026-0125\tJose Liberato\tfinanceiro\tpending\taguardando_comprovante_pagamento\n5130032\tSOL-2026-0166\tWellington\torcamento\tpending\taguardando_orcamento\n5130033\tSOL-2026-0166\tVitor Gritti\torcamento\tpending\taguardando_orcamento\n5130031\tSOL-2026-0164\tVitor Gritti\torcamento\tpending\taguardando_orcamento\n5130030\tSOL-2026-0164\tWellington\torcamento\tpending\taguardando_orcamento\n5130029\tSOL-2026-0165\tVitor Gritti\torcamento\tpending\taguardando_orcamento\n5130028\tSOL-2026-0165\tWellington\torcamento\tpending\taguardando_orcamento\n5130025\tSOL-2026-0169\tWacksan Sampaio\tdiretoria\tpending\taguardando_diretoria\n5130024\tSOL-2026-0169\tRafael da Silva Liberato\tdiretoria\tpending\taguardando_diretoria\n5130014\tSOL-2026-0168\tVitor Gritti\torcamento\tpending\taguardando_orcamento\n5130013\tSOL-2026-0168\tWellington\torcamento\tpending\taguardando_orcamento\n5130011\tSOL-2026-0167\tWellington\torcamento\tpending\taguardando_orcamento\n5130012\tSOL-2026-0167\tVitor Gritti\torcamento\tpending\taguardando_orcamento\n5130009\tSOL-2026-0163\tWellington\torcamento\tpending\taguardando_orcamento\n5130010\tSOL-2026-0163\tVitor Gritti\torcamento\tpending\taguardando_orcamento\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

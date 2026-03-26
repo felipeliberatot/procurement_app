@@ -1118,14 +1118,15 @@ export async function approveRequest(
     } catch { partialApprovals = []; }
 
     // Verificar se este usuário já aprovou
-    const alreadyApproved = partialApprovals.some(a => a.userId === user.id);
+    // Usar Number() para evitar bug de comparação string vs número (MySQL retorna IDs como string)
+    const alreadyApproved = partialApprovals.some(a => Number(a.userId) === Number(user.id));
     if (alreadyApproved) {
       throw new Error("Você já registrou sua aprovação nesta etapa. Aguardando a aprovação do outro diretor.");
     }
 
-    // Adicionar aprovação do usuário atual
+    // Adicionar aprovação do usuário atual (sempre salvar userId como número)
     partialApprovals.push({
-      userId: user.id,
+      userId: Number(user.id),
       userName: user.name ?? "Diretor",
       approvedAt: new Date().toISOString(),
     });
@@ -1133,8 +1134,9 @@ export async function approveRequest(
     // Verificar se as duas condições foram satisfeitas:
     // 1. Rafael (ID 480003) aprovou
     // 2. Pelo menos outro diretor aprovou
-    const rafaelApproved = partialApprovals.some(a => a.userId === RAFAEL_ID);
-    const otherDirectorApproved = partialApprovals.some(a => a.userId !== RAFAEL_ID);
+    // Usar Number() para evitar bug de comparação string vs número
+    const rafaelApproved = partialApprovals.some(a => Number(a.userId) === RAFAEL_ID);
+    const otherDirectorApproved = partialApprovals.some(a => Number(a.userId) !== RAFAEL_ID);
     const bothApproved = rafaelApproved && otherDirectorApproved;
 
     if (!bothApproved) {

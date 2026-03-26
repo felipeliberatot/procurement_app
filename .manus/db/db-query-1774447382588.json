@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, token, status, expiresAt, approverId, approverName, step FROM whatsappSessions WHERE requestNumber = 'SOL-2026-0169' AND approverId = 480003 AND status = 'pending' ORDER BY id DESC LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, token, status, expiresAt, approverId, approverName, step FROM whatsappSessions WHERE requestNumber = 'SOL-2026-0169' AND approverId = 480003 AND status = 'pending' ORDER BY id DESC LIMIT 3;",
+  "rows": [
+    {
+      "id": "5130066",
+      "token": "fb0164dc0d6ceb25b8e9e9b5e6dde1e0fadc7b7825f7ec24",
+      "status": "pending",
+      "expiresAt": "2026-03-27 14:02:21",
+      "approverId": "480003",
+      "approverName": "Rafael da Silva Liberato",
+      "step": "diretoria"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttoken\tstatus\texpiresAt\tapproverId\tapproverName\tstep\n5130066\tfb0164dc0d6ceb25b8e9e9b5e6dde1e0fadc7b7825f7ec24\tpending\t2026-03-27 14:02:21\t480003\tRafael da Silva Liberato\tdiretoria\n",
+  "stderr": "",
+  "execution_time_ms": 68
+}
