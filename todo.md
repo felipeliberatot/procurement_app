@@ -655,3 +655,8 @@
 - [ ] Verificar se a função approveRequest é chamada corretamente com o userId do aprovador
 - [ ] Verificar se o link gerado nas notificações usa a URL correta (APP_BASE_URL)
 - [ ] Corrigir qualquer erro no fluxo de aprovação via link WhatsApp
+
+## Bug: Looping infinito e aprovação dupla
+- [x] Investigar e corrigir looping infinito nas SOL-2026-0170, 0166, 0165, 0164 — causa: aguardando_orcamento enviava tokens de aprovação para equipe de orçamento via WhatsApp, gerando looping
+- [x] Remover exigência de aprovação dupla da Diretoria (uma aprovação já é suficiente)
+- [x] Corrigir build do Docker (Metro "file not watched") — adicionado EXPO_NO_METRO_WORKSPACE_ROOT=1 e watchFolders no CI

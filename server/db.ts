@@ -1107,119 +1107,10 @@ export async function approveRequest(
   const flow = stepFlow[request.status];
   if (!flow) throw new Error("Ação não permitida neste status");;
 
-  // ── Aprovação dupla obrigatória na etapa de Diretoria ─────────────────────
-  // Rafael da Silva Liberato (ID 480003) DEVE aprovar junto com pelo menos outro diretor
-  const RAFAEL_ID = 480003;
+  // ── Aprovação simples da Diretoria ───────────────────────────────────────────
+  // Uma aprovação de qualquer diretor é suficiente para avançar o status
   if (request.status === "aguardando_diretoria") {
-    // Carregar aprovações parciais existentes
-    let partialApprovals: Array<{ userId: number; userName: string; approvedAt: string }> = [];
-    try {
-      partialApprovals = JSON.parse(request.directorApprovals ?? "[]");
-    } catch { partialApprovals = []; }
-
-    // Verificar se este usuário já aprovou
-    // Usar Number() para evitar bug de comparação string vs número (MySQL retorna IDs como string)
-    const alreadyApproved = partialApprovals.some(a => Number(a.userId) === Number(user.id));
-    if (alreadyApproved) {
-      throw new Error("Você já registrou sua aprovação nesta etapa. Aguardando a aprovação do outro diretor.");
-    }
-
-    // Adicionar aprovação do usuário atual (sempre salvar userId como número)
-    partialApprovals.push({
-      userId: Number(user.id),
-      userName: user.name ?? "Diretor",
-      approvedAt: new Date().toISOString(),
-    });
-
-    // Verificar se as duas condições foram satisfeitas:
-    // 1. Rafael (ID 480003) aprovou
-    // 2. Pelo menos outro diretor aprovou
-    // Usar Number() para evitar bug de comparação string vs número
-    const rafaelApproved = partialApprovals.some(a => Number(a.userId) === RAFAEL_ID);
-    const otherDirectorApproved = partialApprovals.some(a => Number(a.userId) !== RAFAEL_ID);
-    const bothApproved = rafaelApproved && otherDirectorApproved;
-
-    if (!bothApproved) {
-      // Aprovação parcial: salvar no banco e registrar no histórico, mas NÃO avançar o status
-      await db.update(purchaseRequests).set({
-        directorApprovals: JSON.stringify(partialApprovals),
-      }).where(eq(purchaseRequests.id, requestId));
-
-      await db.insert(approvalHistory).values({
-        requestId,
-        userId: user.id,
-        userName: user.name ?? "Usuário",
-        step: "diretoria" as any,
-        action: "aprovada" as any,
-        comment: `Aprovação parcial da Diretoria registrada. ${rafaelApproved ? 'Rafael ✓ — aguardando outro diretor' : 'Aguardando aprovação de Rafael da Silva Liberato'}.${data.comment ? ` Obs: ${data.comment}` : ''}`,
-      });
-
-      // Notificar os outros diretores que ainda não aprovaram
-      try {
-        const pendingDirectors = await db.select().from(users).where(
-          and(
-            eq(users.active, true),
-            or(
-              eq(users.procurementRole, "diretoria" as any),
-              eq(users.approvalLevel, "diretoria" as any)
-            )
-          )
-        );
-        const [reqData] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
-        const items = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
-        const itemsForMsg = items.map(it => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
-        for (const director of pendingDirectors) {
-          const alreadyDone = partialApprovals.some(a => a.userId === director.id);
-          if (!alreadyDone && director.phone) {
-            await WA.notifyApproverWithToken({
-              approverPhone: director.phone,
-              approverName: director.name ?? "Diretor",
-              approverId: director.id,
-              requestNumber: reqData.requestNumber,
-              requestId,
-              stepLabel: "Diretoria (aprovação dupla)",
-              step: "diretoria",
-              requesterName: reqData.requesterName,
-              department: reqData.department,
-              application: reqData.application,
-              urgencyLevel: reqData.urgencyLevel,
-              totalValue: reqData.totalEstimatedValue ?? undefined,
-              items: itemsForMsg,
-            });
-          }
-        }
-        // Notificar Rafael especificamente se ainda não aprovou e não está na lista de diretores
-        if (!rafaelApproved) {
-          const [rafaelUser] = await db.select().from(users).where(eq(users.id, RAFAEL_ID)).limit(1);
-          if (rafaelUser?.phone) {
-            const alreadyNotified = pendingDirectors.some(d => d.id === RAFAEL_ID);
-            if (!alreadyNotified) {
-              await WA.notifyApproverWithToken({
-                approverPhone: rafaelUser.phone,
-                approverName: rafaelUser.name ?? "Rafael",
-                approverId: rafaelUser.id,
-                requestNumber: reqData.requestNumber,
-                requestId,
-                stepLabel: "Diretoria (aprovação dupla obrigatória)",
-                step: "diretoria",
-                requesterName: reqData.requesterName,
-                department: reqData.department,
-                application: reqData.application,
-                urgencyLevel: reqData.urgencyLevel,
-                totalValue: reqData.totalEstimatedValue ?? undefined,
-                items: itemsForMsg,
-              });
-            }
-          }
-        }
-      } catch (notifyErr) {
-        console.error("[Director Dual Approval] Notification error:", notifyErr);
-      }
-
-      return { partialApproval: true, message: `Sua aprovação foi registrada. ${rafaelApproved ? 'Aguardando aprovação de outro diretor.' : 'Aguardando aprovação de Rafael da Silva Liberato.'}` };
-    }
-
-    // Ambos aprovaram: limpar as aprovações parciais e avançar o status
+    // Limpar directorApprovals caso haja dados residuais de lógica anterior
     await db.update(purchaseRequests).set({
       directorApprovals: null,
     }).where(eq(purchaseRequests.id, requestId));
@@ -1256,9 +1147,12 @@ export async function approveRequest(
     const itemsForMsg = items.map(it => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
 
     // ── Mapa: próximo status → papel do aprovador que deve ser notificado ──────
+    // IMPORTANTE: aguardando_orcamento NÃO está aqui pois não é aprovado via WhatsApp.
+    // Quando o próximo status é aguardando_orcamento, o SOLICITANTE é notificado para
+    // anexar o PDF do orçamento no app (via notifyBudgetRequired), não os aprovadores.
     const nextRoleMap: Record<string, string> = {
       aguardando_gerente:              "gerente",
-      aguardando_orcamento:            "orcamento",
+      // aguardando_orcamento: removido intencionalmente para evitar looping
       aguardando_controladoria:        "controladoria",
       aguardando_diretoria:            "diretoria",
       aguardando_ordem_compra:         "orcamento",          // Fluxo 06: OC → Orçamento
@@ -1268,8 +1162,9 @@ export async function approveRequest(
     };
 
     const isUrgentOrEmergency = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
-    if (effectiveNextStatus === "aguardando_orcamento" && request.status === "aguardando_gerente") {
-      // Gerente aprovou OU diretoria aprovou pedido urgente/emergencial → notificar solicitante para anexar orçamento
+    if (effectiveNextStatus === "aguardando_orcamento") {
+      // Qualquer etapa que avança para orçamento → notificar SOLICITANTE para anexar orçamento
+      // NÃO enviar token de aprovação para equipe de orçamento (causaria looping)
       if (requester?.phone) {
         await WA.notifyBudgetRequired({
           requesterPhone: requester.phone,
@@ -1419,8 +1314,10 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
         }
 
         // Também notificar o aprovador da etapa anterior (para onde voltou)
+        // NOTA: aguardando_orcamento não envia token de aprovação (evita looping)
+        // Quando volta para orçamento, o solicitante é notificado separadamente
         const prevRoleMap: Record<string, string> = {
-          aguardando_orcamento:     "orcamento",
+          // aguardando_orcamento: removido intencionalmente para evitar looping
           aguardando_controladoria: "controladoria",
           aguardando_diretoria:     "diretoria",
         };

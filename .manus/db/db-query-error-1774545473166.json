@@ -1,0 +1,8 @@
+{
+  "query": "SELECT requestNumber, status, priority, directorApprovals FROM purchaseRequests WHERE requestNumber IN ('SOL-2026-0170','SOL-2026-0166','SOL-2026-0165','SOL-2026-0164');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT requestNumber, status, priority, directorApprovals FROM purchaseRequests WHERE requestNumber IN ('SOL-2026-0170','SOL-2026-0166','SOL-2026-0165','SOL-2026-0164');",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'priority' in 'field list'"
+  ]
+}
