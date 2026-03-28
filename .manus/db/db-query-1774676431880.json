@@ -1,0 +1,80 @@
+{
+  "query": "\nSELECT id, requestNumber, status, urgencyLevel, updatedAt\nFROM purchaseRequests\nWHERE urgencyLevel IN ('urgente','emergencial')\n  AND status NOT IN ('concluida','cancelada','rejeitada')\nORDER BY updatedAt DESC\nLIMIT 10;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT id, requestNumber, status, urgencyLevel, updatedAt\nFROM purchaseRequests\nWHERE urgencyLevel IN ('urgente','emergencial')\n  AND status NOT IN ('concluida','cancelada','rejeitada')\nORDER BY updatedAt DESC\nLIMIT 10;\n",
+  "rows": [
+    {
+      "id": "2940002",
+      "requestNumber": "SOL-2026-0183",
+      "status": "aguardando_ordem_compra",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-27 21:19:01"
+    },
+    {
+      "id": "2880001",
+      "requestNumber": "SOL-2026-0180",
+      "status": "aguardando_ordem_compra",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-27 21:18:59"
+    },
+    {
+      "id": "2790001",
+      "requestNumber": "SOL-2026-0177",
+      "status": "aguardando_aprovacao_compra",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-27 21:18:56"
+    },
+    {
+      "id": "2730001",
+      "requestNumber": "SOL-2026-0175",
+      "status": "aguardando_ordem_compra",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-27 21:18:52"
+    },
+    {
+      "id": "2550001",
+      "requestNumber": "SOL-2026-0165",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-27 19:19:28"
+    },
+    {
+      "id": "2970001",
+      "requestNumber": "SOL-2026-0184",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-27 19:19:21"
+    },
+    {
+      "id": "2940001",
+      "requestNumber": "SOL-2026-0182",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-27 19:19:16"
+    },
+    {
+      "id": "2610001",
+      "requestNumber": "SOL-2026-0170",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-27 19:18:41"
+    },
+    {
+      "id": "2550002",
+      "requestNumber": "SOL-2026-0166",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "urgente",
+      "updatedAt": "2026-03-27 19:18:35"
+    },
+    {
+      "id": "2850001",
+      "requestNumber": "SOL-2026-0179",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial",
+      "updatedAt": "2026-03-26 18:53:02"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tstatus\turgencyLevel\tupdatedAt\n2940002\tSOL-2026-0183\taguardando_ordem_compra\temergencial\t2026-03-27 21:19:01\n2880001\tSOL-2026-0180\taguardando_ordem_compra\temergencial\t2026-03-27 21:18:59\n2790001\tSOL-2026-0177\taguardando_aprovacao_compra\temergencial\t2026-03-27 21:18:56\n2730001\tSOL-2026-0175\taguardando_ordem_compra\temergencial\t2026-03-27 21:18:52\n2550001\tSOL-2026-0165\taguardando_orcamento\temergencial\t2026-03-27 19:19:28\n2970001\tSOL-2026-0184\taguardando_orcamento\temergencial\t2026-03-27 19:19:21\n2940001\tSOL-2026-0182\taguardando_orcamento\temergencial\t2026-03-27 19:19:16\n2610001\tSOL-2026-0170\taguardando_orcamento\temergencial\t2026-03-27 19:18:41\n2550002\tSOL-2026-0166\taguardando_orcamento\turgente\t2026-03-27 19:18:35\n2850001\tSOL-2026-0179\taguardando_orcamento\temergencial\t2026-03-26 18:53:02\n",
+  "stderr": "",
+  "execution_time_ms": 207
+}

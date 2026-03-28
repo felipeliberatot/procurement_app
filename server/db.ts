@@ -1048,6 +1048,67 @@ export async function submitBudget(
     comment: "Orçamento enviado",
   });
 
+  // ── Notificar aprovadores da próxima etapa via WhatsApp ───────────────────────
+  // No fluxo urgente/emergencial: aguardando_orcamento → aguardando_diretoria
+  // No fluxo normal: aguardando_orcamento → aguardando_controladoria
+  // Em ambos os casos, notificar os aprovadores da próxima etapa
+  try {
+    const WA = await import("./whatsapp");
+    const nextStatus = flow.nextStatus;
+    // Mapa: próximo status → papel do aprovador
+    const nextRoleMap: Record<string, string> = {
+      aguardando_controladoria: "controladoria",
+      aguardando_diretoria:     "diretoria",
+    };
+    const nextRole = nextRoleMap[nextStatus];
+    if (nextRole) {
+      const { users: usersTable } = await import("../drizzle/schema");
+      const { or, eq: eqDrizzle, and } = await import("drizzle-orm");
+      const nextApproversRaw = await db
+        .select()
+        .from(usersTable)
+        .where(and(
+          eqDrizzle(usersTable.active, true),
+          or(
+            eqDrizzle(usersTable.procurementRole, nextRole as any),
+            eqDrizzle(usersTable.approvalLevel, nextRole as any),
+          ),
+        ));
+      const nextApprovers = [...new Map(nextApproversRaw.map(a => [a.id, a])).values()];
+      const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+      const items = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+      const itemsForMsg = items.map(it => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
+      const STEP_LABELS: Record<string, string> = {
+        aguardando_controladoria: "Aprovação Controladoria",
+        aguardando_diretoria:     "Aprovação Diretoria",
+      };
+      for (const approver of nextApprovers) {
+        if (approver.phone) {
+          await WA.notifyApproverWithToken({
+            approverPhone: approver.phone,
+            approverName: approver.name ?? "Aprovador",
+            approverId: approver.id,
+            requestNumber: req.requestNumber,
+            requestId,
+            requesterName: req.requesterName,
+            application: req.application,
+            urgencyLevel: req.urgencyLevel,
+            department: req.department,
+            stepLabel: STEP_LABELS[nextStatus] ?? nextStatus,
+            step: nextRole,
+            items: itemsForMsg,
+            totalValue: req.totalEstimatedValue ?? undefined,
+          });
+        } else {
+          console.warn(`[submitBudget] Aprovador ${approver.name} (id=${approver.id}) não tem telefone cadastrado.`);
+        }
+      }
+      console.log(`[submitBudget] Notificados ${nextApprovers.length} aprovador(es) para etapa "${nextRole}"`);
+    }
+  } catch (notifyErr) {
+    console.warn("[submitBudget] Falha ao notificar aprovadores:", notifyErr);
+  }
+
   return { success: true, nextStatus: flow.nextStatus };
 }
 

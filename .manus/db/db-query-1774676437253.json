@@ -1,0 +1,94 @@
+{
+  "query": "\nSELECT step, action, userName, comment, createdAt\nFROM approvalHistory\nWHERE requestId = 2610001\nORDER BY createdAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT step, action, userName, comment, createdAt\nFROM approvalHistory\nWHERE requestId = 2610001\nORDER BY createdAt DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-27 19:18:41"
+    },
+    {
+      "step": "orcamento",
+      "action": "aprovada",
+      "userName": "Wellington",
+      "comment": "Orçamento enviado",
+      "createdAt": "2026-03-27 13:37:10"
+    },
+    {
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-26 13:06:57"
+    },
+    {
+      "step": "orcamento",
+      "action": "aprovada",
+      "userName": "Wellington",
+      "comment": "Orçamento enviado",
+      "createdAt": "2026-03-26 13:04:53"
+    },
+    {
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-26 12:31:00"
+    },
+    {
+      "step": "orcamento",
+      "action": "aprovada",
+      "userName": "Wellington",
+      "comment": "Orçamento enviado",
+      "createdAt": "2026-03-26 12:10:58"
+    },
+    {
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-25 17:46:35"
+    },
+    {
+      "step": "orcamento",
+      "action": "aprovada",
+      "userName": "Wellington",
+      "comment": "Orçamento enviado",
+      "createdAt": "2026-03-25 15:31:18"
+    },
+    {
+      "step": "orcamento",
+      "action": "orcamento_anexado",
+      "userName": "Wellington",
+      "comment": "Orçamento em PDF anexado — aguardando envio",
+      "createdAt": "2026-03-25 15:31:17"
+    },
+    {
+      "step": "diretoria",
+      "action": "aprovada",
+      "userName": "Willian Camilo",
+      "comment": "NULL",
+      "createdAt": "2026-03-25 13:51:01"
+    },
+    {
+      "step": "gerente",
+      "action": "aprovada",
+      "userName": "Joelson Jesus",
+      "comment": "NULL",
+      "createdAt": "2026-03-25 13:29:28"
+    },
+    {
+      "step": "criacao",
+      "action": "criada",
+      "userName": "Wender Lopes Sampaio",
+      "comment": "Solicitação criada. Prazo: 26/03/2026",
+      "createdAt": "2026-03-25 13:26:10"
+    }
+  ],
+  "messages": [],
+  "stdout": "step\taction\tuserName\tcomment\tcreatedAt\ndiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-27 19:18:41\norcamento\taprovada\tWellington\tOrçamento enviado\t2026-03-27 13:37:10\ndiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-26 13:06:57\norcamento\taprovada\tWellington\tOrçamento enviado\t2026-03-26 13:04:53\ndiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-26 12:31:00\norcamento\taprovada\tWellington\tOrçamento enviado\t2026-03-26 12:10:58\ndiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-25 17:46:35\norcamento\taprovada\tWellington\tOrçamento enviado\t2026-03-25 15:31:18\norcamento\torcamento_anexado\tWellington\tOrçamento em PDF anexado — aguardando envio\t2026-03-25 15:31:17\ndiretoria\taprovada\tWillian Camilo\tNULL\t2026-03-25 13:51:01\ngerente\taprovada\tJoelson Jesus\tNULL\t2026-03-25 13:29:28\ncriacao\tcriada\tWender Lopes Sampaio\tSolicitação criada. Prazo: 26/03/2026\t2026-03-25 13:26:10\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

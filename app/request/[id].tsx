@@ -703,19 +703,8 @@ export default function RequestDetailScreen() {
   const isOwner = Number(request.requesterId) === Number((user as any)?.id);
   const canCancel = (isOwner || isMasterUser) && !isCancelled && !isDone;
 
-  // Aprovação dupla da Diretoria
-  const RAFAEL_ID = 480003;
-  const directorPartialApprovals: Array<{ userId: number; userName: string; approvedAt: string }> = (() => {
-    try { return JSON.parse((request as any).directorApprovals ?? "[]"); } catch { return []; }
-  })();
-  const currentUserId = Number((user as any)?.id);
-  const rafaelApproved = directorPartialApprovals.some(a => a.userId === RAFAEL_ID);
-  const otherDirectorApproved = directorPartialApprovals.some(a => a.userId !== RAFAEL_ID);
-  const currentUserAlreadyApproved = directorPartialApprovals.some(a => a.userId === currentUserId);
-  const isDualDirectorApproval = currentStatus === "aguardando_diretoria" && directorPartialApprovals.length > 0;
-
   // Determina se deve mostrar botões fixos de aprovar/rejeitar
-  const showFixedButtons = canAct && !isDone && !isCancelled && !isRejected && !isApproveOnly && !currentUserAlreadyApproved;
+  const showFixedButtons = canAct && !isDone && !isCancelled && !isRejected && !isApproveOnly;
   const showFixedApproveOnly = canAct && !isDone && !isCancelled && isApproveOnly;
   const bottomBarHeight = 80 + (insets.bottom > 0 ? insets.bottom : 16);
 
@@ -1038,13 +1027,7 @@ export default function RequestDetailScreen() {
                   {currentStatus === "aguardando_gerente" && "Esta solicitação aguarda sua aprovação como Gerente."}
                   {currentStatus === "aguardando_orcamento" && "Anexe o PDF do orçamento para avançar."}
                   {currentStatus === "aguardando_controladoria" && "Esta solicitação aguarda aprovação da Controladoria."}
-                  {currentStatus === "aguardando_diretoria" && (
-                    isDualDirectorApproval
-                      ? `Aprovação dupla necessária: ${rafaelApproved ? 'Rafael ✓' : 'Rafael pendente'} | ${otherDirectorApproved ? 'Outro diretor ✓' : 'Outro diretor pendente'}`
-                      : currentUserAlreadyApproved
-                        ? "Você já aprovou. Aguardando o outro diretor."
-                        : "Esta solicitação aguarda aprovação dupla da Diretoria (Rafael + outro diretor)."
-                  )}
+                  {currentStatus === "aguardando_diretoria" && "Esta solicitação aguarda aprovação da Diretoria."}
                   {currentStatus === "aguardando_ordem_compra" && "Emita a Ordem de Compra e informe os dados de pagamento."}
                   {currentStatus === "aguardando_comprovante_pagamento" && "Anexe o PDF do comprovante de pagamento."}
                   {currentStatus === "aguardando_verificacao_compras" && "Verifique o comprovante, anexe a nota fiscal e finalize a OC."}
@@ -1054,58 +1037,7 @@ export default function RequestDetailScreen() {
             </View>
           )}
 
-          {/* Card de Aprovação Dupla da Diretoria */}
-          {currentStatus === "aguardando_diretoria" && (
-            <View style={{
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: 16,
-              padding: 14,
-              marginBottom: 12,
-            }}>
-              <Text style={{ color: colors.foreground, fontWeight: "700", fontSize: 13, marginBottom: 10 }}>
-                👥 Aprovação Dupla Obrigatória — Diretoria
-              </Text>
-              {/* Rafael */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                <View style={{
-                  width: 22, height: 22, borderRadius: 11,
-                  backgroundColor: rafaelApproved ? colors.success : colors.border,
-                  alignItems: "center", justifyContent: "center",
-                }}>
-                  <Text style={{ color: rafaelApproved ? "#fff" : colors.muted, fontSize: 11, fontWeight: "700" }}>
-                    {rafaelApproved ? "✓" : "!"}
-                  </Text>
-                </View>
-                <Text style={{ color: rafaelApproved ? colors.success : colors.warning, fontSize: 12, fontWeight: "600", flex: 1 }}>
-                  Rafael da Silva Liberato {rafaelApproved ? "— Aprovado" : "— Pendente (obrigatório)"}
-                </Text>
-              </View>
-              {/* Outro Diretor */}
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <View style={{
-                  width: 22, height: 22, borderRadius: 11,
-                  backgroundColor: otherDirectorApproved ? colors.success : colors.border,
-                  alignItems: "center", justifyContent: "center",
-                }}>
-                  <Text style={{ color: otherDirectorApproved ? "#fff" : colors.muted, fontSize: 11, fontWeight: "700" }}>
-                    {otherDirectorApproved ? "✓" : "!"}
-                  </Text>
-                </View>
-                <Text style={{ color: otherDirectorApproved ? colors.success : colors.warning, fontSize: 12, fontWeight: "600", flex: 1 }}>
-                  {otherDirectorApproved
-                    ? `${directorPartialApprovals.find(a => a.userId !== RAFAEL_ID)?.userName ?? "Outro Diretor"} — Aprovado`
-                    : "Outro Diretor — Pendente"}
-                </Text>
-              </View>
-              {currentUserAlreadyApproved && (
-                <Text style={{ color: colors.muted, fontSize: 11, marginTop: 8, fontStyle: "italic" }}>
-                  Você já registrou sua aprovação. Aguardando o outro diretor.
-                </Text>
-              )}
-            </View>
-          )}
+          {/* Card de Aprovação Dupla da Diretoria — removido: aprovação simples agora */}
 
           {/* Informações principais */}
           <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
