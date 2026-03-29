@@ -634,6 +634,23 @@ export default function RequestDetailScreen() {
     },
   });
 
+  // ─── Reenvio de notificação WhatsApp ───
+  const resendNotificationMutation = trpc.whatsapp.notifyApproversNow.useMutation({
+    onSuccess: (data) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        "Notificação Reenviada",
+        data.sent > 0
+          ? `Notificação enviada para ${data.sent} pessoa(s) via WhatsApp.`
+          : "Nenhum aprovador com telefone cadastrado encontrado.",
+      );
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao reenviar", e.message);
+    },
+  });
+
   // ─── Análise IA do orçamento ───
   const [budgetAnalysisResult, setBudgetAnalysisResult] = useState<any>(null);
   const analyzeBudgetMutation = trpc.ai.analyzeBudget.useMutation({
@@ -2257,6 +2274,56 @@ export default function RequestDetailScreen() {
         )}
 
         {/* ─── Barra de ações fixa na parte inferior ─── */}
+        {/* Botão flutuante de Reenviar Notificação (visível para master/admin em solicitações pendentes) */}
+        {isMasterUser && !isDone && !isCancelled && !isRejected && (
+          <View style={{
+            position: "absolute",
+            top: 12,
+            right: 16,
+            zIndex: 100,
+          }}>
+            <TouchableOpacity
+              onPress={() => {
+                Alert.alert(
+                  "Reenviar Notificação",
+                  "Deseja reenviar a notificação WhatsApp para o(s) aprovador(es) da etapa atual?",
+                  [
+                    { text: "Cancelar", style: "cancel" },
+                    {
+                      text: "Reenviar",
+                      onPress: () => resendNotificationMutation.mutate({ requestId: request.id }),
+                    },
+                  ]
+                );
+              }}
+              disabled={resendNotificationMutation.isPending}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 20,
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                shadowColor: "#000",
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.08,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
+            >
+              {resendNotificationMutation.isPending ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Text style={{ fontSize: 14 }}>🔔</Text>
+              )}
+              <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>Reenviar</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {showFixedButtons && (
           <View style={{
             position: "absolute",

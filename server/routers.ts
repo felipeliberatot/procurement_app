@@ -616,14 +616,45 @@ export const appRouter = router({
         const dbConn = await db.getDb();
         if (!dbConn) throw new Error("Database not available");
 
+        // Buscar itens da solicitação para incluir na mensagem
+        const { requestItems } = await import("../drizzle/schema");
+        const items = await dbConn.select().from(requestItems).where(eq(requestItems.requestId, req.id));
+        const itemsForMsg = items.map((it: any) => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
+
+        // Caso especial: aguardando_orcamento → notificar o SOLICITANTE para anexar o PDF
+        if (req.status === "aguardando_orcamento") {
+          const { notifyBudgetRequired } = await import("./whatsapp");
+          const [requester] = await dbConn.select().from(users).where(eq(users.id, req.requesterId)).limit(1);
+          if (!requester?.phone) throw new Error("Solicitante não tem telefone cadastrado");
+          await notifyBudgetRequired({
+            requesterPhone: requester.phone,
+            requesterName: requester.name ?? "Solicitante",
+            requestNumber: req.requestNumber,
+            requestId: req.id,
+            application: req.application,
+            urgencyLevel: req.urgencyLevel,
+            department: req.department,
+            items: itemsForMsg,
+            totalValue: req.totalEstimatedValue ?? undefined,
+          });
+          return { sent: 1, approversFound: 1 };
+        }
+
         const roleMap: Record<string, string> = {
           aguardando_gerente: "gerente",
-          aguardando_orcamento: "orcamento",
           aguardando_controladoria: "controladoria",
           aguardando_diretoria: "diretoria",
-          aguardando_ordem_compra: "orcamento",           // Fluxo 06: Emissão de OC → Orçamento
-          aguardando_comprovante_pagamento: "financeiro",  // Fluxo 07: Comprovante → Financeiro
-          aguardando_verificacao_compras: "orcamento",    // Fluxo 08: Verificação Final → Orçamento
+          aguardando_ordem_compra: "orcamento",
+          aguardando_comprovante_pagamento: "financeiro",
+          aguardando_verificacao_compras: "orcamento",
+        };
+        const STEP_LABELS: Record<string, string> = {
+          aguardando_gerente: "Aprovação Gerente",
+          aguardando_controladoria: "Aprovação Controladoria",
+          aguardando_diretoria: "Aprovação Diretoria",
+          aguardando_ordem_compra: "Emissão de Ordem de Compra",
+          aguardando_comprovante_pagamento: "Comprovante de Pagamento",
+          aguardando_verificacao_compras: "Verificação Final",
         };
         const role = roleMap[req.status];
         if (!role) throw new Error("Solicitação não está em etapa pendente de aprovação");
@@ -641,19 +672,20 @@ export const appRouter = router({
         const approvers = [...new Map(approversRaw.map((a: any) => [a.id, a])).values()];
         let sent = 0;
         for (const approver of approvers) {
-          if (approver.phone) {
+          if ((approver as any).phone) {
             await notifyApproverWithToken({
-              approverPhone: approver.phone,
-              approverName: approver.name ?? "Aprovador",
-              approverId: approver.id,
+              approverPhone: (approver as any).phone,
+              approverName: (approver as any).name ?? "Aprovador",
+              approverId: (approver as any).id,
               requestNumber: req.requestNumber,
               requestId: req.id,
               requesterName: req.requesterName,
               application: req.application,
               urgencyLevel: req.urgencyLevel,
               department: req.department,
-              stepLabel: role,
+              stepLabel: STEP_LABELS[req.status] ?? role,
               step: role,
+              items: itemsForMsg,
               totalValue: req.totalEstimatedValue ?? undefined,
             });
             sent++;

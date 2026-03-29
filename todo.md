@@ -660,3 +660,8 @@
 - [x] Investigar e corrigir looping infinito nas SOL-2026-0170, 0166, 0165, 0164 — causa: aguardando_orcamento enviava tokens de aprovação para equipe de orçamento via WhatsApp, gerando looping
 - [x] Remover exigência de aprovação dupla da Diretoria (uma aprovação já é suficiente)
 - [x] Corrigir build do Docker (Metro "file not watched") — adicionado EXPO_NO_METRO_WORKSPACE_ROOT=1 e watchFolders no CI
+
+## Feature: Reenvio de Notificação WhatsApp
+- [x] Endpoint resendNotification no tRPC para reenviar notificação da etapa atual
+- [x] Botão "Reenviar notificação" na tela de detalhe (visível para master/admin)
+- [x] Reenvio correto conforme etapa: solicitante (aguardando_orcamento), aprovadores (demais etapas)

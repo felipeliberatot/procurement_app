@@ -410,13 +410,29 @@ export async function notifyBudgetRequired(opts: {
   requesterName: string;
   requestNumber: string;
   requestId: number;
+  application?: string;
+  urgencyLevel?: string | null;
+  department?: string;
+  items?: Array<{ description: string; quantity: string; unit: string }>;
+  totalValue?: number;
 }) {
-  const message = [
+  const urgencyLabel = opts.urgencyLevel === "urgente" ? "🟡 Urgente" : opts.urgencyLevel === "emergencial" ? "🔴 Emergencial" : "🟢 Normal";
+  const lines: string[] = [
     `📎 *Orçamento Necessário — CGS Agrícola*`,
     ``,
     `Olá, *${opts.requesterName}*!`,
     ``,
-    `Sua solicitação *${opts.requestNumber}* foi aprovada pelo Gerente de Unidade.`,
+    `Sua solicitação *${opts.requestNumber}* precisa de orçamento.`,
+  ];
+  if (opts.application) lines.push(`📋 Finalidade: ${opts.application}`);
+  if (opts.urgencyLevel) lines.push(`⚡ Prioridade: ${urgencyLabel}`);
+  if (opts.department) lines.push(`🏢 Departamento: ${opts.department}`);
+  if (opts.items && opts.items.length > 0) {
+    lines.push(``, `*Itens:*`);
+    opts.items.forEach((it, i) => lines.push(`  ${i + 1}. ${it.description} (${it.quantity} ${it.unit})`));
+  }
+  if (opts.totalValue) lines.push(``, `💰 Valor estimado: R$ ${opts.totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
+  lines.push(
     ``,
     `Agora você precisa *anexar o PDF do orçamento* para continuar o processo.`,
     ``,
@@ -424,9 +440,8 @@ export async function notifyBudgetRequired(opts: {
     `${APP_BASE_URL}/request/${opts.requestId}`,
     ``,
     `_Você tem 48h para anexar o orçamento._`,
-  ].join("\n");
-
-  return sendWhatsAppMessage(opts.requesterPhone, message);
+  );
+  return sendWhatsAppMessage(opts.requesterPhone, lines.join("\n"));
 }
 
 export async function notifyAutoCancellation(opts: {
