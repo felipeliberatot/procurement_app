@@ -1030,13 +1030,27 @@ export async function submitBudget(
   if (request.status !== "aguardando_orcamento") throw new Error("Esta solicitação não está aguardando orçamento.");
   if (!request.budgetFileUrl) throw new Error("Anexe o PDF do orçamento antes de enviar.");
 
-  const stepFlow = getStepFlow(request.urgencyLevel);
-  const flow = stepFlow["aguardando_orcamento"];
-  if (!flow) throw new Error("Fluxo de orçamento não configurado");
+  const isUrgent = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
+
+  // No fluxo urgente/emergencial:
+  // - 1ª vez (orcamentoFeitoUrgente=false): vai para aguardando_diretoria (Diretoria aprova antes da Controladoria)
+  // - 2ª vez em diante (orcamentoFeitoUrgente=true): vai direto para aguardando_controladoria (Diretoria já aprovou antes)
+  let nextStatus: string;
+  if (isUrgent && request.orcamentoFeitoUrgente) {
+    // Segunda vez ou mais: Diretoria já aprovou, vai direto para Controladoria
+    nextStatus = "aguardando_controladoria";
+  } else {
+    const stepFlow = getStepFlow(request.urgencyLevel);
+    const flow = stepFlow["aguardando_orcamento"];
+    if (!flow) throw new Error("Fluxo de orçamento não configurado");
+    nextStatus = flow.nextStatus;
+  }
 
   await db.update(purchaseRequests).set({
-    status: flow.nextStatus as any,
+    status: nextStatus as any,
     stepDeadlineAt: getStepDeadline(),
+    // Marcar que o orçamento já foi feito ao menos uma vez (para fluxo urgente/emergencial)
+    ...(isUrgent ? { orcamentoFeitoUrgente: true } : {}),
   }).where(eq(purchaseRequests.id, requestId));
 
   await db.insert(approvalHistory).values({
@@ -1054,7 +1068,6 @@ export async function submitBudget(
   // Em ambos os casos, notificar os aprovadores da próxima etapa
   try {
     const WA = await import("./whatsapp");
-    const nextStatus = flow.nextStatus;
     // Mapa: próximo status → papel do aprovador
     const nextRoleMap: Record<string, string> = {
       aguardando_controladoria: "controladoria",
@@ -1109,7 +1122,7 @@ export async function submitBudget(
     console.warn("[submitBudget] Falha ao notificar aprovadores:", notifyErr);
   }
 
-  return { success: true, nextStatus: flow.nextStatus };
+  return { success: true, nextStatus };
 }
 
 export async function approveRequest(

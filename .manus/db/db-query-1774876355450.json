@@ -1,0 +1,34 @@
+{
+  "query": "\nSELECT id, requestNumber, status, urgencyLevel, orcamentoFeitoUrgente, directorApprovals\nFROM purchaseRequests\nWHERE requestNumber = 'SOL-2026-0170';\n\nSELECT step, action, createdAt, comment\nFROM approvalHistory\nWHERE requestId = (SELECT id FROM purchaseRequests WHERE requestNumber = 'SOL-2026-0170')\nORDER BY createdAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT id, requestNumber, status, urgencyLevel, orcamentoFeitoUrgente, directorApprovals\nFROM purchaseRequests\nWHERE requestNumber = 'SOL-2026-0170';\n\nSELECT step, action, createdAt, comment\nFROM approvalHistory\nWHERE requestId = (SELECT id FROM purchaseRequests WHERE requestNumber = 'SOL-2026-0170')\nORDER BY createdAt DESC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "2610001",
+      "requestNumber": "SOL-2026-0170",
+      "status": "aguardando_orcamento",
+      "urgencyLevel": "emergencial",
+      "orcamentoFeitoUrgente": "0",
+      "directorApprovals": "NULL"
+    }
+  ],
+  "messages": [
+    "step\taction\tcreatedAt\tcomment",
+    "diretoria\taprovada\t2026-03-30 12:29:11\tNULL",
+    "orcamento\taprovada\t2026-03-30 12:21:36\tOrçamento enviado",
+    "diretoria\taprovada\t2026-03-27 19:18:41\tNULL",
+    "orcamento\taprovada\t2026-03-27 13:37:10\tOrçamento enviado",
+    "diretoria\taprovada\t2026-03-26 13:06:57\tNULL",
+    "orcamento\taprovada\t2026-03-26 13:04:53\tOrçamento enviado",
+    "diretoria\taprovada\t2026-03-26 12:31:00\tNULL",
+    "orcamento\taprovada\t2026-03-26 12:10:58\tOrçamento enviado",
+    "diretoria\taprovada\t2026-03-25 17:46:35\tNULL",
+    "orcamento\taprovada\t2026-03-25 15:31:18\tOrçamento enviado",
+    "orcamento\torcamento_anexado\t2026-03-25 15:31:17\tOrçamento em PDF anexado — aguardando envio",
+    "diretoria\taprovada\t2026-03-25 13:51:01\tNULL",
+    "gerente\taprovada\t2026-03-25 13:29:28\tNULL",
+    "criacao\tcriada\t2026-03-25 13:26:10\tSolicitação criada. Prazo: 26/03/2026"
+  ],
+  "stdout": "id\trequestNumber\tstatus\turgencyLevel\torcamentoFeitoUrgente\tdirectorApprovals\n2610001\tSOL-2026-0170\taguardando_orcamento\temergencial\t0\tNULL\nstep\taction\tcreatedAt\tcomment\ndiretoria\taprovada\t2026-03-30 12:29:11\tNULL\norcamento\taprovada\t2026-03-30 12:21:36\tOrçamento enviado\ndiretoria\taprovada\t2026-03-27 19:18:41\tNULL\norcamento\taprovada\t2026-03-27 13:37:10\tOrçamento enviado\ndiretoria\taprovada\t2026-03-26 13:06:57\tNULL\norcamento\taprovada\t2026-03-26 13:04:53\tOrçamento enviado\ndiretoria\taprovada\t2026-03-26 12:31:00\tNULL\norcamento\taprovada\t2026-03-26 12:10:58\tOrçamento enviado\ndiretoria\taprovada\t2026-03-25 17:46:35\tNULL\norcamento\taprovada\t2026-03-25 15:31:18\tOrçamento enviado\norcamento\torcamento_anexado\t2026-03-25 15:31:17\tOrçamento em PDF anexado — aguardando envio\ndiretoria\taprovada\t2026-03-25 13:51:01\tNULL\ngerente\taprovada\t2026-03-25 13:29:28\tNULL\ncriacao\tcriada\t2026-03-25 13:26:10\tSolicitação criada. Prazo: 26/03/2026\n",
+  "stderr": "",
+  "execution_time_ms": 67
+}
