@@ -21,6 +21,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 
 const STATUS_LABEL: Record<string, string> = {
   aberto: "Aberto",
@@ -708,9 +709,15 @@ export default function MalotesScreen() {
                       </body></html>
                     `;
                     try {
-                      await Print.printAsync({ html });
+                      const { uri } = await Print.printToFileAsync({ html, base64: false });
+                      const canShare = await Sharing.isAvailableAsync();
+                      if (canShare) {
+                        await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Salvar / Imprimir PDF", UTI: "com.adobe.pdf" });
+                      } else {
+                        Alert.alert("PDF gerado", "Arquivo salvo em: " + uri);
+                      }
                     } catch (e) {
-                      Alert.alert("Erro", "Não foi possível abrir a impressão.");
+                      Alert.alert("Erro", "Não foi possível gerar o PDF.");
                     }
                   }}
                   activeOpacity={0.8}

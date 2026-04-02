@@ -12,6 +12,7 @@ import * as FileSystem from "expo-file-system/legacy";
 import * as Linking from "expo-linking";
 import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -823,10 +824,24 @@ export default function RequestDetailScreen() {
 </body>
 </html>`;
 
-      await Print.printAsync({ html });
+      // Gerar PDF como arquivo temporário e compartilhar (evita bug do printAsync no iOS na segunda chamada)
+      const { uri } = await Print.printToFileAsync({ html, base64: false });
+      if (Platform.OS === "web") {
+        // Web: abrir em nova aba
+        const blob = await fetch(uri).then(r => r.blob());
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      } else {
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Salvar / Imprimir PDF", UTI: "com.adobe.pdf" });
+        } else {
+          Alert.alert("PDF gerado", "O arquivo foi salvo em: " + uri);
+        }
+      }
     } catch (err: any) {
       if (!err?.message?.includes("cancelled") && !err?.message?.includes("cancel")) {
-        Alert.alert("Erro ao imprimir", "Não foi possível abrir a impressão. Tente novamente.");
+        Alert.alert("Erro ao imprimir", "Não foi possível gerar o PDF. Tente novamente.");
       }
     } finally {
       setIsPrinting(false);
