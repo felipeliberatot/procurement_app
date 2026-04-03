@@ -1181,6 +1181,12 @@ export async function approveRequest(
   const flow = stepFlow[request.status];
   if (!flow) throw new Error("Ação não permitida neste status");;
 
+  // ── Verificação de orçamento obrigatório ─────────────────────────────────────
+  // Na etapa de orçamento, o PDF deve estar anexado antes de aprovar/avançar
+  if (request.status === "aguardando_orcamento" && !request.budgetFileUrl) {
+    throw new Error("É obrigatório anexar o PDF do orçamento antes de aprovar esta etapa. Clique em \"Anexar Orçamento\" e envie o arquivo para continuar.");
+  }
+
   // ── Aprovação simples da Diretoria ───────────────────────────────────────────
   // Uma aprovação de qualquer diretor é suficiente para avançar o status
   if (request.status === "aguardando_diretoria") {

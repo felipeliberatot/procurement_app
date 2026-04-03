@@ -2388,11 +2388,21 @@ export default function RequestDetailScreen() {
 
             {/* Botão Aprovar */}
             <TouchableOpacity
-              onPress={() => setShowApproveModal(true)}
+              onPress={() => {
+                // Bloquear aprovação da etapa de orçamento sem PDF anexado
+                if (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) {
+                  Alert.alert(
+                    "⚠️ Orçamento obrigatório",
+                    "É necessário anexar o PDF do orçamento antes de aprovar esta etapa.\n\nClique em \"Anexar Orçamento\" acima, selecione o arquivo PDF e clique em \"Enviar Orçamento\" para avançar."
+                  );
+                  return;
+                }
+                setShowApproveModal(true);
+              }}
               disabled={approveMutation.isPending || rejectMutation.isPending}
               style={{
                 flex: 2,
-                backgroundColor: colors.success,
+                backgroundColor: (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? colors.border : colors.success,
                 borderRadius: 14,
                 paddingVertical: 14,
                 alignItems: "center",
@@ -2401,17 +2411,19 @@ export default function RequestDetailScreen() {
                 gap: 6,
                 shadowColor: colors.success,
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
+                shadowOpacity: (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? 0 : 0.3,
                 shadowRadius: 6,
-                elevation: 4,
+                elevation: (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? 0 : 4,
               }}
             >
               {approveMutation.isPending ? (
                 <ActivityIndicator color="white" />
               ) : (
                 <>
-                  <Text style={{ fontSize: 16 }}>✅</Text>
-                  <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Aprovar</Text>
+                  <Text style={{ fontSize: 16 }}>{(currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? "📎" : "✅"}</Text>
+                  <Text style={{ color: (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? colors.muted : "white", fontWeight: "700", fontSize: 15 }}>
+                    {(currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? "Anexe o Orçamento" : "Aprovar"}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>
