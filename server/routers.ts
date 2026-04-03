@@ -275,7 +275,7 @@ export const appRouter = router({
       .input(z.object({
         department: z.string().min(1),
         costCenterId: z.number().optional(),
-        costCenterCode: z.string().optional(),
+        costCenterCode: z.string().min(1, "Centro de Custo é obrigatório"),
         application: z.string().min(1),
         urgencyLevel: z.enum(["normal", "urgente", "emergencial"]),
         observations: z.string().optional(),

@@ -124,6 +124,7 @@ export default function NewRequestScreen() {
 
   const handleSubmit = () => {
     if (!department.trim()) { Alert.alert("Campo obrigatório", "Informe o departamento."); return; }
+    if (!costCenterCode.trim()) { Alert.alert("Campo obrigatório", "Selecione o Centro de Custo antes de continuar."); return; }
     if (!application.trim()) { Alert.alert("Campo obrigatório", "Informe a aplicação/finalidade."); return; }
     // Observação obrigatória para urgentes e emergenciais
     if ((urgency === "urgente" || urgency === "emergencial") && !observations.trim()) {
@@ -138,7 +139,7 @@ export default function NewRequestScreen() {
 
     createMutation.mutate({
       department: department.trim(),
-      costCenterCode: costCenterCode || undefined,
+      costCenterCode: costCenterCode,
       application: application.trim(),
       urgencyLevel: urgency,
       observations: observations.trim() || undefined,
@@ -200,7 +201,7 @@ export default function NewRequestScreen() {
 
           {/* Centro de Custo — Modal Picker */}
           <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-2">Centro de Custo</Text>
+            <Text className="text-sm font-semibold text-foreground mb-2">Centro de Custo <Text className="text-error">*</Text></Text>
             <TouchableOpacity
               onPress={() => { setCostCenterSearch(""); setShowCostCenterPicker(true); }}
               style={{
