@@ -12,11 +12,12 @@ config.resolver = {
 };
 
 // Always set watchFolders to avoid "file not watched" errors in Docker/CI.
-// Explicitly include project root and node_modules to prevent Metro from
-// resolving symlinked files outside the watched paths.
+// pnpm --shamefully-hoist creates symlinks like node_modules/react -> .pnpm/react@x/node_modules/react
+// Metro resolves symlinks to their real paths inside .pnpm/, so we must watch that too.
 config.watchFolders = [
   path.resolve(__dirname),
   path.resolve(__dirname, "node_modules"),
+  path.resolve(__dirname, "node_modules/.pnpm"),
 ];
 
 module.exports = withNativeWind(config, {
