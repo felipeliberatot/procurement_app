@@ -569,10 +569,11 @@ export async function createPurchaseRequest(
 
   // Notify approvers via WhatsApp
   try {
-    const isUrgent = input.urgencyLevel === "urgente" || input.urgencyLevel === "emergencial";
-    // Urgentes/emergenciais vão direto para Diretoria; normais vão para Gerente
-    const approverRole = isUrgent ? "diretoria" : "gerente";
-    const stepLabel = isUrgent ? "Diretoria" : "Gerente de Unidade";
+    // Todos os pedidos (incluindo urgentes/emergenciais) começam pelo Gerente.
+    // Fluxo urgente/emergencial: Gerente → Orçamento → Diretoria → Controladoria
+    // Fluxo normal:              Gerente → Orçamento → Controladoria → Diretoria
+    const approverRole = "gerente";
+    const stepLabel = "Gerente de Unidade";
     const approvers = await db
       .select()
       .from(users)
@@ -2516,9 +2517,10 @@ export async function updatePurchaseRequest(
 
   // Notificar aprovadores via WhatsApp
   try {
-    const isUrgent = input.urgencyLevel === "urgente" || input.urgencyLevel === "emergencial";
-    const approverRole = isUrgent ? "diretoria" : "gerente";
-    const stepLabel = isUrgent ? "Diretoria" : "Gerente de Unidade";
+    // Todos os pedidos (incluindo urgentes/emergenciais) reiniciam pelo Gerente após edição.
+    // Fluxo urgente/emergencial: Gerente → Orçamento → Diretoria → Controladoria
+    const approverRole = "gerente";
+    const stepLabel = "Gerente de Unidade";
     const approvers = await db
       .select()
       .from(users)
