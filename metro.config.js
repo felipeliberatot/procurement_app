@@ -1,21 +1,25 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
+const fs = require("fs");
 
 const config = getDefaultConfig(__dirname);
 
 // ─── pnpm store resolution ────────────────────────────────────────────────────
 // .npmrc sets store-dir=.pnpm-store so the pnpm content-addressable store is
 // located inside the project directory (e.g. /usr/src/app/.pnpm-store in Docker).
-// Metro's projectRoot already covers the project directory, so hard-linked files
-// in .pnpm-store are always within a watched folder — no extra watchFolders needed.
-//
-// We still set watchFolders explicitly to be safe in case the store-dir changes.
-config.watchFolders = [
+// Only add .pnpm-store to watchFolders if it actually exists (avoids CI failures).
+const watchFolders = [
   path.resolve(__dirname),
   path.resolve(__dirname, "node_modules"),
-  path.resolve(__dirname, ".pnpm-store"),
 ];
+
+const pnpmStore = path.resolve(__dirname, ".pnpm-store");
+if (fs.existsSync(pnpmStore)) {
+  watchFolders.push(pnpmStore);
+}
+
+config.watchFolders = watchFolders;
 
 // Enable symlink resolution for pnpm hoisted installs
 config.resolver = {
