@@ -825,13 +825,21 @@ export default function RequestDetailScreen() {
 </html>`;
 
       // Gerar PDF como arquivo temporário e compartilhar (evita bug do printAsync no iOS na segunda chamada)
-      const { uri } = await Print.printToFileAsync({ html, base64: false });
       if (Platform.OS === "web") {
-        // Web: abrir em nova aba
-        const blob = await fetch(uri).then(r => r.blob());
+        // Web: usar base64 para evitar problemas com file:// URIs
+        const { uri: base64Uri } = await Print.printToFileAsync({ html, base64: true });
+        const base64Data = base64Uri.includes(",") ? base64Uri.split(",")[1] : base64Uri;
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
         window.open(url, "_blank");
       } else {
+        // Mobile: usar arquivo temporário
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
           await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Salvar / Imprimir PDF", UTI: "com.adobe.pdf" });
