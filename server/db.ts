@@ -28,6 +28,8 @@ import {
   type MaloteTag,
   type Unit,
   type User,
+  apiKeys,
+  type ApiKey,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import * as WA from "./whatsapp";
@@ -2763,4 +2765,98 @@ export async function getBudgetSummary() {
   const allBudgets = await db.select().from(budgets).orderBy(desc(budgets.createdAt));
   const allHarvests = await db.select().from(harvests).where(eq(harvests.active, true)).orderBy(desc(harvests.createdAt));
   return { budgets: allBudgets, harvests: allHarvests };
+}
+
+// ─── API Keys ─────────────────────────────────────────────────────────────────
+
+import { createHash, randomBytes } from "crypto";
+
+/** Gera uma nova API Key no formato cgsk_<random32hex> */
+function generateApiKey(): { raw: string; hash: string; prefix: string } {
+  const raw = "cgsk_" + randomBytes(24).toString("hex");
+  const hash = createHash("sha256").update(raw).digest("hex");
+  const prefix = raw.substring(0, 12); // "cgsk_" + 7 chars
+  return { raw, hash, prefix };
+}
+
+export async function listApiKeys(): Promise<Omit<ApiKey, "keyHash">[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select().from(apiKeys).orderBy(desc(apiKeys.createdAt));
+  // Nunca retornar o hash completo — apenas o prefixo para identificação
+  return rows.map(({ keyHash: _kh, ...rest }) => rest);
+}
+
+export async function createApiKey(params: {
+  name: string;
+  description?: string;
+  permissions?: string[];
+  expiresAt?: Date;
+  createdById: number;
+  createdByName: string;
+}): Promise<{ id: number; key: string; prefix: string; name: string }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const { raw, hash, prefix } = generateApiKey();
+
+  const result = await db.insert(apiKeys).values({
+    name: params.name,
+    keyHash: hash,
+    keyPrefix: prefix,
+    createdById: params.createdById,
+    createdByName: params.createdByName,
+    description: params.description ?? null,
+    permissions: params.permissions ? JSON.stringify(params.permissions) : JSON.stringify(["create_request"]),
+    expiresAt: params.expiresAt ?? null,
+    active: true,
+  });
+
+  const insertId = (result as any)[0]?.insertId ?? 0;
+
+  console.log(`[ApiKey] Nova chave criada: ${prefix}... por ${params.createdByName}`);
+
+  // Retornar a chave em texto puro APENAS neste momento (nunca mais será exibida)
+  return { id: insertId, key: raw, prefix, name: params.name };
+}
+
+export async function revokeApiKey(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(apiKeys).set({ active: false, updatedAt: new Date() }).where(eq(apiKeys.id, id));
+  return { success: true };
+}
+
+export async function deleteApiKey(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(apiKeys).where(eq(apiKeys.id, id));
+  return { success: true };
+}
+
+/** Valida uma API Key recebida em requisições externas. Retorna os dados da chave se válida. */
+export async function validateApiKey(rawKey: string): Promise<Omit<ApiKey, "keyHash"> | null> {
+  const db = await getDb();
+  if (!db) return null;
+
+  const hash = createHash("sha256").update(rawKey).digest("hex");
+  const rows = await db.select().from(apiKeys).where(
+    and(eq(apiKeys.keyHash, hash), eq(apiKeys.active, true))
+  ).limit(1);
+
+  if (!rows || rows.length === 0) return null;
+
+  const key = rows[0];
+
+  // Verificar expiração
+  if (key.expiresAt && new Date() > new Date(key.expiresAt)) {
+    console.log(`[ApiKey] Chave expirada: ${key.keyPrefix}...`);
+    return null;
+  }
+
+  // Atualizar lastUsedAt
+  await db.update(apiKeys).set({ lastUsedAt: new Date() }).where(eq(apiKeys.id, key.id));
+
+  const { keyHash: _kh, ...rest } = key;
+  return rest;
 }

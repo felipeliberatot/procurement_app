@@ -413,3 +413,24 @@ export const budgets = mysqlTable("budgets", {
 });
 export type Budget = typeof budgets.$inferSelect;
 export type InsertBudget = typeof budgets.$inferInsert;
+
+// ─── API Keys ─────────────────────────────────────────────────────────────────
+// Chaves de API para integração com sistemas externos (ex: CGS Manutenções)
+export const apiKeys = mysqlTable("apiKeys", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),           // Nome descritivo (ex: "CGS Manutenções")
+  keyHash: varchar("keyHash", { length: 255 }).notNull(),     // Hash SHA-256 da chave (nunca armazenar em texto puro)
+  keyPrefix: varchar("keyPrefix", { length: 12 }).notNull(),  // Prefixo visível para identificação (ex: "cgsk_abc123")
+  createdById: int("createdById").notNull(),                   // FK para users (quem criou)
+  createdByName: varchar("createdByName", { length: 128 }),   // Nome de quem criou
+  lastUsedAt: timestamp("lastUsedAt"),                         // Última vez que a chave foi usada
+  expiresAt: timestamp("expiresAt"),                           // Data de expiração (null = sem expiração)
+  active: boolean("active").default(true).notNull(),
+  permissions: text("permissions"),                            // JSON array de permissões (ex: ["create_request","read_requests"])
+  description: text("description"),                            // Descrição do uso da chave
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = typeof apiKeys.$inferInsert;

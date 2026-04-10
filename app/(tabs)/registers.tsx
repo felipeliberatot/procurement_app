@@ -29,7 +29,7 @@ import {
   View,
 } from "react-native";
 
-type Tab = "users" | "costcenters" | "assets" | "units" | "businessunits" | "departments";
+type Tab = "users" | "costcenters" | "assets" | "units" | "businessunits" | "departments" | "apikeys";
 
 const ROLES: ProcurementRole[] = [
   "solicitante",
@@ -1850,6 +1850,34 @@ export default function RegistersScreen() {
   const { data: departmentsList, isLoading: deptLoading } = trpc.departments.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
+  const { data: apiKeysList, isLoading: apiKeysLoading, refetch: refetchApiKeys } = trpc.apiKeys.list.useQuery(undefined, {
+    enabled: isAuthenticated && isMaster,
+  });
+
+  // API Keys mutations
+  const [showNewKeyModal, setShowNewKeyModal] = useState(false);
+  const [newKeyName, setNewKeyName] = useState("");
+  const [newKeyDescription, setNewKeyDescription] = useState("");
+  const [generatedKey, setGeneratedKey] = useState<{ key: string; name: string } | null>(null);
+
+  const createApiKeyMutation = trpc.apiKeys.create.useMutation({
+    onSuccess: (data) => {
+      setGeneratedKey({ key: data.key, name: data.name });
+      setNewKeyName("");
+      setNewKeyDescription("");
+      setShowNewKeyModal(false);
+      refetchApiKeys();
+    },
+    onError: (err) => Alert.alert("Erro", err.message),
+  });
+  const revokeApiKeyMutation = trpc.apiKeys.revoke.useMutation({
+    onSuccess: () => refetchApiKeys(),
+    onError: (err) => Alert.alert("Erro", err.message),
+  });
+  const deleteApiKeyMutation = trpc.apiKeys.delete.useMutation({
+    onSuccess: () => refetchApiKeys(),
+    onError: (err) => Alert.alert("Erro", err.message),
+  });
 
   // Filtered users
   const filteredUsers = useMemo(() => {
@@ -2287,6 +2315,7 @@ export default function RegistersScreen() {
     { key: "units", label: "Fazendas", icon: "🌾", count: unitsList?.length },
     { key: "businessunits", label: "Unidades", icon: "🏗️", count: businessUnitsList?.length },
     { key: "departments", label: "Departamentos", icon: "🏛️", count: departmentsList?.length },
+    ...(isMaster ? [{ key: "apikeys" as Tab, label: "API Keys", icon: "🔑", count: (apiKeysList ?? []).length }] : []),
   ];
 
   // Require PIN verification before sensitive master actions
@@ -3536,6 +3565,175 @@ export default function RegistersScreen() {
               </View>
             )}
           />
+        </View>
+      )}
+
+      {/* ── API Keys Tab ── */}
+      {activeTab === "apikeys" && isMaster && (
+        <View style={{ flex: 1 }}>
+          <View style={{ padding: 12 }}>
+            <TouchableOpacity
+              onPress={() => setShowNewKeyModal(true)}
+              style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+            >
+              <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Gerar Nova Chave de API</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Aviso de segurança */}
+          <View style={{ marginHorizontal: 12, marginBottom: 8, backgroundColor: "#F59E0B15", borderWidth: 1, borderColor: "#F59E0B40", borderRadius: 12, padding: 12 }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: "#F59E0B", marginBottom: 4 }}>⚠️ Segurança</Text>
+            <Text style={{ fontSize: 12, color: colors.muted, lineHeight: 18 }}>A chave completa é exibida apenas uma vez no momento da criação. Guarde-a em local seguro. Apenas o prefixo fica visível aqui.</Text>
+          </View>
+          <FlatList
+            data={apiKeysList ?? []}
+            keyExtractor={(item) => String((item as any).id)}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              apiKeysLoading ? (
+                <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+              ) : (
+                <View style={{ alignItems: "center", marginTop: 60 }}>
+                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🔑</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground }}>Nenhuma chave criada</Text>
+                  <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Crie uma chave para integrar com outros sistemas</Text>
+                </View>
+              )
+            }
+            renderItem={({ item }) => {
+              const k = item as any;
+              const isActive = k.active;
+              const isExpired = k.expiresAt && new Date() > new Date(k.expiresAt);
+              return (
+                <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: isActive && !isExpired ? colors.border : "#EF444430", borderRadius: 16, padding: 14, marginBottom: 10 }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, flex: 1 }}>{k.name}</Text>
+                    <View style={{ backgroundColor: isActive && !isExpired ? "#22C55E20" : "#EF444420", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: isActive && !isExpired ? "#22C55E" : "#EF4444" }}>
+                        {isExpired ? "Expirada" : isActive ? "Ativa" : "Revogada"}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ backgroundColor: colors.background, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, marginBottom: 6 }}>
+                    <Text style={{ fontFamily: "monospace", fontSize: 13, color: colors.primary, letterSpacing: 1 }}>{k.keyPrefix}••••••••••••••••••••••••••••••••••••••</Text>
+                  </View>
+                  {k.description ? (
+                    <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 4 }}>📝 {k.description}</Text>
+                  ) : null}
+                  <Text style={{ fontSize: 11, color: colors.muted }}>Criada por: {k.createdByName} • {new Date(k.createdAt).toLocaleDateString("pt-BR")}</Text>
+                  {k.lastUsedAt ? (
+                    <Text style={{ fontSize: 11, color: colors.muted }}>Último uso: {new Date(k.lastUsedAt).toLocaleString("pt-BR")}</Text>
+                  ) : (
+                    <Text style={{ fontSize: 11, color: colors.muted }}>Nunca utilizada</Text>
+                  )}
+                  {k.expiresAt ? (
+                    <Text style={{ fontSize: 11, color: isExpired ? "#EF4444" : colors.muted }}>Expira: {new Date(k.expiresAt).toLocaleDateString("pt-BR")}</Text>
+                  ) : null}
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                    {isActive && !isExpired && (
+                      <Pressable
+                        onPress={() => {
+                          const msg = `Revogar a chave "${k.name}"? Sistemas que usam esta chave perderão acesso imediatamente.`;
+                          if (Platform.OS === "web") {
+                            if (window.confirm(msg)) revokeApiKeyMutation.mutate({ id: k.id });
+                          } else {
+                            Alert.alert("Revogar Chave", msg, [
+                              { text: "Cancelar", style: "cancel" },
+                              { text: "Revogar", style: "destructive", onPress: () => revokeApiKeyMutation.mutate({ id: k.id }) },
+                            ]);
+                          }
+                        }}
+                        style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: "#F59E0B15", borderRadius: 8, paddingVertical: 7, alignItems: "center", borderWidth: 1, borderColor: "#F59E0B30" })}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: "700", color: "#F59E0B" }}>🚫 Revogar</Text>
+                      </Pressable>
+                    )}
+                    <Pressable
+                      onPress={() => {
+                        const msg = `Excluir permanentemente a chave "${k.name}"?`;
+                        if (Platform.OS === "web") {
+                          if (window.confirm(msg)) deleteApiKeyMutation.mutate({ id: k.id });
+                        } else {
+                          Alert.alert("Excluir Chave", msg, [
+                            { text: "Cancelar", style: "cancel" },
+                            { text: "Excluir", style: "destructive", onPress: () => deleteApiKeyMutation.mutate({ id: k.id }) },
+                          ]);
+                        }
+                      }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: "#EF444415", borderRadius: 8, paddingVertical: 7, alignItems: "center", borderWidth: 1, borderColor: "#EF444430" })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: "#EF4444" }}>🗑️ Excluir</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            }}
+          />
+        </View>
+      )}
+
+      {/* Modal: Gerar Nova Chave */}
+      {showNewKeyModal && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
+          <View style={{ backgroundColor: colors.background, borderRadius: 20, padding: 24, width: "90%", maxWidth: 420 }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>🔑 Nova Chave de API</Text>
+            <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 16 }}>A chave será exibida apenas uma vez. Guarde-a em local seguro.</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground, marginBottom: 6 }}>Nome da integração *</Text>
+            <TextInput
+              value={newKeyName}
+              onChangeText={setNewKeyName}
+              placeholder="Ex: CGS Manutenções"
+              placeholderTextColor={colors.muted}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground, marginBottom: 12 }}
+            />
+            <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground, marginBottom: 6 }}>Descrição (opcional)</Text>
+            <TextInput
+              value={newKeyDescription}
+              onChangeText={setNewKeyDescription}
+              placeholder="Para que será usada esta chave?"
+              placeholderTextColor={colors.muted}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground, marginBottom: 20 }}
+            />
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => { setShowNewKeyModal(false); setNewKeyName(""); setNewKeyDescription(""); }}
+                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              >
+                <Text style={{ color: colors.muted, fontWeight: "600" }}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  if (!newKeyName.trim()) { Alert.alert("Campo obrigatório", "Informe o nome da integração."); return; }
+                  createApiKeyMutation.mutate({ name: newKeyName.trim(), description: newKeyDescription.trim() || undefined, permissions: ["create_request"] });
+                }}
+                disabled={createApiKeyMutation.isPending}
+                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center", opacity: createApiKeyMutation.isPending ? 0.7 : 1 }}
+              >
+                <Text style={{ color: "white", fontWeight: "700" }}>{createApiKeyMutation.isPending ? "Gerando..." : "Gerar Chave"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Modal: Exibir Chave Gerada */}
+      {generatedKey && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "center", alignItems: "center", zIndex: 9999 }}>
+          <View style={{ backgroundColor: colors.background, borderRadius: 20, padding: 24, width: "90%", maxWidth: 480 }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: "#22C55E", marginBottom: 4 }}>✅ Chave Criada!</Text>
+            <Text style={{ fontSize: 13, color: colors.foreground, marginBottom: 4 }}>Integração: <Text style={{ fontWeight: "700" }}>{generatedKey.name}</Text></Text>
+            <Text style={{ fontSize: 13, color: "#EF4444", fontWeight: "600", marginBottom: 12 }}>⚠️ Esta chave não será exibida novamente. Copie agora!</Text>
+            <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 16, borderWidth: 1, borderColor: colors.primary + "40" }}>
+              <Text selectable style={{ fontFamily: "monospace", fontSize: 13, color: colors.primary, letterSpacing: 0.5, lineHeight: 20 }}>{generatedKey.key}</Text>
+            </View>
+            <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 16, lineHeight: 18 }}>Use esta chave no header das requisições HTTP:\n<Text style={{ fontFamily: "monospace", color: colors.foreground }}>X-API-Key: {generatedKey.key}</Text></Text>
+            <TouchableOpacity
+              onPress={() => setGeneratedKey(null)}
+              style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+            >
+              <Text style={{ color: "white", fontWeight: "700" }}>Entendi, já copiei a chave</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 

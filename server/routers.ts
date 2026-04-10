@@ -1205,6 +1205,48 @@ Retorne JSON:
         return db.deleteBudget(input.id);
       }),
   }),
+
+  // ─── API Keys ───────────────────────────────────────────────────────────────────────────────────
+  apiKeys: router({
+    list: protectedProcedure.query(({ ctx }) => {
+      const isMaster = (ctx.user as any)?.approvalLevel === "master";
+      if (!isMaster) throw new Error("Apenas usuários master podem gerenciar chaves de API.");
+      return db.listApiKeys();
+    }),
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1),
+        description: z.string().optional(),
+        permissions: z.array(z.string()).optional(),
+        expiresAt: z.string().optional(),
+      }))
+      .mutation(({ ctx, input }) => {
+        const isMaster = (ctx.user as any)?.approvalLevel === "master";
+        if (!isMaster) throw new Error("Apenas usuários master podem criar chaves de API.");
+        return db.createApiKey({
+          name: input.name,
+          description: input.description,
+          permissions: input.permissions ?? ["create_request"],
+          expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined,
+          createdById: ctx.user.id,
+          createdByName: ctx.user.name ?? "",
+        });
+      }),
+    revoke: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ ctx, input }) => {
+        const isMaster = (ctx.user as any)?.approvalLevel === "master";
+        if (!isMaster) throw new Error("Apenas usuários master podem revogar chaves de API.");
+        return db.revokeApiKey(input.id);
+      }),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ ctx, input }) => {
+        const isMaster = (ctx.user as any)?.approvalLevel === "master";
+        if (!isMaster) throw new Error("Apenas usuários master podem excluir chaves de API.");
+        return db.deleteApiKey(input.id);
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;

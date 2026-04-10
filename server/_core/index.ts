@@ -11,6 +11,7 @@ import { createContext } from "./context";
 import { registerWhatsAppWebhook } from "../whatsapp-webhook";
 import { registerCronJobs } from "../cron";
 import { runDailyReport } from "../daily-report";
+import { registerApiIntegration } from "../api-integration";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -61,6 +62,7 @@ async function startServer() {
 
   registerOAuthRoutes(app);
   registerWhatsAppWebhook(app);
+  registerApiIntegration(app);
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
