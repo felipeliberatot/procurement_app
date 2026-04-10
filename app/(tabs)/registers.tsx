@@ -321,22 +321,32 @@ function UserFormModal({
       Alert.alert("Senhas não conferem", "A confirmação de senha não corresponde à nova senha.");
       return;
     }
-    Alert.alert(
-      "Redefinir Senha",
-      `Deseja redefinir a senha de ${user?.name ?? "este usuário"}?`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Redefinir",
-          style: "destructive",
-          onPress: () => {
-            onResetPassword?.(user.id, newPassword);
-            setNewPassword("");
-            setConfirmPassword("");
+    if (Platform.OS === 'web') {
+      // No web, Alert.alert com botões não funciona — usar window.confirm
+      const confirmed = window.confirm(`Deseja redefinir a senha de ${user?.name ?? 'este usuário'}?`);
+      if (confirmed) {
+        onResetPassword?.(user.id, newPassword);
+        setNewPassword("");
+        setConfirmPassword("");
+      }
+    } else {
+      Alert.alert(
+        "Redefinir Senha",
+        `Deseja redefinir a senha de ${user?.name ?? "este usuário"}?`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Redefinir",
+            style: "destructive",
+            onPress: () => {
+              onResetPassword?.(user.id, newPassword);
+              setNewPassword("");
+              setConfirmPassword("");
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const handleSave = () => {
