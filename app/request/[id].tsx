@@ -14,7 +14,7 @@ import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -418,6 +418,8 @@ export default function RequestDetailScreen() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"pix" | "boleto" | "cartao_avista" | "cartao_parcelado" | null>(null);
   const [paymentInstallments, setPaymentInstallments] = useState<string>("");
   const [paymentObservations, setPaymentObservations] = useState("");
+  // Pré-carregar observações de pagamento já salvas no banco
+  const [paymentObsInitialized, setPaymentObsInitialized] = useState(false);
   const [budgetFileName, setBudgetFileName] = useState<string | null>(null);
   const [pendingBudgetBase64, setPendingBudgetBase64] = useState<string | null>(null);
   const [pendingBudgetMime, setPendingBudgetMime] = useState<string>("application/pdf");
@@ -479,6 +481,14 @@ export default function RequestDetailScreen() {
     { requestId },
     { enabled: isAuthenticated && !!id }
   );
+
+  // Pré-carregar paymentObservations com o valor já salvo no banco
+  useEffect(() => {
+    if (!paymentObsInitialized && request && (request as any).paymentObservations) {
+      setPaymentObservations((request as any).paymentObservations);
+      setPaymentObsInitialized(true);
+    }
+  }, [request, paymentObsInitialized]);
 
   const invalidateAll = () => {
     utils.requests.getById.invalidate({ id: requestId });
@@ -1734,7 +1744,9 @@ export default function RequestDetailScreen() {
                 const payMethod = (request as any).paymentMethod as PaymentMethod | undefined;
                 const isPix = payMethod === "pix";
                 const hasProof = !!(request as any).paymentProofUrl;
-                const hasObs = paymentObservations.trim().length > 0;
+                // Considera tanto o valor digitado na sessão quanto o já salvo no banco
+                const savedObs = (request as any).paymentObservations ?? "";
+                const hasObs = paymentObservations.trim().length > 0 || savedObs.trim().length > 0;
                 // Para PIX: obrigatório comprovante. Para outros: obrigatório observações
                 const canApprove = isPix ? hasProof : hasObs;
                 return (
