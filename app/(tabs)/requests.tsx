@@ -62,6 +62,76 @@ function normalize(str: string): string {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+// ─── SearchBar extraído para fora do componente pai ─────────────────────────
+// IMPORTANTE: definir fora do RequestsScreen evita que o React destrua e recrie
+// o TextInput a cada render, o que causaria perda de foco após cada caractere.
+const SearchBar = React.memo(function SearchBar({
+  value,
+  onChangeText,
+  onClear,
+  inputRef,
+  colors,
+  style,
+}: {
+  value: string;
+  onChangeText: (text: string) => void;
+  onClear: () => void;
+  inputRef: React.RefObject<TextInput | null>;
+  colors: any;
+  style?: object;
+}) {
+  return (
+    <View style={[{
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: value.trim() ? colors.primary : colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      height: 40,
+    }, style]}>
+      <Text style={{ fontSize: 15, color: colors.muted, marginRight: 6 }}>🔍</Text>
+      <TextInput
+        ref={inputRef}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder="Buscar por número, descrição, solicitante..."
+        placeholderTextColor={colors.muted}
+        style={{
+          flex: 1,
+          fontSize: 14,
+          color: colors.foreground,
+          paddingVertical: 0,
+          height: 40,
+        }}
+        returnKeyType="search"
+        clearButtonMode="never"
+        autoCorrect={false}
+        autoCapitalize="none"
+      />
+      {value.trim() !== "" && (
+        <Pressable
+          onPress={onClear}
+          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 4 })}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <View style={{
+            width: 18,
+            height: 18,
+            borderRadius: 9,
+            backgroundColor: colors.muted,
+            alignItems: "center",
+            justifyContent: "center",
+          }}>
+            <Text style={{ color: colors.background, fontSize: 11, fontWeight: "700", lineHeight: 18 }}>✕</Text>
+          </View>
+        </Pressable>
+      )}
+    </View>
+  );
+});
+
 export default function RequestsScreen() {
   const { isAuthenticated, user } = useAuth();
   const { isDesktop } = useBreakpoint();
@@ -137,59 +207,11 @@ export default function RequestsScreen() {
     return statusMatch && urgencyMatch && deptMatch && myActionMatch && searchMatch;
   });
 
-  // Componente de campo de busca reutilizável
-  const searchBarStyle = React.useMemo(() => ({
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: searchQuery.trim() ? colors.primary : colors.border,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 40,
-  }), [searchQuery, colors]);
-
-  const SearchBar = ({ style }: { style?: object }) => (
-    <View style={[searchBarStyle, style]}>
-      <Text style={{ fontSize: 15, color: colors.muted, marginRight: 6 }}>🔍</Text>
-      <TextInput
-        ref={searchInputRef}
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        placeholder="Buscar por número, descrição, solicitante..."
-        placeholderTextColor={colors.muted}
-        style={{
-          flex: 1,
-          fontSize: 14,
-          color: colors.foreground,
-          paddingVertical: 0,
-          height: 40,
-        }}
-        returnKeyType="search"
-        clearButtonMode="never"
-        autoCorrect={false}
-        autoCapitalize="none"
-      />
-      {searchQuery.trim() !== "" && (
-        <Pressable
-          onPress={() => { setSearchQuery(""); searchInputRef.current?.focus(); }}
-          style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 4 })}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <View style={{
-            width: 18,
-            height: 18,
-            borderRadius: 9,
-            backgroundColor: colors.muted,
-            alignItems: "center",
-            justifyContent: "center",
-          }}>
-            <Text style={{ color: colors.background, fontSize: 11, fontWeight: "700", lineHeight: 18 }}>✕</Text>
-          </View>
-        </Pressable>
-      )}
-    </View>
-  );
+  // Callback estável para limpar a busca
+  const handleClearSearch = React.useCallback(() => {
+    setSearchQuery("");
+    searchInputRef.current?.focus();
+  }, []);
 
   if (isDesktop) {
     return (
@@ -302,7 +324,13 @@ export default function RequestsScreen() {
                 </TouchableOpacity>
               </View>
               {/* Campo de busca desktop */}
-              <SearchBar />
+              <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onClear={handleClearSearch}
+                inputRef={searchInputRef}
+                colors={colors}
+              />
             </View>
 
             {isLoading ? (
@@ -359,7 +387,13 @@ export default function RequestsScreen() {
         <Text className="text-sm text-muted mb-3">{filtered.length} {filtered.length === 1 ? "solicitação" : "solicitações"}</Text>
 
         {/* Campo de busca mobile */}
-        <SearchBar />
+        <SearchBar
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          onClear={handleClearSearch}
+          inputRef={searchInputRef}
+          colors={colors}
+        />
       </View>
 
       {/* Filtro rápido: Aguardando Minha Ação */}
