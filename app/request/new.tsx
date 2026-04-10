@@ -61,9 +61,25 @@ export default function NewRequestScreen() {
   const [showDeptPicker, setShowDeptPicker] = useState(false);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [showCostCenterPicker, setShowCostCenterPicker] = useState(false);
+  const [showOsPicker, setShowOsPicker] = useState(false);
   const [assetSearch, setAssetSearch] = useState("");
   const [deptSearch, setDeptSearch] = useState("");
   const [costCenterSearch, setCostCenterSearch] = useState("");
+  const [osSearch, setOsSearch] = useState("");
+  const [selectedOs, setSelectedOs] = useState<{ orderNumber: string; description: string | null; equipment: { name: string; code: string } } | null>(null);
+
+  const { data: workOrders, isLoading: osLoading, refetch: refetchOs } = trpc.maintenance.listWorkOrders.useQuery(
+    undefined,
+    { enabled: showOsPicker, staleTime: 30_000 }
+  );
+
+  const filteredOs = (workOrders ?? []).filter((os) =>
+    !osSearch ||
+    os.orderNumber.toLowerCase().includes(osSearch.toLowerCase()) ||
+    (os.description ?? "").toLowerCase().includes(osSearch.toLowerCase()) ||
+    os.equipment.name.toLowerCase().includes(osSearch.toLowerCase()) ||
+    os.equipment.code.toLowerCase().includes(osSearch.toLowerCase())
+  );
 
   const filteredAssets = (assets ?? []).filter((a) =>
     !assetSearch ||
@@ -397,14 +413,46 @@ export default function NewRequestScreen() {
           {/* OS Manutenção */}
           <View className="mb-6">
             <Text className="text-sm font-semibold text-foreground mb-2">OS Manutenção <Text className="text-muted font-normal">(opcional)</Text></Text>
-            <TextInput
-              value={osMyfarm}
-              onChangeText={setOsMyfarm}
-              placeholder="Número da OS de Manutenção vinculada..."
-              placeholderTextColor={colors.muted}
-              className="bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground"
-              returnKeyType="done"
-            />
+            <Pressable
+              onPress={() => { setShowOsPicker(true); refetchOs(); }}
+              style={({ pressed }) => ({
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: selectedOs ? colors.primary : colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <View style={{ flex: 1 }}>
+                {selectedOs ? (
+                  <>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>{selectedOs.orderNumber}</Text>
+                    <Text style={{ fontSize: 12, color: colors.foreground, marginTop: 1 }}>
+                      {selectedOs.description ?? selectedOs.equipment.name}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: colors.muted }}>{selectedOs.equipment.code} · {selectedOs.equipment.name}</Text>
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 13, color: colors.muted }}>Selecionar OS de Manutenção...</Text>
+                )}
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {selectedOs && (
+                  <Pressable
+                    onPress={(e) => { e.stopPropagation?.(); setSelectedOs(null); setOsMyfarm(""); }}
+                    style={{ padding: 4 }}
+                  >
+                    <Text style={{ fontSize: 16, color: colors.muted }}>✕</Text>
+                  </Pressable>
+                )}
+                <Text style={{ fontSize: 18, color: colors.muted }}>🔧</Text>
+              </View>
+            </Pressable>
           </View>
 
           {/* Submit */}
@@ -628,6 +676,105 @@ export default function NewRequestScreen() {
                 </Pressable>
               )}
             />
+          </View>
+        </View>
+      )}
+      {/* Modal: Selecionar OS de Manutenção */}
+      {showOsPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", zIndex: 9999 }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "85%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 17, fontWeight: "700", color: colors.foreground }}>🔧 Selecionar OS de Manutenção</Text>
+              <Pressable onPress={() => setShowOsPicker(false)} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 4 })}>
+                <Text style={{ fontSize: 22, color: colors.muted }}>✕</Text>
+              </Pressable>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+              <TextInput
+                value={osSearch}
+                onChangeText={setOsSearch}
+                placeholder="Buscar por número, descrição ou equipamento..."
+                placeholderTextColor={colors.muted}
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground }}
+                autoFocus
+              />
+            </View>
+            {osLoading ? (
+              <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                <ActivityIndicator color={colors.primary} />
+                <Text style={{ marginTop: 8, fontSize: 13, color: colors.muted }}>Buscando OS no CGS Manutenções...</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filteredOs}
+                keyExtractor={(item) => String(item.id)}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                  <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                    <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
+                    <Text style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}>Nenhuma OS encontrada</Text>
+                    <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>Tente outro termo de busca</Text>
+                  </View>
+                }
+                renderItem={({ item }) => {
+                  const statusColors: Record<string, string> = {
+                    in_progress: "#F59E0B",
+                    open: "#22C55E",
+                    pending: "#6B7280",
+                    completed: "#3B82F6",
+                  };
+                  const statusLabels: Record<string, string> = {
+                    in_progress: "Em andamento",
+                    open: "Aberta",
+                    pending: "Pendente",
+                    completed: "Concluída",
+                  };
+                  const color = statusColors[item.status] ?? colors.muted;
+                  return (
+                    <Pressable
+                      onPress={() => {
+                        setSelectedOs(item);
+                        setOsMyfarm(item.orderNumber);
+                        setShowOsPicker(false);
+                        setOsSearch("");
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                      style={({ pressed }) => ({
+                        opacity: pressed ? 0.7 : 1,
+                        backgroundColor: colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 14,
+                        padding: 14,
+                        marginBottom: 8,
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 12,
+                      })}
+                    >
+                      <View style={{ backgroundColor: color + "20", borderRadius: 10, padding: 10 }}>
+                        <Text style={{ fontSize: 20 }}>🔧</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 2 }}>
+                          <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primary }}>{item.orderNumber}</Text>
+                          <View style={{ backgroundColor: color + "20", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                            <Text style={{ fontSize: 10, fontWeight: "700", color }}>{statusLabels[item.status] ?? item.status}</Text>
+                          </View>
+                        </View>
+                        <Text style={{ fontSize: 13, color: colors.foreground, marginBottom: 2 }} numberOfLines={2}>
+                          {item.description ?? "(sem descrição)"}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: colors.muted }}>
+                          🚜 {item.equipment.code} · {item.equipment.name}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                }}
+              />
+            )}
           </View>
         </View>
       )}

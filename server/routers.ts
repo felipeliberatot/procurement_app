@@ -1247,6 +1247,64 @@ Retorne JSON:
         return db.deleteApiKey(input.id);
       }),
   }),
+
+  // ─── Integração CGS Manutenções ────────────────────────────────────────────
+  maintenance: router({
+    listWorkOrders: protectedProcedure
+      .input(z.object({
+        search: z.string().optional(),
+        status: z.string().optional(),
+      }).optional())
+      .query(async ({ input }) => {
+        const apiKey = ENV.cgsMaintainApiKey;
+        if (!apiKey) throw new Error("CGS_MAINTENANCE_API_KEY não configurada.");
+
+        const baseUrl = "https://cgsmaintain-yb3cdfwd.manus.space";
+        const url = new URL(`${baseUrl}/api/integration/work-orders`);
+        if (input?.search) url.searchParams.set("search", input.search);
+        if (input?.status) url.searchParams.set("status", input.status);
+
+        const res = await fetch(url.toString(), {
+          headers: {
+            "X-API-Key": apiKey,
+            "Accept": "application/json",
+          },
+        });
+
+        if (!res.ok) {
+          const err = await res.text();
+          throw new Error(`Erro ao buscar OS: ${res.status} ${err}`);
+        }
+
+        const data = await res.json() as {
+          success: boolean;
+          count: number;
+          data: Array<{
+            id: number;
+            orderNumber: string;
+            description: string | null;
+            status: string;
+            maintenanceType: string;
+            priority: string;
+            equipment: {
+              id: number;
+              code: string;
+              name: string;
+              type: string;
+              manufacturer: string;
+              model: string;
+            };
+            requesterName: string;
+            openedAt: string;
+            startDate: string;
+            endDate: string;
+            totalCost: number;
+          }>;
+        };
+
+        return data.data ?? [];
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
