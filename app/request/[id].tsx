@@ -1096,7 +1096,7 @@ export default function RequestDetailScreen() {
                 <Text className="text-sm text-muted">Ordem de Compra: <Text className="text-foreground font-bold">{request.purchaseOrderNumber}</Text></Text>
               )}
               {request.osMyfarm && (
-                <Text className="text-sm text-muted">OS Myfarm: <Text className="text-foreground font-bold">{request.osMyfarm}</Text></Text>
+                <Text className="text-sm text-muted">OS Manutenção: <Text className="text-foreground font-bold">{request.osMyfarm}</Text></Text>
               )}
             </View>
             {request.observations && (

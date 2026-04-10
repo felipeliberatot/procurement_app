@@ -460,13 +460,13 @@ export default function EditRequestScreen() {
             />
           </View>
 
-          {/* OS Myfarm */}
+          {/* OS Manutenção */}
           <View className="mb-6">
-            <Text className="text-sm font-semibold text-foreground mb-2">OS Myfarm <Text className="text-muted font-normal">(opcional)</Text></Text>
+            <Text className="text-sm font-semibold text-foreground mb-2">OS Manutenção <Text className="text-muted font-normal">(opcional)</Text></Text>
             <TextInput
               value={osMyfarm}
               onChangeText={setOsMyfarm}
-              placeholder="Número da OS Myfarm vinculada..."
+              placeholder="Número da OS de Manutenção vinculada..."
               placeholderTextColor={colors.muted}
               className="bg-surface border border-border rounded-xl px-4 py-3 text-sm text-foreground"
               returnKeyType="done"

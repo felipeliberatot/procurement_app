@@ -343,13 +343,13 @@ export default function EditByControladoriaScreen() {
             />
           </View>
 
-          {/* OS Myfarm */}
+          {/* OS Manutenção */}
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 8 }}>OS Myfarm</Text>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 8 }}>OS Manutenção</Text>
             <TextInput
               value={osMyfarm}
               onChangeText={setOsMyfarm}
-              placeholder="Número da OS no Myfarm (opcional)"
+              placeholder="Número da OS de Manutenção (opcional)"
               placeholderTextColor={colors.muted}
               keyboardType="numeric"
               style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground }}
