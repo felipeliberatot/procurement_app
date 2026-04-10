@@ -138,17 +138,19 @@ export default function RequestsScreen() {
   });
 
   // Componente de campo de busca reutilizável
+  const searchBarStyle = React.useMemo(() => ({
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: searchQuery.trim() ? colors.primary : colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 40,
+  }), [searchQuery, colors]);
+
   const SearchBar = ({ style }: { style?: object }) => (
-    <View style={[{
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.surface,
-      borderWidth: 1.5,
-      borderColor: searchQuery.trim() ? colors.primary : colors.border,
-      borderRadius: 12,
-      paddingHorizontal: 12,
-      height: 40,
-    }, style]}>
+    <View style={[searchBarStyle, style]}>
       <Text style={{ fontSize: 15, color: colors.muted, marginRight: 6 }}>🔍</Text>
       <TextInput
         ref={searchInputRef}
