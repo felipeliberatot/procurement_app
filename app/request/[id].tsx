@@ -922,6 +922,65 @@ export default function RequestDetailScreen() {
   };
 
   const handlePickPaymentProof = async () => {
+    // No Android, oferecer escolha entre galeria de imagens e PDF
+    if (Platform.OS === "android") {
+      Alert.alert(
+        "Selecionar Comprovante",
+        "Como deseja anexar o comprovante?",
+        [
+          {
+            text: "Galeria de Fotos",
+            onPress: async () => {
+              try {
+                const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                if (status !== "granted") {
+                  Alert.alert("Permissão Negada", "Permita o acesso à galeria nas configurações do app.");
+                  return;
+                }
+                const result = await ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                  allowsEditing: false,
+                  quality: 0.85,
+                  base64: true,
+                });
+                if (result.canceled) return;
+                const asset = result.assets[0];
+                const ext = asset.uri.split(".").pop()?.toLowerCase() ?? "jpg";
+                const fileName = `comprovante_${Date.now()}.${ext}`;
+                setPaymentProofFileName(fileName);
+                setPaymentProofLocalUri(asset.uri);
+                const base64 = asset.base64 ?? await readFileAsBase64(asset.uri);
+                uploadPaymentProofMutation.mutate({ requestId: request.id, fileName, base64, mimeType: asset.mimeType ?? "image/jpeg" });
+              } catch (err: any) {
+                Alert.alert("Erro", `Não foi possível acessar a galeria: ${err?.message ?? err}`);
+              }
+            },
+          },
+          {
+            text: "Arquivo PDF",
+            onPress: async () => {
+              try {
+                const result = await DocumentPicker.getDocumentAsync({
+                  type: "application/pdf",
+                  copyToCacheDirectory: true,
+                });
+                if (result.canceled) return;
+                const file = result.assets[0];
+                setPaymentProofFileName(file.name);
+                setPaymentProofLocalUri(null);
+                const base64 = await readFileAsBase64(file.uri);
+                uploadPaymentProofMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: "application/pdf" });
+              } catch (err: any) {
+                Alert.alert("Erro", `Não foi possível selecionar o PDF: ${err?.message ?? err}`);
+              }
+            },
+          },
+          { text: "Cancelar", style: "cancel" },
+        ]
+      );
+      return;
+    }
+    // iOS e Web: seletor unificado
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"],
@@ -930,13 +989,12 @@ export default function RequestDetailScreen() {
       if (result.canceled) return;
       const file = result.assets[0];
       setPaymentProofFileName(file.name);
-      // Salvar URI local para pré-visualização de imagens
       const isImage = file.mimeType?.startsWith("image/") ?? false;
       setPaymentProofLocalUri(isImage ? file.uri : null);
       const base64 = await readFileAsBase64(file.uri);
       uploadPaymentProofMutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
-    } catch (err) {
-      Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
+    } catch (err: any) {
+      Alert.alert("Erro", `Não foi possível selecionar o arquivo: ${err?.message ?? err}`);
     }
   };
 

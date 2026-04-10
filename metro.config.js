@@ -22,9 +22,14 @@ if (fs.existsSync(pnpmStore)) {
 config.watchFolders = watchFolders;
 
 // Enable symlink resolution for pnpm hoisted installs
+// Block test scripts and non-app files from being bundled
 config.resolver = {
   ...config.resolver,
   unstable_enableSymlinks: true,
+  blockList: [
+    /\/test[^/]*\.(mjs|js|ts)$/,
+    /\/scripts\/[^/]+\.mjs$/,
+  ],
 };
 
 module.exports = withNativeWind(config, {
