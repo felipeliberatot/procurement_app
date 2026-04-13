@@ -666,3 +666,5 @@
 - [x] Botão "Reenviar notificação" na tela de detalhe (visível para master/admin)
 - [x] Reenvio correto conforme etapa: solicitante (aguardando_orcamento), aprovadores (demais etapas)
 - [x] Corrigir bug de ordem de aprovação: Diretoria deve aprovar somente após Orçamento (emergencial/urgente) ou após Controladoria (normal)
+## CRÍTICO: Deploy Docker falha (DependencyGraph.getOrComputeSha1)
+- [x] Resolver erro Metro bundler no Docker que impede publicação do backend e iOS (causa raiz: web.css não criado antes do Metro crawl)
