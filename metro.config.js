@@ -1,15 +1,15 @@
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 const path = require("path");
+const fs = require("fs");
 
 // ─── Base config ──────────────────────────────────────────────────────────────
 const config = getDefaultConfig(__dirname);
 
 // ─── Resolver ─────────────────────────────────────────────────────────────────
 // Block server-side, scripts, and non-app files from being bundled by Metro.
-// IMPORTANT: unstable_enableSymlinks must be false to prevent Metro from
-// following pnpm symlinks that may not exist in Docker/CI environments,
-// which causes the DependencyGraph.getOrComputeSha1 crash.
+// unstable_enableSymlinks must be false to prevent Metro from following pnpm
+// symlinks that may not exist in Docker/CI environments.
 config.resolver = {
   ...config.resolver,
   unstable_enableSymlinks: false,
@@ -24,8 +24,6 @@ config.resolver = {
     new RegExp(path.resolve(__dirname, "dist").replace(/\\/g, "\\\\") + "/.*"),
     // Block pnpm store if it exists locally
     new RegExp(path.resolve(__dirname, ".pnpm-store").replace(/\\/g, "\\\\") + "/.*"),
-    // Block test/script files at root level
-    /\/test[^/]*\.(mjs|js|ts)$/,
   ],
 };
 
@@ -34,16 +32,31 @@ config.resolver = {
 // withNativeWind resets watchFolders to [], so we must set it after.
 const finalConfig = withNativeWind(config, {
   input: "./global.css",
-  // Force write CSS to file system instead of virtual modules
-  // This fixes iOS styling issues in development mode
   forceWriteFileSystem: true,
 });
 
 // ─── watchFolders ─────────────────────────────────────────────────────────────
-// Set AFTER withNativeWind to prevent it from being overridden.
-// Only include the project root — do NOT add node_modules or .pnpm-store,
-// as Metro resolves node_modules automatically and adding them causes crashes
-// in Docker when pnpm symlinks point to non-existent store paths.
-finalConfig.watchFolders = [path.resolve(__dirname)];
+// CRITICAL: Must be set AFTER withNativeWind (which resets it to []).
+//
+// The root cause of DependencyGraph.getOrComputeSha1 crash in Docker:
+// withNativeWind (via react-native-css-interop) generates a cache file at:
+//   node_modules/react-native-css-interop/.cache/web.css
+// during the build. Metro cannot compute SHA-1 for files outside watchFolders.
+// Adding the .cache directory to watchFolders fixes this crash.
+const cssInteropCacheDir = path.resolve(
+  __dirname,
+  "node_modules/react-native-css-interop/.cache"
+);
+
+// Ensure the cache directory exists before adding it to watchFolders
+// (it may not exist before the first build)
+if (!fs.existsSync(cssInteropCacheDir)) {
+  fs.mkdirSync(cssInteropCacheDir, { recursive: true });
+}
+
+finalConfig.watchFolders = [
+  path.resolve(__dirname),
+  cssInteropCacheDir,
+];
 
 module.exports = finalConfig;
