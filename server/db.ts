@@ -1190,6 +1190,14 @@ export async function approveRequest(
     throw new Error("É obrigatório anexar o PDF do orçamento antes de aprovar esta etapa. Clique em \"Anexar Orçamento\" e envie o arquivo para continuar.");
   }
 
+  // ── Verificação de orçamento obrigatório na etapa da Diretoria ───────────────
+  // A Diretoria só pode aprovar se o orçamento já estiver anexado.
+  // Isso evita que usuários com múltiplos papéis (ex: Gerente + Diretoria)
+  // aprovem a etapa da Diretoria sem que o orçamento tenha sido enviado.
+  if (request.status === "aguardando_diretoria" && !request.budgetFileUrl) {
+    throw new Error("Não é possível aprovar a etapa da Diretoria sem orçamento anexado. O responsável pelo orçamento deve enviar o PDF antes desta aprovação.");
+  }
+
   // ── Aprovação simples da Diretoria ───────────────────────────────────────────
   // Uma aprovação de qualquer diretor é suficiente para avançar o status
   if (request.status === "aguardando_diretoria") {
