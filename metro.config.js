@@ -22,13 +22,22 @@ if (fs.existsSync(pnpmStore)) {
 config.watchFolders = watchFolders;
 
 // Enable symlink resolution for pnpm hoisted installs
-// Block test scripts and non-app files from being bundled
+// Block server-side, scripts, and test files from being bundled by Metro
+// These files are Node.js only and must not be included in the mobile bundle
 config.resolver = {
   ...config.resolver,
   unstable_enableSymlinks: true,
   blockList: [
+    // Block all files in scripts/ directory (Node.js utility scripts)
+    new RegExp(path.resolve(__dirname, "scripts").replace(/\\/g, "\\\\") + "/.*"),
+    // Block server directory (backend code, not for mobile bundle)
+    new RegExp(path.resolve(__dirname, "server").replace(/\\/g, "\\\\") + "/.*"),
+    // Block drizzle migrations and config
+    new RegExp(path.resolve(__dirname, "drizzle").replace(/\\/g, "\\\\") + "/.*"),
+    // Block test files at root level
     /\/test[^/]*\.(mjs|js|ts)$/,
-    /\/scripts\/[^/]+\.mjs$/,
+    // Block dist output
+    new RegExp(path.resolve(__dirname, "dist").replace(/\\/g, "\\\\") + "/.*"),
   ],
 };
 
