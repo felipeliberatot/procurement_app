@@ -1,0 +1,100 @@
+{
+  "query": "SELECT COLUMN_NAME, DATA_TYPE, COLUMN_DEFAULT, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT COLUMN_NAME, DATA_TYPE, COLUMN_DEFAULT, IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id",
+      "DATA_TYPE": "int",
+      "COLUMN_DEFAULT": "NULL",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "openId",
+      "DATA_TYPE": "varchar",
+      "COLUMN_DEFAULT": "NULL",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "name",
+      "DATA_TYPE": "text",
+      "COLUMN_DEFAULT": "NULL",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "email",
+      "DATA_TYPE": "varchar",
+      "COLUMN_DEFAULT": "NULL",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "loginMethod",
+      "DATA_TYPE": "varchar",
+      "COLUMN_DEFAULT": "NULL",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "role",
+      "DATA_TYPE": "enum",
+      "COLUMN_DEFAULT": "user",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "createdAt",
+      "DATA_TYPE": "timestamp",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "updatedAt",
+      "DATA_TYPE": "timestamp",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "lastSignedIn",
+      "DATA_TYPE": "timestamp",
+      "COLUMN_DEFAULT": "CURRENT_TIMESTAMP",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "procurementRole",
+      "DATA_TYPE": "enum",
+      "COLUMN_DEFAULT": "solicitante",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "department",
+      "DATA_TYPE": "varchar",
+      "COLUMN_DEFAULT": "NULL",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "phone",
+      "DATA_TYPE": "varchar",
+      "COLUMN_DEFAULT": "NULL",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "active",
+      "DATA_TYPE": "tinyint",
+      "COLUMN_DEFAULT": "1",
+      "IS_NULLABLE": "NO"
+    },
+    {
+      "COLUMN_NAME": "jobTitle",
+      "DATA_TYPE": "varchar",
+      "COLUMN_DEFAULT": "NULL",
+      "IS_NULLABLE": "YES"
+    },
+    {
+      "COLUMN_NAME": "approvalLevel",
+      "DATA_TYPE": "enum",
+      "COLUMN_DEFAULT": "nenhum",
+      "IS_NULLABLE": "NO"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\tDATA_TYPE\tCOLUMN_DEFAULT\tIS_NULLABLE\nid\tint\tNULL\tNO\nopenId\tvarchar\tNULL\tNO\nname\ttext\tNULL\tYES\nemail\tvarchar\tNULL\tYES\nloginMethod\tvarchar\tNULL\tYES\nrole\tenum\tuser\tNO\ncreatedAt\ttimestamp\tCURRENT_TIMESTAMP\tNO\nupdatedAt\ttimestamp\tCURRENT_TIMESTAMP\tNO\nlastSignedIn\ttimestamp\tCURRENT_TIMESTAMP\tNO\nprocurementRole\tenum\tsolicitante\tNO\ndepartment\tvarchar\tNULL\tYES\nphone\tvarchar\tNULL\tYES\nactive\ttinyint\t1\tNO\njobTitle\tvarchar\tNULL\tYES\napprovalLevel\tenum\tnenhum\tNO\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

@@ -1,0 +1,15 @@
+{
+  "query": "SELECT requestNumber, status, directorApprovals FROM purchaseRequests WHERE requestNumber = 'SOL-2026-0169';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT requestNumber, status, directorApprovals FROM purchaseRequests WHERE requestNumber = 'SOL-2026-0169';",
+  "rows": [
+    {
+      "requestNumber": "SOL-2026-0169",
+      "status": "aguardando_diretoria",
+      "directorApprovals": "[{\"userId\":570080,\"userName\":\"Wacksan Sampaio\",\"approvedAt\":\"2026-03-25T14:02:21.121Z\"}]"
+    }
+  ],
+  "messages": [],
+  "stdout": "requestNumber\tstatus\tdirectorApprovals\nSOL-2026-0169\taguardando_diretoria\t[{\"userId\":570080,\"userName\":\"Wacksan Sampaio\",\"approvedAt\":\"2026-03-25T14:02:21.121Z\"}]\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

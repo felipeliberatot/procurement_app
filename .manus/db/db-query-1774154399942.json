@@ -1,0 +1,70 @@
+{
+  "query": "\nSELECT id, name, email, procurementRole, approvalLevel, phone, extraRoles, extraApprovalLevels\nFROM users\nWHERE procurementRole = 'diretoria' OR approvalLevel = 'diretoria'\n   OR name ILIKE '%rafael%' OR name ILIKE '%liberato%'\nORDER BY name;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT id, name, email, procurementRole, approvalLevel, phone, extraRoles, extraApprovalLevels\nFROM users\nWHERE procurementRole = 'diretoria' OR approvalLevel = 'diretoria'\n   OR name ILIKE '%rafael%' OR name ILIKE '%liberato%'\nORDER BY name;\n",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "admin",
+      "approvalLevel": "master",
+      "phone": "+5566996479650",
+      "extraRoles": "NULL",
+      "extraApprovalLevels": "NULL"
+    },
+    {
+      "id": "570087",
+      "name": "Jose Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "procurementRole": "financeiro",
+      "approvalLevel": "financeiro",
+      "phone": "+5566997108454",
+      "extraRoles": "NULL",
+      "extraApprovalLevels": "NULL"
+    },
+    {
+      "id": "1",
+      "name": "Rafael  Liberato",
+      "email": "rafael.liberato@ymail.com",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "phone": "NULL",
+      "extraRoles": "NULL",
+      "extraApprovalLevels": "NULL"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br",
+      "procurementRole": "admin",
+      "approvalLevel": "diretoria",
+      "phone": "+5562999448881",
+      "extraRoles": "NULL",
+      "extraApprovalLevels": "NULL"
+    },
+    {
+      "id": "570080",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "phone": "+5566996983745",
+      "extraRoles": "NULL",
+      "extraApprovalLevels": "NULL"
+    },
+    {
+      "id": "1260005",
+      "name": "Willian Camilo",
+      "email": "willian.camilo@cgs.agr.br",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "phone": "+55 66 9610-9280",
+      "extraRoles": "NULL",
+      "extraApprovalLevels": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tprocurementRole\tapprovalLevel\tphone\textraRoles\textraApprovalLevels\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tadmin\tmaster\t+5566996479650\tNULL\tNULL\n570087\tJose Liberato\tjose.liberato@cgs.agr.br\tfinanceiro\tfinanceiro\t+5566997108454\tNULL\tNULL\n1\tRafael  Liberato\trafael.liberato@ymail.com\tsolicitante\tnenhum\tNULL\tNULL\tNULL\n480003\tRafael da Silva Liberato\trafael@cgs.agr.br\tadmin\tdiretoria\t+5562999448881\tNULL\tNULL\n570080\tWacksan Sampaio\twacksan@cgs.agr.br\tdiretoria\tdiretoria\t+5566996983745\tNULL\tNULL\n1260005\tWillian Camilo\twillian.camilo@cgs.agr.br\tdiretoria\tdiretoria\t+55 66 9610-9280\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 82
+}

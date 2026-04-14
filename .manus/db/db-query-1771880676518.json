@@ -1,0 +1,28 @@
+{
+  "query": "\n-- Duplicados por email (email não nulo)\nSELECT email, COUNT(*) as total, GROUP_CONCAT(id ORDER BY id ASC) as ids, GROUP_CONCAT(name ORDER BY id ASC SEPARATOR ' | ') as names\nFROM users\nWHERE email IS NOT NULL AND email != ''\nGROUP BY email\nHAVING COUNT(*) > 1\nORDER BY total DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \n-- Duplicados por email (email não nulo)\nSELECT email, COUNT(*) as total, GROUP_CONCAT(id ORDER BY id ASC) as ids, GROUP_CONCAT(name ORDER BY id ASC SEPARATOR ' | ') as names\nFROM users\nWHERE email IS NOT NULL AND email != ''\nGROUP BY email\nHAVING COUNT(*) > 1\nORDER BY total DESC;\n",
+  "rows": [
+    {
+      "email": "felipe.liberato@cgs.agr.br",
+      "total": "6",
+      "ids": "330055,390001,450035,510001,570001,570054",
+      "names": "Felipe Tagami Liberato | felipe.liberato | felipe.liberato | felipe.liberato | felipe.liberato | felipe.liberato"
+    },
+    {
+      "email": "wacksan@cgs.agr.br",
+      "total": "2",
+      "ids": "450039,570080",
+      "names": "Wacksan Sampaio | Wacksan Sampaio"
+    },
+    {
+      "email": "jose.liberato@cgs.agr.br",
+      "total": "2",
+      "ids": "570009,570087",
+      "names": "Jose Valter Liberato | Jose Liberato"
+    }
+  ],
+  "messages": [],
+  "stdout": "email\ttotal\tids\tnames\nfelipe.liberato@cgs.agr.br\t6\t330055,390001,450035,510001,570001,570054\tFelipe Tagami Liberato | felipe.liberato | felipe.liberato | felipe.liberato | felipe.liberato | felipe.liberato\nwacksan@cgs.agr.br\t2\t450039,570080\tWacksan Sampaio | Wacksan Sampaio\njose.liberato@cgs.agr.br\t2\t570009,570087\tJose Valter Liberato | Jose Liberato\n",
+  "stderr": "",
+  "execution_time_ms": 460
+}

@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, name, email, openId, createdAt FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, openId, createdAt FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '' LIMIT 5;",
+  "rows": [
+    {
+      "id": "2",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "hKmFEdpsHZTnkKdDrnRnRN",
+      "createdAt": "2026-02-20 20:21:26"
+    },
+    {
+      "id": "3",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "hKmFEdpsHZTnkKdDrnRnRN",
+      "createdAt": "2026-02-20 20:21:27"
+    },
+    {
+      "id": "4",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "hKmFEdpsHZTnkKdDrnRnRN",
+      "createdAt": "2026-02-20 20:21:37"
+    },
+    {
+      "id": "5",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "hKmFEdpsHZTnkKdDrnRnRN",
+      "createdAt": "2026-02-20 20:21:37"
+    },
+    {
+      "id": "30001",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "hKmFEdpsHZTnkKdDrnRnRN",
+      "createdAt": "2026-02-20 20:33:56"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\topenId\tcreatedAt\n2\tNULL\tNULL\thKmFEdpsHZTnkKdDrnRnRN\t2026-02-20 20:21:26\n3\tNULL\tNULL\thKmFEdpsHZTnkKdDrnRnRN\t2026-02-20 20:21:27\n4\tNULL\tNULL\thKmFEdpsHZTnkKdDrnRnRN\t2026-02-20 20:21:37\n5\tNULL\tNULL\thKmFEdpsHZTnkKdDrnRnRN\t2026-02-20 20:21:37\n30001\tNULL\tNULL\thKmFEdpsHZTnkKdDrnRnRN\t2026-02-20 20:33:56\n",
+  "stderr": "",
+  "execution_time_ms": 74
+}

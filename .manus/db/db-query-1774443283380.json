@@ -1,0 +1,46 @@
+{
+  "query": "\nSELECT \n  pr.id,\n  pr.requestNumber,\n  pr.urgencyLevel,\n  pr.status,\n  pr.directorApprovals,\n  pr.updatedAt,\n  COUNT(CASE WHEN ah.step = 'diretoria' AND ah.action = 'aprovada' THEN 1 END) as directorApprovalCount\nFROM purchaseRequests pr\nLEFT JOIN approvalHistory ah ON ah.requestId = pr.id\nWHERE pr.urgencyLevel IN ('urgente', 'emergencial')\n  AND pr.status IN ('aguardando_orcamento', 'aguardando_diretoria')\nGROUP BY pr.id\nHAVING directorApprovalCount > 0\nORDER BY pr.updatedAt DESC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT \n  pr.id,\n  pr.requestNumber,\n  pr.urgencyLevel,\n  pr.status,\n  pr.directorApprovals,\n  pr.updatedAt,\n  COUNT(CASE WHEN ah.step = 'diretoria' AND ah.action = 'aprovada' THEN 1 END) as directorApprovalCount\nFROM purchaseRequests pr\nLEFT JOIN approvalHistory ah ON ah.requestId = pr.id\nWHERE pr.urgencyLevel IN ('urgente', 'emergencial')\n  AND pr.status IN ('aguardando_orcamento', 'aguardando_diretoria')\nGROUP BY pr.id\nHAVING directorApprovalCount > 0\nORDER BY pr.updatedAt DESC;\n",
+  "rows": [
+    {
+      "id": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 21:57:38",
+      "directorApprovalCount": "2"
+    },
+    {
+      "id": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 21:57:32",
+      "directorApprovalCount": "3"
+    },
+    {
+      "id": "2430001",
+      "requestNumber": "SOL-2026-0160",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_orcamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-24 19:41:56",
+      "directorApprovalCount": "1"
+    },
+    {
+      "id": "2070001",
+      "requestNumber": "SOL-2026-0144",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_orcamento",
+      "directorApprovals": "NULL",
+      "updatedAt": "2026-03-23 10:16:39",
+      "directorApprovalCount": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\turgencyLevel\tstatus\tdirectorApprovals\tupdatedAt\tdirectorApprovalCount\n2340003\tSOL-2026-0157\temergencial\taguardando_orcamento\tNULL\t2026-03-24 21:57:38\t2\n2460001\tSOL-2026-0161\temergencial\taguardando_orcamento\tNULL\t2026-03-24 21:57:32\t3\n2430001\tSOL-2026-0160\temergencial\taguardando_orcamento\tNULL\t2026-03-24 19:41:56\t1\n2070001\tSOL-2026-0144\turgente\taguardando_orcamento\tNULL\t2026-03-23 10:16:39\t1\n",
+  "stderr": "",
+  "execution_time_ms": 78
+}

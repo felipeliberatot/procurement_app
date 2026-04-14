@@ -1,0 +1,82 @@
+{
+  "query": "SELECT pr.requestNumber, pr.status as currentStatus, ws.id, ws.token, ws.step, ws.approverName, ws.status as sessionStatus FROM purchaseRequests pr JOIN whatsappSessions ws ON ws.requestId = pr.id WHERE pr.requestNumber = 'SOL-2026-0169' ORDER BY ws.createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT pr.requestNumber, pr.status as currentStatus, ws.id, ws.token, ws.step, ws.approverName, ws.status as sessionStatus FROM purchaseRequests pr JOIN whatsappSessions ws ON ws.requestId = pr.id WHERE pr.requestNumber = 'SOL-2026-0169' ORDER BY ws.createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "requestNumber": "SOL-2026-0169",
+      "currentStatus": "aguardando_diretoria",
+      "id": "5130039",
+      "token": "1a7c4827b1dab2fa9c96cee869a94b30c275d323a14cc8b0",
+      "step": "diretoria",
+      "approverName": "Wacksan Sampaio",
+      "sessionStatus": "pending"
+    },
+    {
+      "requestNumber": "SOL-2026-0169",
+      "currentStatus": "aguardando_diretoria",
+      "id": "5130038",
+      "token": "64585d56bab7e62af371d913f756079168938f3b93005336",
+      "step": "diretoria",
+      "approverName": "Rafael da Silva Liberato",
+      "sessionStatus": "pending"
+    },
+    {
+      "requestNumber": "SOL-2026-0169",
+      "currentStatus": "aguardando_diretoria",
+      "id": "5130024",
+      "token": "b8ae5eda3324426262a4339b47ed8c4076003f9c6b0970a1",
+      "step": "diretoria",
+      "approverName": "Rafael da Silva Liberato",
+      "sessionStatus": "pending"
+    },
+    {
+      "requestNumber": "SOL-2026-0169",
+      "currentStatus": "aguardando_diretoria",
+      "id": "5130025",
+      "token": "e2d8a44a9523c455797eca0644ccafa00b161ad0d22efb9d",
+      "step": "diretoria",
+      "approverName": "Wacksan Sampaio",
+      "sessionStatus": "pending"
+    },
+    {
+      "requestNumber": "SOL-2026-0169",
+      "currentStatus": "aguardando_diretoria",
+      "id": "5130026",
+      "token": "66dea9e3b87a0a35a05ac3dccac1a42576132ddec9fad07d",
+      "step": "diretoria",
+      "approverName": "Willian Camilo",
+      "sessionStatus": "approved"
+    },
+    {
+      "requestNumber": "SOL-2026-0169",
+      "currentStatus": "aguardando_diretoria",
+      "id": "5100005",
+      "token": "3a5e88d328da91f38e266837c3fba8fec74ecd3a6741f3f1",
+      "step": "gerente",
+      "approverName": "Rafael da Silva Liberato",
+      "sessionStatus": "pending"
+    },
+    {
+      "requestNumber": "SOL-2026-0169",
+      "currentStatus": "aguardando_diretoria",
+      "id": "5100006",
+      "token": "d03d9d12f98d0fcc4cf25af39f5ece5bf32c51fb25dd6bdf",
+      "step": "gerente",
+      "approverName": "Wacksan Sampaio",
+      "sessionStatus": "pending"
+    },
+    {
+      "requestNumber": "SOL-2026-0169",
+      "currentStatus": "aguardando_diretoria",
+      "id": "5100007",
+      "token": "8310d4032889681ec7f594f16fb04d2ba6cc7e981565b741",
+      "step": "gerente",
+      "approverName": "Willian Camilo",
+      "sessionStatus": "pending"
+    }
+  ],
+  "messages": [],
+  "stdout": "requestNumber\tcurrentStatus\tid\ttoken\tstep\tapproverName\tsessionStatus\nSOL-2026-0169\taguardando_diretoria\t5130039\t1a7c4827b1dab2fa9c96cee869a94b30c275d323a14cc8b0\tdiretoria\tWacksan Sampaio\tpending\nSOL-2026-0169\taguardando_diretoria\t5130038\t64585d56bab7e62af371d913f756079168938f3b93005336\tdiretoria\tRafael da Silva Liberato\tpending\nSOL-2026-0169\taguardando_diretoria\t5130024\tb8ae5eda3324426262a4339b47ed8c4076003f9c6b0970a1\tdiretoria\tRafael da Silva Liberato\tpending\nSOL-2026-0169\taguardando_diretoria\t5130025\te2d8a44a9523c455797eca0644ccafa00b161ad0d22efb9d\tdiretoria\tWacksan Sampaio\tpending\nSOL-2026-0169\taguardando_diretoria\t5130026\t66dea9e3b87a0a35a05ac3dccac1a42576132ddec9fad07d\tdiretoria\tWillian Camilo\tapproved\nSOL-2026-0169\taguardando_diretoria\t5100005\t3a5e88d328da91f38e266837c3fba8fec74ecd3a6741f3f1\tgerente\tRafael da Silva Liberato\tpending\nSOL-2026-0169\taguardando_diretoria\t5100006\td03d9d12f98d0fcc4cf25af39f5ece5bf32c51fb25dd6bdf\tgerente\tWacksan Sampaio\tpending\nSOL-2026-0169\taguardando_diretoria\t5100007\t8310d4032889681ec7f594f16fb04d2ba6cc7e981565b741\tgerente\tWillian Camilo\tpending\n",
+  "stderr": "",
+  "execution_time_ms": 204
+}

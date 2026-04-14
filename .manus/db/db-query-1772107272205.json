@@ -1,0 +1,106 @@
+{
+  "query": "SELECT id, name, procurementRole, approvalLevel, phone, active FROM users ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, procurementRole, approvalLevel, phone, active FROM users ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Rafael  Liberato",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "phone": "NULL",
+      "active": "1"
+    },
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "procurementRole": "admin",
+      "approvalLevel": "master",
+      "phone": "+5566996479650",
+      "active": "1"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "procurementRole": "admin",
+      "approvalLevel": "master",
+      "phone": "+5562999448881",
+      "active": "1"
+    },
+    {
+      "id": "570080",
+      "name": "Wacksan Sampaio",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "phone": "+55 66 9698-3745",
+      "active": "1"
+    },
+    {
+      "id": "570087",
+      "name": "Jose Liberato",
+      "procurementRole": "financeiro",
+      "approvalLevel": "financeiro",
+      "phone": "+55 66 9710-8454",
+      "active": "1"
+    },
+    {
+      "id": "570091",
+      "name": "Karina",
+      "procurementRole": "gerente",
+      "approvalLevel": "gerente",
+      "phone": "+55 18 99117-3545",
+      "active": "1"
+    },
+    {
+      "id": "570094",
+      "name": "Rosileia",
+      "procurementRole": "controladoria",
+      "approvalLevel": "controladoria",
+      "phone": "+55 66 9644-1439",
+      "active": "1"
+    },
+    {
+      "id": "570198",
+      "name": "Wellington",
+      "procurementRole": "orcamento",
+      "approvalLevel": "orcamento",
+      "phone": "+55 66 9935-6926",
+      "active": "1"
+    },
+    {
+      "id": "1170056",
+      "name": "Joelson Jesus",
+      "procurementRole": "gerente",
+      "approvalLevel": "gerente",
+      "phone": "+55(66) 9 96785392",
+      "active": "1"
+    },
+    {
+      "id": "1170071",
+      "name": "Oscar Oliveira",
+      "procurementRole": "controladoria",
+      "approvalLevel": "controladoria",
+      "phone": "+55 (66) 99558363",
+      "active": "1"
+    },
+    {
+      "id": "1170077",
+      "name": "Angélica Azoia",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "phone": "+55 (67) 999649831",
+      "active": "1"
+    },
+    {
+      "id": "1260005",
+      "name": "Willian Camilo",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "phone": "+55 66 9610-9280",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tprocurementRole\tapprovalLevel\tphone\tactive\n1\tRafael  Liberato\tsolicitante\tnenhum\tNULL\t1\n330055\tFelipe Tagami Liberato\tadmin\tmaster\t+5566996479650\t1\n480003\tRafael da Silva Liberato\tadmin\tmaster\t+5562999448881\t1\n570080\tWacksan Sampaio\tdiretoria\tdiretoria\t+55 66 9698-3745\t1\n570087\tJose Liberato\tfinanceiro\tfinanceiro\t+55 66 9710-8454\t1\n570091\tKarina\tgerente\tgerente\t+55 18 99117-3545\t1\n570094\tRosileia\tcontroladoria\tcontroladoria\t+55 66 9644-1439\t1\n570198\tWellington\torcamento\torcamento\t+55 66 9935-6926\t1\n1170056\tJoelson Jesus\tgerente\tgerente\t+55(66) 9 96785392\t1\n1170071\tOscar Oliveira\tcontroladoria\tcontroladoria\t+55 (66) 99558363\t1\n1170077\tAngélica Azoia\tsolicitante\tnenhum\t+55 (67) 999649831\t1\n1260005\tWillian Camilo\tdiretoria\tdiretoria\t+55 66 9610-9280\t1\n",
+  "stderr": "",
+  "execution_time_ms": 362
+}

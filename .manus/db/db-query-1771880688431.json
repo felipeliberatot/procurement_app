@@ -1,0 +1,100 @@
+{
+  "query": "\nSELECT id, name, email, procurementRole, approvalLevel, \n       (passwordHash IS NOT NULL) as has_password, active\nFROM users\nWHERE email IN (\n  SELECT email FROM users\n  WHERE email IS NOT NULL AND email != ''\n  GROUP BY email\n  HAVING COUNT(*) > 1\n)\nORDER BY email, id ASC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT id, name, email, procurementRole, approvalLevel, \n       (passwordHash IS NOT NULL) as has_password, active\nFROM users\nWHERE email IN (\n  SELECT email FROM users\n  WHERE email IS NOT NULL AND email != ''\n  GROUP BY email\n  HAVING COUNT(*) > 1\n)\nORDER BY email, id ASC\nLIMIT 20;\n",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "admin",
+      "approvalLevel": "master",
+      "has_password": "1",
+      "active": "1"
+    },
+    {
+      "id": "390001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "has_password": "1",
+      "active": "1"
+    },
+    {
+      "id": "450035",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "has_password": "1",
+      "active": "1"
+    },
+    {
+      "id": "510001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "has_password": "1",
+      "active": "1"
+    },
+    {
+      "id": "570001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "has_password": "1",
+      "active": "1"
+    },
+    {
+      "id": "570054",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "has_password": "1",
+      "active": "1"
+    },
+    {
+      "id": "570009",
+      "name": "Jose Valter Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "procurementRole": "financeiro",
+      "approvalLevel": "financeiro",
+      "has_password": "0",
+      "active": "1"
+    },
+    {
+      "id": "570087",
+      "name": "Jose Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "procurementRole": "financeiro",
+      "approvalLevel": "financeiro",
+      "has_password": "1",
+      "active": "1"
+    },
+    {
+      "id": "450039",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "has_password": "0",
+      "active": "1"
+    },
+    {
+      "id": "570080",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "has_password": "1",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tprocurementRole\tapprovalLevel\thas_password\tactive\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tadmin\tmaster\t1\t1\n390001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\t1\t1\n450035\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\t1\t1\n510001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\t1\t1\n570001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\t1\t1\n570054\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\t1\t1\n570009\tJose Valter Liberato\tjose.liberato@cgs.agr.br\tfinanceiro\tfinanceiro\t0\t1\n570087\tJose Liberato\tjose.liberato@cgs.agr.br\tfinanceiro\tfinanceiro\t1\t1\n450039\tWacksan Sampaio\twacksan@cgs.agr.br\tdiretoria\tdiretoria\t0\t1\n570080\tWacksan Sampaio\twacksan@cgs.agr.br\tdiretoria\tdiretoria\t1\t1\n",
+  "stderr": "",
+  "execution_time_ms": 374
+}

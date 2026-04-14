@@ -1,0 +1,120 @@
+{
+  "query": "\nSELECT id, name, email, procurementRole, approvalLevel, phone, passwordHash IS NOT NULL as has_password, active, createdAt\nFROM users\nWHERE email IN (\n  SELECT email FROM users\n  WHERE email IS NOT NULL AND email != ''\n  GROUP BY email\n  HAVING COUNT(*) > 1\n)\nORDER BY email, id ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT id, name, email, procurementRole, approvalLevel, phone, passwordHash IS NOT NULL as has_password, active, createdAt\nFROM users\nWHERE email IN (\n  SELECT email FROM users\n  WHERE email IS NOT NULL AND email != ''\n  GROUP BY email\n  HAVING COUNT(*) > 1\n)\nORDER BY email, id ASC;\n",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "admin",
+      "approvalLevel": "master",
+      "phone": "+5566996479650",
+      "has_password": "1",
+      "active": "1",
+      "createdAt": "2026-02-23 13:57:49"
+    },
+    {
+      "id": "390001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "phone": "NULL",
+      "has_password": "1",
+      "active": "1",
+      "createdAt": "2026-02-23 15:01:36"
+    },
+    {
+      "id": "450035",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "phone": "NULL",
+      "has_password": "1",
+      "active": "1",
+      "createdAt": "2026-02-23 17:03:53"
+    },
+    {
+      "id": "510001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "phone": "NULL",
+      "has_password": "1",
+      "active": "1",
+      "createdAt": "2026-02-23 17:52:26"
+    },
+    {
+      "id": "570001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "phone": "NULL",
+      "has_password": "1",
+      "active": "1",
+      "createdAt": "2026-02-23 19:01:04"
+    },
+    {
+      "id": "570054",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "solicitante",
+      "approvalLevel": "nenhum",
+      "phone": "NULL",
+      "has_password": "1",
+      "active": "1",
+      "createdAt": "2026-02-23 19:26:34"
+    },
+    {
+      "id": "570009",
+      "name": "Jose Valter Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "procurementRole": "financeiro",
+      "approvalLevel": "financeiro",
+      "phone": "+55 66 9710-8454",
+      "has_password": "0",
+      "active": "1",
+      "createdAt": "2026-02-23 19:04:59"
+    },
+    {
+      "id": "570087",
+      "name": "Jose Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "procurementRole": "financeiro",
+      "approvalLevel": "financeiro",
+      "phone": "+55 66 9710-8454",
+      "has_password": "1",
+      "active": "1",
+      "createdAt": "2026-02-23 20:05:37"
+    },
+    {
+      "id": "450039",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "phone": "+5566996983745",
+      "has_password": "0",
+      "active": "1",
+      "createdAt": "2026-02-23 17:04:51"
+    },
+    {
+      "id": "570080",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria",
+      "phone": "+55 66 9698-3745",
+      "has_password": "1",
+      "active": "1",
+      "createdAt": "2026-02-23 20:02:44"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tprocurementRole\tapprovalLevel\tphone\thas_password\tactive\tcreatedAt\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tadmin\tmaster\t+5566996479650\t1\t1\t2026-02-23 13:57:49\n390001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\tNULL\t1\t1\t2026-02-23 15:01:36\n450035\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\tNULL\t1\t1\t2026-02-23 17:03:53\n510001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\tNULL\t1\t1\t2026-02-23 17:52:26\n570001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\tNULL\t1\t1\t2026-02-23 19:01:04\n570054\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tsolicitante\tnenhum\tNULL\t1\t1\t2026-02-23 19:26:34\n570009\tJose Valter Liberato\tjose.liberato@cgs.agr.br\tfinanceiro\tfinanceiro\t+55 66 9710-8454\t0\t1\t2026-02-23 19:04:59\n570087\tJose Liberato\tjose.liberato@cgs.agr.br\tfinanceiro\tfinanceiro\t+55 66 9710-8454\t1\t1\t2026-02-23 20:05:37\n450039\tWacksan Sampaio\twacksan@cgs.agr.br\tdiretoria\tdiretoria\t+5566996983745\t0\t1\t2026-02-23 17:04:51\n570080\tWacksan Sampaio\twacksan@cgs.agr.br\tdiretoria\tdiretoria\t+55 66 9698-3745\t1\t1\t2026-02-23 20:02:44\n",
+  "stderr": "",
+  "execution_time_ms": 376
+}

@@ -1,0 +1,42 @@
+{
+  "query": "SHOW COLUMNS FROM purchaseRequests LIKE 'payment%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SHOW COLUMNS FROM purchaseRequests LIKE 'payment%';",
+  "rows": [
+    {
+      "Field": "paymentMethod",
+      "Type": "enum('pix','boleto','cartao_avista','cartao_parcelado')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "paymentInfo",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "paymentProofUrl",
+      "Type": "longtext",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "paymentObservations",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\npaymentMethod\tenum('pix','boleto','cartao_avista','cartao_parcelado')\tYES\t\tNULL\t\npaymentInfo\ttext\tYES\t\tNULL\t\npaymentProofUrl\tlongtext\tYES\t\tNULL\t\npaymentObservations\ttext\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}

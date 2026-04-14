@@ -1,0 +1,22 @@
+{
+  "query": "SELECT name, email, approvalLevel, pinHash FROM users WHERE name LIKE '%Rafael%' OR email LIKE '%rafael%' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT name, email, approvalLevel, pinHash FROM users WHERE name LIKE '%Rafael%' OR email LIKE '%rafael%' LIMIT 5;",
+  "rows": [
+    {
+      "name": "Rafael  Liberato",
+      "email": "rafael.liberato@ymail.com",
+      "approvalLevel": "nenhum",
+      "pinHash": "NULL"
+    },
+    {
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br",
+      "approvalLevel": "master",
+      "pinHash": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "name\temail\tapprovalLevel\tpinHash\nRafael  Liberato\trafael.liberato@ymail.com\tnenhum\tNULL\nRafael da Silva Liberato\trafael@cgs.agr.br\tmaster\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 632
+}

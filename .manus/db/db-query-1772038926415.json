@@ -1,0 +1,9 @@
+{
+  "query": "\nSET FOREIGN_KEY_CHECKS = 0;\nDELETE FROM approvalHistory;\nDELETE FROM requestItems;\nDELETE FROM purchaseRequests;\nSET FOREIGN_KEY_CHECKS = 1;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSET FOREIGN_KEY_CHECKS = 0;\nDELETE FROM approvalHistory;\nDELETE FROM requestItems;\nDELETE FROM purchaseRequests;\nSET FOREIGN_KEY_CHECKS = 1;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 574
+}

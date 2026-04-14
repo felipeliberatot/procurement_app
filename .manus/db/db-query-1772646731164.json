@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, requestId, description, quantity, unit, totalPrice FROM requestItems ORDER BY requestId DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, requestId, description, quantity, unit, totalPrice FROM requestItems ORDER BY requestId DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "540001",
+      "requestId": "630001",
+      "description": "Serviço manut. em Maquinas",
+      "quantity": "1.00",
+      "unit": "un",
+      "totalPrice": "7015.00"
+    },
+    {
+      "id": "510005",
+      "requestId": "600003",
+      "description": "Fita larga",
+      "quantity": "4.00",
+      "unit": "un",
+      "totalPrice": "44.90"
+    },
+    {
+      "id": "510004",
+      "requestId": "600003",
+      "description": "Canetão permanente",
+      "quantity": "2.00",
+      "unit": "un",
+      "totalPrice": "5.80"
+    },
+    {
+      "id": "510003",
+      "requestId": "600002",
+      "description": "Fita transparente",
+      "quantity": "4.00",
+      "unit": "un",
+      "totalPrice": "NULL"
+    },
+    {
+      "id": "510002",
+      "requestId": "600002",
+      "description": "Canetão permanente",
+      "quantity": "2.00",
+      "unit": "un",
+      "totalPrice": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestId\tdescription\tquantity\tunit\ttotalPrice\n540001\t630001\tServiço manut. em Maquinas\t1.00\tun\t7015.00\n510005\t600003\tFita larga\t4.00\tun\t44.90\n510004\t600003\tCanetão permanente\t2.00\tun\t5.80\n510003\t600002\tFita transparente\t4.00\tun\tNULL\n510002\t600002\tCanetão permanente\t2.00\tun\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 57
+}

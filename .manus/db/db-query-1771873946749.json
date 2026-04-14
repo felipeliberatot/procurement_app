@@ -1,0 +1,60 @@
+{
+  "query": "SELECT id, name, email FROM users WHERE name IS NOT NULL AND name != '' ORDER BY name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email FROM users WHERE name IS NOT NULL AND name != '' ORDER BY name;",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br"
+    },
+    {
+      "id": "570009",
+      "name": "Jose Valter Liberato",
+      "email": "jose.liberato@cgs.agr.br"
+    },
+    {
+      "id": "570012",
+      "name": "Karina Silva",
+      "email": "karina.silva@cgs.agr.br"
+    },
+    {
+      "id": "1",
+      "name": "Rafael  Liberato",
+      "email": "rafael.liberato@ymail.com"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br"
+    },
+    {
+      "id": "450039",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br"
+    },
+    {
+      "id": "390001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br"
+    },
+    {
+      "id": "450035",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br"
+    },
+    {
+      "id": "510001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br"
+    },
+    {
+      "id": "570001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\n570009\tJose Valter Liberato\tjose.liberato@cgs.agr.br\n570012\tKarina Silva\tkarina.silva@cgs.agr.br\n1\tRafael  Liberato\trafael.liberato@ymail.com\n480003\tRafael da Silva Liberato\trafael@cgs.agr.br\n450039\tWacksan Sampaio\twacksan@cgs.agr.br\n390001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\n450035\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\n510001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\n570001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\n",
+  "stderr": "",
+  "execution_time_ms": 374
+}

@@ -1,0 +1,60 @@
+{
+  "query": "SELECT * FROM requestItems LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT * FROM requestItems LIMIT 5;",
+  "rows": [
+    {
+      "id": "120001",
+      "requestId": "180001",
+      "description": "Máquina de lavar roupa",
+      "quantity": "1.00",
+      "unit": "un",
+      "unitPrice": "NULL",
+      "totalPrice": "NULL",
+      "createdAt": "2026-02-26 11:10:55"
+    },
+    {
+      "id": "120002",
+      "requestId": "180002",
+      "description": "Diesel S500",
+      "quantity": "5.70",
+      "unit": "un",
+      "unitPrice": "5000.00",
+      "totalPrice": "28500.00",
+      "createdAt": "2026-02-26 11:26:06"
+    },
+    {
+      "id": "120003",
+      "requestId": "180003",
+      "description": "Colchão solteiro",
+      "quantity": "1.00",
+      "unit": "un",
+      "unitPrice": "NULL",
+      "totalPrice": "NULL",
+      "createdAt": "2026-02-26 11:52:22"
+    },
+    {
+      "id": "150001",
+      "requestId": "210001",
+      "description": "Diesel",
+      "quantity": "5000.00",
+      "unit": "un",
+      "unitPrice": "NULL",
+      "totalPrice": "NULL",
+      "createdAt": "2026-02-26 13:30:37"
+    },
+    {
+      "id": "150002",
+      "requestId": "210002",
+      "description": "Diesel",
+      "quantity": "5000.00",
+      "unit": "un",
+      "unitPrice": "NULL",
+      "totalPrice": "NULL",
+      "createdAt": "2026-02-26 13:34:55"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestId\tdescription\tquantity\tunit\tunitPrice\ttotalPrice\tcreatedAt\n120001\t180001\tMáquina de lavar roupa\t1.00\tun\tNULL\tNULL\t2026-02-26 11:10:55\n120002\t180002\tDiesel S500\t5.70\tun\t5000.00\t28500.00\t2026-02-26 11:26:06\n120003\t180003\tColchão solteiro\t1.00\tun\tNULL\tNULL\t2026-02-26 11:52:22\n150001\t210001\tDiesel\t5000.00\tun\tNULL\tNULL\t2026-02-26 13:30:37\n150002\t210002\tDiesel\t5000.00\tun\tNULL\tNULL\t2026-02-26 13:34:55\n",
+  "stderr": "",
+  "execution_time_ms": 52
+}

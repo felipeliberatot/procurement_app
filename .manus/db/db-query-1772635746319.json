@@ -1,0 +1,108 @@
+{
+  "query": "SELECT id, name, email, role, approvalLevel FROM users LIMIT 15;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, role, approvalLevel FROM users LIMIT 15;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Rafael  Liberato",
+      "email": "rafael.liberato@ymail.com",
+      "role": "admin",
+      "approvalLevel": "nenhum"
+    },
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "role": "admin",
+      "approvalLevel": "master"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br",
+      "role": "admin",
+      "approvalLevel": "master"
+    },
+    {
+      "id": "570080",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "diretoria"
+    },
+    {
+      "id": "570087",
+      "name": "Jose Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "financeiro"
+    },
+    {
+      "id": "570091",
+      "name": "Karina",
+      "email": "karina.silva@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "gerente"
+    },
+    {
+      "id": "570094",
+      "name": "Rosileia",
+      "email": "rosileia.kossmann@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "controladoria"
+    },
+    {
+      "id": "570198",
+      "name": "Wellington",
+      "email": "wellington.pires@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "orcamento"
+    },
+    {
+      "id": "1170056",
+      "name": "Joelson Jesus",
+      "email": "joelson.jesus@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "gerente"
+    },
+    {
+      "id": "1170071",
+      "name": "Oscar Oliveira",
+      "email": "oscar.oliveira@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "controladoria"
+    },
+    {
+      "id": "1170077",
+      "name": "Angélica Azoia",
+      "email": "angelica.azoia@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "nenhum"
+    },
+    {
+      "id": "1260005",
+      "name": "Willian Camilo",
+      "email": "willian.camilo@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "diretoria"
+    },
+    {
+      "id": "1440136",
+      "name": "Vitor Gritti",
+      "email": "vitor.gritti@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "orcamento"
+    },
+    {
+      "id": "2370004",
+      "name": "Wender Lopes Sampaio",
+      "email": "wender.sampaio@cgs.agr.br",
+      "role": "user",
+      "approvalLevel": "nenhum"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tapprovalLevel\n1\tRafael  Liberato\trafael.liberato@ymail.com\tadmin\tnenhum\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tadmin\tmaster\n480003\tRafael da Silva Liberato\trafael@cgs.agr.br\tadmin\tmaster\n570080\tWacksan Sampaio\twacksan@cgs.agr.br\tuser\tdiretoria\n570087\tJose Liberato\tjose.liberato@cgs.agr.br\tuser\tfinanceiro\n570091\tKarina\tkarina.silva@cgs.agr.br\tuser\tgerente\n570094\tRosileia\trosileia.kossmann@cgs.agr.br\tuser\tcontroladoria\n570198\tWellington\twellington.pires@cgs.agr.br\tuser\torcamento\n1170056\tJoelson Jesus\tjoelson.jesus@cgs.agr.br\tuser\tgerente\n1170071\tOscar Oliveira\toscar.oliveira@cgs.agr.br\tuser\tcontroladoria\n1170077\tAngélica Azoia\tangelica.azoia@cgs.agr.br\tuser\tnenhum\n1260005\tWillian Camilo\twillian.camilo@cgs.agr.br\tuser\tdiretoria\n1440136\tVitor Gritti\tvitor.gritti@cgs.agr.br\tuser\torcamento\n2370004\tWender Lopes Sampaio\twender.sampaio@cgs.agr.br\tuser\tnenhum\n",
+  "stderr": "",
+  "execution_time_ms": 53
+}

@@ -1,0 +1,122 @@
+{
+  "query": "SELECT id, name, email, \"procurementRole\", \"approvalLevel\", active FROM users ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, \"procurementRole\", \"approvalLevel\", active FROM users ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Rafael  Liberato",
+      "email": "rafael.liberato@ymail.com",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "570080",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "570087",
+      "name": "Jose Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "570091",
+      "name": "Karina",
+      "email": "karina.silva@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "570094",
+      "name": "Rosileia",
+      "email": "rosileia.kossmann@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "570198",
+      "name": "Wellington",
+      "email": "wellington.pires@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "1170056",
+      "name": "Joelson Jesus",
+      "email": "joelson.jesus@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "1170071",
+      "name": "Oscar Oliveira",
+      "email": "oscar.oliveira@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "1170077",
+      "name": "Angélica Azoia",
+      "email": "angelica.azoia@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "1260005",
+      "name": "Willian Camilo",
+      "email": "willian.camilo@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "1440136",
+      "name": "Vitor Gritti",
+      "email": "vitor.gritti@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    },
+    {
+      "id": "2370004",
+      "name": "Wender Lopes Sampaio",
+      "email": "wender.sampaio@cgs.agr.br",
+      "procurementRole": "procurementRole",
+      "approvalLevel": "approvalLevel",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tprocurementRole\tapprovalLevel\tactive\n1\tRafael  Liberato\trafael.liberato@ymail.com\tprocurementRole\tapprovalLevel\t1\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n480003\tRafael da Silva Liberato\trafael@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n570080\tWacksan Sampaio\twacksan@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n570087\tJose Liberato\tjose.liberato@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n570091\tKarina\tkarina.silva@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n570094\tRosileia\trosileia.kossmann@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n570198\tWellington\twellington.pires@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n1170056\tJoelson Jesus\tjoelson.jesus@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n1170071\tOscar Oliveira\toscar.oliveira@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n1170077\tAngélica Azoia\tangelica.azoia@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n1260005\tWillian Camilo\twillian.camilo@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n1440136\tVitor Gritti\tvitor.gritti@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n2370004\tWender Lopes Sampaio\twender.sampaio@cgs.agr.br\tprocurementRole\tapprovalLevel\t1\n",
+  "stderr": "",
+  "execution_time_ms": 362
+}

@@ -1,0 +1,460 @@
+{
+  "query": "SELECT id, name, email, openId, loginMethod, procurementRole, createdAt FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '' ORDER BY createdAt DESC LIMIT 50;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, openId, loginMethod, procurementRole, createdAt FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '' ORDER BY createdAt DESC LIMIT 50;",
+  "rows": [
+    {
+      "id": "630039",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:28:55"
+    },
+    {
+      "id": "630038",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:28:09"
+    },
+    {
+      "id": "630037",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:28:08"
+    },
+    {
+      "id": "630036",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:28:07"
+    },
+    {
+      "id": "630035",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:27:48"
+    },
+    {
+      "id": "630034",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:27:44"
+    },
+    {
+      "id": "630033",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:20:24"
+    },
+    {
+      "id": "630032",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:20:23"
+    },
+    {
+      "id": "630030",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:20:08"
+    },
+    {
+      "id": "630031",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:20:08"
+    },
+    {
+      "id": "630029",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:19:45"
+    },
+    {
+      "id": "630028",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:19:45"
+    },
+    {
+      "id": "630027",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:19:34"
+    },
+    {
+      "id": "630026",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:19:33"
+    },
+    {
+      "id": "630025",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:19:07"
+    },
+    {
+      "id": "630024",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:19:07"
+    },
+    {
+      "id": "630022",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:18:50"
+    },
+    {
+      "id": "630023",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:18:50"
+    },
+    {
+      "id": "630021",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:18:16"
+    },
+    {
+      "id": "630020",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:18:16"
+    },
+    {
+      "id": "630019",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:17:48"
+    },
+    {
+      "id": "630018",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:17:47"
+    },
+    {
+      "id": "630017",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:17:08"
+    },
+    {
+      "id": "630016",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:17:08"
+    },
+    {
+      "id": "630015",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:16:33"
+    },
+    {
+      "id": "630014",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:16:33"
+    },
+    {
+      "id": "630013",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:16:14"
+    },
+    {
+      "id": "630012",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:16:13"
+    },
+    {
+      "id": "630011",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:15:58"
+    },
+    {
+      "id": "630010",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:15:58"
+    },
+    {
+      "id": "630009",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:15:52"
+    },
+    {
+      "id": "630008",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:15:51"
+    },
+    {
+      "id": "630006",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:15:42"
+    },
+    {
+      "id": "630007",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:15:42"
+    },
+    {
+      "id": "630005",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:15:19"
+    },
+    {
+      "id": "630004",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:15:19"
+    },
+    {
+      "id": "630003",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:13:38"
+    },
+    {
+      "id": "630001",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:13:15"
+    },
+    {
+      "id": "630002",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 12:13:15"
+    },
+    {
+      "id": "600005",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 11:42:38"
+    },
+    {
+      "id": "600004",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 11:42:38"
+    },
+    {
+      "id": "600001",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 11:42:20"
+    },
+    {
+      "id": "600003",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 11:42:20"
+    },
+    {
+      "id": "600002",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "isopG97eekz9fruKPvKCnV",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-24 11:42:20"
+    },
+    {
+      "id": "570305",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "hKmFEdpsHZTnkKdDrnRnRN",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-23 21:21:11"
+    },
+    {
+      "id": "570304",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "hKmFEdpsHZTnkKdDrnRnRN",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-23 21:21:11"
+    },
+    {
+      "id": "570303",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "admin_1771877323797_8854",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-23 21:19:12"
+    },
+    {
+      "id": "570302",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "admin_1771877323797_8854",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-23 21:17:44"
+    },
+    {
+      "id": "570301",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "admin_1771877323797_8854",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-23 21:17:38"
+    },
+    {
+      "id": "570300",
+      "name": "NULL",
+      "email": "NULL",
+      "openId": "admin_1771877323797_8854",
+      "loginMethod": "NULL",
+      "procurementRole": "solicitante",
+      "createdAt": "2026-02-23 21:17:37"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\topenId\tloginMethod\tprocurementRole\tcreatedAt\n630039\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:28:55\n630038\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:28:09\n630037\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:28:08\n630036\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:28:07\n630035\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:27:48\n630034\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:27:44\n630033\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:20:24\n630032\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:20:23\n630030\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:20:08\n630031\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:20:08\n630029\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:19:45\n630028\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:19:45\n630027\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:19:34\n630026\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:19:33\n630025\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:19:07\n630024\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:19:07\n630022\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:18:50\n630023\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:18:50\n630021\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:18:16\n630020\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:18:16\n630019\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:17:48\n630018\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:17:47\n630017\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:17:08\n630016\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:17:08\n630015\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:16:33\n630014\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:16:33\n630013\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:16:14\n630012\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:16:13\n630011\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:15:58\n630010\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:15:58\n630009\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:15:52\n630008\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:15:51\n630006\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:15:42\n630007\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:15:42\n630005\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:15:19\n630004\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:15:19\n630003\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:13:38\n630001\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:13:15\n630002\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 12:13:15\n600005\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 11:42:38\n600004\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 11:42:38\n600001\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 11:42:20\n600003\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 11:42:20\n600002\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\t2026-02-24 11:42:20\n570305\tNULL\tNULL\thKmFEdpsHZTnkKdDrnRnRN\tNULL\tsolicitante\t2026-02-23 21:21:11\n570304\tNULL\tNULL\thKmFEdpsHZTnkKdDrnRnRN\tNULL\tsolicitante\t2026-02-23 21:21:11\n570303\tNULL\tNULL\tadmin_1771877323797_8854\tNULL\tsolicitante\t2026-02-23 21:19:12\n570302\tNULL\tNULL\tadmin_1771877323797_8854\tNULL\tsolicitante\t2026-02-23 21:17:44\n570301\tNULL\tNULL\tadmin_1771877323797_8854\tNULL\tsolicitante\t2026-02-23 21:17:38\n570300\tNULL\tNULL\tadmin_1771877323797_8854\tNULL\tsolicitante\t2026-02-23 21:17:37\n",
+  "stderr": "",
+  "execution_time_ms": 379
+}

@@ -1,0 +1,760 @@
+{
+  "query": "SELECT COUNT(*) as total FROM users; SELECT id, name, email, approvalLevel FROM users ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT COUNT(*) as total FROM users; SELECT id, name, email, approvalLevel FROM users ORDER BY id;",
+  "rows": [
+    {
+      "total": "248"
+    },
+    {
+      "total": "id\tname\temail\tapprovalLevel"
+    },
+    {
+      "total": "1\tRafael  Liberato\trafael.liberato@ymail.com\tnenhum"
+    },
+    {
+      "total": "2\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "3\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "4\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "5\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "30001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "30002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "60001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "60002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "90001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "90002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120003\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120004\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120005\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120006\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120007\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120008\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120009\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120010\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120011\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "120012\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "150001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "150002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180003\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180004\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180005\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180006\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180007\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180008\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180009\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180010\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180011\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180012\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "180013\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "210001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "210002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240003\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240004\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240005\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240006\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240007\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240008\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240009\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240010\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240011\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240012\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240013\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240014\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240015\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240016\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240017\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240018\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240019\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240020\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240021\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240022\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240023\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum"
+    },
+    {
+      "total": "240024\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240025\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240026\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240027\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240028\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240029\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240030\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240031\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240032\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240033\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240034\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240035\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240036\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240037\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240038\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240039\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240040\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240041\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240042\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240043\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240044\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240045\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240046\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240047\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240048\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240049\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240050\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240051\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240052\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240053\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240054\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240055\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "240056\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "270001\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum"
+    },
+    {
+      "total": "270002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "270003\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "300001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330001\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum"
+    },
+    {
+      "total": "330002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330003\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330004\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330005\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330006\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330007\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330008\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330009\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330010\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330011\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330012\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330013\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330014\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330015\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum"
+    },
+    {
+      "total": "330016\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330017\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330018\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330019\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330020\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330021\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330022\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330023\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330024\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330025\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330026\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330027\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330028\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330029\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330030\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330031\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330032\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330033\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330034\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330035\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330036\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330037\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330038\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330039\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330040\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330041\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330042\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330043\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330044\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330045\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330046\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330047\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum"
+    },
+    {
+      "total": "330048\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330049\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330050\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330051\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330052\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330053\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330054\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tmaster"
+    },
+    {
+      "total": "330056\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330057\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330058\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330059\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330060\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330061\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330062\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330063\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330064\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330065\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330066\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330067\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330068\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330069\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330070\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330071\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330072\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330073\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330074\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330075\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330076\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330077\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330078\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330079\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330080\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330081\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330082\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330083\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330084\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330085\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330086\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330087\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330088\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330089\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330090\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330091\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330092\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330093\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330094\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330095\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330096\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330097\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330098\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330099\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330100\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330101\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330102\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330103\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330104\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330105\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330106\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330107\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330108\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330109\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "330110\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360001\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360002\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360003\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum"
+    },
+    {
+      "total": "360004\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360005\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360006\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360007\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360008\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360009\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360010\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360011\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360012\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360013\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360014\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360015\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360016\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360017\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360018\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360019\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360020\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360021\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360022\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360023\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360024\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360025\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360026\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360027\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360028\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360029\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360030\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360031\tfelipe.liberato\tNULL\tnenhum"
+    },
+    {
+      "total": "360032\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360033\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360034\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360035\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360036\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360037\tNULL\tNULL\tnenhum"
+    },
+    {
+      "total": "360038\tNULL\tNULL\tnenhum"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n248\nid\tname\temail\tapprovalLevel\n1\tRafael  Liberato\trafael.liberato@ymail.com\tnenhum\n2\tNULL\tNULL\tnenhum\n3\tNULL\tNULL\tnenhum\n4\tNULL\tNULL\tnenhum\n5\tNULL\tNULL\tnenhum\n30001\tNULL\tNULL\tnenhum\n30002\tNULL\tNULL\tnenhum\n60001\tNULL\tNULL\tnenhum\n60002\tNULL\tNULL\tnenhum\n90001\tNULL\tNULL\tnenhum\n90002\tNULL\tNULL\tnenhum\n120001\tNULL\tNULL\tnenhum\n120002\tNULL\tNULL\tnenhum\n120003\tNULL\tNULL\tnenhum\n120004\tNULL\tNULL\tnenhum\n120005\tNULL\tNULL\tnenhum\n120006\tNULL\tNULL\tnenhum\n120007\tNULL\tNULL\tnenhum\n120008\tNULL\tNULL\tnenhum\n120009\tNULL\tNULL\tnenhum\n120010\tNULL\tNULL\tnenhum\n120011\tNULL\tNULL\tnenhum\n120012\tNULL\tNULL\tnenhum\n150001\tNULL\tNULL\tnenhum\n150002\tNULL\tNULL\tnenhum\n180001\tNULL\tNULL\tnenhum\n180002\tNULL\tNULL\tnenhum\n180003\tNULL\tNULL\tnenhum\n180004\tNULL\tNULL\tnenhum\n180005\tNULL\tNULL\tnenhum\n180006\tNULL\tNULL\tnenhum\n180007\tNULL\tNULL\tnenhum\n180008\tNULL\tNULL\tnenhum\n180009\tNULL\tNULL\tnenhum\n180010\tNULL\tNULL\tnenhum\n180011\tNULL\tNULL\tnenhum\n180012\tNULL\tNULL\tnenhum\n180013\tNULL\tNULL\tnenhum\n210001\tNULL\tNULL\tnenhum\n210002\tNULL\tNULL\tnenhum\n240001\tNULL\tNULL\tnenhum\n240002\tNULL\tNULL\tnenhum\n240003\tNULL\tNULL\tnenhum\n240004\tNULL\tNULL\tnenhum\n240005\tNULL\tNULL\tnenhum\n240006\tNULL\tNULL\tnenhum\n240007\tNULL\tNULL\tnenhum\n240008\tNULL\tNULL\tnenhum\n240009\tNULL\tNULL\tnenhum\n240010\tNULL\tNULL\tnenhum\n240011\tNULL\tNULL\tnenhum\n240012\tNULL\tNULL\tnenhum\n240013\tNULL\tNULL\tnenhum\n240014\tNULL\tNULL\tnenhum\n240015\tNULL\tNULL\tnenhum\n240016\tNULL\tNULL\tnenhum\n240017\tNULL\tNULL\tnenhum\n240018\tNULL\tNULL\tnenhum\n240019\tNULL\tNULL\tnenhum\n240020\tNULL\tNULL\tnenhum\n240021\tNULL\tNULL\tnenhum\n240022\tNULL\tNULL\tnenhum\n240023\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum\n240024\tNULL\tNULL\tnenhum\n240025\tNULL\tNULL\tnenhum\n240026\tNULL\tNULL\tnenhum\n240027\tNULL\tNULL\tnenhum\n240028\tNULL\tNULL\tnenhum\n240029\tNULL\tNULL\tnenhum\n240030\tNULL\tNULL\tnenhum\n240031\tNULL\tNULL\tnenhum\n240032\tNULL\tNULL\tnenhum\n240033\tNULL\tNULL\tnenhum\n240034\tNULL\tNULL\tnenhum\n240035\tNULL\tNULL\tnenhum\n240036\tNULL\tNULL\tnenhum\n240037\tNULL\tNULL\tnenhum\n240038\tNULL\tNULL\tnenhum\n240039\tNULL\tNULL\tnenhum\n240040\tNULL\tNULL\tnenhum\n240041\tNULL\tNULL\tnenhum\n240042\tNULL\tNULL\tnenhum\n240043\tNULL\tNULL\tnenhum\n240044\tNULL\tNULL\tnenhum\n240045\tNULL\tNULL\tnenhum\n240046\tNULL\tNULL\tnenhum\n240047\tNULL\tNULL\tnenhum\n240048\tNULL\tNULL\tnenhum\n240049\tNULL\tNULL\tnenhum\n240050\tNULL\tNULL\tnenhum\n240051\tNULL\tNULL\tnenhum\n240052\tNULL\tNULL\tnenhum\n240053\tNULL\tNULL\tnenhum\n240054\tNULL\tNULL\tnenhum\n240055\tNULL\tNULL\tnenhum\n240056\tNULL\tNULL\tnenhum\n270001\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum\n270002\tNULL\tNULL\tnenhum\n270003\tNULL\tNULL\tnenhum\n300001\tNULL\tNULL\tnenhum\n330001\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum\n330002\tNULL\tNULL\tnenhum\n330003\tNULL\tNULL\tnenhum\n330004\tNULL\tNULL\tnenhum\n330005\tNULL\tNULL\tnenhum\n330006\tNULL\tNULL\tnenhum\n330007\tNULL\tNULL\tnenhum\n330008\tNULL\tNULL\tnenhum\n330009\tNULL\tNULL\tnenhum\n330010\tNULL\tNULL\tnenhum\n330011\tNULL\tNULL\tnenhum\n330012\tNULL\tNULL\tnenhum\n330013\tNULL\tNULL\tnenhum\n330014\tNULL\tNULL\tnenhum\n330015\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum\n330016\tNULL\tNULL\tnenhum\n330017\tNULL\tNULL\tnenhum\n330018\tNULL\tNULL\tnenhum\n330019\tNULL\tNULL\tnenhum\n330020\tNULL\tNULL\tnenhum\n330021\tNULL\tNULL\tnenhum\n330022\tNULL\tNULL\tnenhum\n330023\tNULL\tNULL\tnenhum\n330024\tNULL\tNULL\tnenhum\n330025\tNULL\tNULL\tnenhum\n330026\tNULL\tNULL\tnenhum\n330027\tNULL\tNULL\tnenhum\n330028\tNULL\tNULL\tnenhum\n330029\tNULL\tNULL\tnenhum\n330030\tNULL\tNULL\tnenhum\n330031\tNULL\tNULL\tnenhum\n330032\tNULL\tNULL\tnenhum\n330033\tNULL\tNULL\tnenhum\n330034\tNULL\tNULL\tnenhum\n330035\tNULL\tNULL\tnenhum\n330036\tNULL\tNULL\tnenhum\n330037\tNULL\tNULL\tnenhum\n330038\tNULL\tNULL\tnenhum\n330039\tNULL\tNULL\tnenhum\n330040\tNULL\tNULL\tnenhum\n330041\tNULL\tNULL\tnenhum\n330042\tNULL\tNULL\tnenhum\n330043\tNULL\tNULL\tnenhum\n330044\tNULL\tNULL\tnenhum\n330045\tNULL\tNULL\tnenhum\n330046\tNULL\tNULL\tnenhum\n330047\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum\n330048\tNULL\tNULL\tnenhum\n330049\tNULL\tNULL\tnenhum\n330050\tNULL\tNULL\tnenhum\n330051\tNULL\tNULL\tnenhum\n330052\tNULL\tNULL\tnenhum\n330053\tNULL\tNULL\tnenhum\n330054\tNULL\tNULL\tnenhum\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tmaster\n330056\tNULL\tNULL\tnenhum\n330057\tNULL\tNULL\tnenhum\n330058\tNULL\tNULL\tnenhum\n330059\tNULL\tNULL\tnenhum\n330060\tNULL\tNULL\tnenhum\n330061\tNULL\tNULL\tnenhum\n330062\tNULL\tNULL\tnenhum\n330063\tNULL\tNULL\tnenhum\n330064\tNULL\tNULL\tnenhum\n330065\tNULL\tNULL\tnenhum\n330066\tNULL\tNULL\tnenhum\n330067\tNULL\tNULL\tnenhum\n330068\tNULL\tNULL\tnenhum\n330069\tNULL\tNULL\tnenhum\n330070\tNULL\tNULL\tnenhum\n330071\tNULL\tNULL\tnenhum\n330072\tNULL\tNULL\tnenhum\n330073\tNULL\tNULL\tnenhum\n330074\tNULL\tNULL\tnenhum\n330075\tNULL\tNULL\tnenhum\n330076\tNULL\tNULL\tnenhum\n330077\tNULL\tNULL\tnenhum\n330078\tNULL\tNULL\tnenhum\n330079\tNULL\tNULL\tnenhum\n330080\tNULL\tNULL\tnenhum\n330081\tNULL\tNULL\tnenhum\n330082\tNULL\tNULL\tnenhum\n330083\tNULL\tNULL\tnenhum\n330084\tNULL\tNULL\tnenhum\n330085\tNULL\tNULL\tnenhum\n330086\tNULL\tNULL\tnenhum\n330087\tNULL\tNULL\tnenhum\n330088\tNULL\tNULL\tnenhum\n330089\tNULL\tNULL\tnenhum\n330090\tNULL\tNULL\tnenhum\n330091\tNULL\tNULL\tnenhum\n330092\tNULL\tNULL\tnenhum\n330093\tNULL\tNULL\tnenhum\n330094\tNULL\tNULL\tnenhum\n330095\tNULL\tNULL\tnenhum\n330096\tNULL\tNULL\tnenhum\n330097\tNULL\tNULL\tnenhum\n330098\tNULL\tNULL\tnenhum\n330099\tNULL\tNULL\tnenhum\n330100\tNULL\tNULL\tnenhum\n330101\tNULL\tNULL\tnenhum\n330102\tNULL\tNULL\tnenhum\n330103\tNULL\tNULL\tnenhum\n330104\tNULL\tNULL\tnenhum\n330105\tNULL\tNULL\tnenhum\n330106\tNULL\tNULL\tnenhum\n330107\tNULL\tNULL\tnenhum\n330108\tNULL\tNULL\tnenhum\n330109\tNULL\tNULL\tnenhum\n330110\tNULL\tNULL\tnenhum\n360001\tNULL\tNULL\tnenhum\n360002\tNULL\tNULL\tnenhum\n360003\tFelipe Tagami Liberato\tfelipetagami@gmail.com\tnenhum\n360004\tNULL\tNULL\tnenhum\n360005\tNULL\tNULL\tnenhum\n360006\tNULL\tNULL\tnenhum\n360007\tNULL\tNULL\tnenhum\n360008\tNULL\tNULL\tnenhum\n360009\tNULL\tNULL\tnenhum\n360010\tNULL\tNULL\tnenhum\n360011\tNULL\tNULL\tnenhum\n360012\tNULL\tNULL\tnenhum\n360013\tNULL\tNULL\tnenhum\n360014\tNULL\tNULL\tnenhum\n360015\tNULL\tNULL\tnenhum\n360016\tNULL\tNULL\tnenhum\n360017\tNULL\tNULL\tnenhum\n360018\tNULL\tNULL\tnenhum\n360019\tNULL\tNULL\tnenhum\n360020\tNULL\tNULL\tnenhum\n360021\tNULL\tNULL\tnenhum\n360022\tNULL\tNULL\tnenhum\n360023\tNULL\tNULL\tnenhum\n360024\tNULL\tNULL\tnenhum\n360025\tNULL\tNULL\tnenhum\n360026\tNULL\tNULL\tnenhum\n360027\tNULL\tNULL\tnenhum\n360028\tNULL\tNULL\tnenhum\n360029\tNULL\tNULL\tnenhum\n360030\tNULL\tNULL\tnenhum\n360031\tfelipe.liberato\tNULL\tnenhum\n360032\tNULL\tNULL\tnenhum\n360033\tNULL\tNULL\tnenhum\n360034\tNULL\tNULL\tnenhum\n360035\tNULL\tNULL\tnenhum\n360036\tNULL\tNULL\tnenhum\n360037\tNULL\tNULL\tnenhum\n360038\tNULL\tNULL\tnenhum\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}

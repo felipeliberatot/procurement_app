@@ -1,0 +1,9 @@
+{
+  "query": "\nALTER TABLE purchaseRequests \n  ADD COLUMN paymentMethod ENUM('pix','boleto','cartao_avista','cartao_parcelado') NULL AFTER purchaseOrderNumber,\n  ADD COLUMN paymentObservations TEXT NULL AFTER paymentProofUrl;\n\nALTER TABLE purchaseRequests \n  MODIFY COLUMN status ENUM(\n    'rascunho',\n    'aguardando_gerente',\n    'aguardando_orcamento',\n    'aguardando_controladoria',\n    'aguardando_diretoria',\n    'aguardando_ordem_compra',\n    'aguardando_aprovacao_compra',\n    'aguardando_comprovante_pagamento',\n    'aguardando_verificacao_compras',\n    'concluida',\n    'rejeitada',\n    'cancelada'\n  ) NOT NULL DEFAULT 'aguardando_gerente';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nALTER TABLE purchaseRequests \n  ADD COLUMN paymentMethod ENUM('pix','boleto','cartao_avista','cartao_parcelado') NULL AFTER purchaseOrderNumber,\n  ADD COLUMN paymentObservations TEXT NULL AFTER paymentProofUrl;\n\nALTER TABLE purchaseRequests \n  MODIFY COLUMN status ENUM(\n    'rascunho',\n    'aguardando_gerente',\n    'aguardando_orcamento',\n    'aguardando_controladoria',\n    'aguardando_diretoria',\n    'aguardando_ordem_compra',\n    'aguardando_aprovacao_compra',\n    'aguardando_comprovante_pagamento',\n    'aguardando_verificacao_compras',\n    'concluida',\n    'rejeitada',\n    'cancelada'\n  ) NOT NULL DEFAULT 'aguardando_gerente';\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1086
+}

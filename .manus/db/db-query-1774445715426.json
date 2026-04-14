@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, requestNumber, status, urgencyLevel, directorApprovals FROM purchaseRequests WHERE requestNumber = 'SOL-2026-0169';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, requestNumber, status, urgencyLevel, directorApprovals FROM purchaseRequests WHERE requestNumber = 'SOL-2026-0169';",
+  "rows": [
+    {
+      "id": "2580003",
+      "requestNumber": "SOL-2026-0169",
+      "status": "aguardando_diretoria",
+      "urgencyLevel": "emergencial",
+      "directorApprovals": "[{\"userId\":1260005,\"userName\":\"Willian Camilo\",\"approvedAt\":\"2026-03-25T13:29:18.684Z\"}]"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\tstatus\turgencyLevel\tdirectorApprovals\n2580003\tSOL-2026-0169\taguardando_diretoria\temergencial\t[{\"userId\":1260005,\"userName\":\"Willian Camilo\",\"approvedAt\":\"2026-03-25T13:29:18.684Z\"}]\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

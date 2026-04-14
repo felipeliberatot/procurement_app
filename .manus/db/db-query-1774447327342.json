@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE whatsappSessions SET status = 'pending', expiresAt = DATE_ADD(NOW(), INTERVAL 48 HOUR) WHERE id IN (5130038, 5130039) AND requestNumber = 'SOL-2026-0169';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute UPDATE whatsappSessions SET status = 'pending', expiresAt = DATE_ADD(NOW(), INTERVAL 48 HOUR) WHERE id IN (5130038, 5130039) AND requestNumber = 'SOL-2026-0169';",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 64
+}

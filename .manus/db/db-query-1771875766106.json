@@ -1,0 +1,58 @@
+{
+  "query": "UPDATE users SET passwordHash = '$2b$10$MtLTedDNWIkGxLi.vdURT.P6q2cesYMlcAnbwIoR0ohW93bUvlP1u', active = 1 WHERE email = 'felipe.liberato@cgs.agr.br';\nSELECT id, name, email, approvalLevel, active, passwordHash IS NOT NULL as hasPassword FROM users WHERE email = 'felipe.liberato@cgs.agr.br';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute UPDATE users SET passwordHash = '$2b$10$MtLTedDNWIkGxLi.vdURT.P6q2cesYMlcAnbwIoR0ohW93bUvlP1u', active = 1 WHERE email = 'felipe.liberato@cgs.agr.br';\nSELECT id, name, email, approvalLevel, active, passwordHash IS NOT NULL as hasPassword FROM users WHERE email = 'felipe.liberato@cgs.agr.br';",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "master",
+      "active": "1",
+      "hasPassword": "1"
+    },
+    {
+      "id": "390001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1",
+      "hasPassword": "1"
+    },
+    {
+      "id": "450035",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1",
+      "hasPassword": "1"
+    },
+    {
+      "id": "510001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1",
+      "hasPassword": "1"
+    },
+    {
+      "id": "570001",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1",
+      "hasPassword": "1"
+    },
+    {
+      "id": "570054",
+      "name": "felipe.liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "nenhum",
+      "active": "1",
+      "hasPassword": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tapprovalLevel\tactive\thasPassword\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tmaster\t1\t1\n390001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\t1\n450035\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\t1\n510001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\t1\n570001\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\t1\n570054\tfelipe.liberato\tfelipe.liberato@cgs.agr.br\tnenhum\t1\t1\n",
+  "stderr": "",
+  "execution_time_ms": 428
+}

@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO purchaseRequests (requestNumber, requesterId, requesterName, department, application, observations, urgencyLevel, status, totalEstimatedValue, createdAt, updatedAt) VALUES ('SOL-2026-TEST-FIN', 570087, 'Teste Financeiro', 'TI', 'Teste Financeiro', 'Solicitação de teste para validar fluxo financeiro', 'normal', 'aguardando_aprovacao_compra', 1000.00, NOW(), NOW());",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute INSERT INTO purchaseRequests (requestNumber, requesterId, requesterName, department, application, observations, urgencyLevel, status, totalEstimatedValue, createdAt, updatedAt) VALUES ('SOL-2026-TEST-FIN', 570087, 'Teste Financeiro', 'TI', 'Teste Financeiro', 'Solicitação de teste para validar fluxo financeiro', 'normal', 'aguardando_aprovacao_compra', 1000.00, NOW(), NOW());",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 407
+}

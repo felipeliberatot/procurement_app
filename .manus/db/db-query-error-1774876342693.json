@@ -1,0 +1,10 @@
+{
+  "query": "\nSELECT id, requestNumber, status, urgencyLevel, orcamentoFeitoUrgente, directorApprovals\nFROM purchaseRequests\nWHERE requestNumber = 'SOL-2026-0170';\n\nSELECT action, from_status, to_status, createdAt, comment\nFROM approvalHistory\nWHERE requestId = (SELECT id FROM purchaseRequests WHERE requestNumber = 'SOL-2026-0170')\nORDER BY createdAt DESC\nLIMIT 20;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT id, requestNumber, status, urgencyLevel, orcamentoFeitoUrgente, directorApprovals\nFROM purchaseRequests\nWHERE requestNumber = 'SOL-2026-0170';\n\nSELECT action, from_status, to_status, createdAt, comment\nFROM approvalHistory\nWHERE requestId = (SELECT id FROM purchaseRequests WHERE requestNumber = 'SOL-2026-0170')\nORDER BY createdAt DESC\nLIMIT 20;\n",
+  "returncode": 1,
+  "logs": [
+    "id\trequestNumber\tstatus\turgencyLevel\torcamentoFeitoUrgente\tdirectorApprovals",
+    "2610001\tSOL-2026-0170\taguardando_orcamento\temergencial\t0\tNULL",
+    "ERROR 1054 (42S22) at line 6: Unknown column 'from_status' in 'field list'"
+  ]
+}

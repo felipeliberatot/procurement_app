@@ -1,0 +1,242 @@
+{
+  "query": "SHOW COLUMNS FROM purchaseRequests;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SHOW COLUMNS FROM purchaseRequests;",
+  "rows": [
+    {
+      "Field": "id",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "PRI",
+      "Default": "NULL",
+      "Extra": "auto_increment"
+    },
+    {
+      "Field": "requestNumber",
+      "Type": "varchar(32)",
+      "Null": "NO",
+      "Key": "UNI",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "requesterId",
+      "Type": "int",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "requesterName",
+      "Type": "varchar(128)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "department",
+      "Type": "varchar(128)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "costCenterId",
+      "Type": "int",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "costCenterCode",
+      "Type": "varchar(32)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "application",
+      "Type": "varchar(255)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "urgencyLevel",
+      "Type": "enum('normal','urgente','emergencial')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "normal",
+      "Extra": ""
+    },
+    {
+      "Field": "observations",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "totalEstimatedValue",
+      "Type": "decimal(14,2)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "status",
+      "Type": "enum('rascunho','aguardando_gerente','aguardando_orcamento','aguardando_controladoria','aguardando_diretoria','aguardando_ordem_compra','aguardando_aprovacao_compra','aguardando_comprovante_pagamento','aguardando_verificacao_compras','concluida','rejeitada','cancelada')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "aguardando_gerente",
+      "Extra": ""
+    },
+    {
+      "Field": "budgetFileUrl",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "purchaseOrderNumber",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "paymentMethod",
+      "Type": "enum('pix','boleto','cartao_avista','cartao_parcelado')",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "paymentInfo",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "deadlineAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "stepDeadlineAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "createdAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": ""
+    },
+    {
+      "Field": "updatedAt",
+      "Type": "timestamp",
+      "Null": "NO",
+      "Key": "",
+      "Default": "CURRENT_TIMESTAMP",
+      "Extra": "DEFAULT_GENERATED on update CURRENT_TIMESTAMP"
+    },
+    {
+      "Field": "paymentProofUrl",
+      "Type": "longtext",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "paymentObservations",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "invoiceUrl",
+      "Type": "longtext",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "isEnabledInMalotes",
+      "Type": "tinyint(1)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "cancellationDeadlineAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "cancellationWarningSentAt",
+      "Type": "timestamp",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "ocSiagriUrl",
+      "Type": "text",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    },
+    {
+      "Field": "orcamentoFeitoUrgente",
+      "Type": "tinyint(1)",
+      "Null": "NO",
+      "Key": "",
+      "Default": "0",
+      "Extra": ""
+    },
+    {
+      "Field": "osMyfarm",
+      "Type": "varchar(64)",
+      "Null": "YES",
+      "Key": "",
+      "Default": "NULL",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nid\tint\tNO\tPRI\tNULL\tauto_increment\nrequestNumber\tvarchar(32)\tNO\tUNI\tNULL\t\nrequesterId\tint\tNO\t\tNULL\t\nrequesterName\tvarchar(128)\tNO\t\tNULL\t\ndepartment\tvarchar(128)\tNO\t\tNULL\t\ncostCenterId\tint\tYES\t\tNULL\t\ncostCenterCode\tvarchar(32)\tYES\t\tNULL\t\napplication\tvarchar(255)\tNO\t\tNULL\t\nurgencyLevel\tenum('normal','urgente','emergencial')\tNO\t\tnormal\t\nobservations\ttext\tYES\t\tNULL\t\ntotalEstimatedValue\tdecimal(14,2)\tYES\t\tNULL\t\nstatus\tenum('rascunho','aguardando_gerente','aguardando_orcamento','aguardando_controladoria','aguardando_diretoria','aguardando_ordem_compra','aguardando_aprovacao_compra','aguardando_comprovante_pagamento','aguardando_verificacao_compras','concluida','rejeitada','cancelada')\tNO\t\taguardando_gerente\t\nbudgetFileUrl\ttext\tYES\t\tNULL\t\npurchaseOrderNumber\tvarchar(64)\tYES\t\tNULL\t\npaymentMethod\tenum('pix','boleto','cartao_avista','cartao_parcelado')\tYES\t\tNULL\t\npaymentInfo\ttext\tYES\t\tNULL\t\ndeadlineAt\ttimestamp\tYES\t\tNULL\t\nstepDeadlineAt\ttimestamp\tYES\t\tNULL\t\ncreatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\t\nupdatedAt\ttimestamp\tNO\t\tCURRENT_TIMESTAMP\tDEFAULT_GENERATED on update CURRENT_TIMESTAMP\npaymentProofUrl\tlongtext\tYES\t\tNULL\t\npaymentObservations\ttext\tYES\t\tNULL\t\ninvoiceUrl\tlongtext\tYES\t\tNULL\t\nisEnabledInMalotes\ttinyint(1)\tNO\t\t0\t\ncancellationDeadlineAt\ttimestamp\tYES\t\tNULL\t\ncancellationWarningSentAt\ttimestamp\tYES\t\tNULL\t\nocSiagriUrl\ttext\tYES\t\tNULL\t\norcamentoFeitoUrgente\ttinyint(1)\tNO\t\t0\t\nosMyfarm\tvarchar(64)\tYES\t\tNULL\t\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}

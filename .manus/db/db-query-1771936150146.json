@@ -1,0 +1,46 @@
+{
+  "query": "SELECT COUNT(*) as total FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '';\n\nSELECT id, name, email, openId, loginMethod, procurementRole, role, active, createdAt FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '' ORDER BY createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT COUNT(*) as total FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '';\n\nSELECT id, name, email, openId, loginMethod, procurementRole, role, active, createdAt FROM users WHERE name IS NULL OR name = '' OR TRIM(name) = '' ORDER BY createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "total": "321"
+    },
+    {
+      "total": "id\tname\temail\topenId\tloginMethod\tprocurementRole\trole\tactive\tcreatedAt"
+    },
+    {
+      "total": "630041\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:29:08"
+    },
+    {
+      "total": "630040\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:29:08"
+    },
+    {
+      "total": "630039\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:28:55"
+    },
+    {
+      "total": "630038\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:28:09"
+    },
+    {
+      "total": "630037\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:28:08"
+    },
+    {
+      "total": "630036\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:28:07"
+    },
+    {
+      "total": "630035\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:27:48"
+    },
+    {
+      "total": "630034\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:27:44"
+    },
+    {
+      "total": "630033\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:20:24"
+    },
+    {
+      "total": "630032\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:20:23"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n321\nid\tname\temail\topenId\tloginMethod\tprocurementRole\trole\tactive\tcreatedAt\n630041\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:29:08\n630040\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:29:08\n630039\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:28:55\n630038\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:28:09\n630037\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:28:08\n630036\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:28:07\n630035\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:27:48\n630034\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:27:44\n630033\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:20:24\n630032\tNULL\tNULL\tisopG97eekz9fruKPvKCnV\tNULL\tsolicitante\tuser\t1\t2026-02-24 12:20:23\n",
+  "stderr": "",
+  "execution_time_ms": 407
+}

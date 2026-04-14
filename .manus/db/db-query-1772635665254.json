@@ -1,0 +1,85 @@
+{
+  "query": "SELECT id, status, paymentMethod, paymentInfo, paymentProofUrl, paymentObservations FROM purchaseRequests ORDER BY id DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, status, paymentMethod, paymentInfo, paymentProofUrl, paymentObservations FROM purchaseRequests ORDER BY id DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "600002",
+      "status": "aguardando_gerente",
+      "paymentMethod": "NULL",
+      "paymentInfo": "NULL",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    },
+    {
+      "id": "600001",
+      "status": "aguardando_gerente",
+      "paymentMethod": "NULL",
+      "paymentInfo": "NULL",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    },
+    {
+      "id": "570003",
+      "status": "aguardando_orcamento",
+      "paymentMethod": "NULL",
+      "paymentInfo": "NULL",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    },
+    {
+      "id": "570002",
+      "status": "aguardando_orcamento",
+      "paymentMethod": "NULL",
+      "paymentInfo": "NULL",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    },
+    {
+      "id": "570001",
+      "status": "aguardando_orcamento",
+      "paymentMethod": "NULL",
+      "paymentInfo": "NULL",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    },
+    {
+      "id": "540003",
+      "status": "aguardando_orcamento",
+      "paymentMethod": "NULL",
+      "paymentInfo": "NULL",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    },
+    {
+      "id": "540002",
+      "status": "aguardando_ordem_compra",
+      "paymentMethod": "boleto",
+      "paymentInfo": "Boleto 3x",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    },
+    {
+      "id": "540001",
+      "status": "cancelada",
+      "paymentMethod": "NULL",
+      "paymentInfo": "NULL",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    },
+    {
+      "id": "510002",
+      "status": "aguardando_diretoria",
+      "paymentMethod": "NULL",
+      "paymentInfo": "NULL",
+      "paymentProofUrl": "NULL",
+      "paymentObservations": "NULL"
+    }
+  ],
+  "messages": [
+    "570004\taguardando_comprovante_pagamento\tpix\tPix CNPJ 37080006000126",
+    "Posto Piquiri \tNULL\tNULL"
+  ],
+  "stdout": "id\tstatus\tpaymentMethod\tpaymentInfo\tpaymentProofUrl\tpaymentObservations\n600002\taguardando_gerente\tNULL\tNULL\tNULL\tNULL\n600001\taguardando_gerente\tNULL\tNULL\tNULL\tNULL\n570004\taguardando_comprovante_pagamento\tpix\tPix CNPJ 37080006000126\nPosto Piquiri \tNULL\tNULL\n570003\taguardando_orcamento\tNULL\tNULL\tNULL\tNULL\n570002\taguardando_orcamento\tNULL\tNULL\tNULL\tNULL\n570001\taguardando_orcamento\tNULL\tNULL\tNULL\tNULL\n540003\taguardando_orcamento\tNULL\tNULL\tNULL\tNULL\n540002\taguardando_ordem_compra\tboleto\tBoleto 3x\tNULL\tNULL\n540001\tcancelada\tNULL\tNULL\tNULL\tNULL\n510002\taguardando_diretoria\tNULL\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

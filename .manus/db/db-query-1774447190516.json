@@ -1,0 +1,21 @@
+{
+  "query": "SELECT ws.id, ws.token, ws.requestId, ws.approverId, ws.approverName, ws.step, ws.status as sessionStatus, pr.requestNumber, pr.status as requestStatus FROM whatsappSessions ws JOIN purchaseRequests pr ON ws.requestId = pr.id WHERE ws.token = '64585d56bab7e62af371d913f756079168938f3b93005336';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT ws.id, ws.token, ws.requestId, ws.approverId, ws.approverName, ws.step, ws.status as sessionStatus, pr.requestNumber, pr.status as requestStatus FROM whatsappSessions ws JOIN purchaseRequests pr ON ws.requestId = pr.id WHERE ws.token = '64585d56bab7e62af371d913f756079168938f3b93005336';",
+  "rows": [
+    {
+      "id": "5130038",
+      "token": "64585d56bab7e62af371d913f756079168938f3b93005336",
+      "requestId": "2580003",
+      "approverId": "480003",
+      "approverName": "Rafael da Silva Liberato",
+      "step": "diretoria",
+      "sessionStatus": "pending",
+      "requestNumber": "SOL-2026-0169",
+      "requestStatus": "aguardando_controladoria"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttoken\trequestId\tapproverId\tapproverName\tstep\tsessionStatus\trequestNumber\trequestStatus\n5130038\t64585d56bab7e62af371d913f756079168938f3b93005336\t2580003\t480003\tRafael da Silva Liberato\tdiretoria\tpending\tSOL-2026-0169\taguardando_controladoria\n",
+  "stderr": "",
+  "execution_time_ms": 69
+}

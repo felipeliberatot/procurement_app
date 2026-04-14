@@ -1,0 +1,97 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'purchaseRequests' ORDER BY ORDINAL_POSITION;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'purchaseRequests' ORDER BY ORDINAL_POSITION;",
+  "rows": [
+    {
+      "COLUMN_NAME": "id"
+    },
+    {
+      "COLUMN_NAME": "requestNumber"
+    },
+    {
+      "COLUMN_NAME": "requesterId"
+    },
+    {
+      "COLUMN_NAME": "requesterName"
+    },
+    {
+      "COLUMN_NAME": "department"
+    },
+    {
+      "COLUMN_NAME": "costCenterId"
+    },
+    {
+      "COLUMN_NAME": "costCenterCode"
+    },
+    {
+      "COLUMN_NAME": "application"
+    },
+    {
+      "COLUMN_NAME": "urgencyLevel"
+    },
+    {
+      "COLUMN_NAME": "observations"
+    },
+    {
+      "COLUMN_NAME": "totalEstimatedValue"
+    },
+    {
+      "COLUMN_NAME": "status"
+    },
+    {
+      "COLUMN_NAME": "budgetFileUrl"
+    },
+    {
+      "COLUMN_NAME": "purchaseOrderNumber"
+    },
+    {
+      "COLUMN_NAME": "paymentMethod"
+    },
+    {
+      "COLUMN_NAME": "paymentInfo"
+    },
+    {
+      "COLUMN_NAME": "deadlineAt"
+    },
+    {
+      "COLUMN_NAME": "stepDeadlineAt"
+    },
+    {
+      "COLUMN_NAME": "createdAt"
+    },
+    {
+      "COLUMN_NAME": "updatedAt"
+    },
+    {
+      "COLUMN_NAME": "paymentProofUrl"
+    },
+    {
+      "COLUMN_NAME": "paymentObservations"
+    },
+    {
+      "COLUMN_NAME": "invoiceUrl"
+    },
+    {
+      "COLUMN_NAME": "isEnabledInMalotes"
+    },
+    {
+      "COLUMN_NAME": "cancellationDeadlineAt"
+    },
+    {
+      "COLUMN_NAME": "cancellationWarningSentAt"
+    },
+    {
+      "COLUMN_NAME": "ocSiagriUrl"
+    },
+    {
+      "COLUMN_NAME": "orcamentoFeitoUrgente"
+    },
+    {
+      "COLUMN_NAME": "osMyfarm"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nid\nrequestNumber\nrequesterId\nrequesterName\ndepartment\ncostCenterId\ncostCenterCode\napplication\nurgencyLevel\nobservations\ntotalEstimatedValue\nstatus\nbudgetFileUrl\npurchaseOrderNumber\npaymentMethod\npaymentInfo\ndeadlineAt\nstepDeadlineAt\ncreatedAt\nupdatedAt\npaymentProofUrl\npaymentObservations\ninvoiceUrl\nisEnabledInMalotes\ncancellationDeadlineAt\ncancellationWarningSentAt\nocSiagriUrl\norcamentoFeitoUrgente\nosMyfarm\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

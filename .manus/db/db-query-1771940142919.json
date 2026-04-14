@@ -1,0 +1,18 @@
+{
+  "query": "SHOW COLUMNS FROM purchaseRequests LIKE 'status';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SHOW COLUMNS FROM purchaseRequests LIKE 'status';",
+  "rows": [
+    {
+      "Field": "status",
+      "Type": "enum('rascunho','aguardando_gerente','aguardando_orcamento','aguardando_controladoria','aguardando_diretoria','aguardando_ordem_compra','aguardando_comprovante_pagamento','aguardando_verificacao_compras','concluida','rejeitada','cancelada')",
+      "Null": "NO",
+      "Key": "",
+      "Default": "aguardando_gerente",
+      "Extra": ""
+    }
+  ],
+  "messages": [],
+  "stdout": "Field\tType\tNull\tKey\tDefault\tExtra\nstatus\tenum('rascunho','aguardando_gerente','aguardando_orcamento','aguardando_controladoria','aguardando_diretoria','aguardando_ordem_compra','aguardando_comprovante_pagamento','aguardando_verificacao_compras','concluida','rejeitada','cancelada')\tNO\t\taguardando_gerente\t\n",
+  "stderr": "",
+  "execution_time_ms": 50
+}

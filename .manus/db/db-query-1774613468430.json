@@ -1,0 +1,9 @@
+{
+  "query": "\nUPDATE whatsappSessions ws\nJOIN (\n  SELECT approverId, requestNumber, MAX(id) as maxId\n  FROM whatsappSessions\n  WHERE requestNumber IN ('SOL-2026-0170','SOL-2026-0166','SOL-2026-0165','SOL-2026-0164')\n    AND status = 'pending'\n  GROUP BY approverId, requestNumber\n) keep_ids ON ws.requestNumber = keep_ids.requestNumber\n          AND ws.approverId = keep_ids.approverId\n          AND ws.id != keep_ids.maxId\nSET ws.status = 'expired'\nWHERE ws.requestNumber IN ('SOL-2026-0170','SOL-2026-0166','SOL-2026-0165','SOL-2026-0164')\n  AND ws.status = 'pending';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nUPDATE whatsappSessions ws\nJOIN (\n  SELECT approverId, requestNumber, MAX(id) as maxId\n  FROM whatsappSessions\n  WHERE requestNumber IN ('SOL-2026-0170','SOL-2026-0166','SOL-2026-0165','SOL-2026-0164')\n    AND status = 'pending'\n  GROUP BY approverId, requestNumber\n) keep_ids ON ws.requestNumber = keep_ids.requestNumber\n          AND ws.approverId = keep_ids.approverId\n          AND ws.id != keep_ids.maxId\nSET ws.status = 'expired'\nWHERE ws.requestNumber IN ('SOL-2026-0170','SOL-2026-0166','SOL-2026-0165','SOL-2026-0164')\n  AND ws.status = 'pending';\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 430
+}

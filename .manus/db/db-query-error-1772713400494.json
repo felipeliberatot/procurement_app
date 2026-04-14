@@ -1,0 +1,8 @@
+{
+  "query": "UPDATE users SET \"procurementRole\" = 'user', \"approvalLevel\" = 'diretoria', \"extraRoles\" = NULL, \"extraApprovalLevels\" = NULL WHERE lower(name) LIKE '%rafael%' AND \"procurementRole\" = 'master' RETURNING id, name, email, \"procurementRole\", \"approvalLevel\";",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute UPDATE users SET \"procurementRole\" = 'user', \"approvalLevel\" = 'diretoria', \"extraRoles\" = NULL, \"extraApprovalLevels\" = NULL WHERE lower(name) LIKE '%rafael%' AND \"procurementRole\" = 'master' RETURNING id, name, email, \"procurementRole\", \"approvalLevel\";",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1064 (42000) at line 1: You have an error in your SQL syntax; check the manual that corresponds to your TiDB version for the right syntax to use line 1 column 34 near \"\"procurementRole\" = 'user', \"approvalLevel\" = 'diretoria', \"extraRoles\" = NULL, \"extraApprovalLevels\" = NULL WHERE lower(name) LIKE '%rafael%' AND \"procurementRole\" = 'master' RETURNING id, name, email, \"procurementRole\", \"approvalLevel\"\""
+  ]
+}

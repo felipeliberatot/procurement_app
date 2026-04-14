@@ -1,0 +1,38 @@
+{
+  "query": "\nSELECT id, requestNumber, urgencyLevel, status, updatedAt\nFROM purchaseRequests\nWHERE requestNumber IN ('SOL-2026-0157', 'SOL-2026-0161', 'SOL-2026-0160', 'SOL-2026-0144');\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute \nSELECT id, requestNumber, urgencyLevel, status, updatedAt\nFROM purchaseRequests\nWHERE requestNumber IN ('SOL-2026-0157', 'SOL-2026-0161', 'SOL-2026-0160', 'SOL-2026-0144');\n",
+  "rows": [
+    {
+      "id": "2340003",
+      "requestNumber": "SOL-2026-0157",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_controladoria",
+      "updatedAt": "2026-03-25 12:56:10"
+    },
+    {
+      "id": "2460001",
+      "requestNumber": "SOL-2026-0161",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_controladoria",
+      "updatedAt": "2026-03-25 12:56:10"
+    },
+    {
+      "id": "2430001",
+      "requestNumber": "SOL-2026-0160",
+      "urgencyLevel": "emergencial",
+      "status": "aguardando_controladoria",
+      "updatedAt": "2026-03-25 12:56:10"
+    },
+    {
+      "id": "2070001",
+      "requestNumber": "SOL-2026-0144",
+      "urgencyLevel": "urgente",
+      "status": "aguardando_controladoria",
+      "updatedAt": "2026-03-25 12:56:10"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\trequestNumber\turgencyLevel\tstatus\tupdatedAt\n2340003\tSOL-2026-0157\temergencial\taguardando_controladoria\t2026-03-25 12:56:10\n2460001\tSOL-2026-0161\temergencial\taguardando_controladoria\t2026-03-25 12:56:10\n2430001\tSOL-2026-0160\temergencial\taguardando_controladoria\t2026-03-25 12:56:10\n2070001\tSOL-2026-0144\turgente\taguardando_controladoria\t2026-03-25 12:56:10\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

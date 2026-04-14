@@ -1,0 +1,45 @@
+{
+  "query": "SELECT id, name, email, procurementRole, approvalLevel FROM users WHERE passwordHash IS NOT NULL AND active = 1 LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, procurementRole, approvalLevel FROM users WHERE passwordHash IS NOT NULL AND active = 1 LIMIT 5;",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "procurementRole": "admin",
+      "approvalLevel": "master"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br",
+      "procurementRole": "admin",
+      "approvalLevel": "diretoria"
+    },
+    {
+      "id": "570080",
+      "name": "Wacksan Sampaio",
+      "email": "wacksan@cgs.agr.br",
+      "procurementRole": "diretoria",
+      "approvalLevel": "diretoria"
+    },
+    {
+      "id": "570087",
+      "name": "Jose Liberato",
+      "email": "jose.liberato@cgs.agr.br",
+      "procurementRole": "financeiro",
+      "approvalLevel": "financeiro"
+    },
+    {
+      "id": "570091",
+      "name": "Karina",
+      "email": "karina.silva@cgs.agr.br",
+      "procurementRole": "gerente",
+      "approvalLevel": "gerente"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tprocurementRole\tapprovalLevel\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tadmin\tmaster\n480003\tRafael da Silva Liberato\trafael@cgs.agr.br\tadmin\tdiretoria\n570080\tWacksan Sampaio\twacksan@cgs.agr.br\tdiretoria\tdiretoria\n570087\tJose Liberato\tjose.liberato@cgs.agr.br\tfinanceiro\tfinanceiro\n570091\tKarina\tkarina.silva@cgs.agr.br\tgerente\tgerente\n",
+  "stderr": "",
+  "execution_time_ms": 79
+}

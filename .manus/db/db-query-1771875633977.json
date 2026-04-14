@@ -1,0 +1,26 @@
+{
+  "query": "SELECT id, name, email, approvalLevel, active, passwordHash FROM users WHERE approvalLevel = 'master';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, approvalLevel, active, passwordHash FROM users WHERE approvalLevel = 'master';",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "master",
+      "active": "1",
+      "passwordHash": "$2b$10$MtLTedDNWIkGxLi.vdURT.P6q2cesYMlcAnbwIoR0ohW93bUvlP1u"
+    },
+    {
+      "id": "480003",
+      "name": "Rafael da Silva Liberato",
+      "email": "rafael@cgs.agr.br",
+      "approvalLevel": "master",
+      "active": "1",
+      "passwordHash": "$2b$10$MtLTedDNWIkGxLi.vdURT.P6q2cesYMlcAnbwIoR0ohW93bUvlP1u"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tapprovalLevel\tactive\tpasswordHash\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tmaster\t1\t$2b$10$MtLTedDNWIkGxLi.vdURT.P6q2cesYMlcAnbwIoR0ohW93bUvlP1u\n480003\tRafael da Silva Liberato\trafael@cgs.agr.br\tmaster\t1\t$2b$10$MtLTedDNWIkGxLi.vdURT.P6q2cesYMlcAnbwIoR0ohW93bUvlP1u\n",
+  "stderr": "",
+  "execution_time_ms": 366
+}

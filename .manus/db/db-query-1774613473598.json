@@ -1,0 +1,98 @@
+{
+  "query": "SELECT requestNumber, approverId, approverName, step, status, COUNT(*) as total FROM whatsappSessions WHERE requestNumber IN ('SOL-2026-0170','SOL-2026-0166','SOL-2026-0165','SOL-2026-0164') AND status = 'pending' GROUP BY requestNumber, approverId, approverName, step, status ORDER BY requestNumber;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT requestNumber, approverId, approverName, step, status, COUNT(*) as total FROM whatsappSessions WHERE requestNumber IN ('SOL-2026-0170','SOL-2026-0166','SOL-2026-0165','SOL-2026-0164') AND status = 'pending' GROUP BY requestNumber, approverId, approverName, step, status ORDER BY requestNumber;",
+  "rows": [
+    {
+      "requestNumber": "SOL-2026-0164",
+      "approverId": "570198",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0164",
+      "approverId": "1440136",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0165",
+      "approverId": "1440136",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0165",
+      "approverId": "570198",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0166",
+      "approverId": "1440136",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0166",
+      "approverId": "570198",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0170",
+      "approverId": "480003",
+      "approverName": "Rafael da Silva Liberato",
+      "step": "diretoria",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0170",
+      "approverId": "570080",
+      "approverName": "Wacksan Sampaio",
+      "step": "diretoria",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0170",
+      "approverId": "570198",
+      "approverName": "Wellington",
+      "step": "orcamento",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0170",
+      "approverId": "1260005",
+      "approverName": "Willian Camilo",
+      "step": "diretoria",
+      "status": "pending",
+      "total": "1"
+    },
+    {
+      "requestNumber": "SOL-2026-0170",
+      "approverId": "1440136",
+      "approverName": "Vitor Gritti",
+      "step": "orcamento",
+      "status": "pending",
+      "total": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "requestNumber\tapproverId\tapproverName\tstep\tstatus\ttotal\nSOL-2026-0164\t570198\tWellington\torcamento\tpending\t1\nSOL-2026-0164\t1440136\tVitor Gritti\torcamento\tpending\t1\nSOL-2026-0165\t1440136\tVitor Gritti\torcamento\tpending\t1\nSOL-2026-0165\t570198\tWellington\torcamento\tpending\t1\nSOL-2026-0166\t1440136\tVitor Gritti\torcamento\tpending\t1\nSOL-2026-0166\t570198\tWellington\torcamento\tpending\t1\nSOL-2026-0170\t480003\tRafael da Silva Liberato\tdiretoria\tpending\t1\nSOL-2026-0170\t570080\tWacksan Sampaio\tdiretoria\tpending\t1\nSOL-2026-0170\t570198\tWellington\torcamento\tpending\t1\nSOL-2026-0170\t1260005\tWillian Camilo\tdiretoria\tpending\t1\nSOL-2026-0170\t1440136\tVitor Gritti\torcamento\tpending\t1\n",
+  "stderr": "",
+  "execution_time_ms": 68
+}

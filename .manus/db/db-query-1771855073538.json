@@ -1,0 +1,21 @@
+{
+  "query": "SELECT id, name, email, phone, jobTitle, approvalLevel, procurementRole, role, active FROM users WHERE email = 'felipe.liberato@cgs.agr.br';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, phone, jobTitle, approvalLevel, procurementRole, role, active FROM users WHERE email = 'felipe.liberato@cgs.agr.br';",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "phone": "+5566996479650",
+      "jobTitle": "Gerente de TI",
+      "approvalLevel": "master",
+      "procurementRole": "admin",
+      "role": "admin",
+      "active": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tphone\tjobTitle\tapprovalLevel\tprocurementRole\trole\tactive\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\t+5566996479650\tGerente de TI\tmaster\tadmin\tadmin\t1\n",
+  "stderr": "",
+  "execution_time_ms": 59
+}
