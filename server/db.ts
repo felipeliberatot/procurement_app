@@ -1480,7 +1480,7 @@ export async function attachOCSiagri(requestId: number, fileUrl: string): Promis
   await db.update(purchaseRequests).set({ ocSiagriUrl: fileUrl }).where(eq(purchaseRequests.id, requestId));
 }
 
-export async function finalizeOC(requestId: number, user: User): Promise<void> {
+export async function finalizeOC(requestId: number, user: User, orderValue?: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -1489,10 +1489,12 @@ export async function finalizeOC(requestId: number, user: User): Promise<void> {
   if (request.status !== "aguardando_verificacao_compras") throw new Error("Status inválido para finalizar OC");
 
   // Marcar como concluída e habilitar nos Malotes
+  // orderValue: Valor da Ordem de Compra definido pelo Compras na Emissão de OC
   await db.update(purchaseRequests).set({
     status: "concluida" as any,
     isEnabledInMalotes: true,
     stepDeadlineAt: null,
+    ...(orderValue != null ? { orderValue: String(orderValue) } : {}),
   }).where(eq(purchaseRequests.id, requestId));
 
   await db.insert(approvalHistory).values({

@@ -675,3 +675,9 @@
 - [x] Ao aprovar orçamento, salvar o valor digitado como valor da ordem de compra
 - [x] Exibir o valor da ordem nos cards de solicitação (substituindo o valor estimado quando disponível)
 - [x] Exibir o valor da ordem nos detalhes da solicitação concluída
+
+## Valor de OC movido para Emissão de OC (Compras)
+- [x] Remover campo Valor de OC da etapa de Orçamento (submitBudget) em ambos os fluxos
+- [x] Adicionar campo obrigatório Valor de OC na etapa de Emissão de OC (Compras) em ambos os fluxos
+- [x] Atualizar rota tRPC de Emissão de OC para aceitar e salvar orderValue
+- [x] Validar que o campo é obrigatório antes de permitir avançar na etapa de Emissão de OC

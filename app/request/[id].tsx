@@ -1069,11 +1069,18 @@ export default function RequestDetailScreen() {
   };
 
   const handleFinalizeOC = () => {
+    const parsedOCValue = orderValueInput
+      ? parseFloat(orderValueInput.replace(/\./g, "").replace(",", "."))
+      : NaN;
+    if (!orderValueInput.trim() || isNaN(parsedOCValue) || parsedOCValue <= 0) {
+      Alert.alert("Valor obrigatório", "Informe o valor da Ordem de Compra antes de finalizar.");
+      return;
+    }
     showConfirm({
       title: "📦 Finalizar Ordem de Compra",
-      message: "Confirma que o comprovante de pagamento foi verificado e deseja encerrar esta OC? Ela será habilitada nos Malotes.",
+      message: `Confirma a finalização da OC com valor R$ ${parsedOCValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}? Ela será habilitada nos Malotes.`,
       confirmText: "Finalizar OC",
-      onConfirm: () => finalizeOCMutation.mutate({ requestId: request.id }),
+      onConfirm: () => finalizeOCMutation.mutate({ requestId: request.id, orderValue: parsedOCValue }),
     });
   };
 
@@ -1498,25 +1505,7 @@ export default function RequestDetailScreen() {
                   {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
                     <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName ?? "Orçamento já anexado"}</Text>
                   )}
-                  {/* Campo Valor da Ordem de Compra */}
-                  {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
-                    <View style={{ marginTop: 12 }}>
-                      <Text style={{ fontSize: 12, fontWeight: "600", color: colors.foreground, marginBottom: 6 }}>Valor da Ordem de Compra</Text>
-                      <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.background }}>
-                        <Text style={{ fontSize: 14, color: colors.muted, marginRight: 4 }}>R$</Text>
-                        <TextInput
-                          value={orderValueInput}
-                          onChangeText={(t) => setOrderValueInput(t.replace(/[^0-9.,]/g, ""))}
-                          placeholder="0,00"
-                          placeholderTextColor={colors.muted}
-                          keyboardType="decimal-pad"
-                          returnKeyType="done"
-                          style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.foreground }}
-                        />
-                      </View>
-                      <Text style={{ fontSize: 11, color: colors.muted, marginTop: 4 }}>Informe o valor real da ordem de compra (substitui o valor estimado)</Text>
-                    </View>
-                  )}
+                  {/* Valor de OC é definido na etapa de Emissão de OC (Compras) */}
                   {/* Botão Enviar Orçamento - habilitado após PDF selecionado ou já anexado */}
                   {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
                     <TouchableOpacity
@@ -1525,25 +1514,20 @@ export default function RequestDetailScreen() {
                           Alert.alert("PDF obrigatório", "Selecione o PDF do orçamento antes de enviar.");
                           return;
                         }
-                        const parsedOrderValue = orderValueInput
-                          ? parseFloat(orderValueInput.replace(/\./g, "").replace(",", "."))
-                          : undefined;
                         showConfirm({
                           title: "📤 Enviar Orçamento",
-                          message: parsedOrderValue
-                            ? `Confirma o envio do orçamento com valor da ordem R$ ${parsedOrderValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}?`
-                            : "Confirma o envio do orçamento? O fluxo avançará para a Controladoria.",
+                          message: "Confirma o envio do orçamento? O fluxo avançará para a Controladoria.",
                           confirmText: "Enviar",
                           onConfirm: () => {
                             // Se há um arquivo pendente (novo), faz upload primeiro, depois submitBudget
                             if (pendingBudgetBase64 && budgetFileName) {
                               uploadFileMutation.mutate(
                                 { requestId: request.id, fileName: budgetFileName, base64: pendingBudgetBase64, mimeType: pendingBudgetMime },
-                                { onSuccess: () => submitBudgetMutation.mutate({ requestId: request.id, orderValue: parsedOrderValue }) }
+                                { onSuccess: () => submitBudgetMutation.mutate({ requestId: request.id }) }
                               );
                             } else {
                               // PDF já estava anexado anteriormente, apenas envia
-                              submitBudgetMutation.mutate({ requestId: request.id, orderValue: parsedOrderValue });
+                              submitBudgetMutation.mutate({ requestId: request.id });
                             }
                           },
                         });
@@ -2181,13 +2165,35 @@ export default function RequestDetailScreen() {
                     </View>
                   )}
 
+                  {/* Campo obrigatório: Valor da Ordem de Compra */}
+                  <View style={{ marginBottom: 14 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+                      Valor da Ordem de Compra <Text style={{ color: colors.error }}>*</Text>
+                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderColor: orderValueInput.trim() ? colors.success : colors.error, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.background }}>
+                      <Text style={{ fontSize: 14, color: colors.muted, marginRight: 4 }}>R$</Text>
+                      <TextInput
+                        value={orderValueInput}
+                        onChangeText={(t) => setOrderValueInput(t.replace(/[^0-9.,]/g, ""))}
+                        placeholder="0,00"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.foreground }}
+                      />
+                    </View>
+                    <Text style={{ fontSize: 11, color: orderValueInput.trim() ? colors.success : colors.error, marginTop: 4 }}>
+                      {orderValueInput.trim() ? "✅ Valor da OC definido" : "* Obrigatório: informe o valor da ordem de compra"}
+                    </Text>
+                  </View>
+
                   {/* Botão Finalizar OC */}
                   <TouchableOpacity
                     onPress={handleFinalizeOC}
-                    disabled={finalizeOCMutation.isPending}
-                    style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: finalizeOCMutation.isPending ? 0.7 : 1 }}
+                    disabled={finalizeOCMutation.isPending || !orderValueInput.trim()}
+                    style={{ backgroundColor: orderValueInput.trim() ? colors.primary : colors.border, borderRadius: 12, paddingVertical: 16, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: finalizeOCMutation.isPending ? 0.7 : 1 }}
                   >
-                    {finalizeOCMutation.isPending ? <ActivityIndicator color="white" /> : <><Text style={{ fontSize: 18 }}>📦</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Finalizar Ordem de Compra</Text></>}
+                    {finalizeOCMutation.isPending ? <ActivityIndicator color="white" /> : <><Text style={{ fontSize: 18 }}>📦</Text><Text style={{ color: orderValueInput.trim() ? "white" : colors.muted, fontWeight: "700", fontSize: 15 }}>Finalizar Ordem de Compra</Text></>}
                   </TouchableOpacity>
                 </View>
               )}
