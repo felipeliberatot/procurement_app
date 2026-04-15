@@ -681,3 +681,7 @@
 - [x] Adicionar campo obrigatório Valor de OC na etapa de Emissão de OC (Compras) em ambos os fluxos
 - [x] Atualizar rota tRPC de Emissão de OC para aceitar e salvar orderValue
 - [x] Validar que o campo é obrigatório antes de permitir avançar na etapa de Emissão de OC
+
+## Bug: Parsing incorreto do Valor de OC (multiplicava por 100)
+- [x] Corrigir parsing do campo orderValueInput para tratar corretamente formatos BR (4.556,25) e EN (4556.25)
+- [x] Corrigir valor incorreto da SOL-2026-0230 no banco de dados (455625.00 → 4556.25)

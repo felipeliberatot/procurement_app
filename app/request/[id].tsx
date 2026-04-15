@@ -1069,9 +1069,20 @@ export default function RequestDetailScreen() {
   };
 
   const handleFinalizeOC = () => {
-    const parsedOCValue = orderValueInput
-      ? parseFloat(orderValueInput.replace(/\./g, "").replace(",", "."))
-      : NaN;
+    // Parsing robusto: suporta tanto formato BR (4.556,25) quanto EN (4556.25)
+    // Se contém vírgula: trata como separador decimal BR → remove pontos de milhar, troca vírgula por ponto
+    // Se contém apenas ponto: trata como decimal EN → usa direto
+    const parsedOCValue = (() => {
+      if (!orderValueInput) return NaN;
+      const raw = orderValueInput.trim();
+      if (raw.includes(",")) {
+        // Formato BR: 4.556,25 → remove pontos → 4556,25 → troca vírgula → 4556.25
+        return parseFloat(raw.replace(/\./g, "").replace(",", "."));
+      } else {
+        // Formato EN ou sem separador: 4556.25 ou 4556 → usa direto
+        return parseFloat(raw);
+      }
+    })();
     if (!orderValueInput.trim() || isNaN(parsedOCValue) || parsedOCValue <= 0) {
       Alert.alert("Valor obrigatório", "Informe o valor da Ordem de Compra antes de finalizar.");
       return;
@@ -2174,7 +2185,12 @@ export default function RequestDetailScreen() {
                       <Text style={{ fontSize: 14, color: colors.muted, marginRight: 4 }}>R$</Text>
                       <TextInput
                         value={orderValueInput}
-                        onChangeText={(t) => setOrderValueInput(t.replace(/[^0-9.,]/g, ""))}
+                        onChangeText={(t) => {
+                          // Permite apenas números, ponto e vírgula
+                          // Garante no máximo uma vírgula e um ponto como separadores
+                          const cleaned = t.replace(/[^0-9.,]/g, "");
+                          setOrderValueInput(cleaned);
+                        }}
                         placeholder="0,00"
                         placeholderTextColor={colors.muted}
                         keyboardType="decimal-pad"
