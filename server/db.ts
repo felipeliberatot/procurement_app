@@ -1713,13 +1713,22 @@ export async function listMalotes(): Promise<Malote[]> {
   return db.select().from(malotes).orderBy(desc(malotes.createdAt));
 }
 
-export async function getMaloteWithItems(maloteId: number): Promise<{ malote: Malote; items: MaloteItem[] } | null> {
+export async function getMaloteWithItems(maloteId: number): Promise<{ malote: Malote; items: (MaloteItem & { ocItems: import('../drizzle/schema').RequestItem[] })[] } | null> {
   const db = await getDb();
   if (!db) return null;
   const [malote] = await db.select().from(malotes).where(eq(malotes.id, maloteId)).limit(1);
   if (!malote) return null;
   const items = await db.select().from(maloteItems).where(eq(maloteItems.maloteId, maloteId));
-  return { malote, items };
+  // Para cada item do malote, buscar os itens da OC (requestItems) da solicitação vinculada
+  const itemsWithOC = await Promise.all(
+    items.map(async (item) => {
+      const ocItems = item.requestId
+        ? await db.select().from(requestItems).where(eq(requestItems.requestId, item.requestId))
+        : [];
+      return { ...item, ocItems };
+    })
+  );
+  return { malote, items: itemsWithOC };
 }
 
 export async function addRequestToMalote(opts: {

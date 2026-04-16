@@ -166,6 +166,7 @@ export default function MaloteReceiptScreen() {
           const receipt = itemReceipts[item.id];
           const isRecebido = receipt?.receiptStatus === "recebido";
           const isDevolvido = receipt?.receiptStatus === "devolvido";
+          const ocItems = (item as any).ocItems as Array<{ id: number; description: string; quantity: string; unit: string; unitPrice?: string | null; totalPrice?: string | null }> | undefined;
 
           return (
             <View
@@ -177,6 +178,29 @@ export default function MaloteReceiptScreen() {
                 {item.application}
               </Text>
               <Text style={[styles.itemReq, { color: colors.muted }]}>Solicitante: {item.requesterName}</Text>
+
+              {/* Itens da Ordem de Compra */}
+              {ocItems && ocItems.length > 0 && (
+                <View style={{ backgroundColor: colors.background, borderRadius: 8, padding: 8, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Itens da Ordem de Compra</Text>
+                  {ocItems.map((oc, idx) => (
+                    <View key={oc.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 5, borderTopWidth: idx > 0 ? 0.5 : 0, borderTopColor: colors.border }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 13, color: colors.foreground, fontWeight: "500" }}>{oc.description}</Text>
+                        <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
+                          {parseFloat(oc.quantity || "0").toLocaleString("pt-BR")} {oc.unit}
+                          {oc.unitPrice ? ` · R$ ${parseFloat(oc.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} un.` : ""}
+                        </Text>
+                      </View>
+                      {oc.totalPrice ? (
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
+                          R$ {parseFloat(oc.totalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+              )}
 
               <View style={styles.statusRow}>
                 <TouchableOpacity

@@ -36,12 +36,21 @@ const STATUS_COLOR: Record<string, string> = {
   devolvido: "#EF4444",
 };
 
+type OcItem = {
+  id: number;
+  description: string;
+  quantity: string;
+  unit: string;
+  unitPrice?: string | null;
+  totalPrice?: string | null;
+};
 type MaloteItem = {
   id: number;
   requestCode: string;
   requesterName: string;
   application: string;
   receiptStatus: string;
+  ocItems?: OcItem[];
 };
 type Malote = {
   id: number;
@@ -591,15 +600,41 @@ export default function MalotesScreen() {
               </View>
               {maloteDetail?.items && maloteDetail.items.length > 0 ? (
                 maloteDetail.items.map((item) => (
-                  <View key={item.id} style={[styles.itemRow, { borderBottomColor: colors.border }]}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.itemCode, { color: colors.foreground }]}>{item.requestCode}</Text>
-                      <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={2}>{item.application}</Text>
+                  <View key={item.id} style={[{ borderBottomWidth: 0.5, borderBottomColor: colors.border, paddingVertical: 10 }]}>
+                    {/* Cabeçalho da solicitação */}
+                    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.itemCode, { color: colors.foreground }]}>{item.requestCode}</Text>
+                        <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={2}>{item.application}</Text>
+                        <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>Solicitante: {item.requesterName}</Text>
+                      </View>
+                      {selectedMalote?.status === "aberto" && (
+                        <TouchableOpacity onPress={() => handleRemoveItem(item.id)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                          <IconSymbol name="trash.fill" size={18} color="#EF4444" />
+                        </TouchableOpacity>
+                      )}
                     </View>
-                    {selectedMalote?.status === "aberto" && (
-                      <TouchableOpacity onPress={() => handleRemoveItem(item.id)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                        <IconSymbol name="trash.fill" size={18} color="#EF4444" />
-                      </TouchableOpacity>
+                    {/* Itens da OC */}
+                    {item.ocItems && item.ocItems.length > 0 && (
+                      <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 8, padding: 8 }}>
+                        <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Itens da Ordem de Compra</Text>
+                        {item.ocItems.map((oc, idx) => (
+                          <View key={oc.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 4, borderTopWidth: idx > 0 ? 0.5 : 0, borderTopColor: colors.border }}>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 13, color: colors.foreground, fontWeight: "500" }}>{oc.description}</Text>
+                              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
+                                {parseFloat(oc.quantity || "0").toLocaleString("pt-BR")} {oc.unit}
+                                {oc.unitPrice ? ` · R$ ${parseFloat(oc.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} un.` : ""}
+                              </Text>
+                            </View>
+                            {oc.totalPrice ? (
+                              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
+                                R$ {parseFloat(oc.totalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </Text>
+                            ) : null}
+                          </View>
+                        ))}
+                      </View>
                     )}
                   </View>
                 ))

@@ -685,3 +685,9 @@
 ## Bug: Parsing incorreto do Valor de OC (multiplicava por 100)
 - [x] Corrigir parsing do campo orderValueInput para tratar corretamente formatos BR (4.556,25) e EN (4556.25)
 - [x] Corrigir valor incorreto da SOL-2026-0230 no banco de dados (455625.00 → 4556.25)
+
+## Itens da OC nos Malotes
+- [x] Backend: retornar requestItems junto com as solicitações vinculadas ao malote
+- [x] Tela de malote: exibir itens da OC ao selecionar/abrir um malote (criação)
+- [x] Tela de malote enviado: exibir itens da OC para conferência
+- [x] Tela de malote recebido: exibir itens da OC para conferência de entrega
