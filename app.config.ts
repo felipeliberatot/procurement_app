@@ -9,7 +9,7 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   appName: "Compras CGS Agrícola",
-  appSlug: "procurement_app",
+  appSlug: "procurement-app",
   logoUrl: "https://manus-prod-user-uploads.s3.us-east-1.amazonaws.com/generated/img_0a3c1b2d4e5f6789.png",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
@@ -101,6 +101,9 @@ const config: ExpoConfig = {
   },
   extra: {
     logoUrl: env.logoUrl,
+    eas: {
+      projectId: "b29fd172-6a09-4deb-b772-425bd8629167",
+    },
   },
 };
 
