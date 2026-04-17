@@ -2550,46 +2550,68 @@ export default function RequestDetailScreen() {
             </TouchableOpacity>
 
             {/* Botão Aprovar */}
-            <TouchableOpacity
-              onPress={() => {
-                // Bloquear aprovação da etapa de orçamento sem PDF anexado
-                if (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) {
-                  Alert.alert(
-                    "⚠️ Orçamento obrigatório",
-                    "É necessário anexar o PDF do orçamento antes de aprovar esta etapa.\n\nClique em \"Anexar Orçamento\" acima, selecione o arquivo PDF e clique em \"Enviar Orçamento\" para avançar."
-                  );
-                  return;
-                }
-                setShowApproveModal(true);
-              }}
-              disabled={approveMutation.isPending || rejectMutation.isPending}
-              style={{
-                flex: 2,
-                backgroundColor: (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? colors.border : colors.success,
-                borderRadius: 14,
-                paddingVertical: 14,
-                alignItems: "center",
-                flexDirection: "row",
-                justifyContent: "center",
-                gap: 6,
-                shadowColor: colors.success,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? 0 : 0.3,
-                shadowRadius: 6,
-                elevation: (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? 0 : 4,
-              }}
-            >
-              {approveMutation.isPending ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <>
-                  <Text style={{ fontSize: 16 }}>{(currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? "📎" : "✅"}</Text>
-                  <Text style={{ color: (currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? colors.muted : "white", fontWeight: "700", fontSize: 15 }}>
-                    {(currentStatus === "aguardando_orcamento" && !request.budgetFileUrl) ? "Anexe o Orçamento" : "Aprovar"}
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
+            {(() => {
+              // Na etapa de orçamento, o botão fixo não deve ser usado — o fluxo é controlado pelo bloco de Orçamento
+              // (que exige PDF + Valor Estimado e chama submitBudgetMutation diretamente)
+              // O botão fixo é bloqueado se: (1) PDF não anexado OU (2) valor estimado não preenchido
+              const orcamentoBloqueado = currentStatus === "aguardando_orcamento" && (!request.budgetFileUrl || !estimatedValueInput.trim());
+              const orcamentoLabel = !request.budgetFileUrl ? "Anexe o Orçamento" : !estimatedValueInput.trim() ? "Informe o Valor" : "Aprovar";
+              return (
+                <TouchableOpacity
+                  onPress={() => {
+                    if (currentStatus === "aguardando_orcamento") {
+                      if (!request.budgetFileUrl) {
+                        Alert.alert("⚠️ Orçamento obrigatório", "Anexe o PDF do orçamento antes de enviar.");
+                        return;
+                      }
+                      if (!estimatedValueInput.trim()) {
+                        Alert.alert("⚠️ Valor obrigatório", "Informe o Valor Estimado antes de enviar o orçamento.");
+                        return;
+                      }
+                      // Redirecionar para o fluxo correto: submitBudget com valor estimado
+                      const raw = estimatedValueInput.trim();
+                      const parsedEstimated = raw.includes(",")
+                        ? parseFloat(raw.replace(/\./g, "").replace(",", "."))
+                        : parseFloat(raw);
+                      if (isNaN(parsedEstimated) || parsedEstimated <= 0) {
+                        Alert.alert("Valor inválido", "Informe um valor válido (ex: 4.556,25).");
+                        return;
+                      }
+                      submitBudgetMutation.mutate({ requestId: request.id, estimatedValue: parsedEstimated });
+                      return;
+                    }
+                    setShowApproveModal(true);
+                  }}
+                  disabled={approveMutation.isPending || rejectMutation.isPending || submitBudgetMutation.isPending}
+                  style={{
+                    flex: 2,
+                    backgroundColor: orcamentoBloqueado ? colors.border : colors.success,
+                    borderRadius: 14,
+                    paddingVertical: 14,
+                    alignItems: "center",
+                    flexDirection: "row",
+                    justifyContent: "center",
+                    gap: 6,
+                    shadowColor: colors.success,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: orcamentoBloqueado ? 0 : 0.3,
+                    shadowRadius: 6,
+                    elevation: orcamentoBloqueado ? 0 : 4,
+                  }}
+                >
+                  {(approveMutation.isPending || submitBudgetMutation.isPending) ? (
+                    <ActivityIndicator color="white" />
+                  ) : (
+                    <>
+                      <Text style={{ fontSize: 16 }}>{orcamentoBloqueado ? "📎" : "✅"}</Text>
+                      <Text style={{ color: orcamentoBloqueado ? colors.muted : "white", fontWeight: "700", fontSize: 15 }}>
+                        {orcamentoLabel}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              );
+            })()}
           </View>
         )}
 
