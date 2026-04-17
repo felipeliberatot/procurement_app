@@ -810,7 +810,13 @@ export default function RequestDetailScreen() {
     ${(request as any).paymentMethod ? `<div class="row"><span class="label">Método de Pagamento:</span><span class="value">${(({ pix: "PIX", boleto: "Boleto", cartao_avista: "Cartão à Vista", cartao_parcelado: "Cartão Parcelado" } as Record<string, string>)[(request as any).paymentMethod] ?? (request as any).paymentMethod)}</span></div>` : ""}
     ${(request as any).paymentInfo ? `<div class="row"><span class="label">Dados de Pagamento:</span><span class="value">${(request as any).paymentInfo}</span></div>` : ""}
     ${(request as any).paymentObservations ? `<div class="row"><span class="label">Obs. Pagamento:</span><span class="value">${(request as any).paymentObservations}</span></div>` : ""}
-    ${request.totalEstimatedValue ? `<div class="row"><span class="label">Valor Total:</span><span class="value">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>` : ""}
+    ${request.totalEstimatedValue ? (() => {
+              const isAfterOCStatus = ["aguardando_ordem_compra", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(request.status ?? "");
+              const valorLabel = isAfterOCStatus ? "Valor da OC" : "Valor Estimado";
+              const valorColor = isAfterOCStatus ? "#166534" : "#92400e";
+              const bgColor = isAfterOCStatus ? "#dcfce7" : "#fef3c7";
+              return `<div class="row" style="background:${bgColor};border-radius:6px;padding:6px 10px;margin-top:4px;"><span class="label" style="font-weight:700;color:${valorColor};">${valorLabel}:</span><span class="value" style="color:${valorColor};font-size:14px;">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span></div>`;
+            })() : ""}
     ${request.observations ? `<div class="row"><span class="label">Observações:</span><span class="value">${request.observations}</span></div>` : ""}
   </div>
 
@@ -820,7 +826,11 @@ export default function RequestDetailScreen() {
     <table>
       <thead><tr><th>Descrição</th><th style="text-align:center">Qtd/Un</th><th style="text-align:right">Valor Unit.</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>${itemsRows}</tbody>
-      ${request.totalEstimatedValue ? `<tfoot><tr class="total-row"><td colspan="3">Total Geral</td><td style="text-align:right">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td></tr></tfoot>` : ""}
+      ${request.totalEstimatedValue ? (() => {
+              const isAfterOCStatus2 = ["aguardando_ordem_compra", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(request.status ?? "");
+              const footerLabel = isAfterOCStatus2 ? "Valor da OC" : "Valor Estimado";
+              return `<tfoot><tr class="total-row"><td colspan="3">${footerLabel}</td><td style="text-align:right">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td></tr></tfoot>`;
+            })() : ""}
     </table>
   </div>` : ""}
 

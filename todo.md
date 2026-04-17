@@ -704,3 +704,6 @@
 - [x] A partir do Fluxo 06 (Emissão de OC), renomear "Valor Estimado" para "Valor da OC" em cards e telas
 - [x] Remover o campo separado de Valor da OC adicionado ao Fluxo 06
 - [x] Garantir que o valor salvo no orçamento (totalEstimatedValue) aparece nos cards de todas as etapas
+
+## PDF da Solicitação
+- [x] Incluir campo "Valor Estimado" / "Valor da OC" no relatório PDF gerado pelo botão de impressão
