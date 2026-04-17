@@ -561,6 +561,7 @@ export const appRouter = router({
         requestId: z.number(),
         comment: z.string().optional(),
         purchaseOrderNumber: z.string().optional(),
+        orderValue: z.number().positive().optional(),
         paymentInfo: z.string().optional(),
         paymentMethod: z.enum(["pix", "boleto", "cartao_avista", "cartao_parcelado"]).optional(),
         paymentObservations: z.string().optional(),

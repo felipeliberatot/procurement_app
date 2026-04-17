@@ -884,11 +884,24 @@ export default function RequestDetailScreen() {
   };
 
   const handleIssueOrder = () => {
+    if (!orderValueInput.trim()) {
+      Alert.alert("Valor obrigatório", "Informe o valor da Ordem de Compra antes de emitir.");
+      return;
+    }
+    const parsedValue = (() => {
+      const raw = orderValueInput.trim();
+      if (raw.includes(",")) return parseFloat(raw.replace(/\./g, "").replace(",", "."));
+      return parseFloat(raw);
+    })();
+    if (isNaN(parsedValue) || parsedValue <= 0) {
+      Alert.alert("Valor inválido", "Informe um valor válido para a Ordem de Compra (ex: 4.556,25).");
+      return;
+    }
     showConfirm({
       title: "Confirmar Emissão de OC",
-      message: "Confirmar a emissão da OC e encaminhar para Aprovação Financeiro?",
+      message: `Confirmar a emissão da OC no valor de ${formatCurrency(String(parsedValue))} e encaminhar para Aprovação Financeiro?`,
       confirmText: "Confirmar",
-      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "" }),
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", orderValue: parsedValue }),
     });
   };
 
@@ -1655,12 +1668,38 @@ export default function RequestDetailScreen() {
                     }
                   </TouchableOpacity>
 
+                  {/* Campo obrigatório: Valor da Ordem de Compra */}
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+                      Valor da Ordem de Compra <Text style={{ color: colors.error }}>*</Text>
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe o valor total da OC emitida</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderColor: orderValueInput.trim() ? colors.success : colors.error, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.background }}>
+                      <Text style={{ fontSize: 14, color: colors.muted, marginRight: 4 }}>R$</Text>
+                      <TextInput
+                        value={orderValueInput}
+                        onChangeText={(t) => {
+                          const cleaned = t.replace(/[^0-9.,]/g, "");
+                          setOrderValueInput(cleaned);
+                        }}
+                        placeholder="0,00"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.foreground }}
+                      />
+                    </View>
+                    <Text style={{ fontSize: 11, color: orderValueInput.trim() ? colors.success : colors.error, marginTop: 4 }}>
+                      {orderValueInput.trim() ? "✅ Valor da OC definido" : "* Obrigatório: informe o valor da ordem de compra"}
+                    </Text>
+                  </View>
+
                   {/* Botão Emitir OC */}
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending}
+                    disabled={approveMutation.isPending || !orderValueInput.trim()}
                     style={{
-                      backgroundColor: colors.primary,
+                      backgroundColor: orderValueInput.trim() ? colors.primary : colors.border,
                       borderRadius: 12,
                       paddingVertical: 14,
                       alignItems: "center",
@@ -1675,7 +1714,7 @@ export default function RequestDetailScreen() {
                       : (
                         <>
                           <Text style={{ fontSize: 16 }}>📤</Text>
-                          <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
+                          <Text style={{ color: orderValueInput.trim() ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
                             Emitir OC e Enviar ao Financeiro
                           </Text>
                         </>

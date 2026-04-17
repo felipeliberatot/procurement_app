@@ -1134,7 +1134,7 @@ export async function submitBudget(
 export async function approveRequest(
   requestId: number,
   user: User,
-  data: { comment?: string; purchaseOrderNumber?: string; paymentInfo?: string; paymentMethod?: string; paymentObservations?: string; paymentInstallments?: number }
+  data: { comment?: string; purchaseOrderNumber?: string; orderValue?: number; paymentInfo?: string; paymentMethod?: string; paymentObservations?: string; paymentInstallments?: number }
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1217,6 +1217,7 @@ export async function approveRequest(
     stepDeadlineAt: getStepDeadline(),
   };
   if (data.purchaseOrderNumber) updateData.purchaseOrderNumber = data.purchaseOrderNumber;
+  if (data.orderValue != null) updateData.orderValue = String(data.orderValue);
   if (data.paymentInfo) updateData.paymentInfo = data.paymentInfo;
   if (data.paymentMethod) updateData.paymentMethod = data.paymentMethod;
   if (data.paymentObservations) updateData.paymentObservations = data.paymentObservations;

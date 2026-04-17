@@ -691,3 +691,9 @@
 - [x] Tela de malote: exibir itens da OC ao selecionar/abrir um malote (criação)
 - [x] Tela de malote enviado: exibir itens da OC para conferência
 - [x] Tela de malote recebido: exibir itens da OC para conferência de entrega
+
+## Campo Valor da OC no Fluxo 06 (Emissão de OC)
+- [x] Adicionar campo Valor da OC obrigatório no Fluxo 06 (aguardando_ordem_compra), abaixo do campo Emissão de Ordem de Compra
+- [x] Validar campo antes de permitir emitir OC (botão desabilitado se vazio)
+- [x] Salvar orderValue no banco ao emitir OC via approveMutation
+- [x] Atualizar schema tRPC (approve) e db.approveRequest para aceitar orderValue
