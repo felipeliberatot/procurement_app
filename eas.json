@@ -8,7 +8,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "appleTeamId": "3HAK32KM7L"
       },
       "android": {
         "buildType": "apk",
@@ -18,7 +19,8 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false
+        "simulator": false,
+        "appleTeamId": "3HAK32KM7L"
       },
       "android": {
         "buildType": "apk"
@@ -27,7 +29,8 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "buildConfiguration": "Release"
+        "buildConfiguration": "Release",
+        "appleTeamId": "3HAK32KM7L"
       },
       "android": {
         "buildType": "app-bundle"
@@ -37,7 +40,8 @@
   "submit": {
     "production": {
       "ios": {
-        "language": "pt-BR"
+        "language": "pt-BR",
+        "appleTeamId": "3HAK32KM7L"
       },
       "android": {
         "track": "production"
