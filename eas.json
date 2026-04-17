@@ -8,8 +8,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "ios": {
-        "simulator": false,
-        "appleTeamId": "3HAK32KM7L"
+        "simulator": false
       },
       "android": {
         "buildType": "apk",
@@ -19,8 +18,7 @@
     "preview": {
       "distribution": "internal",
       "ios": {
-        "simulator": false,
-        "appleTeamId": "3HAK32KM7L"
+        "simulator": false
       },
       "android": {
         "buildType": "apk"
@@ -29,8 +27,7 @@
     "production": {
       "autoIncrement": true,
       "ios": {
-        "buildConfiguration": "Release",
-        "appleTeamId": "3HAK32KM7L"
+        "buildConfiguration": "Release"
       },
       "android": {
         "buildType": "app-bundle"
