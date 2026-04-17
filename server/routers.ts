@@ -446,8 +446,8 @@ export const appRouter = router({
 
     // Enviar orçamento (Orçamento - avança para Controladoria após anexar PDF)
     submitBudget: protectedProcedure
-      .input(z.object({ requestId: z.number() }))
-      .mutation(({ ctx, input }) => db.submitBudget(input.requestId, ctx.user)),
+      .input(z.object({ requestId: z.number(), estimatedValue: z.number().positive().optional() }))
+      .mutation(({ ctx, input }) => db.submitBudget(input.requestId, ctx.user, input.estimatedValue)),
 
     // Finalizar OC (Compras - encerra o fluxo e habilita nos Malotes)
     // orderValue é obrigatório: Valor da Ordem de Compra definido pelo Compras na Emissão de OC

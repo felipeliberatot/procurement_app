@@ -424,6 +424,7 @@ export default function RequestDetailScreen() {
   const [pendingBudgetBase64, setPendingBudgetBase64] = useState<string | null>(null);
   const [pendingBudgetMime, setPendingBudgetMime] = useState<string>("application/pdf");
   const [orderValueInput, setOrderValueInput] = useState<string>("");
+  const [estimatedValueInput, setEstimatedValueInput] = useState<string>("");
   const [paymentProofFileName, setPaymentProofFileName] = useState<string | null>(null);
   const [paymentProofLocalUri, setPaymentProofLocalUri] = useState<string | null>(null); // URI local para pré-visualização antes do upload
   const [invoiceFileName, setInvoiceFileName] = useState<string | null>(null);
@@ -548,6 +549,7 @@ export default function RequestDetailScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setBudgetFileName(null);
       setPendingBudgetBase64(null);
+      setEstimatedValueInput("");
       // Navega imediatamente — Alert.alert com callback não funciona na web
       router.back();
     },
@@ -726,6 +728,8 @@ export default function RequestDetailScreen() {
   const isCancelled = currentStatus === "cancelada";
   const isDone = currentStatus === "concluida";
   const isApproveOnly = STATUS_APPROVE_ONLY.includes(currentStatus);
+  // A partir do Fluxo 06 (Emissão de OC), o valor estimado passa a se chamar "Valor da OC"
+  const isAfterOC = ["aguardando_ordem_compra", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(currentStatus);
 
   // Permissão de cancelar: somente o solicitante que abriu ou master
   // Comparar como Number para evitar mismatch entre string e number
@@ -884,24 +888,13 @@ export default function RequestDetailScreen() {
   };
 
   const handleIssueOrder = () => {
-    if (!orderValueInput.trim()) {
-      Alert.alert("Valor obrigatório", "Informe o valor da Ordem de Compra antes de emitir.");
-      return;
-    }
-    const parsedValue = (() => {
-      const raw = orderValueInput.trim();
-      if (raw.includes(",")) return parseFloat(raw.replace(/\./g, "").replace(",", "."));
-      return parseFloat(raw);
-    })();
-    if (isNaN(parsedValue) || parsedValue <= 0) {
-      Alert.alert("Valor inválido", "Informe um valor válido para a Ordem de Compra (ex: 4.556,25).");
-      return;
-    }
+    // O valor da OC é o totalEstimatedValue definido na etapa de Orçamento
+    const valorExibido = request.totalEstimatedValue ? formatCurrency(request.totalEstimatedValue) : "(valor não informado)";
     showConfirm({
       title: "Confirmar Emissão de OC",
-      message: `Confirmar a emissão da OC no valor de ${formatCurrency(String(parsedValue))} e encaminhar para Aprovação Financeiro?`,
+      message: `Confirmar a emissão da OC (${valorExibido}) e encaminhar para Aprovação Financeiro?`,
       confirmText: "Confirmar",
-      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", orderValue: parsedValue }),
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "" }),
     });
   };
 
@@ -1189,12 +1182,8 @@ export default function RequestDetailScreen() {
                 <Text className="text-sm text-muted">Centro de Custo: <Text className="text-foreground font-medium">{request.costCenterCode}</Text></Text>
               )}
               <Text className="text-sm text-muted">Criado em: <Text className="text-foreground font-medium">{formatDate(request.createdAt)}</Text></Text>
-              {request.orderValue ? (
-                <Text className="text-sm text-muted">Valor OC: <Text style={{ color: colors.success, fontWeight: "700" }}>{formatCurrency(request.orderValue)}</Text>
-                  {request.totalEstimatedValue ? <Text className="text-muted"> (est. {formatCurrency(request.totalEstimatedValue)})</Text> : null}
-                </Text>
-              ) : request.totalEstimatedValue ? (
-                <Text className="text-sm text-muted">Valor Total: <Text className="text-primary font-bold">{formatCurrency(request.totalEstimatedValue)}</Text></Text>
+              {request.totalEstimatedValue ? (
+                <Text className="text-sm text-muted">{isAfterOC ? "Valor da OC" : "Valor Estimado"}: <Text style={{ color: isAfterOC ? colors.success : colors.warning, fontWeight: "700" }}>{formatCurrency(request.totalEstimatedValue)}</Text></Text>
               ) : null}
               {request.purchaseOrderNumber && (
                 <Text className="text-sm text-muted">Ordem de Compra: <Text className="text-foreground font-bold">{request.purchaseOrderNumber}</Text></Text>
@@ -1529,8 +1518,30 @@ export default function RequestDetailScreen() {
                   {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
                     <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName ?? "Orçamento já anexado"}</Text>
                   )}
-                  {/* Valor de OC é definido na etapa de Emissão de OC (Compras) */}
-                  {/* Botão Enviar Orçamento - habilitado após PDF selecionado ou já anexado */}
+                  {/* Campo obrigatório: Valor Estimado da OC */}
+                  <View style={{ marginTop: 12, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+                      Valor Estimado <Text style={{ color: colors.error }}>*</Text>
+                    </Text>
+                    <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe o valor total estimado da ordem de compra</Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderColor: estimatedValueInput.trim() ? colors.success : colors.error, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.background }}>
+                      <Text style={{ fontSize: 14, color: colors.muted, marginRight: 4 }}>R$</Text>
+                      <TextInput
+                        value={estimatedValueInput}
+                        onChangeText={(t) => setEstimatedValueInput(t.replace(/[^0-9.,]/g, ""))}
+                        placeholder="0,00"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.foreground }}
+                      />
+                    </View>
+                    <Text style={{ fontSize: 11, color: estimatedValueInput.trim() ? colors.success : colors.error, marginTop: 4 }}>
+                      {estimatedValueInput.trim() ? "✅ Valor estimado definido" : "* Obrigatório: informe o valor estimado da ordem de compra"}
+                    </Text>
+                  </View>
+
+                  {/* Botão Enviar Orçamento - habilitado após PDF selecionado/anexado E valor estimado preenchido */}
                   {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
                     <TouchableOpacity
                       onPress={() => {
@@ -1538,28 +1549,38 @@ export default function RequestDetailScreen() {
                           Alert.alert("PDF obrigatório", "Selecione o PDF do orçamento antes de enviar.");
                           return;
                         }
+                        if (!estimatedValueInput.trim()) {
+                          Alert.alert("Valor obrigatório", "Informe o Valor Estimado antes de enviar o orçamento.");
+                          return;
+                        }
+                        const raw = estimatedValueInput.trim();
+                        const parsedEstimated = raw.includes(",")
+                          ? parseFloat(raw.replace(/\./g, "").replace(",", "."))
+                          : parseFloat(raw);
+                        if (isNaN(parsedEstimated) || parsedEstimated <= 0) {
+                          Alert.alert("Valor inválido", "Informe um valor válido (ex: 4.556,25).");
+                          return;
+                        }
                         showConfirm({
                           title: "📤 Enviar Orçamento",
-                          message: "Confirma o envio do orçamento? O fluxo avançará para a Controladoria.",
+                          message: `Confirma o envio do orçamento com valor estimado de ${formatCurrency(String(parsedEstimated))}? O fluxo avançará para a Controladoria.`,
                           confirmText: "Enviar",
                           onConfirm: () => {
-                            // Se há um arquivo pendente (novo), faz upload primeiro, depois submitBudget
                             if (pendingBudgetBase64 && budgetFileName) {
                               uploadFileMutation.mutate(
                                 { requestId: request.id, fileName: budgetFileName, base64: pendingBudgetBase64, mimeType: pendingBudgetMime },
-                                { onSuccess: () => submitBudgetMutation.mutate({ requestId: request.id }) }
+                                { onSuccess: () => submitBudgetMutation.mutate({ requestId: request.id, estimatedValue: parsedEstimated }) }
                               );
                             } else {
-                              // PDF já estava anexado anteriormente, apenas envia
-                              submitBudgetMutation.mutate({ requestId: request.id });
+                              submitBudgetMutation.mutate({ requestId: request.id, estimatedValue: parsedEstimated });
                             }
                           },
                         });
                       }}
-                      disabled={submitBudgetMutation.isPending || uploadFileMutation.isPending}
+                      disabled={submitBudgetMutation.isPending || uploadFileMutation.isPending || !estimatedValueInput.trim()}
                       style={{
                         marginTop: 12,
-                        backgroundColor: colors.success,
+                        backgroundColor: estimatedValueInput.trim() ? colors.success : colors.border,
                         borderRadius: 12,
                         paddingVertical: 14,
                         alignItems: "center",
@@ -1572,7 +1593,7 @@ export default function RequestDetailScreen() {
                       {(submitBudgetMutation.isPending || uploadFileMutation.isPending) ? (
                         <><ActivityIndicator color="white" /><Text style={{ color: "white", fontWeight: "700", fontSize: 15, marginLeft: 8 }}>Enviando...</Text></>
                       ) : (
-                        <><Text style={{ fontSize: 18 }}>📤</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Enviar Orçamento</Text></>
+                        <><Text style={{ fontSize: 18 }}>📤</Text><Text style={{ color: estimatedValueInput.trim() ? "white" : colors.muted, fontWeight: "700", fontSize: 15 }}>Enviar Orçamento</Text></>
                       )}
                     </TouchableOpacity>
                   )}
@@ -1668,38 +1689,12 @@ export default function RequestDetailScreen() {
                     }
                   </TouchableOpacity>
 
-                  {/* Campo obrigatório: Valor da Ordem de Compra */}
-                  <View style={{ marginBottom: 16 }}>
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
-                      Valor da Ordem de Compra <Text style={{ color: colors.error }}>*</Text>
-                    </Text>
-                    <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Informe o valor total da OC emitida</Text>
-                    <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderColor: orderValueInput.trim() ? colors.success : colors.error, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.background }}>
-                      <Text style={{ fontSize: 14, color: colors.muted, marginRight: 4 }}>R$</Text>
-                      <TextInput
-                        value={orderValueInput}
-                        onChangeText={(t) => {
-                          const cleaned = t.replace(/[^0-9.,]/g, "");
-                          setOrderValueInput(cleaned);
-                        }}
-                        placeholder="0,00"
-                        placeholderTextColor={colors.muted}
-                        keyboardType="decimal-pad"
-                        returnKeyType="done"
-                        style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.foreground }}
-                      />
-                    </View>
-                    <Text style={{ fontSize: 11, color: orderValueInput.trim() ? colors.success : colors.error, marginTop: 4 }}>
-                      {orderValueInput.trim() ? "✅ Valor da OC definido" : "* Obrigatório: informe o valor da ordem de compra"}
-                    </Text>
-                  </View>
-
                   {/* Botão Emitir OC */}
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending || !orderValueInput.trim()}
+                    disabled={approveMutation.isPending}
                     style={{
-                      backgroundColor: orderValueInput.trim() ? colors.primary : colors.border,
+                      backgroundColor: colors.primary,
                       borderRadius: 12,
                       paddingVertical: 14,
                       alignItems: "center",
@@ -1714,7 +1709,7 @@ export default function RequestDetailScreen() {
                       : (
                         <>
                           <Text style={{ fontSize: 16 }}>📤</Text>
-                          <Text style={{ color: orderValueInput.trim() ? "white" : colors.muted, fontWeight: "700", fontSize: 14 }}>
+                          <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
                             Emitir OC e Enviar ao Financeiro
                           </Text>
                         </>
@@ -1813,16 +1808,13 @@ export default function RequestDetailScreen() {
                     </View>
                   )}
 
-                  {/* Valor da Ordem / Estimado */}
-                  {(request.orderValue || request.totalEstimatedValue) && (
-                    <View style={{ backgroundColor: request.orderValue ? `${colors.success}10` : `${colors.warning}10`, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <Text style={{ fontSize: 18 }}>{request.orderValue ? "💰" : "💵"}</Text>
+                  {/* Valor da OC (a partir do Fluxo 06) ou Valor Estimado (antes) */}
+                  {request.totalEstimatedValue && (
+                    <View style={{ backgroundColor: isAfterOC ? `${colors.success}10` : `${colors.warning}10`, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Text style={{ fontSize: 18 }}>{isAfterOC ? "💰" : "💵"}</Text>
                       <View>
-                        <Text style={{ color: colors.muted, fontSize: 11 }}>{request.orderValue ? "Valor da Ordem de Compra" : "Valor Estimado"}</Text>
-                        <Text style={{ color: request.orderValue ? colors.success : colors.warning, fontWeight: "700", fontSize: 16 }}>{formatCurrency(request.orderValue ?? request.totalEstimatedValue)}</Text>
-                        {request.orderValue && request.totalEstimatedValue && (
-                          <Text style={{ color: colors.muted, fontSize: 11, marginTop: 2 }}>Est.: {formatCurrency(request.totalEstimatedValue)}</Text>
-                        )}
+                        <Text style={{ color: colors.muted, fontSize: 11 }}>{isAfterOC ? "Valor da OC" : "Valor Estimado"}</Text>
+                        <Text style={{ color: isAfterOC ? colors.success : colors.warning, fontWeight: "700", fontSize: 16 }}>{formatCurrency(request.totalEstimatedValue)}</Text>
                       </View>
                     </View>
                   )}

@@ -697,3 +697,10 @@
 - [x] Validar campo antes de permitir emitir OC (botão desabilitado se vazio)
 - [x] Salvar orderValue no banco ao emitir OC via approveMutation
 - [x] Atualizar schema tRPC (approve) e db.approveRequest para aceitar orderValue
+
+## Reestruturação do Valor Estimado / Valor da OC
+- [x] Tornar campo "Valor Estimado" obrigatório na etapa de Orçamento (não pode avançar sem preencher)
+- [x] Exibir Valor Estimado em todos os fluxos (antes da Emissão de OC)
+- [x] A partir do Fluxo 06 (Emissão de OC), renomear "Valor Estimado" para "Valor da OC" em cards e telas
+- [x] Remover o campo separado de Valor da OC adicionado ao Fluxo 06
+- [x] Garantir que o valor salvo no orçamento (totalEstimatedValue) aparece nos cards de todas as etapas

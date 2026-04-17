@@ -1024,7 +1024,7 @@ const REJECT_FLOW = REJECT_FLOW_NORMAL;
 export async function submitBudget(
   requestId: number,
   user: User,
-  orderValue?: number
+  estimatedValue?: number
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1053,8 +1053,8 @@ export async function submitBudget(
   await db.update(purchaseRequests).set({
     status: nextStatus as any,
     stepDeadlineAt: getStepDeadline(),
-    // Salvar o valor da ordem de compra se fornecido
-    ...(orderValue != null ? { orderValue: String(orderValue) } : {}),
+    // Salvar o valor estimado da OC definido pelo Orçamento
+    ...(estimatedValue != null ? { totalEstimatedValue: String(estimatedValue) } : {}),
     // Marcar que o orçamento já foi feito ao menos uma vez (para fluxo urgente/emergencial)
     ...(isUrgent ? { orcamentoFeitoUrgente: true } : {}),
   }).where(eq(purchaseRequests.id, requestId));

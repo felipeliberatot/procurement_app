@@ -164,21 +164,21 @@ export function RequestCard({
               {request.deadlineAt && <DeadlineTimer deadline={request.deadlineAt} />}
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              {request.orderValue ? (
+              {request.totalEstimatedValue ? (
                 <>
-                  <Text style={{ fontSize: 11, color: colors.success, fontWeight: "600" }}>Valor OC</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
-                    {formatCurrency(request.orderValue)}
-                  </Text>
+                  {(() => {
+                    const afterOC = ["aguardando_ordem_compra", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(request.status ?? "");
+                    return (
+                      <>
+                        <Text style={{ fontSize: 11, color: afterOC ? colors.success : colors.warning, fontWeight: "600" }}>{afterOC ? "Valor da OC" : "Valor Estimado"}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: afterOC ? colors.success : colors.foreground }}>
+                          {formatCurrency(request.totalEstimatedValue)}
+                        </Text>
+                      </>
+                    );
+                  })()}
                 </>
-              ) : (
-                <>
-                  <Text style={{ fontSize: 11, color: colors.muted }}>Valor est.</Text>
-                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground }}>
-                    {formatCurrency(request.totalEstimatedValue)}
-                  </Text>
-                </>
-              )}
+              ) : null}
             </View>
           </View>
 
