@@ -707,3 +707,8 @@
 
 ## PDF da Solicitação
 - [x] Incluir campo "Valor Estimado" / "Valor da OC" no relatório PDF gerado pelo botão de impressão
+
+## Bug: Valor Estimado não bloqueou avanço do Orçamento (SOL-2026-0254)
+- [ ] Investigar caminho que permitiu SOL-2026-0254 avançar sem valor estimado
+- [ ] Bloquear todos os caminhos de aprovação do orçamento sem valor estimado preenchido
+- [ ] Corrigir o registro SOL-2026-0254 no banco com o valor correto

@@ -492,6 +492,19 @@ export default function RequestDetailScreen() {
     }
   }, [request, paymentObsInitialized]);
 
+  // Pré-carregar estimatedValueInput com o totalEstimatedValue já salvo no banco
+  // Isso evita que o campo apareça vazio quando o usuário sai e volta da tela
+  const [estimatedValueInitialized, setEstimatedValueInitialized] = useState(false);
+  useEffect(() => {
+    if (!estimatedValueInitialized && request && request.totalEstimatedValue && !estimatedValueInput.trim()) {
+      const val = Number(request.totalEstimatedValue);
+      if (!isNaN(val) && val > 0) {
+        setEstimatedValueInput(val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+      }
+      setEstimatedValueInitialized(true);
+    }
+  }, [request, estimatedValueInitialized, estimatedValueInput]);
+
   const invalidateAll = () => {
     utils.requests.getById.invalidate({ id: requestId });
     utils.requests.history.invalidate({ requestId });
