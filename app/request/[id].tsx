@@ -51,7 +51,21 @@ async function readFileAsBase64(uri: string): Promise<string> {
       reader.readAsDataURL(blob);
     });
   } else {
-    return FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+    // No iOS, arquivos de apps externos (WhatsApp, Files, etc.) podem ter URIs
+    // que não são diretamente legíveis. Copiar para o cache garante acesso.
+    let readableUri = uri;
+    if (Platform.OS === "ios" && !uri.startsWith(FileSystem.cacheDirectory ?? "")) {
+      try {
+        const fileName = uri.split("/").pop() ?? `file_${Date.now()}`;
+        const destUri = `${FileSystem.cacheDirectory}${fileName}`;
+        await FileSystem.copyAsync({ from: uri, to: destUri });
+        readableUri = destUri;
+      } catch {
+        // Se a cópia falhar, tenta ler diretamente
+        readableUri = uri;
+      }
+    }
+    return FileSystem.readAsStringAsync(readableUri, { encoding: FileSystem.EncodingType.Base64 });
   }
 }
 

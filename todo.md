@@ -712,3 +712,6 @@
 - [ ] Investigar caminho que permitiu SOL-2026-0254 avançar sem valor estimado
 - [ ] Bloquear todos os caminhos de aprovação do orçamento sem valor estimado preenchido
 - [ ] Corrigir o registro SOL-2026-0254 no banco com o valor correto
+
+## Bug: Erro ao selecionar PDF do orçamento no iOS
+- [x] Corrigir leitura de URI de arquivo PDF no iOS (erro "Não foi possível selecionar ou ler o arquivo")
