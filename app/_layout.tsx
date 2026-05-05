@@ -17,6 +17,7 @@ import {
 import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 
 import { trpc, createTRPCClient } from "@/lib/trpc";
+import { AuthProvider } from "@/lib/_core/auth-context";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { router } from "expo-router";
 import { Alert } from "react-native";
@@ -93,6 +94,7 @@ export default function RootLayout() {
 
   const content = (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
       <trpc.Provider client={trpcClient} queryClient={queryClient}>
         <QueryClientProvider client={queryClient}>
           <Stack screenOptions={{ headerShown: false }}>
@@ -107,6 +109,7 @@ export default function RootLayout() {
           <StatusBar style="auto" translucent={Platform.OS === "android"} backgroundColor="transparent" />
         </QueryClientProvider>
       </trpc.Provider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 

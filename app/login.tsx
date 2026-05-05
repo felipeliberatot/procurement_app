@@ -190,7 +190,7 @@ function ForgotPasswordModal({
 
 // ─── Login Screen ─────────────────────────────────────────────────────────────
 export default function LoginScreen() {
-  const { isAuthenticated, loading, refresh } = useAuth();
+  const { isAuthenticated, loading, setUserDirectly } = useAuth();
   const colors = useColors();
 
   const [email, setEmail] = useState("");
@@ -259,7 +259,9 @@ export default function LoginScreen() {
         active: (result.user as any).active ?? true,
       };
       await Auth.setUserInfo(userInfo);
-      await refresh();
+      // Atualizar o estado global de autenticação diretamente com os dados do login
+      // Isso evita uma chamada extra ao getMe() e previne o bug de redirecionamento
+      setUserDirectly(userInfo);
       router.replace("/(tabs)");
     } catch (err: any) {
       setError(err?.message ?? "Erro ao fazer login. Tente novamente.");

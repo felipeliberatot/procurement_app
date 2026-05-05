@@ -719,3 +719,6 @@
 ## Deploy Web (Desktop)
 - [x] Gerar build web estático (expo export --platform web)
 - [x] Garantir que servidor Express serve build web com SPA fallback correto para domínio permanente
+
+## Bugs Ativos
+- [x] Bug: login redireciona de volta para tela de login após autenticação bem-sucedida — corrigido: criado AuthContext global (lib/_core/auth-context.tsx) compartilhado por todos os componentes; login usa setUserDirectly() para atualizar estado global imediatamente sem chamada extra ao getMe()
