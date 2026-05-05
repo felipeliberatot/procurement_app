@@ -68,6 +68,23 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  // Debug: verificar versao e existencia do dist/web
+  const BUILD_ID = "2026-05-05_v2";
+  app.get("/api/debug/fs", (_req, res) => {
+    const webDistPath = path.resolve(process.cwd(), "dist", "web");
+    const indexPath = path.join(webDistPath, "index.html");
+    import("fs").then((fs) => {
+      res.json({
+        buildId: BUILD_ID,
+        nodeEnv: process.env.NODE_ENV,
+        cwd: process.cwd(),
+        webDistPath,
+        webDistExists: fs.existsSync(webDistPath),
+        indexHtmlExists: fs.existsSync(indexPath),
+      });
+    });
+  });
+
   // Manual trigger for daily report (admin use only)
   app.post("/api/admin/daily-report", async (_req, res) => {
     console.log("[Admin] Manual daily report triggered via API");
