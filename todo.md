@@ -715,3 +715,7 @@
 
 ## Bug: Erro ao selecionar PDF do orçamento no iOS
 - [x] Corrigir leitura de URI de arquivo PDF no iOS (erro "Não foi possível selecionar ou ler o arquivo")
+
+## Deploy Web (Desktop)
+- [x] Gerar build web estático (expo export --platform web)
+- [x] Garantir que servidor Express serve build web com SPA fallback correto para domínio permanente

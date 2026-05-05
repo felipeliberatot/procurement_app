@@ -101,12 +101,26 @@ async function startServer() {
     const webDistPath = path.resolve(process.cwd(), "dist", "web");
     console.log(`[Server] Production mode: serving static files from ${webDistPath}`);
 
-    // Servir arquivos estaticos (JS, CSS, imagens, etc.)
-    app.use(express.static(webDistPath));
+    // Servir arquivos estaticos (JS, CSS, imagens, etc.) com cache adequado
+    app.use(express.static(webDistPath, {
+      maxAge: "1d",
+      etag: true,
+      // Nao fazer cache do index.html para garantir atualizacoes
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith("index.html")) {
+          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        }
+      },
+    }));
 
-    // SPA fallback: todas as rotas nao-API retornam o index.html
+    // SPA fallback: todas as rotas nao-API e nao-arquivo retornam o index.html
+    // Isso permite que o Expo Router gerencie as rotas no cliente
     app.use((req, res, next) => {
       if (req.path.startsWith("/api/")) {
+        return next();
+      }
+      // Se a rota tem extensao de arquivo, deixar passar (404 normal)
+      if (path.extname(req.path) !== "") {
         return next();
       }
       const indexPath = path.join(webDistPath, "index.html");
