@@ -4,6 +4,11 @@ import { createServer } from "http";
 import net from "net";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
+
+// ESM-compatible __dirname (esbuild ESM bundles don't define __dirname)
+const __filename = fileURLToPath(import.meta.url);
+const __currentDir = path.dirname(__filename);
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { registerOAuthRoutes } from "./oauth";
@@ -72,7 +77,7 @@ async function startServer() {
   // Debug: verificar versao e existencia do dist/web
   const BUILD_ID = "2026-05-05_v2";
   app.get("/api/debug/fs", (_req, res) => {
-    const webDistPath = path.resolve(process.cwd(), "dist", "web");
+    const webDistPath = path.resolve(__currentDir, "web");
     const indexPath = path.join(webDistPath, "index.html");
     import("fs").then((fs) => {
       res.json({
@@ -116,45 +121,48 @@ async function startServer() {
   if (isProduction) {
     // Em producao: servir o bundle estatico do Expo web
     // O bundle e gerado por `expo export --platform web` e fica em dist/web
-    const webDistPath = path.resolve(process.cwd(), "dist", "web");
+    // Usar __currentDir (ESM-compatible) para garantir o path correto
+    // Em producao o servidor compila para dist/index.js, entao __currentDir = dist/
+    // O dist/web fica em dist/web/ (mesmo nivel)
+    const webDistPath = path.resolve(__currentDir, "web");
     console.log(`[Server] Production mode: serving static files from ${webDistPath}`);
 
     // IMPORTANTE: O proxy do Manus so roteia /api/* para o Express.
-    // Rotas como /, /login, /_expo/* nunca chegam ao servidor.
-    // Solucao: servir tudo em /api/app (frontend) e /api/assets (assets estaticos)
+    // O build foi gerado com experiments.baseUrl: "/api/app" no app.config.ts
+    // Isso faz o Expo gerar assets com paths /api/app/_expo/... automaticamente
+    // e o Expo Router reconhece /api/app como a rota raiz.
 
-    // Servir assets estaticos em /api/assets/* (JS, CSS, imagens, etc.)
-    app.use("/api/assets", express.static(webDistPath, {
+    // Servir assets estaticos em /api/app/_expo/* e /api/app/favicon.ico
+    // O express.static serve os arquivos de dist/web/ no prefixo /api/app/
+    app.use("/api/app", express.static(webDistPath, {
       maxAge: "1d",
       etag: true,
+      index: false, // Nao servir index.html automaticamente - controlamos isso abaixo
     }));
 
-    // Funcao para servir index.html com paths de assets reescritos
-    // O index.html original usa /_expo/... e /favicon.ico que nao passam pelo proxy
-    // Reescrevemos para /api/assets/_expo/... e /api/assets/favicon.ico
+    // Servir o index.html para /api/app e qualquer sub-rota (SPA fallback)
     const serveWebApp = (_req: express.Request, res: express.Response) => {
       const indexPath = path.join(webDistPath, "index.html");
       try {
-        let html = fs.readFileSync(indexPath, "utf-8");
-        // Reescrever paths absolutos de assets para /api/assets/*
-        html = html
-          .replace(/href="\/_expo\//g, 'href="/api/assets/_expo/')
-          .replace(/src="\/_expo\//g, 'src="/api/assets/_expo/')
-          .replace(/href="\/favicon/g, 'href="/api/assets/favicon')
-          .replace(/href="\/apple-touch-icon/g, 'href="/api/assets/apple-touch-icon')
-          .replace(/src="\/apple-touch-icon/g, 'src="/api/assets/apple-touch-icon');
         res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.send(html);
+        res.sendFile(indexPath);
       } catch (err) {
         console.error(`[Server] Failed to serve index.html: ${err}`);
         res.status(503).send("Frontend not built. Run: pnpm build:web");
       }
     };
 
-    // Servir o app em /api/app e qualquer sub-rota (SPA fallback)
+    // SPA fallback: qualquer rota /api/app/* que nao seja um arquivo estatico
+    // serve o index.html (o Expo Router cuida do roteamento no cliente)
     app.get("/api/app", serveWebApp);
-    app.get("/api/app/*", serveWebApp);
+    app.get("/api/app/*", (req, res, next) => {
+      // Se for um asset estatico (tem extensao), deixa o express.static acima tratar
+      const hasExtension = path.extname(req.path).length > 0;
+      if (hasExtension) return next();
+      // Caso contrario, serve o index.html (rota do SPA)
+      serveWebApp(req, res);
+    });
 
     console.log(`[Server] Web app available at /api/app`);
   } else {

@@ -99,6 +99,7 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+    baseUrl: "/api/app",
   },
   extra: {
     logoUrl: env.logoUrl,
