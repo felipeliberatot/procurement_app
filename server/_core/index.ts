@@ -3,6 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import path from "path";
+import fs from "fs";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { registerOAuthRoutes } from "./oauth";
@@ -118,36 +119,44 @@ async function startServer() {
     const webDistPath = path.resolve(process.cwd(), "dist", "web");
     console.log(`[Server] Production mode: serving static files from ${webDistPath}`);
 
-    // Servir arquivos estaticos (JS, CSS, imagens, etc.) com cache adequado
-    app.use(express.static(webDistPath, {
+    // IMPORTANTE: O proxy do Manus so roteia /api/* para o Express.
+    // Rotas como /, /login, /_expo/* nunca chegam ao servidor.
+    // Solucao: servir tudo em /api/app (frontend) e /api/assets (assets estaticos)
+
+    // Servir assets estaticos em /api/assets/* (JS, CSS, imagens, etc.)
+    app.use("/api/assets", express.static(webDistPath, {
       maxAge: "1d",
       etag: true,
-      // Nao fazer cache do index.html para garantir atualizacoes
-      setHeaders: (res, filePath) => {
-        if (filePath.endsWith("index.html")) {
-          res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        }
-      },
     }));
 
-    // SPA fallback: todas as rotas nao-API e nao-arquivo retornam o index.html
-    // Isso permite que o Expo Router gerencie as rotas no cliente
-    app.use((req, res, next) => {
-      if (req.path.startsWith("/api/")) {
-        return next();
-      }
-      // Se a rota tem extensao de arquivo, deixar passar (404 normal)
-      if (path.extname(req.path) !== "") {
-        return next();
-      }
+    // Funcao para servir index.html com paths de assets reescritos
+    // O index.html original usa /_expo/... e /favicon.ico que nao passam pelo proxy
+    // Reescrevemos para /api/assets/_expo/... e /api/assets/favicon.ico
+    const serveWebApp = (_req: express.Request, res: express.Response) => {
       const indexPath = path.join(webDistPath, "index.html");
-      res.sendFile(indexPath, (err) => {
-        if (err) {
-          console.error(`[Server] Failed to serve index.html: ${err.message}`);
-          res.status(503).send("Frontend not built. Run: pnpm build:web");
-        }
-      });
-    });
+      try {
+        let html = fs.readFileSync(indexPath, "utf-8");
+        // Reescrever paths absolutos de assets para /api/assets/*
+        html = html
+          .replace(/href="\/_expo\//g, 'href="/api/assets/_expo/')
+          .replace(/src="\/_expo\//g, 'src="/api/assets/_expo/')
+          .replace(/href="\/favicon/g, 'href="/api/assets/favicon')
+          .replace(/href="\/apple-touch-icon/g, 'href="/api/assets/apple-touch-icon')
+          .replace(/src="\/apple-touch-icon/g, 'src="/api/assets/apple-touch-icon');
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.send(html);
+      } catch (err) {
+        console.error(`[Server] Failed to serve index.html: ${err}`);
+        res.status(503).send("Frontend not built. Run: pnpm build:web");
+      }
+    };
+
+    // Servir o app em /api/app e qualquer sub-rota (SPA fallback)
+    app.get("/api/app", serveWebApp);
+    app.get("/api/app/*", serveWebApp);
+
+    console.log(`[Server] Web app available at /api/app`);
   } else {
     // Em desenvolvimento: fazer proxy para o Metro (Expo web frontend na porta 8081)
     const metroPort = parseInt(process.env.EXPO_PORT || "8081");
