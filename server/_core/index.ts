@@ -75,7 +75,7 @@ async function startServer() {
   });
 
   // Debug: verificar versao e existencia do dist/web
-  const BUILD_ID = "2026-05-05_v2";
+  const BUILD_ID = "2026-05-05_v5";  // baseUrl injetado via script no index.html
   app.get("/api/debug/fs", (_req, res) => {
     const webDistPath = path.resolve(__currentDir, "web");
     const indexPath = path.join(webDistPath, "index.html");
@@ -140,13 +140,33 @@ async function startServer() {
       index: false, // Nao servir index.html automaticamente - controlamos isso abaixo
     }));
 
+    // Script injetado no index.html para garantir que o Expo Router
+    // reconheca /api/app como a rota raiz, independente do bundle.
+    // O script usa history.replaceState para normalizar o pathname
+    // antes do bundle JS carregar e inicializar o Expo Router.
+    const BASE_URL = "/api/app";
+    const baseUrlScript = `<script>
+  (function() {
+    var base = '${BASE_URL}';
+    var p = window.location.pathname;
+    // Se o pathname comecar com /api/app, remover o prefixo para o Expo Router
+    if (p === base || p.startsWith(base + '/')) {
+      var newPath = p.slice(base.length) || '/';
+      window.history.replaceState(null, '', newPath + window.location.search + window.location.hash);
+    }
+  })();
+</script>`;
+
     // Servir o index.html para /api/app e qualquer sub-rota (SPA fallback)
     const serveWebApp = (_req: express.Request, res: express.Response) => {
       const indexPath = path.join(webDistPath, "index.html");
       try {
+        let html = fs.readFileSync(indexPath, "utf-8");
+        // Injetar o script de baseUrl antes do bundle JS carregar
+        html = html.replace("</head>", `${baseUrlScript}</head>`);
         res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         res.setHeader("Content-Type", "text/html; charset=utf-8");
-        res.sendFile(indexPath);
+        res.send(html);
       } catch (err) {
         console.error(`[Server] Failed to serve index.html: ${err}`);
         res.status(503).send("Frontend not built. Run: pnpm build:web");
