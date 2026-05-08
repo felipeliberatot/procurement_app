@@ -240,8 +240,10 @@ export default function LoginScreen() {
       } else {
         await AsyncStorage.removeItem("@cgs:remember_credentials");
       }
-      // Salvar token e dados do usuário
-      if (result.token && Platform.OS !== "web") {
+      // Salvar token e dados do usuário (web e native)
+      // No web, o token é armazenado no localStorage e enviado como Bearer token
+      // Isso resolve o bug de cookie com domínio incorreto no servidor de produção
+      if (result.token) {
         await Auth.setSessionToken(result.token);
       }
       const userInfo: Auth.User = {

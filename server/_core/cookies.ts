@@ -47,7 +47,12 @@ function getParentDomain(hostname: string): string | undefined {
 export function getSessionCookieOptions(
   req: Request,
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
-  const hostname = req.hostname;
+  // Use x-forwarded-host when behind a reverse proxy (Cloudflare, nginx, etc.)
+  // This ensures the cookie domain matches the public-facing hostname, not the internal Cloud Run hostname
+  const forwardedHost = req.headers["x-forwarded-host"];
+  const effectiveHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.hostname;
+  // Strip port if present (e.g. "example.com:3000" -> "example.com")
+  const hostname = effectiveHost.split(":")[0];
   const domain = getParentDomain(hostname);
 
   return {

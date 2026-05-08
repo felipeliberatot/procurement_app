@@ -3623,7 +3623,9 @@ function getParentDomain(hostname) {
   return "." + parts.slice(-2).join(".");
 }
 function getSessionCookieOptions(req) {
-  const hostname = req.hostname;
+  const forwardedHost = req.headers["x-forwarded-host"];
+  const effectiveHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost) || req.hostname;
+  const hostname = effectiveHost.split(":")[0];
   const domain = getParentDomain(hostname);
   return {
     domain,

@@ -722,3 +722,11 @@
 
 ## Bugs Ativos
 - [x] Bug: login redireciona de volta para tela de login após autenticação bem-sucedida — corrigido: criado AuthContext global (lib/_core/auth-context.tsx) compartilhado por todos os componentes; login usa setUserDirectly() para atualizar estado global imediatamente sem chamada extra ao getMe()
+
+## Bug: Cookie de sessão com domínio incorreto no servidor de produção
+- [x] Diagnóstico: cookie definido com Domain=.run.app (Cloud Run interno) em vez de .manus.space
+- [x] Corrigido: server/_core/cookies.ts usa x-forwarded-host do Cloudflare para determinar domínio correto
+- [x] Corrigido: lib/_core/auth.ts armazena token JWT no localStorage para web (elimina dependência de cookies)
+- [x] Corrigido: lib/_core/api.ts envia Bearer token para todas as plataformas quando token disponível
+- [x] Corrigido: app/login.tsx salva token no localStorage para web e native
+- [x] Corrigido: lib/_core/auth-context.tsx verifica token do localStorage primeiro, com fallback para cookie-based auth

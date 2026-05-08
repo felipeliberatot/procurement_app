@@ -19,10 +19,11 @@ export type User = {
 
 export async function getSessionToken(): Promise<string | null> {
   try {
-    // Web platform uses cookie-based auth, no manual token management needed
     if (Platform.OS === "web") {
-      console.log("[Auth] Web platform uses cookie-based auth, skipping token retrieval");
-      return null;
+      // Web: use localStorage to store the session token (cookie fallback)
+      const token = typeof window !== "undefined" ? window.localStorage.getItem(SESSION_TOKEN_KEY) : null;
+      console.log("[Auth] Web: session token from localStorage:", token ? `present (${token.substring(0, 20)}...)` : "missing");
+      return token;
     }
 
     // Use SecureStore for native
@@ -41,9 +42,12 @@ export async function getSessionToken(): Promise<string | null> {
 
 export async function setSessionToken(token: string): Promise<void> {
   try {
-    // Web platform uses cookie-based auth, no manual token management needed
     if (Platform.OS === "web") {
-      console.log("[Auth] Web platform uses cookie-based auth, skipping token storage");
+      // Web: store token in localStorage so it can be sent as Bearer token
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(SESSION_TOKEN_KEY, token);
+        console.log("[Auth] Web: session token stored in localStorage");
+      }
       return;
     }
 
@@ -59,9 +63,11 @@ export async function setSessionToken(token: string): Promise<void> {
 
 export async function removeSessionToken(): Promise<void> {
   try {
-    // Web platform uses cookie-based auth, logout is handled by server clearing cookie
     if (Platform.OS === "web") {
-      console.log("[Auth] Web platform uses cookie-based auth, skipping token removal");
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(SESSION_TOKEN_KEY);
+        console.log("[Auth] Web: session token removed from localStorage");
+      }
       return;
     }
 
@@ -81,7 +87,7 @@ export async function getUserInfo(): Promise<User | null> {
     let info: string | null = null;
     if (Platform.OS === "web") {
       // Use localStorage for web
-      info = window.localStorage.getItem(USER_INFO_KEY);
+      info = typeof window !== "undefined" ? window.localStorage.getItem(USER_INFO_KEY) : null;
     } else {
       // Use SecureStore for native
       info = await SecureStore.getItemAsync(USER_INFO_KEY);
@@ -106,8 +112,10 @@ export async function setUserInfo(user: User): Promise<void> {
 
     if (Platform.OS === "web") {
       // Use localStorage for web
-      window.localStorage.setItem(USER_INFO_KEY, JSON.stringify(user));
-      console.log("[Auth] User info stored in localStorage successfully");
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(USER_INFO_KEY, JSON.stringify(user));
+        console.log("[Auth] User info stored in localStorage successfully");
+      }
       return;
     }
 
@@ -123,7 +131,9 @@ export async function clearUserInfo(): Promise<void> {
   try {
     if (Platform.OS === "web") {
       // Use localStorage for web
-      window.localStorage.removeItem(USER_INFO_KEY);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(USER_INFO_KEY);
+      }
       return;
     }
 

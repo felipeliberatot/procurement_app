@@ -26,66 +26,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setError(null);
 
-      // Web platform: use cookie-based auth, fetch user from API
-      if (Platform.OS === "web") {
-        console.log("[AuthContext] Web platform: fetching user from API...");
-
-        // First, try to use cached user info for immediate display
-        const cachedUser = await Auth.getUserInfo();
-        if (cachedUser) {
-          console.log("[AuthContext] Web: using cached user info for immediate display");
-          setUser(cachedUser);
-          // Don't set loading to false yet — still verify with server
-        }
-
-        const apiUser = await Api.getMe();
-        console.log("[AuthContext] API user response:", apiUser);
-
-        if (apiUser) {
-          const userInfo: Auth.User = {
-            id: apiUser.id,
-            openId: apiUser.openId,
-            name: apiUser.name,
-            email: apiUser.email,
-            loginMethod: apiUser.loginMethod,
-            lastSignedIn: new Date(apiUser.lastSignedIn),
-            procurementRole: (apiUser as any).procurementRole ?? null,
-            approvalLevel: (apiUser as any).approvalLevel ?? null,
-            extraRoles: (apiUser as any).extraRoles ?? null,
-            extraApprovalLevels: (apiUser as any).extraApprovalLevels ?? null,
-            phone: (apiUser as any).phone ?? null,
-            active: (apiUser as any).active ?? true,
-          };
-          setUser(userInfo);
-          // Cache user info in localStorage for faster subsequent loads
-          await Auth.setUserInfo(userInfo);
-          console.log("[AuthContext] Web user set from API:", userInfo);
-        } else {
-          console.log("[AuthContext] Web: No authenticated user from API");
-          // Only clear if we didn't have a cached user that was just set
-          setUser(null);
-          await Auth.clearUserInfo();
-        }
-        return;
-      }
-
-      // Native platform: use token-based auth
-      console.log("[AuthContext] Native platform: checking for session token...");
+      // Check for stored session token (works for both web and native)
+      // Web: token stored in localStorage, sent as Bearer header
+      // Native: token stored in SecureStore, sent as Bearer header
       const sessionToken = await Auth.getSessionToken();
+      console.log("[AuthContext] Session token:", sessionToken ? `present (${sessionToken.substring(0, 20)}...)` : "missing", "platform:", Platform.OS);
+
       if (!sessionToken) {
-        console.log("[AuthContext] No session token, setting user to null");
-        setUser(null);
+        // No stored token — check if cookie-based auth works (legacy web flow)
+        if (Platform.OS === "web") {
+          console.log("[AuthContext] Web: no localStorage token, trying cookie-based auth...");
+          const cachedUser = await Auth.getUserInfo();
+          if (cachedUser) {
+            console.log("[AuthContext] Web: using cached user info for immediate display");
+            setUser(cachedUser);
+          }
+          const apiUser = await Api.getMe();
+          if (apiUser) {
+            const userInfo: Auth.User = {
+              id: apiUser.id,
+              openId: apiUser.openId,
+              name: apiUser.name,
+              email: apiUser.email,
+              loginMethod: apiUser.loginMethod,
+              lastSignedIn: new Date(apiUser.lastSignedIn),
+              procurementRole: (apiUser as any).procurementRole ?? null,
+              approvalLevel: (apiUser as any).approvalLevel ?? null,
+              extraRoles: (apiUser as any).extraRoles ?? null,
+              extraApprovalLevels: (apiUser as any).extraApprovalLevels ?? null,
+              phone: (apiUser as any).phone ?? null,
+              active: (apiUser as any).active ?? true,
+            };
+            setUser(userInfo);
+            await Auth.setUserInfo(userInfo);
+            console.log("[AuthContext] Web: user set from cookie-based API:", userInfo);
+          } else {
+            console.log("[AuthContext] Web: no authenticated user from cookie-based API");
+            setUser(null);
+            await Auth.clearUserInfo();
+          }
+        } else {
+          console.log("[AuthContext] Native: no session token, setting user to null");
+          setUser(null);
+        }
         return;
       }
 
-      // Use cached user info for native (token validates the session)
+      // Token exists — use cached user info for immediate display
       const cachedUser = await Auth.getUserInfo();
       if (cachedUser) {
-        console.log("[AuthContext] Using cached user info");
+        console.log("[AuthContext] Using cached user info for immediate display");
         setUser(cachedUser);
+      }
+
+      // Verify token with server (getMe will send Bearer token via api.ts)
+      const apiUser = await Api.getMe();
+      console.log("[AuthContext] API user response:", apiUser ? apiUser.name : "null");
+      if (apiUser) {
+        const userInfo: Auth.User = {
+          id: apiUser.id,
+          openId: apiUser.openId,
+          name: apiUser.name,
+          email: apiUser.email,
+          loginMethod: apiUser.loginMethod,
+          lastSignedIn: new Date(apiUser.lastSignedIn),
+          procurementRole: (apiUser as any).procurementRole ?? null,
+          approvalLevel: (apiUser as any).approvalLevel ?? null,
+          extraRoles: (apiUser as any).extraRoles ?? null,
+          extraApprovalLevels: (apiUser as any).extraApprovalLevels ?? null,
+          phone: (apiUser as any).phone ?? null,
+          active: (apiUser as any).active ?? true,
+        };
+        setUser(userInfo);
+        await Auth.setUserInfo(userInfo);
+        console.log("[AuthContext] User verified and updated from API:", userInfo.name);
       } else {
-        console.log("[AuthContext] No cached user, setting user to null");
+        // Token invalid or expired — clear everything
+        console.log("[AuthContext] Token invalid/expired, clearing session");
         setUser(null);
+        await Auth.removeSessionToken();
+        await Auth.clearUserInfo();
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error("Failed to fetch user");
