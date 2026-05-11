@@ -730,3 +730,8 @@
 - [x] Corrigido: lib/_core/api.ts envia Bearer token para todas as plataformas quando token disponível
 - [x] Corrigido: app/login.tsx salva token no localStorage para web e native
 - [x] Corrigido: lib/_core/auth-context.tsx verifica token do localStorage primeiro, com fallback para cookie-based auth
+
+## Bug: Login redireciona de volta para tela de login (race condition)
+- [x] Diagnóstico: fetchUser() em andamento sobrescrevia estado após setUserDirectly() — race condition entre fetchUser() inicial e router.replace("/(tabs)")
+- [x] Corrigido: auth-context.tsx usa fetchGenRef (geração) + directLoginRef para invalidar fetchUser() em andamento quando setUserDirectly() é chamado
+- [x] Bundle web e servidor reconstruídos com as correções

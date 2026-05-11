@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, name, email, procurement_role, approval_level, extra_roles, extra_approval_levels, active FROM users WHERE LOWER(name) LIKE '%willian%' OR LOWER(name) LIKE '%camilo%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, procurement_role, approval_level, extra_roles, extra_approval_levels, active FROM users WHERE LOWER(name) LIKE '%willian%' OR LOWER(name) LIKE '%camilo%';",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'procurement_role' in 'field list'"
+  ]
+}

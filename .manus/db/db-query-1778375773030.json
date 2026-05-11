@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO users (openId, name, email, loginMethod, role, procurementRole, approvalLevel, active, passwordHash)\nVALUES ('test-diag-001', 'Usuário Teste Diagnóstico', 'teste@cgs.agr.br', 'password', 'user', 'solicitante', 'nenhum', 1, '$2b$10$DRftUSqLtq5d4wZAZzoemOdSLEb9Z.fqGs1ocb/Ye4NB6nYddQHwa');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute INSERT INTO users (openId, name, email, loginMethod, role, procurementRole, approvalLevel, active, passwordHash)\nVALUES ('test-diag-001', 'Usuário Teste Diagnóstico', 'teste@cgs.agr.br', 'password', 'user', 'solicitante', 'nenhum', 1, '$2b$10$DRftUSqLtq5d4wZAZzoemOdSLEb9Z.fqGs1ocb/Ye4NB6nYddQHwa');",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 302
+}
