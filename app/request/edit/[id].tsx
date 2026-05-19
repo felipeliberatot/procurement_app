@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "@/lib/trpc";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -70,6 +70,17 @@ export default function EditRequestScreen() {
   const [showDeptPicker, setShowDeptPicker] = useState(false);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [showOsPicker, setShowOsPicker] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingSubmitData, setPendingSubmitData] = useState<{
+    requestId: number;
+    department: string;
+    costCenterCode?: string;
+    application: string;
+    urgencyLevel: UrgencyLevel;
+    observations?: string;
+    osMyfarm?: string;
+    items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
+  } | null>(null);
   const [assetSearch, setAssetSearch] = useState("");
   const [deptSearch, setDeptSearch] = useState("");
   const [osSearch, setOsSearch] = useState("");
@@ -134,18 +145,17 @@ export default function EditRequestScreen() {
       utils.requests.dashboardStats.invalidate();
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          "✅ Solicitação Atualizada!",
-          "A solicitação foi editada e o processo de aprovação foi reiniciado. O Gerente de Unidade será notificado.",
-          [{ text: "OK", onPress: () => router.back() }]
-        );
-      } else {
-        router.back();
-        setTimeout(() => Alert.alert("✅ Solicitação Atualizada!", "A solicitação foi editada e o processo de aprovação foi reiniciado."), 400);
       }
+      Alert.alert(
+        "✅ Solicitação Atualizada!",
+        "A solicitação foi editada e o processo de aprovação foi reiniciado. O Gerente de Unidade será notificado.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
     },
     onError: (error) => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       Alert.alert("Erro ao editar", error.message || "Não foi possível editar a solicitação.");
     },
   });
@@ -180,34 +190,39 @@ export default function EditRequestScreen() {
     const validItems = items.filter((i) => i.description.trim());
     if (validItems.length === 0) { Alert.alert("Campo obrigatório", "Adicione ao menos um item com descrição."); return; }
 
-    Alert.alert(
-      "Confirmar Edição",
-      "Ao salvar, o processo de aprovação será reiniciado do início. O Gerente de Unidade precisará aprovar novamente. Deseja continuar?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Salvar e Reiniciar",
-          style: "destructive",
-          onPress: () => {
-            updateMutation.mutate({
-              requestId,
-              department: department.trim(),
-              costCenterCode: costCenterCode || undefined,
-              application: application.trim(),
-              urgencyLevel: urgency,
-              observations: observations.trim() || undefined,
-              osMyfarm: osMyfarm.trim() || undefined,
-              items: validItems.map((i) => ({
-                description: i.description.trim(),
-                quantity: i.quantity || "1",
-                unit: i.unit || "un",
-                unitPrice: i.unitPrice.replace(",", ".") || undefined,
-              })),
-            });
+    const payload = {
+      requestId,
+      department: department.trim(),
+      costCenterCode: costCenterCode || undefined,
+      application: application.trim(),
+      urgencyLevel: urgency,
+      observations: observations.trim() || undefined,
+      osMyfarm: osMyfarm.trim() || undefined,
+      items: validItems.map((i) => ({
+        description: i.description.trim(),
+        quantity: i.quantity || "1",
+        unit: i.unit || "un",
+        unitPrice: i.unitPrice.replace(",", ".") || undefined,
+      })),
+    };
+    // Na web, Alert com múltiplos botões não chama onPress corretamente — usar modal nativo
+    if (Platform.OS === "web") {
+      setPendingSubmitData(payload);
+      setShowConfirmModal(true);
+    } else {
+      Alert.alert(
+        "Confirmar Edição",
+        "Ao salvar, o processo de aprovação será reiniciado do início. O Gerente de Unidade precisará aprovar novamente. Deseja continuar?",
+        [
+          { text: "Cancelar", style: "cancel" },
+          {
+            text: "Salvar e Reiniciar",
+            style: "destructive",
+            onPress: () => updateMutation.mutate(payload),
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   if (isLoadingRequest) {
@@ -741,6 +756,53 @@ export default function EditRequestScreen() {
                 }}
               />
             )}
+          </View>
+        </View>
+      )}
+      {/* Modal de Confirmação (web-safe: substitui Alert com múltiplos botões) */}
+      {showConfirmModal && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center", padding: 24, zIndex: 9999 }}>
+          <View style={{ backgroundColor: colors.background, borderRadius: 20, padding: 24, width: "100%", maxWidth: 400, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12 }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground, marginBottom: 10, textAlign: "center" }}>Confirmar Edição</Text>
+            <Text style={{ fontSize: 14, color: colors.muted, textAlign: "center", lineHeight: 20, marginBottom: 24 }}>
+              Ao salvar, o processo de aprovação será reiniciado do início. O Gerente de Unidade precisará aprovar novamente. Deseja continuar?
+            </Text>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <Pressable
+                onPress={() => { setShowConfirmModal(false); setPendingSubmitData(null); }}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  backgroundColor: colors.surface,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: 12,
+                  paddingVertical: 13,
+                  alignItems: "center",
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <Text style={{ fontSize: 15, fontWeight: "600", color: colors.muted }}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setShowConfirmModal(false);
+                  if (pendingSubmitData) {
+                    updateMutation.mutate(pendingSubmitData);
+                    setPendingSubmitData(null);
+                  }
+                }}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  backgroundColor: colors.warning,
+                  borderRadius: 12,
+                  paddingVertical: 13,
+                  alignItems: "center",
+                  opacity: pressed ? 0.8 : 1,
+                })}
+              >
+                <Text style={{ fontSize: 15, fontWeight: "700", color: "#fff" }}>Salvar e Reiniciar</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       )}

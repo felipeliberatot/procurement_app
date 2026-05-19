@@ -1,0 +1,115 @@
+{
+  "query": "SELECT ri.id, ri.description, ri.quantity, ri.unit, ri.unitPrice FROM requestItems ri JOIN purchaseRequests pr ON ri.requestId = pr.id WHERE pr.requestNumber = 'SOL-2026-0312';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT ri.id, ri.description, ri.quantity, ri.unit, ri.unitPrice FROM requestItems ri JOIN purchaseRequests pr ON ri.requestId = pr.id WHERE pr.requestNumber = 'SOL-2026-0312';",
+  "rows": [
+    {
+      "id": "6030001",
+      "description": "VINAGRE DE ALCOOL (VITALLE0",
+      "quantity": "12.00",
+      "unit": "un",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030002",
+      "description": "CAFÉ PILÃO",
+      "quantity": "3.00",
+      "unit": "un",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030003",
+      "description": "AÇUCAR (BARRALCOOL)",
+      "quantity": "1.00",
+      "unit": "CX",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030004",
+      "description": "COLHER CAFÉ DESCARTAVEL",
+      "quantity": "3.00",
+      "unit": "PCT",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030005",
+      "description": "NAFTALINA",
+      "quantity": "1.00",
+      "unit": "CX",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030006",
+      "description": "ÁGUA SANITARIA 1LT",
+      "quantity": "3.00",
+      "unit": "un",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030007",
+      "description": "SACO DE LIXO 50L",
+      "quantity": "2.00",
+      "unit": "PCT",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030008",
+      "description": "COALA ALGODÃO",
+      "quantity": "1.00",
+      "unit": "un",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030009",
+      "description": "PINHO SOL LAVANDA",
+      "quantity": "1.00",
+      "unit": "un",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030010",
+      "description": "COPO DESCARTAVEL",
+      "quantity": "5.00",
+      "unit": "PCT",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030011",
+      "description": "BOLACHA ÁGUA E SAL",
+      "quantity": "4.00",
+      "unit": "PCT",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030012",
+      "description": "ROSQUINHA DE LEITE/COCO",
+      "quantity": "4.00",
+      "unit": "PCT",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030013",
+      "description": "SACO DE LIXO 30L",
+      "quantity": "1.00",
+      "unit": "PCT",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030014",
+      "description": "PAPEL HIGIÊNICO LEVE 12 PG 11",
+      "quantity": "3.00",
+      "unit": "PCT",
+      "unitPrice": "NULL"
+    },
+    {
+      "id": "6030015",
+      "description": "PAPEL TOALHA PARA MÃO (BANHEIRO)",
+      "quantity": "3.00",
+      "unit": "PCT",
+      "unitPrice": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tdescription\tquantity\tunit\tunitPrice\n6030001\tVINAGRE DE ALCOOL (VITALLE0\t12.00\tun\tNULL\n6030002\tCAFÉ PILÃO\t3.00\tun\tNULL\n6030003\tAÇUCAR (BARRALCOOL)\t1.00\tCX\tNULL\n6030004\tCOLHER CAFÉ DESCARTAVEL\t3.00\tPCT\tNULL\n6030005\tNAFTALINA\t1.00\tCX\tNULL\n6030006\tÁGUA SANITARIA 1LT\t3.00\tun\tNULL\n6030007\tSACO DE LIXO 50L\t2.00\tPCT\tNULL\n6030008\tCOALA ALGODÃO\t1.00\tun\tNULL\n6030009\tPINHO SOL LAVANDA\t1.00\tun\tNULL\n6030010\tCOPO DESCARTAVEL\t5.00\tPCT\tNULL\n6030011\tBOLACHA ÁGUA E SAL\t4.00\tPCT\tNULL\n6030012\tROSQUINHA DE LEITE/COCO\t4.00\tPCT\tNULL\n6030013\tSACO DE LIXO 30L\t1.00\tPCT\tNULL\n6030014\tPAPEL HIGIÊNICO LEVE 12 PG 11\t3.00\tPCT\tNULL\n6030015\tPAPEL TOALHA PARA MÃO (BANHEIRO)\t3.00\tPCT\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 271
+}
