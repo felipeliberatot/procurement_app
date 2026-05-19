@@ -194,6 +194,7 @@ export async function upsertUserByAdmin(data: {
   active?: boolean;
   passwordHash?: string;
   password?: string;
+  registerPermissions?: string | null; // JSON de permissões granulares
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -236,6 +237,7 @@ export async function upsertUserByAdmin(data: {
       approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
       extraApprovalLevels: extraApprovalLevelsJson,
       active: data.active ?? true,
+      registerPermissions: data.registerPermissions !== undefined ? data.registerPermissions : undefined,
       ...(finalPasswordHash !== undefined ? { passwordHash: finalPasswordHash } : {}),
     }).where(eq(users.id, data.id));
     return { id: data.id };
@@ -255,6 +257,7 @@ export async function upsertUserByAdmin(data: {
       approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
       extraApprovalLevels: extraApprovalLevelsJson,
       active: data.active ?? true,
+      registerPermissions: data.registerPermissions ?? null,
       lastSignedIn: new Date(),
       ...(finalPasswordHash !== undefined ? { passwordHash: finalPasswordHash } : {}),
     });

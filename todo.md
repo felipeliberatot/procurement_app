@@ -735,3 +735,14 @@
 - [x] Diagnóstico: fetchUser() em andamento sobrescrevia estado após setUserDirectly() — race condition entre fetchUser() inicial e router.replace("/(tabs)")
 - [x] Corrigido: auth-context.tsx usa fetchGenRef (geração) + directLoginRef para invalidar fetchUser() em andamento quando setUserDirectly() é chamado
 - [x] Bundle web e servidor reconstruídos com as correções
+
+## Bug: Willian Camilo não consegue criar/editar/excluir bens
+- [ ] Diagnóstico: usuário tem permissões corretas (admin + assets_admin) mas botões não aparecem ou não funcionam
+- [ ] Possível causa: app em cache com estado antigo de autenticação — Willian precisa fazer logout e login novamente
+- [ ] Verificar se há problema no frontend com carregamento de permissões após login
+
+## Permissões Granulares de Cadastro (Nova Funcionalidade)
+- [ ] Adicionar coluna `registerPermissions` (JSON) na tabela users no banco de dados
+- [ ] Implementar UI de permissões no modal de edição de usuário com colunas User/Admin/Master e checkboxes criar/editar/excluir por aba
+- [ ] Implementar lógica de verificação de permissões granulares nas abas de cadastro (Centros de Custo, Bens, Fazendas, Unidades, Departamentos)
+- [ ] Salvar e publicar checkpoint

@@ -83,6 +83,8 @@ var init_schema = __esm({
       // Hashed PIN for master quick access
       passwordHash: varchar("passwordHash", { length: 255 }),
       // Hashed password for email+password login
+      registerPermissions: text("register_permissions"),
+      // JSON: permissões granulares de cadastro por aba
       active: boolean("active").default(true).notNull(),
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -1142,6 +1144,7 @@ async function upsertUserByAdmin(data) {
       approvalLevel: data.approvalLevel ?? "nenhum",
       extraApprovalLevels: extraApprovalLevelsJson,
       active: data.active ?? true,
+      registerPermissions: data.registerPermissions !== void 0 ? data.registerPermissions : void 0,
       ...finalPasswordHash !== void 0 ? { passwordHash: finalPasswordHash } : {}
     }).where(eq2(users.id, data.id));
     return { id: data.id };
@@ -1159,6 +1162,7 @@ async function upsertUserByAdmin(data) {
       approvalLevel: data.approvalLevel ?? "nenhum",
       extraApprovalLevels: extraApprovalLevelsJson,
       active: data.active ?? true,
+      registerPermissions: data.registerPermissions ?? null,
       lastSignedIn: /* @__PURE__ */ new Date(),
       ...finalPasswordHash !== void 0 ? { passwordHash: finalPasswordHash } : {}
     });
@@ -4433,7 +4437,12 @@ var appRouter = router({
       approvalLevel: z2.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"]).optional(),
       extraApprovalLevels: z2.array(z2.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"])).optional(),
       active: z2.boolean().optional(),
-      password: z2.string().min(6).optional()
+      password: z2.string().min(6).optional(),
+      registerPermissions: z2.record(z2.string(), z2.object({
+        create: z2.boolean(),
+        edit: z2.boolean(),
+        delete: z2.boolean()
+      })).optional()
     })).mutation(async ({ ctx, input }) => {
       const callerIsMaster = ctx.user?.approvalLevel === "master";
       const callerId = ctx.user.id;
@@ -4452,7 +4461,10 @@ var appRouter = router({
           throw new Error("Apenas usu\xE1rios master podem editar outro usu\xE1rio master.");
         }
       }
-      const result = await upsertUserByAdmin(input);
+      const result = await upsertUserByAdmin({
+        ...input,
+        registerPermissions: input.registerPermissions ? JSON.stringify(input.registerPermissions) : void 0
+      });
       if (!input.id && input.email) {
         try {
           const { sendWelcomeEmail: sendWelcomeEmail2 } = await Promise.resolve().then(() => (init_email(), email_exports));

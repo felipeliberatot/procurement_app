@@ -29,6 +29,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
     extraApprovalLevels: null,
     pinHash: null,
     passwordHash: null,
+    registerPermissions: null,
     active: true,
     createdAt: new Date(),
     updatedAt: new Date(),

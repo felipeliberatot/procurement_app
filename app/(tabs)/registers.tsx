@@ -63,6 +63,55 @@ const ROLE_COLORS: Record<ProcurementRole, string> = {
   admin: "#8B5CF6",
   assets_admin: "#059669",
 };
+// ─── Permissões Granulares de Cadastro ────────────────────────────────────────
+// Estrutura: { [tab]: { create: bool, edit: bool, delete: bool } }
+type RegisterAction = "create" | "edit" | "delete";
+type RegisterTab = "costcenters" | "assets" | "units" | "businessunits" | "departments";
+type RegisterPerms = Record<RegisterTab, Record<RegisterAction, boolean>>;
+
+const REGISTER_TABS: Array<{ key: RegisterTab; label: string; icon: string }> = [
+  { key: "costcenters", label: "Centros de Custo", icon: "🏢" },
+  { key: "assets", label: "Bens", icon: "📦" },
+  { key: "units", label: "Fazendas", icon: "🌾" },
+  { key: "businessunits", label: "Unidades de Negócio", icon: "🏗️" },
+  { key: "departments", label: "Departamentos", icon: "🏛️" },
+];
+
+const EMPTY_PERMS: RegisterPerms = {
+  costcenters: { create: false, edit: false, delete: false },
+  assets: { create: false, edit: false, delete: false },
+  units: { create: false, edit: false, delete: false },
+  businessunits: { create: false, edit: false, delete: false },
+  departments: { create: false, edit: false, delete: false },
+};
+
+const ADMIN_PERMS: RegisterPerms = {
+  costcenters: { create: true, edit: true, delete: true },
+  assets: { create: true, edit: true, delete: true },
+  units: { create: true, edit: true, delete: true },
+  businessunits: { create: true, edit: true, delete: true },
+  departments: { create: true, edit: true, delete: true },
+};
+
+const parseRegisterPerms = (val: any): RegisterPerms => {
+  if (!val) return EMPTY_PERMS;
+  try {
+    const parsed = typeof val === "string" ? JSON.parse(val) : val;
+    const result = { ...EMPTY_PERMS };
+    for (const tab of Object.keys(EMPTY_PERMS) as RegisterTab[]) {
+      if (parsed[tab]) {
+        result[tab] = {
+          create: !!parsed[tab].create,
+          edit: !!parsed[tab].edit,
+          delete: !!parsed[tab].delete,
+        };
+      }
+    }
+    return result;
+  } catch { return EMPTY_PERMS; }
+};
+
+
 
 // ─── PIN Verification Modal ─────────────────────────────────────────────────
 
@@ -282,6 +331,10 @@ function UserFormModal({
   });
   const [active, setActive] = useState(user?.active !== false);
   const [password, setPassword] = useState("");
+
+  const [registerPerms, setRegisterPerms] = useState<RegisterPerms>(() =>
+    parseRegisterPerms(user?.registerPermissions)
+  );
   const [showPassword, setShowPassword] = useState(false);
   // Reset password section (edit mode only)
   const [newPassword, setNewPassword] = useState("");
@@ -303,6 +356,7 @@ function UserFormModal({
     const extrasL = parseJsonArray(user?.extraApprovalLevels) as ApprovalLevel[];
     setApprovalLevels([primaryL, ...extrasL.filter((l: ApprovalLevel) => l !== primaryL)]);
     setActive(user?.active !== false);
+    setRegisterPerms(parseRegisterPerms(user?.registerPermissions));
     setPassword("");
     setNewPassword("");
     setConfirmPassword("");
@@ -375,6 +429,7 @@ function UserFormModal({
       extraApprovalLevels: extraLevelsArr,
       active,
       password: password.trim() || undefined,
+      registerPermissions: registerPerms,
     });
   };
 
@@ -1005,6 +1060,190 @@ function UserFormModal({
                 trackColor={{ false: colors.border, true: `${ROLE_COLORS[roles[0] ?? "solicitante"]}80` }}
                 thumbColor={active ? ROLE_COLORS[roles[0] ?? "solicitante"] : colors.muted}
               />
+            </View>
+          )}
+
+          {/* ─── Permissões Granulares de Cadastro ─── */}
+          {isMasterCaller && (
+            <View>
+              <View style={{ height: 0.5, backgroundColor: colors.border, marginVertical: 4 }} />
+              <Text style={{ color: colors.muted, fontSize: 11, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 }}>
+                Permissões de Cadastro
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 12 }}>
+                Defina o que este usuário pode fazer em cada módulo de cadastro. Clique em User / Admin / Master para aplicar um nível rápido, ou ajuste individualmente.
+              </Text>
+
+              {/* Cabeçalho da tabela */}
+              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                <View style={{ flex: 1 }} />
+                {/* Coluna User */}
+                <TouchableOpacity
+                  onPress={() => setRegisterPerms({ ...EMPTY_PERMS })}
+                  style={{
+                    width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
+                    backgroundColor: "#6366F115", marginHorizontal: 2,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#6366F1" }}>User</Text>
+                  <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Limpar</Text>
+                </TouchableOpacity>
+                {/* Coluna Admin */}
+                <TouchableOpacity
+                  onPress={() => setRegisterPerms({ ...ADMIN_PERMS })}
+                  style={{
+                    width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
+                    backgroundColor: "#8B5CF615", marginHorizontal: 2,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#8B5CF6" }}>Admin</Text>
+                  <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Tudo</Text>
+                </TouchableOpacity>
+                {/* Coluna Master (informativa) */}
+                <View
+                  style={{
+                    width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
+                    backgroundColor: "#7C3AED15", marginHorizontal: 2,
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#7C3AED" }}>Master</Text>
+                  <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Irrestrito</Text>
+                </View>
+              </View>
+
+              {/* Linhas por aba */}
+              {REGISTER_TABS.map((tab) => {
+                const perms = registerPerms[tab.key];
+                const allOn = perms.create && perms.edit && perms.delete;
+                const allOff = !perms.create && !perms.edit && !perms.delete;
+                return (
+                  <View
+                    key={tab.key}
+                    style={{
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: allOn ? "#8B5CF640" : allOff ? colors.border : "#6366F140",
+                      backgroundColor: allOn ? "#8B5CF608" : colors.surface,
+                      marginBottom: 8,
+                      overflow: "hidden",
+                    }}
+                  >
+                    {/* Linha do módulo */}
+                    <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10 }}>
+                      <Text style={{ fontSize: 18, marginRight: 8 }}>{tab.icon}</Text>
+                      <Text style={{ flex: 1, fontSize: 13, fontWeight: "600", color: colors.foreground }}>
+                        {tab.label}
+                      </Text>
+                      {/* Botão User (limpar esta linha) */}
+                      <TouchableOpacity
+                        onPress={() => setRegisterPerms(prev => ({
+                          ...prev,
+                          [tab.key]: { create: false, edit: false, delete: false },
+                        }))}
+                        style={{
+                          width: 60, alignItems: "center", paddingVertical: 4, borderRadius: 6,
+                          backgroundColor: allOff ? "#6366F120" : "transparent",
+                          marginHorizontal: 2,
+                          borderWidth: allOff ? 1.5 : 0,
+                          borderColor: "#6366F1",
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, color: allOff ? "#6366F1" : colors.muted, fontWeight: allOff ? "700" : "400" }}>User</Text>
+                      </TouchableOpacity>
+                      {/* Botão Admin (tudo nesta linha) */}
+                      <TouchableOpacity
+                        onPress={() => setRegisterPerms(prev => ({
+                          ...prev,
+                          [tab.key]: { create: true, edit: true, delete: true },
+                        }))}
+                        style={{
+                          width: 60, alignItems: "center", paddingVertical: 4, borderRadius: 6,
+                          backgroundColor: allOn ? "#8B5CF620" : "transparent",
+                          marginHorizontal: 2,
+                          borderWidth: allOn ? 1.5 : 0,
+                          borderColor: "#8B5CF6",
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, color: allOn ? "#8B5CF6" : colors.muted, fontWeight: allOn ? "700" : "400" }}>Admin</Text>
+                      </TouchableOpacity>
+                      {/* Master (informativo - sempre ativo para masters) */}
+                      <View
+                        style={{
+                          width: 60, alignItems: "center", paddingVertical: 4, borderRadius: 6,
+                          backgroundColor: "#7C3AED10",
+                          marginHorizontal: 2,
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, color: "#7C3AED", fontWeight: "700" }}>✓</Text>
+                      </View>
+                    </View>
+
+                    {/* Sub-linha: checkboxes individuais Criar / Editar / Excluir */}
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        paddingHorizontal: 12,
+                        paddingBottom: 10,
+                        gap: 8,
+                        borderTopWidth: 0.5,
+                        borderTopColor: colors.border,
+                        paddingTop: 8,
+                      }}
+                    >
+                      {(["create", "edit", "delete"] as RegisterAction[]).map((action) => {
+                        const labels: Record<RegisterAction, string> = { create: "Criar", edit: "Editar", delete: "Excluir" };
+                        const colors2: Record<RegisterAction, string> = { create: "#10B981", edit: "#0EA5E9", delete: "#EF4444" };
+                        const checked = perms[action];
+                        return (
+                          <TouchableOpacity
+                            key={action}
+                            onPress={() => setRegisterPerms(prev => ({
+                              ...prev,
+                              [tab.key]: { ...prev[tab.key], [action]: !prev[tab.key][action] },
+                            }))}
+                            style={{
+                              flex: 1,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
+                              paddingVertical: 6,
+                              paddingHorizontal: 8,
+                              borderRadius: 8,
+                              backgroundColor: checked ? `${colors2[action]}15` : colors.background,
+                              borderWidth: 1,
+                              borderColor: checked ? colors2[action] : colors.border,
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 16, height: 16, borderRadius: 4,
+                                borderWidth: 1.5,
+                                borderColor: checked ? colors2[action] : colors.border,
+                                backgroundColor: checked ? colors2[action] : "transparent",
+                                alignItems: "center", justifyContent: "center",
+                              }}
+                            >
+                              {checked && <Text style={{ color: "white", fontSize: 10, fontWeight: "700", lineHeight: 14 }}>✓</Text>}
+                            </View>
+                            <Text style={{ fontSize: 12, fontWeight: checked ? "700" : "400", color: checked ? colors2[action] : colors.muted }}>
+                              {labels[action]}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                );
+              })}
+
+              {/* Nota informativa */}
+              <View style={{ backgroundColor: `${colors.primary}10`, borderRadius: 10, padding: 10, marginTop: 4 }}>
+                <Text style={{ fontSize: 11, color: colors.muted }}>
+                  💡 <Text style={{ fontWeight: "700" }}>User:</Text> sem acesso de criação/edição/exclusão.{" "}
+                  <Text style={{ fontWeight: "700" }}>Admin:</Text> acesso total ao módulo.{" "}
+                  <Text style={{ fontWeight: "700" }}>Master:</Text> acesso irrestrito (sempre ativo).
+                </Text>
+              </View>
             </View>
           )}
           </>
@@ -1831,6 +2070,34 @@ export default function RegistersScreen() {
   const isAdmin = userRole === "admin" || userExtraRoles.includes("admin");
   const isAssetsAdmin = userExtraRoles.includes("assets_admin") && !isAdmin;
   const isMaster = (user as any)?.approvalLevel === "master";
+
+  // Permissões granulares de cadastro (definidas pelo Master para cada usuário)
+  const userRegisterPerms: RegisterPerms = (() => {
+    if (isMaster) return ADMIN_PERMS; // Master tem acesso irrestrito
+    const raw = (user as any)?.registerPermissions;
+    if (!raw) return EMPTY_PERMS;
+    try {
+      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      return parseRegisterPerms(parsed);
+    } catch { return EMPTY_PERMS; }
+  })();
+
+  // Helpers de permissão por módulo
+  const canCreateCostCenter = isMaster || isAdmin || userRegisterPerms.costcenters.create;
+  const canEditCostCenter   = isMaster || isAdmin || userRegisterPerms.costcenters.edit;
+  const canDeleteCostCenter = isMaster || isAdmin || userRegisterPerms.costcenters.delete;
+  const canCreateAsset      = isMaster || isAdmin || isAssetsAdmin || userRegisterPerms.assets.create;
+  const canEditAsset        = isMaster || isAdmin || isAssetsAdmin || userRegisterPerms.assets.edit;
+  const canDeleteAsset      = isMaster || isAdmin || isAssetsAdmin || userRegisterPerms.assets.delete;
+  const canCreateUnit       = isMaster || isAdmin || userRegisterPerms.units.create;
+  const canEditUnit         = isMaster || isAdmin || userRegisterPerms.units.edit;
+  const canDeleteUnit       = isMaster || isAdmin || userRegisterPerms.units.delete;
+  const canCreateBU         = isMaster || isAdmin || userRegisterPerms.businessunits.create;
+  const canEditBU           = isMaster || isAdmin || userRegisterPerms.businessunits.edit;
+  const canDeleteBU         = isMaster || isAdmin || userRegisterPerms.businessunits.delete;
+  const canCreateDept       = isMaster || isAdmin || userRegisterPerms.departments.create;
+  const canEditDept         = isMaster || isAdmin || userRegisterPerms.departments.edit;
+  const canDeleteDept       = isMaster || isAdmin || userRegisterPerms.departments.delete;
 
   const { data: usersList, isLoading: usersLoading } = trpc.users.list.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -2990,7 +3257,7 @@ export default function RegistersScreen() {
       {/* ── Cost Centers Tab ── */}
       {activeTab === "costcenters" && (
         <View style={{ flex: 1 }}>
-          {isAdmin && (
+          {canCreateCostCenter && (
             <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => setShowCCModal(true)}
@@ -3065,7 +3332,7 @@ export default function RegistersScreen() {
                     👤 {item.responsible}
                   </Text>
                 )}
-                {isAdmin && (
+                {(canEditCostCenter || canDeleteCostCenter) && (
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
                     <Pressable
                       onPress={() => { setEditingCC(item); setShowCCModal(true); }}
@@ -3117,7 +3384,7 @@ export default function RegistersScreen() {
       {activeTab === "assets" && (
         <View style={{ flex: 1 }}>
           {/* Barra de ações: Novo, Importar, Exportar */}
-          {(isAdmin || isAssetsAdmin) && (
+          {(canCreateAsset) && (
             <View style={{ paddingHorizontal: 12, paddingTop: 12, gap: 8 }}>
               {/* Linha 1: Novo + Importar */}
               <View style={{ flexDirection: "row", gap: 8 }}>
@@ -3325,7 +3592,7 @@ export default function RegistersScreen() {
                     )}
                   </View>
                 )}
-                {(isAdmin || isAssetsAdmin) && (
+                {(canEditAsset || canDeleteAsset) && (
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
                     <Pressable
                       onPress={() => { setEditingAsset(item); setShowAssetModal(true); }}
@@ -3360,7 +3627,7 @@ export default function RegistersScreen() {
       {/* ── Units Tab ── */}
       {activeTab === "units" && (
         <View style={{ flex: 1 }}>
-          {(isAdmin || isMaster) && (
+          {canCreateUnit && (
             <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => { setEditingUnit(null); setShowUnitModal(true); }}
@@ -3394,7 +3661,7 @@ export default function RegistersScreen() {
             }
             renderItem={({ item }) => (
               <TouchableOpacity
-                onPress={() => { if (isAdmin || isMaster) { setEditingUnit(item); setShowUnitModal(true); } }}
+                onPress={() => { if (canEditUnit) { setEditingUnit(item); setShowUnitModal(true); } }}
                 activeOpacity={0.7}
               >
                 <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 14, marginBottom: 10 }}>
@@ -3423,7 +3690,7 @@ export default function RegistersScreen() {
       {/* ── Business Units Tab ── */}
       {activeTab === "businessunits" && (
         <View style={{ flex: 1 }}>
-          {(isAdmin || isMaster) && (
+          {canCreateBU && (
             <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => { setEditingBU(null); setShowBUModal(true); }}
@@ -3477,7 +3744,7 @@ export default function RegistersScreen() {
                   {(item as any).responsibleName && (
                     <Text style={{ fontSize: 12, color: colors.muted, marginTop: 3 }}>👤 {(item as any).responsibleName}{(item as any).responsiblePhone ? ` · ${(item as any).responsiblePhone}` : ""}</Text>
                   )}
-                  {(isAdmin || isMaster) && (
+                  {canEditBU && (
                     <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
                       <Pressable
                         onPress={() => { setEditingBU(item); setShowBUModal(true); }}
@@ -3497,7 +3764,7 @@ export default function RegistersScreen() {
       {/* ── Departments Tab ── */}
       {activeTab === "departments" && (
         <View style={{ flex: 1 }}>
-          {(isAdmin || isMaster) && (
+          {canCreateDept && (
             <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
               <TouchableOpacity
                 onPress={() => { setEditingDept(null); setShowDeptModal(true); }}
@@ -3541,7 +3808,7 @@ export default function RegistersScreen() {
                 {(item as any).responsible && (
                   <Text style={{ fontSize: 12, color: colors.muted, marginTop: 3 }}>👤 {(item as any).responsible}</Text>
                 )}
-                {(isAdmin || isMaster) && (
+                {(canEditDept || canDeleteDept) && (
                   <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
                     <Pressable
                       onPress={() => { setEditingDept(item); setShowDeptModal(true); }}

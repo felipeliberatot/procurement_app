@@ -47,6 +47,11 @@ export const appRouter = router({
         extraApprovalLevels: z.array(z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"])).optional(),
         active: z.boolean().optional(),
         password: z.string().min(6).optional(),
+        registerPermissions: z.record(z.string(), z.object({
+          create: z.boolean(),
+          edit: z.boolean(),
+          delete: z.boolean(),
+        })).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const callerIsMaster = (ctx.user as any)?.approvalLevel === "master";
@@ -71,7 +76,12 @@ export const appRouter = router({
             throw new Error("Apenas usuários master podem editar outro usuário master.");
           }
         }
-        const result = await db.upsertUserByAdmin(input);
+        const result = await db.upsertUserByAdmin({
+          ...input,
+          registerPermissions: input.registerPermissions
+            ? JSON.stringify(input.registerPermissions)
+            : undefined,
+        });
         // Send welcome email for new users (no id = new user)
         if (!input.id && input.email) {
           try {

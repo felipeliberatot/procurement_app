@@ -47,6 +47,7 @@ export const users = mysqlTable("users", {
   extraApprovalLevels: text("extraApprovalLevels"), // JSON array de ApprovalLevel extras
   pinHash: varchar("pinHash", { length: 255 }), // Hashed PIN for master quick access
   passwordHash: varchar("passwordHash", { length: 255 }), // Hashed password for email+password login
+  registerPermissions: text("register_permissions"), // JSON: permissões granulares de cadastro por aba
   active: boolean("active").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
