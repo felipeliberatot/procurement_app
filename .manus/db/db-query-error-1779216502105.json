@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, name, email, approval_level, pin_hash IS NOT NULL as has_pin, register_permissions FROM users WHERE email = 'felipe.liberato@cgs.agr.br' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, approval_level, pin_hash IS NOT NULL as has_pin, register_permissions FROM users WHERE email = 'felipe.liberato@cgs.agr.br' LIMIT 1;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'approval_level' in 'field list'"
+  ]
+}

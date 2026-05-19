@@ -39,7 +39,7 @@ export const appRouter = router({
         name: z.string().min(1),
         email: z.string().email().optional().or(z.literal("")),
         procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"]),
-        extraRoles: z.array(z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"])).optional(),
+        extraRoles: z.array(z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "assets_admin"])).optional(),
         department: z.string().optional(),
         phone: z.string().optional(),
         jobTitle: z.string().optional(),

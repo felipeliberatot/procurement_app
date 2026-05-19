@@ -1,0 +1,18 @@
+{
+  "query": "SELECT id, name, email, approvalLevel, pinHash IS NOT NULL as has_pin, register_permissions FROM users WHERE email = 'felipe.liberato@cgs.agr.br' LIMIT 1;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user 483N2BayUgwNYYf.root --database 3hNVqVCmDUEc2A2TYJw5pS --execute SELECT id, name, email, approvalLevel, pinHash IS NOT NULL as has_pin, register_permissions FROM users WHERE email = 'felipe.liberato@cgs.agr.br' LIMIT 1;",
+  "rows": [
+    {
+      "id": "330055",
+      "name": "Felipe Tagami Liberato",
+      "email": "felipe.liberato@cgs.agr.br",
+      "approvalLevel": "master",
+      "has_pin": "1",
+      "register_permissions": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tapprovalLevel\thas_pin\tregister_permissions\n330055\tFelipe Tagami Liberato\tfelipe.liberato@cgs.agr.br\tmaster\t1\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 274
+}

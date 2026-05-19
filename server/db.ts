@@ -226,7 +226,8 @@ export async function upsertUserByAdmin(data: {
 
   if (data.id) {
     // UPDATE existing user
-    await db.update(users).set({
+    // Construir o objeto de atualização dinamicamente para evitar sobrescrever campos com undefined
+    const updatePayload: Record<string, unknown> = {
       name: data.name,
       email: data.email ?? null,
       procurementRole: data.procurementRole as User["procurementRole"],
@@ -237,9 +238,15 @@ export async function upsertUserByAdmin(data: {
       approvalLevel: (data.approvalLevel ?? "nenhum") as User["approvalLevel"],
       extraApprovalLevels: extraApprovalLevelsJson,
       active: data.active ?? true,
-      registerPermissions: data.registerPermissions !== undefined ? data.registerPermissions : undefined,
-      ...(finalPasswordHash !== undefined ? { passwordHash: finalPasswordHash } : {}),
-    }).where(eq(users.id, data.id));
+    };
+    // Só inclui registerPermissions se foi explicitamente fornecido (evita gravar string "NULL")
+    if (data.registerPermissions !== undefined) {
+      updatePayload.registerPermissions = data.registerPermissions;
+    }
+    if (finalPasswordHash !== undefined) {
+      updatePayload.passwordHash = finalPasswordHash;
+    }
+    await db.update(users).set(updatePayload as any).where(eq(users.id, data.id));
     return { id: data.id };
   } else {
     // INSERT new user (pre-registered, no OAuth yet)

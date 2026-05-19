@@ -94,12 +94,13 @@ const ADMIN_PERMS: RegisterPerms = {
 };
 
 const parseRegisterPerms = (val: any): RegisterPerms => {
-  if (!val) return EMPTY_PERMS;
+  if (!val || val === "NULL" || val === "null") return EMPTY_PERMS;
   try {
     const parsed = typeof val === "string" ? JSON.parse(val) : val;
+    if (!parsed || typeof parsed !== "object") return EMPTY_PERMS;
     const result = { ...EMPTY_PERMS };
     for (const tab of Object.keys(EMPTY_PERMS) as RegisterTab[]) {
-      if (parsed[tab]) {
+      if (parsed[tab] && typeof parsed[tab] === "object") {
         result[tab] = {
           create: !!parsed[tab].create,
           edit: !!parsed[tab].edit,
@@ -282,6 +283,9 @@ function PinVerificationModal({
 }
 
 // ─── User Form Modal ──────────────────────────────────────────────────────────
+
+// Email do único usuário que pode ver/receber a coluna Master
+const MASTER_COLUMN_EMAIL = "felipe.liberato@cgs.agr.br";
 
 function UserFormModal({
   visible,
@@ -1075,41 +1079,48 @@ function UserFormModal({
               </Text>
 
               {/* Cabeçalho da tabela */}
-              <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
-                <View style={{ flex: 1 }} />
-                {/* Coluna User */}
-                <TouchableOpacity
-                  onPress={() => setRegisterPerms({ ...EMPTY_PERMS })}
-                  style={{
-                    width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
-                    backgroundColor: "#6366F115", marginHorizontal: 2,
-                  }}
-                >
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#6366F1" }}>User</Text>
-                  <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Limpar</Text>
-                </TouchableOpacity>
-                {/* Coluna Admin */}
-                <TouchableOpacity
-                  onPress={() => setRegisterPerms({ ...ADMIN_PERMS })}
-                  style={{
-                    width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
-                    backgroundColor: "#8B5CF615", marginHorizontal: 2,
-                  }}
-                >
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#8B5CF6" }}>Admin</Text>
-                  <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Tudo</Text>
-                </TouchableOpacity>
-                {/* Coluna Master (informativa) */}
-                <View
-                  style={{
-                    width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
-                    backgroundColor: "#7C3AED15", marginHorizontal: 2,
-                  }}
-                >
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#7C3AED" }}>Master</Text>
-                  <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Irrestrito</Text>
-                </View>
-              </View>
+              {(() => {
+                const showMasterCol = user?.email === MASTER_COLUMN_EMAIL;
+                return (
+                  <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                    <View style={{ flex: 1 }} />
+                    {/* Coluna User */}
+                    <TouchableOpacity
+                      onPress={() => setRegisterPerms({ ...EMPTY_PERMS })}
+                      style={{
+                        width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
+                        backgroundColor: "#6366F115", marginHorizontal: 2,
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: "#6366F1" }}>User</Text>
+                      <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Limpar</Text>
+                    </TouchableOpacity>
+                    {/* Coluna Admin */}
+                    <TouchableOpacity
+                      onPress={() => setRegisterPerms({ ...ADMIN_PERMS })}
+                      style={{
+                        width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
+                        backgroundColor: "#8B5CF615", marginHorizontal: 2,
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: "#8B5CF6" }}>Admin</Text>
+                      <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Tudo</Text>
+                    </TouchableOpacity>
+                    {/* Coluna Master (apenas para Felipe Liberato) */}
+                    {showMasterCol && (
+                      <View
+                        style={{
+                          width: 60, alignItems: "center", paddingVertical: 6, borderRadius: 8,
+                          backgroundColor: "#7C3AED15", marginHorizontal: 2,
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: "700", color: "#7C3AED" }}>Master</Text>
+                        <Text style={{ fontSize: 9, color: colors.muted, marginTop: 1 }}>Irrestrito</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
 
               {/* Linhas por aba */}
               {REGISTER_TABS.map((tab) => {
@@ -1166,16 +1177,18 @@ function UserFormModal({
                       >
                         <Text style={{ fontSize: 11, color: allOn ? "#8B5CF6" : colors.muted, fontWeight: allOn ? "700" : "400" }}>Admin</Text>
                       </TouchableOpacity>
-                      {/* Master (informativo - sempre ativo para masters) */}
-                      <View
-                        style={{
-                          width: 60, alignItems: "center", paddingVertical: 4, borderRadius: 6,
-                          backgroundColor: "#7C3AED10",
-                          marginHorizontal: 2,
-                        }}
-                      >
-                        <Text style={{ fontSize: 11, color: "#7C3AED", fontWeight: "700" }}>✓</Text>
-                      </View>
+                      {/* Master (apenas para Felipe Liberato - informativo) */}
+                      {user?.email === MASTER_COLUMN_EMAIL && (
+                        <View
+                          style={{
+                            width: 60, alignItems: "center", paddingVertical: 4, borderRadius: 6,
+                            backgroundColor: "#7C3AED10",
+                            marginHorizontal: 2,
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, color: "#7C3AED", fontWeight: "700" }}>✓</Text>
+                        </View>
+                      )}
                     </View>
 
                     {/* Sub-linha: checkboxes individuais Criar / Editar / Excluir */}
@@ -1240,8 +1253,7 @@ function UserFormModal({
               <View style={{ backgroundColor: `${colors.primary}10`, borderRadius: 10, padding: 10, marginTop: 4 }}>
                 <Text style={{ fontSize: 11, color: colors.muted }}>
                   💡 <Text style={{ fontWeight: "700" }}>User:</Text> sem acesso de criação/edição/exclusão.{" "}
-                  <Text style={{ fontWeight: "700" }}>Admin:</Text> acesso total ao módulo.{" "}
-                  <Text style={{ fontWeight: "700" }}>Master:</Text> acesso irrestrito (sempre ativo).
+                  <Text style={{ fontWeight: "700" }}>Admin:</Text> acesso total ao módulo.
                 </Text>
               </View>
             </View>
@@ -2075,11 +2087,7 @@ export default function RegistersScreen() {
   const userRegisterPerms: RegisterPerms = (() => {
     if (isMaster) return ADMIN_PERMS; // Master tem acesso irrestrito
     const raw = (user as any)?.registerPermissions;
-    if (!raw) return EMPTY_PERMS;
-    try {
-      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
-      return parseRegisterPerms(parsed);
-    } catch { return EMPTY_PERMS; }
+    return parseRegisterPerms(raw);
   })();
 
   // Helpers de permissão por módulo
