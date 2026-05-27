@@ -2591,21 +2591,22 @@ export default function RequestDetailScreen() {
               // Na etapa de orçamento, o botão fixo não deve ser usado — o fluxo é controlado pelo bloco de Orçamento
               // (que exige PDF + Valor Estimado e chama submitBudgetMutation diretamente)
               // O botão fixo é bloqueado se: (1) PDF não anexado OU (2) valor estimado não preenchido
-              const orcamentoBloqueado = currentStatus === "aguardando_orcamento" && (!request.budgetFileUrl || !estimatedValueInput.trim());
-              const orcamentoLabel = !request.budgetFileUrl ? "Anexe o Orçamento" : !estimatedValueInput.trim() ? "Informe o Valor" : "Aprovar";
+              const hasBudgetFile = !!(request.budgetFileUrl || budgetFileName);
+              const orcamentoBloqueado = currentStatus === "aguardando_orcamento" && (!hasBudgetFile || !estimatedValueInput.trim());
+              const orcamentoLabel = !hasBudgetFile ? "Anexe o Orçamento" : !estimatedValueInput.trim() ? "Informe o Valor" : "Aprovar";
               return (
                 <TouchableOpacity
                   onPress={() => {
                     if (currentStatus === "aguardando_orcamento") {
-                      if (!request.budgetFileUrl) {
-                        Alert.alert("⚠️ Orçamento obrigatório", "Anexe o PDF do orçamento antes de enviar.");
+                      const hasBudgetFileLocal = !!(request.budgetFileUrl || budgetFileName);
+                      if (!hasBudgetFileLocal) {
+                        Alert.alert("⚠️ Orçamento obrigatório", "Selecione o PDF do orçamento antes de enviar.");
                         return;
                       }
                       if (!estimatedValueInput.trim()) {
                         Alert.alert("⚠️ Valor obrigatório", "Informe o Valor Estimado antes de enviar o orçamento.");
                         return;
                       }
-                      // Redirecionar para o fluxo correto: submitBudget com valor estimado
                       const raw = estimatedValueInput.trim();
                       const parsedEstimated = raw.includes(",")
                         ? parseFloat(raw.replace(/\./g, "").replace(",", "."))
@@ -2614,7 +2615,15 @@ export default function RequestDetailScreen() {
                         Alert.alert("Valor inválido", "Informe um valor válido (ex: 4.556,25).");
                         return;
                       }
-                      submitBudgetMutation.mutate({ requestId: request.id, estimatedValue: parsedEstimated });
+                      // Se há PDF pendente (não enviado ainda), fazer upload primeiro depois submitBudget
+                      if (pendingBudgetBase64 && budgetFileName) {
+                        uploadFileMutation.mutate(
+                          { requestId: request.id, fileName: budgetFileName, base64: pendingBudgetBase64, mimeType: pendingBudgetMime },
+                          { onSuccess: () => submitBudgetMutation.mutate({ requestId: request.id, estimatedValue: parsedEstimated }) }
+                        );
+                      } else {
+                        submitBudgetMutation.mutate({ requestId: request.id, estimatedValue: parsedEstimated });
+                      }
                       return;
                     }
                     setShowApproveModal(true);
