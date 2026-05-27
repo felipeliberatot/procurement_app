@@ -2624,18 +2624,17 @@ export default function RegistersScreen() {
   };
 
   const handleToggleActive = (u: any) => {
-    Alert.alert(
-      u.active ? "Desativar Usuário" : "Ativar Usuário",
-      `Deseja ${u.active ? "desativar" : "ativar"} o usuário ${u.name}?`,
-      [
+    const label = u.active ? "Desativar" : "Ativar";
+    const msg = `Deseja ${u.active ? "desativar" : "ativar"} o usuário ${u.name}?`;
+    const doToggle = () => toggleActive.mutate({ id: u.id, active: !u.active });
+    if (Platform.OS === "web") {
+      if (window.confirm(msg)) doToggle();
+    } else {
+      Alert.alert(`${label} Usuário`, msg, [
         { text: "Cancelar", style: "cancel" },
-        {
-          text: u.active ? "Desativar" : "Ativar",
-          style: u.active ? "destructive" : "default",
-          onPress: () => toggleActive.mutate({ id: u.id, active: !u.active }),
-        },
-      ]
-    );
+        { text: label, style: u.active ? "destructive" : "default", onPress: doToggle },
+      ]);
+    }
   };
 
   const [isExporting, setIsExporting] = useState(false);
@@ -3826,10 +3825,16 @@ export default function RegistersScreen() {
                     </Pressable>
                     <Pressable
                       onPress={() => {
-                        Alert.alert("Excluir Departamento", `Deseja excluir o departamento "${(item as any).name}"?`, [
-                          { text: "Cancelar", style: "cancel" },
-                          { text: "Excluir", style: "destructive", onPress: () => deleteDept.mutate({ id: (item as any).id }) },
-                        ]);
+                        const msg = `Deseja excluir o departamento "${(item as any).name}"?`;
+                        const doDelete = () => deleteDept.mutate({ id: (item as any).id });
+                        if (Platform.OS === "web") {
+                          if (window.confirm(msg)) doDelete();
+                        } else {
+                          Alert.alert("Excluir Departamento", msg, [
+                            { text: "Cancelar", style: "cancel" },
+                            { text: "Excluir", style: "destructive", onPress: doDelete },
+                          ]);
+                        }
                       }}
                       style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: "#EF444415", borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: "#EF444430" })}
                     >
