@@ -5,6 +5,8 @@ import net from "net";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { pipeline } from "stream/promises";
+import unzipper from "unzipper";
 
 // ESM-compatible __dirname (esbuild ESM bundles don't define __dirname)
 const __filename = fileURLToPath(import.meta.url);
@@ -89,6 +91,42 @@ async function startServer() {
         indexHtmlExists: fs.existsSync(indexPath),
       });
     });
+  });
+
+  // Hot-deploy: atualiza o bundle web sem precisar reconstruir o container
+  // Recebe um ZIP com o conteudo de dist/web/ e extrai para o webDistPath
+  app.post("/api/admin/hot-deploy", async (req, res) => {
+    const token = req.headers["x-deploy-token"] || req.query.token;
+    const expectedToken = process.env.HOT_DEPLOY_TOKEN;
+    if (!expectedToken || token !== expectedToken) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+    const webDistPath = path.resolve(__currentDir, "web");
+    try {
+      // Receber o ZIP do body (raw buffer via express.raw)
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        req.on("data", (chunk: Buffer) => chunks.push(chunk));
+        req.on("end", resolve);
+        req.on("error", reject);
+      });
+      const zipBuffer = Buffer.concat(chunks);
+      if (zipBuffer.length === 0) {
+        return res.status(400).json({ ok: false, error: "Empty body" });
+      }
+      // Extrair o ZIP para o webDistPath
+      const { Readable } = await import("stream");
+      const readable = Readable.from(zipBuffer);
+      await pipeline(
+        readable,
+        unzipper.Extract({ path: webDistPath })
+      );
+      console.log(`[HotDeploy] Bundle atualizado em ${webDistPath} (${zipBuffer.length} bytes)`);
+      res.json({ ok: true, message: "Bundle atualizado com sucesso", bytes: zipBuffer.length });
+    } catch (err) {
+      console.error("[HotDeploy] Erro:", err);
+      res.status(500).json({ ok: false, error: String(err) });
+    }
   });
 
   // Manual trigger for daily report (admin use only)

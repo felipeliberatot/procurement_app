@@ -19,7 +19,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "qr": "node scripts/generate_qr.mjs",
-    "rebuild:web": "bash scripts/rebuild-web.sh"
+    "rebuild:web": "bash scripts/rebuild-web.sh",
+    "hot-deploy": "bash scripts/hot-deploy.sh"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -83,6 +84,7 @@
     "react-native-worklets": "0.5.1",
     "superjson": "^1.13.3",
     "tailwind-merge": "^2.6.0",
+    "unzipper": "^0.12.3",
     "xlsx": "^0.18.5",
     "zod": "^4.2.1"
   },
@@ -93,6 +95,7 @@
     "@types/node": "^22.19.3",
     "@types/qrcode": "^1.5.6",
     "@types/react": "~19.1.17",
+    "@types/unzipper": "^0.10.11",
     "concurrently": "^9.2.1",
     "cross-env": "^7.0.3",
     "drizzle-kit": "^0.31.8",
