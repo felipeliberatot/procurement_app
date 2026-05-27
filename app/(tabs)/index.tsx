@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useBreakpoint } from "@/hooks/use-breakpoint";
 import { trpc } from "@/lib/trpc";
 import { router } from "expo-router";
+import { redirectToLogin } from "@/lib/redirect-to-login";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import React, { useEffect, useState } from "react";
 import {
@@ -321,7 +322,7 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.replace("/login" as any);
+      redirectToLogin();
     }
   }, [isAuthenticated, loading]);
 

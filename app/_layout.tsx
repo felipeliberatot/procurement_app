@@ -21,6 +21,7 @@ import { AuthProvider } from "@/lib/_core/auth-context";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { router } from "expo-router";
 import { Alert } from "react-native";
+import { redirectToLogin } from "@/lib/redirect-to-login";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -67,11 +68,15 @@ export default function RootLayout() {
             onError: (error: any) => {
               // Session expired: redirect to login
               if (error?.data?.code === "UNAUTHORIZED" || error?.message?.includes("Please login")) {
-                Alert.alert(
-                  "Sessão expirada",
-                  "Sua sessão expirou. Por favor, faça login novamente.",
-                  [{ text: "OK", onPress: () => router.replace("/login") }]
-                );
+                if (Platform.OS === "web") {
+                  redirectToLogin();
+                } else {
+                  Alert.alert(
+                    "Sessão expirada",
+                    "Sua sessão expirou. Por favor, faça login novamente.",
+                    [{ text: "OK", onPress: () => router.replace("/login") }]
+                  );
+                }
               }
             },
           },

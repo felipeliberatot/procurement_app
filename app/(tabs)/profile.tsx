@@ -3,6 +3,7 @@ import { ConfirmModal } from "@/components/confirm-modal";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
+import { redirectToLogin } from "@/lib/redirect-to-login";
 import { trpc } from "@/lib/trpc";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
@@ -69,13 +70,7 @@ export default function ProfileScreen() {
 
   const handleLogout = async () => {
     await authLogout();
-    // Na web, forçar reload completo da página para limpar todo o estado React
-    // e garantir que o cookie de sessão seja descartado antes de navegar
-    if (Platform.OS === "web") {
-      window.location.href = "/login";
-    } else {
-      router.replace("/login" as any);
-    }
+    redirectToLogin();
   };
 
   const handleSave = () => {
