@@ -239,8 +239,50 @@ export default function ReportScreen() {
 }
 
 // ── Aba Resumo ────────────────────────────────────────────────────────────────
+// ── Gráfico de Barras Horizontal ──────────────────────────────────────────────
+function BarChart({ items, colors: c }: { items: { label: string; value: number; color: string }[]; colors: any }) {
+  const [width, setWidth] = useState(0);
+  const maxVal = Math.max(...items.map(i => i.value), 1);
+  return (
+    <View onLayout={e => setWidth(e.nativeEvent.layout.width)}>
+      {items.map((item, idx) => {
+        const barW = width > 0 ? Math.max((item.value / maxVal) * (width - 90), item.value > 0 ? 6 : 0) : 0;
+        return (
+          <View key={idx} style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+            <Text style={{ fontSize: 11, color: c.muted, width: 90, flexShrink: 0 }} numberOfLines={2}>{item.label}</Text>
+            <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View style={{ height: 18, backgroundColor: c.border, borderRadius: 4, flex: 1, overflow: "hidden" }}>
+                {barW > 0 && (
+                  <View style={{ width: barW, height: "100%", backgroundColor: item.color, borderRadius: 4 }} />
+                )}
+              </View>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: item.color, minWidth: 24, textAlign: "right" }}>{item.value}</Text>
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function ResumoTab({ data, colors, styles }: any) {
   const s = data.summary;
+  const statusItems = [
+    { label: "Concluídas", value: s.concluidas, color: colors.success },
+    { label: "Pendentes", value: s.pendentes, color: colors.warning },
+    { label: "Rejeitadas", value: s.rejeitadas, color: colors.error },
+    { label: "Canceladas", value: s.canceladas, color: colors.muted },
+  ].filter(i => i.value > 0);
+  const urgencyItems = data.byUrgency.map((u: any) => ({
+    label: URGENCY_LABELS[u.urgency as keyof typeof URGENCY_LABELS] ?? u.urgency,
+    value: u.count,
+    color: u.urgency === "alta" ? colors.error : u.urgency === "media" ? colors.warning : colors.success,
+  }));
+  const detailedStatusItems = data.byStatus.map((st: any) => ({
+    label: STATUS_LABELS[st.status as keyof typeof STATUS_LABELS] ?? st.status,
+    value: st.count,
+    color: st.status === "concluida" ? colors.success : st.status.startsWith("aguardando") ? colors.warning : colors.error,
+  }));
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       {/* Cards de resumo */}
@@ -260,29 +302,42 @@ function ResumoTab({ data, colors, styles }: any) {
         </Text>
       </View>
 
-      {/* Por urgência */}
-      {data.byUrgency.length > 0 && (
+      {/* Gráfico de Status */}
+      {statusItems.length > 0 && (
         <View style={[styles.card, { marginTop: 8 }]}>
-          <Text style={styles.sectionTitle}>Por Urgência</Text>
-          {data.byUrgency.map((u: any) => (
-            <View key={u.urgency} style={styles.tableRow}>
-              <Text style={styles.tableCell}>{URGENCY_LABELS[u.urgency as keyof typeof URGENCY_LABELS] ?? u.urgency}</Text>
-              <Text style={[styles.tableCell, { fontWeight: "700", color: colors.foreground }]}>{u.count}</Text>
-            </View>
-          ))}
+          <Text style={styles.sectionTitle}>📊 Distribuição por Status</Text>
+          <View style={{ marginTop: 12 }}>
+            <BarChart items={statusItems} colors={colors} />
+          </View>
+          {/* Legenda visual */}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
+            {statusItems.map((item, idx) => (
+              <View key={idx} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: item.color }} />
+                <Text style={{ fontSize: 11, color: colors.muted }}>{item.label}: {item.value}</Text>
+              </View>
+            ))}
+          </View>
         </View>
       )}
 
-      {/* Por status */}
-      {data.byStatus.length > 0 && (
+      {/* Gráfico de Urgência */}
+      {urgencyItems.length > 0 && (
         <View style={[styles.card, { marginTop: 8 }]}>
-          <Text style={styles.sectionTitle}>Por Status</Text>
-          {data.byStatus.map((s: any) => (
-            <View key={s.status} style={styles.tableRow}>
-              <Text style={styles.tableCell}>{STATUS_LABELS[s.status as keyof typeof STATUS_LABELS] ?? s.status}</Text>
-              <Text style={[styles.tableCell, { fontWeight: "700", color: colors.foreground }]}>{s.count}</Text>
-            </View>
-          ))}
+          <Text style={styles.sectionTitle}>⚡ Por Urgência</Text>
+          <View style={{ marginTop: 12 }}>
+            <BarChart items={urgencyItems} colors={colors} />
+          </View>
+        </View>
+      )}
+
+      {/* Gráfico de Status Detalhado */}
+      {detailedStatusItems.length > 0 && (
+        <View style={[styles.card, { marginTop: 8 }]}>
+          <Text style={styles.sectionTitle}>📋 Por Etapa de Aprovação</Text>
+          <View style={{ marginTop: 12 }}>
+            <BarChart items={detailedStatusItems} colors={colors} />
+          </View>
         </View>
       )}
     </ScrollView>
@@ -609,11 +664,12 @@ function createStyles(colors: any) {
       marginHorizontal: 0,
     },
     tab: {
-      flex: 1,
       alignItems: "center",
       paddingVertical: 10,
+      paddingHorizontal: 16,
       borderBottomWidth: 2,
       borderBottomColor: "transparent",
+      minWidth: 80,
     },
     tabText: {
       fontSize: 13,
