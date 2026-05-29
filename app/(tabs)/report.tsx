@@ -193,7 +193,7 @@ export default function ReportScreen() {
       </ScrollView>
 
       {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabRow}>
+      <View style={styles.tabRow}>
         {(["resumo", "departamentos", "rankings", "detalhes"] as const).map(tab => (
           <Pressable
             key={tab}
@@ -205,7 +205,7 @@ export default function ReportScreen() {
             </Text>
           </Pressable>
         ))}
-      </ScrollView>
+      </View>
 
       {/* Conteúdo */}
       {isLoading ? (
@@ -390,6 +390,7 @@ function DetalhesTab({ data, colors, styles }: any) {
     <FlatList
       data={data.requests}
       keyExtractor={(item: any) => String(item.id)}
+      style={{ flex: 1 }}
       contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
       renderItem={({ item }: any) => (
         <View style={[styles.card, { marginBottom: 8 }]}>
@@ -661,7 +662,7 @@ function createStyles(colors: any) {
       flexDirection: "row",
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      marginHorizontal: 0,
+      flexShrink: 0,
     },
     tab: {
       alignItems: "center",
