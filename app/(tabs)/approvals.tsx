@@ -168,6 +168,21 @@ export default function ApprovalsScreen() {
 
   const [rejectTarget, setRejectTarget] = useState<{ id: number; requestNumber: string } | null>(null);
   const [approvingId, setApprovingId] = useState<number | null>(null);
+  // Modal de seleção de cotação
+  const [quotationModal, setQuotationModal] = useState<{ requestId: number; requestNumber: string } | null>(null);
+  const { data: quotationModalData } = trpc.quotations.getByRequestId.useQuery(
+    { requestId: quotationModal?.requestId ?? 0 },
+    { enabled: !!quotationModal?.requestId }
+  );
+  const approveWithSupplierMutation = trpc.quotations.approveWithSupplier.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      setQuotationModal(null);
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ Cotação aprovada!", "O fornecedor foi selecionado e o fluxo avançou.");
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
 
   const { data: pending, isLoading, refetch, isRefetching } = trpc.requests.pendingForMe.useQuery(undefined, {
     enabled: isAuthenticated,
@@ -233,19 +248,29 @@ export default function ApprovalsScreen() {
     const isApproveOnly = APPROVE_ONLY_STATUSES.includes(status);
     const isApproving = approvingId === item.id && approveMutation.isPending;
     const isRejecting = rejectTarget?.id === item.id && rejectMutation.isPending;
-    // Mostrar botão de edição sem reiniciar fluxo apenas para controladoria na etapa correta
     const showEditButton = isControladoria && status === "aguardando_controladoria";
+    // Etapa de orçamento: mostrar botão especial para escolher cotação
+    const isOrcamentoStep = status === "aguardando_orcamento";
     return (
       <View style={isDesktop ? { flex: 1 } : {}}>
         <RequestCard
           request={item}
           onPress={() => router.push(`/request/${item.id}` as any)}
-          onApprove={!isApproveOnly ? () => handleQuickApprove(item) : undefined}
-          onReject={!isApproveOnly ? () => handleQuickReject(item) : undefined}
+          onApprove={!isApproveOnly && !isOrcamentoStep ? () => handleQuickApprove(item) : undefined}
+          onReject={!isApproveOnly && !isOrcamentoStep ? () => handleQuickReject(item) : undefined}
           isApproving={isApproving}
           isRejecting={isRejecting}
           onEdit={showEditButton ? () => router.push(`/request/edit-controladoria/${item.id}` as any) : undefined}
         />
+        {isOrcamentoStep && (
+          <TouchableOpacity
+            onPress={() => setQuotationModal({ requestId: item.id, requestNumber: item.requestNumber })}
+            style={{ marginHorizontal: 16, marginBottom: 12, marginTop: -4, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 }}
+          >
+            <Text style={{ fontSize: 16 }}>📋</Text>
+            <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>Ver Cotações e Aprovar</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -306,6 +331,95 @@ export default function ApprovalsScreen() {
         }}
         isLoading={rejectMutation.isPending}
       />
+
+      {/* Modal de seleção de cotação */}
+      <Modal
+        visible={!!quotationModal}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setQuotationModal(null)}
+      >
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          {/* Header */}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+            <TouchableOpacity onPress={() => setQuotationModal(null)} disabled={approveWithSupplierMutation.isPending}>
+              <Text style={{ color: colors.primary, fontSize: 15 }}>Fechar</Text>
+            </TouchableOpacity>
+            <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>Escolher Cotação</Text>
+            <View style={{ width: 60 }} />
+          </View>
+
+          <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+            <Text style={{ fontSize: 13, color: colors.muted, lineHeight: 18 }}>
+              Selecione a melhor cotação para a solicitação <Text style={{ fontWeight: "700", color: colors.foreground }}>{quotationModal?.requestNumber}</Text>. O fluxo avançará automaticamente após a escolha.
+            </Text>
+
+            {!quotationModalData?.suppliers?.length ? (
+              <View style={{ backgroundColor: `${colors.warning}15`, borderWidth: 1, borderColor: `${colors.warning}40`, borderRadius: 12, padding: 16, alignItems: "center", gap: 8 }}>
+                <Text style={{ fontSize: 28 }}>⚠️</Text>
+                <Text style={{ color: colors.warning, fontWeight: "700", fontSize: 14, textAlign: "center" }}>Nenhuma cotação cadastrada</Text>
+                <Text style={{ color: colors.muted, fontSize: 13, textAlign: "center" }}>O usuário de compras ainda não adicionou as cotações. Acesse a solicitação para mais detalhes.</Text>
+                <TouchableOpacity
+                  onPress={() => { setQuotationModal(null); router.push(`/request/${quotationModal?.requestId}` as any); }}
+                  style={{ backgroundColor: colors.primary, borderRadius: 10, paddingHorizontal: 20, paddingVertical: 10, marginTop: 4 }}
+                >
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>Ver Solicitação</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (() => {
+              // Encontrar o menor valor para destacar
+              const suppliers = quotationModalData.suppliers as any[];
+              const values = suppliers.map((s: any) => parseFloat(s.totalValue) || Infinity);
+              const minValue = Math.min(...values);
+              return suppliers.map((s: any, i: number) => {
+                const val = parseFloat(s.totalValue) || 0;
+                const isBest = val === minValue && val > 0;
+                const diffPct = isBest || minValue === 0 ? 0 : Math.round(((val - minValue) / minValue) * 100);
+                return (
+                  <View key={s.id} style={{ borderWidth: isBest ? 2 : 1, borderColor: isBest ? colors.success : colors.border, borderRadius: 14, padding: 16, backgroundColor: isBest ? `${colors.success}08` : colors.surface }}>
+                    {isBest && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8, backgroundColor: `${colors.success}20`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" }}>
+                        <Text style={{ fontSize: 14 }}>⭐</Text>
+                        <Text style={{ color: colors.success, fontWeight: "700", fontSize: 12 }}>Menor Preço</Text>
+                      </View>
+                    )}
+                    {!isBest && diffPct > 0 && (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8, backgroundColor: `${colors.warning}15`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" }}>
+                        <Text style={{ color: colors.warning, fontWeight: "600", fontSize: 12 }}>+{diffPct}% acima do menor</Text>
+                      </View>
+                    )}
+                    <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>{i + 1}. {s.supplierName}</Text>
+                    <Text style={{ fontSize: 22, fontWeight: "800", color: isBest ? colors.success : colors.foreground, marginBottom: 8 }}>
+                      {val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    </Text>
+                    {s.paymentTerms ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2 }}>💳 {s.paymentTerms}</Text> : null}
+                    {s.deliveryDays ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2 }}>📦 Entrega: {s.deliveryDays} dias</Text> : null}
+                    {s.observations ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2, fontStyle: "italic" }}>{s.observations}</Text> : null}
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (approveWithSupplierMutation.isPending) return;
+                        approveWithSupplierMutation.mutate({
+                          requestId: quotationModal!.requestId,
+                          supplierId: s.id,
+                          estimatedValue: val || undefined,
+                        });
+                      }}
+                      disabled={approveWithSupplierMutation.isPending}
+                      style={{ marginTop: 12, backgroundColor: isBest ? colors.success : colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: approveWithSupplierMutation.isPending ? 0.7 : 1 }}
+                    >
+                      {approveWithSupplierMutation.isPending ? (
+                        <><ActivityIndicator color="white" /><Text style={{ color: "white", fontWeight: "700", fontSize: 14, marginLeft: 8 }}>Aprovando...</Text></>
+                      ) : (
+                        <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>Selecionar este fornecedor</Text></>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                );
+              });
+            })()}
+          </ScrollView>
+        </View>
+      </Modal>
     </ScreenContainer>
   );
 }

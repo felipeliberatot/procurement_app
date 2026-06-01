@@ -112,13 +112,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="quotations"
-        options={{
-          title: "Cotações",
-          tabBarIcon: ({ color }) => <IconSymbol size={26} name="doc.badge.plus" color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="report"
         options={{
           title: "Relatório",

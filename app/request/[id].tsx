@@ -710,6 +710,56 @@ export default function RequestDetailScreen() {
     { enabled: !!id && !!request?.budgetFileUrl }
   );
 
+  // Cotações de fornecedores vinculadas a esta solicitação
+  const { data: quotationData, refetch: refetchQuotations } = trpc.quotations.getByRequestId.useQuery(
+    { requestId: requestId },
+    { enabled: isAuthenticated && !!id }
+  );
+  const saveQuotationsMutation = trpc.quotations.saveForRequest.useMutation({
+    onSuccess: () => {
+      refetchQuotations();
+      if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ Cotações salvas!", "As cotações foram salvas. O aprovador poderá visualizá-las e escolher a melhor opção.");
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+
+  // Estado do formulário de cotações
+  type SupplierForm = {
+    supplierName: string;
+    supplierContact: string;
+    paymentTerms: string;
+    deliveryDays: string;
+    observations: string;
+    totalValue: string;
+  };
+  const emptySupplier = (): SupplierForm => ({
+    supplierName: "", supplierContact: "", paymentTerms: "", deliveryDays: "", observations: "", totalValue: "",
+  });
+  const [quotationSupplierForms, setQuotationSupplierForms] = useState<SupplierForm[]>([emptySupplier(), emptySupplier(), emptySupplier()]);
+  const [quotationFormsInitialized, setQuotationFormsInitialized] = useState(false);
+
+  // Pré-preencher formulários com cotações existentes
+  useEffect(() => {
+    if (!quotationFormsInitialized && quotationData?.suppliers?.length) {
+      const forms = [emptySupplier(), emptySupplier(), emptySupplier()];
+      quotationData.suppliers.forEach((s: any, i: number) => {
+        if (i < 3) {
+          forms[i] = {
+            supplierName: s.supplierName ?? "",
+            supplierContact: s.supplierContact ?? "",
+            paymentTerms: s.paymentTerms ?? "",
+            deliveryDays: s.deliveryDays ? String(s.deliveryDays) : "",
+            observations: s.observations ?? "",
+            totalValue: s.totalValue ?? "",
+          };
+        }
+      });
+      setQuotationSupplierForms(forms);
+      setQuotationFormsInitialized(true);
+    }
+  }, [quotationData, quotationFormsInitialized]);
+
   if (isLoading) {
     return (
       <ScreenContainer>
@@ -1531,11 +1581,165 @@ export default function RequestDetailScreen() {
                 </View>
               )}
 
-              {/* Etapa de orçamento */}
+              {/* Etapa de orçamento: formulário de 3 cotações de fornecedores */}
               {currentStatus === "aguardando_orcamento" && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-                  <Text className="text-sm font-bold text-foreground mb-1">Anexar Orçamento</Text>
-                  <Text className="text-xs text-muted mb-3">Selecione o PDF do orçamento e clique em Enviar Orçamento para avançar</Text>
+                  <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>📋 Cotações de Fornecedores</Text>
+                  <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 16 }}>Preencha até 3 cotações. Após salvar, o aprovador escolherá a melhor opção para avançar o fluxo.</Text>
+
+                  {/* Cotações já salvas */}
+                  {quotationData?.suppliers?.length ? (
+                    <View style={{ marginBottom: 16, backgroundColor: `${colors.success}10`, borderWidth: 1, borderColor: `${colors.success}30`, borderRadius: 12, padding: 12 }}>
+                      <Text style={{ color: colors.success, fontWeight: "700", fontSize: 13, marginBottom: 8 }}>✅ Cotações já salvas ({quotationData.suppliers.length}/3)</Text>
+                      {(quotationData.suppliers as any[]).map((s: any, i: number) => (
+                        <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 4, borderBottomWidth: i < quotationData.suppliers.length - 1 ? 0.5 : 0, borderBottomColor: colors.border }}>
+                          <Text style={{ color: colors.foreground, fontSize: 13, flex: 1 }}>{i + 1}. {s.supplierName}</Text>
+                          <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 13 }}>{parseFloat(s.totalValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</Text>
+                          {quotationData.selectedSupplierId === s.id && <Text style={{ color: colors.success, fontSize: 12, marginLeft: 8 }}>⭐ Selecionado</Text>}
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
+
+                  {/* Formulário de cotações */}
+                  {quotationSupplierForms.map((form, idx) => (
+                    <View key={idx} style={{ marginBottom: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.background }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary, marginBottom: 10 }}>Fornecedor {idx + 1}{idx === 0 ? " *" : " (opcional)"}</Text>
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Nome do Fornecedor{idx === 0 ? " *" : ""}</Text>
+                      <TextInput
+                        value={form.supplierName}
+                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], supplierName: v }; setQuotationSupplierForms(f); }}
+                        placeholder="Ex: Empresa ABC Ltda"
+                        placeholderTextColor={colors.muted}
+                        returnKeyType="next"
+                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
+                      />
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Valor Total (R$){idx === 0 ? " *" : ""}</Text>
+                      <TextInput
+                        value={form.totalValue}
+                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], totalValue: v.replace(/[^0-9.,]/g, "") }; setQuotationSupplierForms(f); }}
+                        placeholder="0,00"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        returnKeyType="next"
+                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
+                      />
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Prazo de Entrega (dias)</Text>
+                      <TextInput
+                        value={form.deliveryDays}
+                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], deliveryDays: v.replace(/[^0-9]/g, "") }; setQuotationSupplierForms(f); }}
+                        placeholder="Ex: 7"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="number-pad"
+                        returnKeyType="next"
+                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
+                      />
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Condições de Pagamento</Text>
+                      <TextInput
+                        value={form.paymentTerms}
+                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], paymentTerms: v }; setQuotationSupplierForms(f); }}
+                        placeholder="Ex: 30/60/90 dias"
+                        placeholderTextColor={colors.muted}
+                        returnKeyType="next"
+                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
+                      />
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Observações</Text>
+                      <TextInput
+                        value={form.observations}
+                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], observations: v }; setQuotationSupplierForms(f); }}
+                        placeholder="Informações adicionais..."
+                        placeholderTextColor={colors.muted}
+                        multiline
+                        numberOfLines={2}
+                        returnKeyType="done"
+                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, minHeight: 60, textAlignVertical: "top" }}
+                      />
+                    </View>
+                  ))}
+
+                  {/* Botão Salvar Cotações */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      const filled = quotationSupplierForms.filter(f => f.supplierName.trim() && f.totalValue.trim());
+                      if (filled.length === 0) { Alert.alert("Obrigatório", "Preencha ao menos 1 fornecedor com nome e valor."); return; }
+                      const suppliers = filled.map((f, i) => ({
+                        supplierName: f.supplierName.trim(),
+                        supplierContact: f.supplierContact.trim() || undefined,
+                        paymentTerms: f.paymentTerms.trim() || undefined,
+                        deliveryDays: f.deliveryDays ? parseInt(f.deliveryDays) : undefined,
+                        observations: f.observations.trim() || undefined,
+                        items: [{ description: "Item", quantity: "1", unit: "un", unitPrice: f.totalValue, totalPrice: f.totalValue }],
+                        totalValue: f.totalValue.replace(/\./g, "").replace(",", "."),
+                        position: i + 1,
+                      }));
+                      saveQuotationsMutation.mutate({ requestId: request.id, suppliers });
+                    }}
+                    disabled={saveQuotationsMutation.isPending}
+                    style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: saveQuotationsMutation.isPending ? 0.7 : 1, marginBottom: 12 }}
+                  >
+                    {saveQuotationsMutation.isPending ? (
+                      <><ActivityIndicator color="white" /><Text style={{ color: "white", fontWeight: "700", fontSize: 15, marginLeft: 8 }}>Salvando...</Text></>
+                    ) : (
+                      <><Text style={{ fontSize: 18 }}>💾</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Salvar Cotações</Text></>
+                    )}
+                  </TouchableOpacity>
+
+                  <Text style={{ fontSize: 11, color: colors.muted, textAlign: "center" }}>Após salvar, aguarde o aprovador escolher a melhor cotação para avançar o fluxo.</Text>
+
+                  {/* Separador */}
+                  <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 16 }} />
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>📎 Anexar PDF do Orçamento (opcional)</Text>
+                  <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 8 }}>Você pode anexar um PDF complementar ao orçamento.</Text>
+                  <TouchableOpacity
+                    onPress={handlePickBudget}
+                    disabled={uploadFileMutation.isPending || approveMutation.isPending}
+                    style={{
+                      flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+                      borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.primary}60`,
+                      borderRadius: 12, paddingVertical: 20,
+                      opacity: (uploadFileMutation.isPending || approveMutation.isPending) ? 0.6 : 1,
+                    }}
+                  >
+                    {uploadFileMutation.isPending ? (
+                      <><ActivityIndicator size="small" /><Text style={{ color: colors.primary, fontSize: 14, marginLeft: 8 }}>Enviando PDF...</Text></>
+                    ) : (
+                      <><Text style={{ fontSize: 24 }}>📎</Text><Text style={{ color: colors.primary, fontWeight: "600", fontSize: 14 }}>{budgetFileName ?? (request.budgetFileUrl ? "Trocar PDF do Orçamento" : "Selecionar PDF do Orçamento")}</Text></>
+                    )}
+                  </TouchableOpacity>
+                  {(budgetFileName || request.budgetFileUrl) && !uploadFileMutation.isPending && (
+                    <Text style={{ color: colors.success, fontSize: 12, textAlign: "center", marginTop: 8 }}>✅ {budgetFileName ?? "Orçamento já anexado"}</Text>
+                  )}
+                  {budgetFileName && !uploadFileMutation.isPending && (
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (!pendingBudgetBase64 || !budgetFileName) return;
+                        uploadFileMutation.mutate(
+                          { requestId: request.id, fileName: budgetFileName, base64: pendingBudgetBase64, mimeType: pendingBudgetMime },
+                          { onSuccess: () => { setBudgetFileName(null); Alert.alert("✅ PDF enviado!"); } }
+                        );
+                      }}
+                      style={{ marginTop: 8, backgroundColor: colors.success, borderRadius: 10, paddingVertical: 10, alignItems: "center" }}
+                    >
+                      <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>📤 Enviar PDF</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Campo Valor Estimado */}
+                  <View style={{ marginTop: 12, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>Valor Estimado <Text style={{ color: colors.error }}>*</Text></Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderColor: estimatedValueInput.trim() ? colors.success : colors.error, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.background }}>
+                      <Text style={{ fontSize: 14, color: colors.muted, marginRight: 4 }}>R$</Text>
+                      <TextInput
+                        value={estimatedValueInput}
+                        onChangeText={(t) => setEstimatedValueInput(t.replace(/[^0-9.,]/g, ""))}
+                        placeholder="0,00"
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.foreground }}
+                      />
+                    </View>
+                  </View>
                   <TouchableOpacity
                     onPress={handlePickBudget}
                     disabled={uploadFileMutation.isPending || approveMutation.isPending}

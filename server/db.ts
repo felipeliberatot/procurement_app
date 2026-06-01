@@ -2994,3 +2994,131 @@ export async function deleteQuotationGroup(id: number, userId: number) {
   await db.delete(quotationGroups).where(eq(quotationGroups.id, id));
   return { success: true };
 }
+
+// ─── Cotações integradas ao fluxo de solicitação ────────────────────────────
+
+/** Busca o grupo de cotações vinculado a uma solicitação específica */
+export async function getQuotationGroupByRequestId(requestId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const groups = await db.select().from(quotationGroups)
+    .where(eq(quotationGroups.requestId, requestId))
+    .orderBy(desc(quotationGroups.createdAt))
+    .limit(1);
+  if (!groups.length) return null;
+  const suppliers = await db.select().from(quotationSuppliers)
+    .where(eq(quotationSuppliers.groupId, groups[0].id))
+    .orderBy(quotationSuppliers.position);
+  return { ...groups[0], suppliers };
+}
+
+/** Salva (ou substitui) as cotações de fornecedores para uma solicitação */
+export async function saveQuotationsForRequest(data: {
+  requestId: number;
+  createdById: number;
+  createdByName: string;
+  suppliers: Array<{
+    supplierName: string;
+    supplierContact?: string;
+    paymentTerms?: string;
+    deliveryDays?: number;
+    observations?: string;
+    items: Array<{ description: string; quantity: string; unit: string; unitPrice: string; totalPrice: string }>;
+    totalValue: string;
+    position: number;
+  }>;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Remove grupo anterior vinculado a esta solicitação (se existir)
+  const existing = await db.select().from(quotationGroups)
+    .where(eq(quotationGroups.requestId, data.requestId))
+    .limit(1);
+  if (existing.length) {
+    await db.delete(quotationSuppliers).where(eq(quotationSuppliers.groupId, existing[0].id));
+    await db.delete(quotationGroups).where(eq(quotationGroups.id, existing[0].id));
+  }
+
+  // Busca informações da solicitação para preencher o título
+  const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, data.requestId)).limit(1);
+  if (!req) throw new Error("Solicitação não encontrada");
+
+  // Cria novo grupo vinculado à solicitação
+  const result = await db.insert(quotationGroups).values({
+    title: `Cotações — ${req.requestNumber ?? `#${data.requestId}`}`,
+    description: `Cotações para a solicitação ${req.requestNumber ?? data.requestId}`,
+    department: req.department ?? null,
+    costCenterCode: req.costCenterCode ?? null,
+    requestId: data.requestId,
+    createdById: data.createdById,
+    createdByName: data.createdByName,
+    status: "em_andamento",
+  });
+  const groupId = (result as any)[0]?.insertId ?? 0;
+
+  for (const s of data.suppliers) {
+    await db.insert(quotationSuppliers).values({
+      groupId,
+      supplierName: s.supplierName,
+      supplierContact: s.supplierContact ?? null,
+      paymentTerms: s.paymentTerms ?? null,
+      deliveryDays: s.deliveryDays ?? null,
+      observations: s.observations ?? null,
+      items: JSON.stringify(s.items),
+      totalValue: s.totalValue,
+      position: s.position,
+    });
+  }
+  return { id: groupId };
+}
+
+/** Aprovador seleciona o fornecedor vencedor e avança o fluxo normalmente */
+export async function approveQuotationAndAdvance(
+  requestId: number,
+  supplierId: number,
+  user: User,
+  estimatedValue?: number
+) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+  if (!request) throw new Error("Solicitação não encontrada");
+
+  // Marca o fornecedor selecionado no grupo de cotações
+  const groups = await db.select().from(quotationGroups)
+    .where(eq(quotationGroups.requestId, requestId))
+    .limit(1);
+  if (groups.length) {
+    await db.update(quotationGroups)
+      .set({ selectedSupplierId: supplierId, status: "concluido", updatedAt: new Date() })
+      .where(eq(quotationGroups.id, groups[0].id));
+  }
+
+  // Busca o fornecedor selecionado para usar o valor como estimatedValue se não fornecido
+  if (!estimatedValue) {
+    const [supplier] = await db.select().from(quotationSuppliers)
+      .where(eq(quotationSuppliers.id, supplierId))
+      .limit(1);
+    if (supplier) {
+      estimatedValue = parseFloat(supplier.totalValue) || undefined;
+    }
+  }
+
+  // Avança o fluxo normalmente (reutiliza approveRequest)
+  return approveRequest(requestId, user, estimatedValue !== undefined ? { orderValue: estimatedValue } : {});
+}
+
+/** Remove cotações vinculadas a uma solicitação */
+export async function deleteQuotationsByRequestId(requestId: number, _userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const groups = await db.select().from(quotationGroups)
+    .where(eq(quotationGroups.requestId, requestId))
+    .limit(1);
+  if (!groups.length) return { success: true };
+  await db.delete(quotationSuppliers).where(eq(quotationSuppliers.groupId, groups[0].id));
+  await db.delete(quotationGroups).where(eq(quotationGroups.id, groups[0].id));
+  return { success: true };
+}

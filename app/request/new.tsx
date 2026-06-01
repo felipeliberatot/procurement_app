@@ -4,8 +4,8 @@ import { useColors } from "@/hooks/use-colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "@/lib/trpc";
 import * as Haptics from "expo-haptics";
-import { router, useLocalSearchParams } from "expo-router";
-import React, { useState, useEffect } from "react";
+import { router } from "expo-router";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -46,11 +46,6 @@ export default function NewRequestScreen() {
   const colors = useColors();
   const utils = trpc.useUtils();
 
-  // Params from quotations screen
-  const params = useLocalSearchParams<{ fromQuotationGroupId?: string; fromQuotationSupplierId?: string }>();
-  const fromGroupId = params.fromQuotationGroupId ? parseInt(params.fromQuotationGroupId) : null;
-  const fromSupplierId = params.fromQuotationSupplierId ? parseInt(params.fromQuotationSupplierId) : null;
-
   const [department, setDepartment] = useState("");
   const [costCenterCode, setCostCenterCode] = useState("");
   const [application, setApplication] = useState("");
@@ -58,46 +53,6 @@ export default function NewRequestScreen() {
   const [observations, setObservations] = useState("");
   const [osMyfarm, setOsMyfarm] = useState("");
   const [items, setItems] = useState<Item[]>([newItem()]);
-  const [quotationBanner, setQuotationBanner] = useState<string | null>(null);
-
-  // Load quotation data if navigating from quotations screen
-  const { data: quotationGroup } = trpc.quotations.getById.useQuery(
-    { id: fromGroupId! },
-    { enabled: !!fromGroupId }
-  );
-  const linkQuotationMutation = trpc.quotations.linkToRequest.useMutation();
-
-  useEffect(() => {
-    if (!quotationGroup || !fromSupplierId) return;
-    const supplier = (quotationGroup.suppliers ?? []).find((s: any) => s.id === fromSupplierId);
-    if (!supplier) return;
-    setApplication(quotationGroup.title);
-    if (quotationGroup.department) setDepartment(quotationGroup.department);
-    if (quotationGroup.costCenterCode) setCostCenterCode(quotationGroup.costCenterCode);
-    const obsParts = [
-      quotationGroup.description,
-      `Cotação selecionada: ${supplier.supplierName}`,
-      supplier.paymentTerms ? `Pagamento: ${supplier.paymentTerms}` : null,
-      supplier.deliveryDays ? `Prazo de entrega: ${supplier.deliveryDays} dias` : null,
-      supplier.observations,
-    ].filter(Boolean);
-    if (obsParts.length) setObservations(obsParts.join(' | '));
-    try {
-      const supplierItems: Array<{ description: string; quantity: string; unit: string; unitPrice: string }> =
-        JSON.parse(supplier.items);
-      if (supplierItems.length > 0) {
-        setItems(supplierItems.map((it) => ({
-          id: String(Date.now() + Math.random()),
-          description: it.description,
-          quantity: it.quantity,
-          unit: it.unit || 'un',
-          unitPrice: it.unitPrice,
-        })));
-      }
-    } catch {}
-    const total = parseFloat(supplier.totalValue) || 0;
-    setQuotationBanner(`📋 Pré-preenchido com cotação: ${supplier.supplierName} — ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
-  }, [quotationGroup, fromSupplierId]);
 
   const { data: costCenters } = trpc.costCenters.list.useQuery(undefined, { enabled: isAuthenticated });
   const { data: departments } = trpc.departments.list.useQuery(undefined, { enabled: isAuthenticated });
@@ -143,14 +98,10 @@ export default function NewRequestScreen() {
   );
 
   const createMutation = trpc.requests.create.useMutation({
-    onSuccess: (data: any) => {
+    onSuccess: () => {
       utils.requests.all.invalidate();
       utils.requests.myRequests.invalidate();
       utils.requests.dashboardStats.invalidate();
-      // Link quotation to the new request if coming from quotations screen
-      if (fromGroupId && data?.id) {
-        linkQuotationMutation.mutate({ groupId: fromGroupId, requestId: data.id });
-      }
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
@@ -231,26 +182,6 @@ export default function NewRequestScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20, paddingBottom: Math.max(insets.bottom + 24, 40) }} keyboardShouldPersistTaps="handled">
-
-          {/* Quotation banner */}
-          {quotationBanner && (
-            <View style={{
-              backgroundColor: "#EFF6FF",
-              borderWidth: 1,
-              borderColor: "#BFDBFE",
-              borderRadius: 10,
-              padding: 12,
-              marginBottom: 14,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}>
-              <Text style={{ color: "#1D4ED8", fontSize: 13, flex: 1 }}>{quotationBanner}</Text>
-              <TouchableOpacity onPress={() => setQuotationBanner(null)}>
-                <Text style={{ color: "#93C5FD", fontSize: 18, marginLeft: 8 }}>×</Text>
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* Solicitante (readonly) */}
           <View className="mb-4 bg-surface border border-border rounded-xl p-3">

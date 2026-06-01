@@ -1259,21 +1259,16 @@ Retorne JSON:
         return db.deleteApiKey(input.id);
       }),
   }),
-
-  // ─── Cotações / Orçamentos de Fornecedores ──────────────────────────────────
+  // ─── Cotações / Orçamentos de Fornecedores (integrado ao fluxo de solicitação) ──────────
   quotations: router({
-    list: protectedProcedure.query(({ ctx }) =>
-      db.listQuotationGroups(ctx.user.id)
-    ),
-    getById: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .query(({ input }) => db.getQuotationGroupWithSuppliers(input.id)),
-    create: protectedProcedure
+    // Buscar cotações vinculadas a uma solicitação
+    getByRequestId: protectedProcedure
+      .input(z.object({ requestId: z.number() }))
+      .query(({ input }) => db.getQuotationGroupByRequestId(input.requestId)),
+    // Salvar/substituir cotações para uma solicitação (papel: orçamento)
+    saveForRequest: protectedProcedure
       .input(z.object({
-        title: z.string().min(1),
-        description: z.string().optional(),
-        department: z.string().optional(),
-        costCenterCode: z.string().optional(),
+        requestId: z.number(),
         suppliers: z.array(z.object({
           supplierName: z.string().min(1),
           supplierContact: z.string().optional(),
@@ -1292,24 +1287,26 @@ Retorne JSON:
         })).min(1).max(3),
       }))
       .mutation(({ ctx, input }) =>
-        db.createQuotationGroup({
-          ...input,
+        db.saveQuotationsForRequest({
+          requestId: input.requestId,
+          suppliers: input.suppliers,
           createdById: ctx.user.id,
-          createdByName: (ctx.user as any).name ?? "Usu\u00e1rio",
+          createdByName: (ctx.user as any).name ?? "Usuário",
         })
       ),
-    selectSupplier: protectedProcedure
-      .input(z.object({ groupId: z.number(), supplierId: z.number() }))
-      .mutation(({ input }) => db.selectQuotationSupplier(input.groupId, input.supplierId)),
-    linkToRequest: protectedProcedure
-      .input(z.object({ groupId: z.number(), requestId: z.number() }))
-      .mutation(({ input }) => db.linkQuotationToRequest(input.groupId, input.requestId)),
-    delete: protectedProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(({ ctx, input }) => db.deleteQuotationGroup(input.id, ctx.user.id)),
+    // Aprovador seleciona o fornecedor vencedor e avança o fluxo
+    approveWithSupplier: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        supplierId: z.number(),
+        estimatedValue: z.number().optional(),
+      }))
+      .mutation(({ ctx, input }) =>
+        db.approveQuotationAndAdvance(input.requestId, input.supplierId, ctx.user, input.estimatedValue)
+      ),
   }),
 
-  // ─── Integração CGS Manutenções ────────────────────────────────────────────
+  // ─── Integração CGS Manutenções ──────────────────────────────────────────────
   maintenance: router({
     listWorkOrders: protectedProcedure
       .input(z.object({
