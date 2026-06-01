@@ -30,6 +30,10 @@ import {
   type User,
   apiKeys,
   type ApiKey,
+  quotationGroups,
+  quotationSuppliers,
+  type QuotationGroup,
+  type QuotationSupplier,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import * as WA from "./whatsapp";
@@ -2892,4 +2896,101 @@ export async function validateApiKey(rawKey: string): Promise<Omit<ApiKey, "keyH
 
   const { keyHash: _kh, ...rest } = key;
   return rest;
+}
+
+// ─── Quotation Groups ─────────────────────────────────────────────────────────
+
+export async function listQuotationGroups(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(quotationGroups)
+    .where(eq(quotationGroups.createdById, userId))
+    .orderBy(desc(quotationGroups.createdAt));
+}
+
+export async function getQuotationGroupWithSuppliers(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const groups = await db.select().from(quotationGroups).where(eq(quotationGroups.id, id)).limit(1);
+  if (!groups.length) return null;
+  const suppliers = await db.select().from(quotationSuppliers)
+    .where(eq(quotationSuppliers.groupId, id))
+    .orderBy(quotationSuppliers.position);
+  return { ...groups[0], suppliers };
+}
+
+export async function createQuotationGroup(data: {
+  title: string;
+  description?: string;
+  department?: string;
+  costCenterCode?: string;
+  createdById: number;
+  createdByName: string;
+  suppliers: Array<{
+    supplierName: string;
+    supplierContact?: string;
+    paymentTerms?: string;
+    deliveryDays?: number;
+    observations?: string;
+    items: Array<{ description: string; quantity: string; unit: string; unitPrice: string; totalPrice: string }>;
+    totalValue: string;
+    position: number;
+  }>;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const result = await db.insert(quotationGroups).values({
+    title: data.title,
+    description: data.description ?? null,
+    department: data.department ?? null,
+    costCenterCode: data.costCenterCode ?? null,
+    createdById: data.createdById,
+    createdByName: data.createdByName,
+    status: "em_andamento",
+  });
+  const groupId = (result as any)[0]?.insertId ?? 0;
+
+  for (const s of data.suppliers) {
+    await db.insert(quotationSuppliers).values({
+      groupId,
+      supplierName: s.supplierName,
+      supplierContact: s.supplierContact ?? null,
+      paymentTerms: s.paymentTerms ?? null,
+      deliveryDays: s.deliveryDays ?? null,
+      observations: s.observations ?? null,
+      items: JSON.stringify(s.items),
+      totalValue: s.totalValue,
+      position: s.position,
+    });
+  }
+  return { id: groupId };
+}
+
+export async function selectQuotationSupplier(groupId: number, supplierId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(quotationGroups)
+    .set({ selectedSupplierId: supplierId, status: "concluido", updatedAt: new Date() })
+    .where(eq(quotationGroups.id, groupId));
+  return { success: true };
+}
+
+export async function linkQuotationToRequest(groupId: number, requestId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(quotationGroups)
+    .set({ requestId, updatedAt: new Date() })
+    .where(eq(quotationGroups.id, groupId));
+}
+
+export async function deleteQuotationGroup(id: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const group = await db.select().from(quotationGroups).where(eq(quotationGroups.id, id)).limit(1);
+  if (!group.length) throw new Error("Cotação não encontrada");
+  if (group[0].createdById !== userId) throw new Error("Sem permissão para excluir esta cotação");
+  await db.delete(quotationSuppliers).where(eq(quotationSuppliers.groupId, id));
+  await db.delete(quotationGroups).where(eq(quotationGroups.id, id));
+  return { success: true };
 }

@@ -746,3 +746,38 @@
 - [ ] Implementar UI de permissões no modal de edição de usuário com colunas User/Admin/Master e checkboxes criar/editar/excluir por aba
 - [ ] Implementar lógica de verificação de permissões granulares nas abas de cadastro (Centros de Custo, Bens, Fazendas, Unidades, Departamentos)
 - [ ] Salvar e publicar checkpoint
+
+## Módulo de Cotações (Orçamentos de Fornecedores)
+- [ ] Schema: tabela `quotationGroups` com título, descrição, status e cotação selecionada
+- [ ] Schema: tabela `quotationSuppliers` com fornecedor, total e itens (JSON) por grupo
+- [ ] Migration do banco de dados
+- [ ] Backend: CRUD de grupos de cotação (criar, listar, buscar, deletar)
+- [ ] Tela de Orçamentos: lista de grupos com status (em andamento / concluído)
+- [ ] Tela de Orçamentos: formulário de criação com até 3 fornecedores + itens
+- [ ] Tela de Orçamentos: destaque visual do menor preço ao preencher as 3 cotações
+- [ ] Tela de Orçamentos: botão "Usar esta cotação" para gerar solicitação pré-preenchida
+- [ ] Integração: ao criar solicitação a partir de cotação, pré-preencher itens, valor e observações
+- [ ] Adicionar aba "Orçamentos" no sidebar desktop e na tab bar mobile
+
+## Módulo de Cotações (Orçamentos de Fornecedores)
+- [ ] Schema: tabela quotationGroups com título, descrição, status e cotação selecionada
+- [ ] Schema: tabela quotationSuppliers com fornecedor, total e itens (JSON) por grupo
+- [ ] Migration do banco de dados
+- [ ] Backend: CRUD de grupos de cotação (criar, listar, buscar, deletar)
+- [ ] Tela de Orçamentos: lista de grupos com status (em andamento / concluído)
+- [ ] Tela de Orçamentos: formulário de criação com até 3 fornecedores + itens
+- [ ] Tela de Orçamentos: destaque visual do menor preço ao preencher as 3 cotações
+- [ ] Tela de Orçamentos: botão Usar esta cotação para gerar solicitação pré-preenchida
+- [ ] Integração: ao criar solicitação a partir de cotação, pré-preencher itens, valor e observações
+- [ ] Adicionar aba Orçamentos no sidebar desktop e na tab bar mobile
+
+## Módulo de Cotações (Orçamentos)
+- [x] Criar tabelas quotationGroups e quotationSuppliers no banco
+- [x] Implementar funções de banco: listQuotationGroups, createQuotationGroup, getQuotationGroupWithSuppliers, selectQuotationSupplier, linkQuotationToRequest, deleteQuotationGroup
+- [x] Criar rotas tRPC: quotations.list, quotations.getById, quotations.create, quotations.selectSupplier, quotations.linkToRequest, quotations.delete
+- [x] Criar tela de Cotações com lista, formulário de criação (até 3 fornecedores) e visualização detalhada
+- [x] Destacar automaticamente o menor preço no comparativo
+- [x] Botão "Abrir Solicitação" que navega para nova solicitação pré-preenchida com dados da cotação
+- [x] Pré-preenchimento automático de itens, departamento, centro de custo e observações no formulário de nova solicitação
+- [x] Vinculação automática da cotação à solicitação criada
+- [x] Adicionar aba Cotações no sidebar e tab bar

@@ -47,6 +47,7 @@ const MAPPING = {
   "chart.bar.fill": "bar-chart",
   "gear": "settings",
   "phone.fill": "phone",
+  "doc.badge.plus": "post-add",
 } as IconMapping;
 
 export function IconSymbol({

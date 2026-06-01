@@ -438,3 +438,42 @@ export const apiKeys = mysqlTable("apiKeys", {
 
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type InsertApiKey = typeof apiKeys.$inferInsert;
+
+// ─── Quotation Groups (Grupos de Cotação) ─────────────────────────────────────
+// Agrupa até 3 cotações de fornecedores para comparação de preços
+export const quotationGroups = mysqlTable("quotationGroups", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  department: varchar("department", { length: 128 }),
+  costCenterCode: varchar("costCenterCode", { length: 32 }),
+  status: mysqlEnum("status", ["em_andamento", "concluido", "cancelado"])
+    .default("em_andamento")
+    .notNull(),
+  selectedSupplierId: int("selectedSupplierId"),
+  requestId: int("requestId"),
+  createdById: int("createdById").notNull(),
+  createdByName: varchar("createdByName", { length: 128 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type QuotationGroup = typeof quotationGroups.$inferSelect;
+export type InsertQuotationGroup = typeof quotationGroups.$inferInsert;
+
+// ─── Quotation Suppliers (Fornecedores por Cotação) ───────────────────────────
+export const quotationSuppliers = mysqlTable("quotationSuppliers", {
+  id: int("id").autoincrement().primaryKey(),
+  groupId: int("groupId").notNull(),
+  supplierName: varchar("supplierName", { length: 255 }).notNull(),
+  supplierContact: varchar("supplierContact", { length: 255 }),
+  paymentTerms: varchar("paymentTerms", { length: 128 }),
+  deliveryDays: int("deliveryDays"),
+  observations: text("observations"),
+  items: text("items").notNull(),
+  totalValue: decimal("totalValue", { precision: 14, scale: 2 }).notNull().default("0.00"),
+  position: int("position").notNull().default(1),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type QuotationSupplier = typeof quotationSuppliers.$inferSelect;
+export type InsertQuotationSupplier = typeof quotationSuppliers.$inferInsert;

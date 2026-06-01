@@ -1260,6 +1260,55 @@ Retorne JSON:
       }),
   }),
 
+  // ─── Cotações / Orçamentos de Fornecedores ──────────────────────────────────
+  quotations: router({
+    list: protectedProcedure.query(({ ctx }) =>
+      db.listQuotationGroups(ctx.user.id)
+    ),
+    getById: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(({ input }) => db.getQuotationGroupWithSuppliers(input.id)),
+    create: protectedProcedure
+      .input(z.object({
+        title: z.string().min(1),
+        description: z.string().optional(),
+        department: z.string().optional(),
+        costCenterCode: z.string().optional(),
+        suppliers: z.array(z.object({
+          supplierName: z.string().min(1),
+          supplierContact: z.string().optional(),
+          paymentTerms: z.string().optional(),
+          deliveryDays: z.number().optional(),
+          observations: z.string().optional(),
+          items: z.array(z.object({
+            description: z.string().min(1),
+            quantity: z.string(),
+            unit: z.string().default("un"),
+            unitPrice: z.string(),
+            totalPrice: z.string(),
+          })),
+          totalValue: z.string(),
+          position: z.number().min(1).max(3),
+        })).min(1).max(3),
+      }))
+      .mutation(({ ctx, input }) =>
+        db.createQuotationGroup({
+          ...input,
+          createdById: ctx.user.id,
+          createdByName: (ctx.user as any).name ?? "Usu\u00e1rio",
+        })
+      ),
+    selectSupplier: protectedProcedure
+      .input(z.object({ groupId: z.number(), supplierId: z.number() }))
+      .mutation(({ input }) => db.selectQuotationSupplier(input.groupId, input.supplierId)),
+    linkToRequest: protectedProcedure
+      .input(z.object({ groupId: z.number(), requestId: z.number() }))
+      .mutation(({ input }) => db.linkQuotationToRequest(input.groupId, input.requestId)),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ ctx, input }) => db.deleteQuotationGroup(input.id, ctx.user.id)),
+  }),
+
   // ─── Integração CGS Manutenções ────────────────────────────────────────────
   maintenance: router({
     listWorkOrders: protectedProcedure
