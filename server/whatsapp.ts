@@ -656,3 +656,118 @@ export function getProviderInfo() {
     webhookUrl: getWebhookUrl(),
   };
 }
+
+// ─── Notificação de cotações para o aprovador ────────────────────────────────
+/**
+ * Envia ao aprovador de orçamento as cotações com links individuais
+ * para selecionar o fornecedor vencedor diretamente pelo WhatsApp.
+ */
+export async function notifyQuotationApprover(opts: {
+  approverPhone: string;
+  approverName: string;
+  approverId: number;
+  requestId: number;
+  requestNumber: string;
+  requesterName: string;
+  department: string;
+  urgencyLevel: string;
+  suppliers: Array<{
+    id: number;
+    supplierName: string;
+    totalValue: string;
+    paymentTerms?: string | null;
+    deliveryDays?: number | null;
+    observations?: string | null;
+  }>;
+}): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+
+  const serverBase = resolveServerBaseUrl();
+  const urgencyEmoji =
+    opts.urgencyLevel === "emergencial" ? "🔴" :
+    opts.urgencyLevel === "urgente"     ? "🟡" : "🟢";
+
+  // Encontrar o menor valor para destacar
+  const values = opts.suppliers.map(s => parseFloat(s.totalValue) || Infinity);
+  const minValue = Math.min(...values);
+
+  // Gerar um token por fornecedor e persistir como sessão de cotação
+  const supplierLinks: string[] = [];
+  for (const supplier of opts.suppliers) {
+    const token = generateApprovalToken();
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000); // 72h
+    const phone = normalizePhone(opts.approverPhone);
+
+    // Invalidar sessões de cotação anteriores para este aprovador + solicitação
+    try {
+      await db.update(whatsappSessions)
+        .set({ status: "expired" })
+        .where(
+          and(
+            eq(whatsappSessions.requestId, opts.requestId),
+            eq(whatsappSessions.approverId, opts.approverId),
+            eq(whatsappSessions.status, "pending"),
+          )
+        );
+    } catch { /* ignore */ }
+
+    await db.insert(whatsappSessions).values({
+      token,
+      requestId: opts.requestId,
+      requestNumber: opts.requestNumber,
+      approverPhone: phone,
+      approverId: opts.approverId,
+      approverName: opts.approverName,
+      step: `quotation_supplier_${supplier.id}`,
+      status: "pending",
+      expiresAt,
+    });
+
+    const link = `${serverBase}/api/approve?token=${token}&action=approve&supplierId=${supplier.id}`;
+    supplierLinks.push(link);
+  }
+
+  // Montar a mensagem com o comparativo de cotações
+  const supplierLines = opts.suppliers.map((s, i) => {
+    const val = parseFloat(s.totalValue) || 0;
+    const isBest = val === minValue && val > 0;
+    const bestTag = isBest ? " ⭐ *MENOR PREÇO*" : "";
+    const valFormatted = val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const paymentLine = s.paymentTerms ? `\n     💳 ${s.paymentTerms}` : "";
+    const deliveryLine = s.deliveryDays ? `\n     📦 Entrega: ${s.deliveryDays} dias` : "";
+    const obsLine = s.observations ? `\n     📝 ${s.observations}` : "";
+    return [
+      `*${i + 1}. ${s.supplierName}*${bestTag}`,
+      `   💰 *${valFormatted}*${paymentLine}${deliveryLine}${obsLine}`,
+      `   ✅ Selecionar: ${supplierLinks[i]}`,
+    ].join("\n");
+  }).join("\n\n");
+
+  const message = [
+    `📋 *Cotações para Aprovação — CGS Agrícola*`,
+    ``,
+    `Olá, *${opts.approverName}*! As cotações da solicitação abaixo estão prontas para sua análise.`,
+    ``,
+    `*Nº:* ${opts.requestNumber}`,
+    `*Solicitante:* ${opts.requesterName}`,
+    `*Departamento:* ${opts.department}`,
+    `*Urgência:* ${urgencyEmoji}`,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `*COMPARATIVO DE COTAÇÕES*`,
+    `━━━━━━━━━━━━━━━━━━━━━━━━`,
+    ``,
+    supplierLines,
+    ``,
+    `━━━━━━━━━━━━━━━━━━━━━━━━`,
+    `_Clique no link do fornecedor escolhido para aprovar e avançar o fluxo._`,
+    ``,
+    `🔗 Ver detalhes no app:`,
+    `${APP_BASE_URL}/request/${opts.requestId}`,
+    ``,
+    `_Você tem 72h para responder._`,
+  ].join("\n");
+
+  return sendWhatsAppMessage(opts.approverPhone, message);
+}

@@ -1286,14 +1286,66 @@ Retorne JSON:
           position: z.number().min(1).max(3),
         })).min(1).max(3),
       }))
-      .mutation(({ ctx, input }) =>
-        db.saveQuotationsForRequest({
+      .mutation(async ({ ctx, input }) => {
+        // 1. Salvar as cotações no banco
+        const result = await db.saveQuotationsForRequest({
           requestId: input.requestId,
           suppliers: input.suppliers,
           createdById: ctx.user.id,
           createdByName: (ctx.user as any).name ?? "Usuário",
-        })
-      ),
+        });
+        // 2. Notificar aprovadores de orçamento via WhatsApp com comparativo de cotações
+        try {
+          const { notifyQuotationApprover } = await import("./whatsapp");
+          const { getDb } = await import("./db");
+          const { users: usersTable, purchaseRequests } = await import("../drizzle/schema");
+          const { eq: eqDrizzle, or: orDrizzle, and: andDrizzle } = await import("drizzle-orm");
+          const dbConn = await getDb();
+          if (dbConn) {
+            // Buscar dados da solicitação
+            const [req] = await dbConn.select().from(purchaseRequests)
+              .where(eqDrizzle(purchaseRequests.id, input.requestId)).limit(1);
+            // Buscar aprovadores ativos com papel de orçamento
+            const approversRaw = await dbConn.select().from(usersTable)
+              .where(andDrizzle(
+                eqDrizzle(usersTable.active, true),
+                orDrizzle(
+                  eqDrizzle(usersTable.procurementRole, "orcamento" as any),
+                  eqDrizzle(usersTable.approvalLevel, "orcamento" as any),
+                ),
+              ));
+            const approvers = [...new Map(approversRaw.map((a: any) => [a.id, a])).values()] as any[];
+            // Buscar os suppliers recém-salvos para obter os IDs reais do banco
+            const savedGroup = await db.getQuotationGroupByRequestId(input.requestId);
+            const savedSuppliers = savedGroup?.suppliers ?? [];
+            for (const approver of approvers) {
+              if (approver.phone && req) {
+                await notifyQuotationApprover({
+                  approverPhone: approver.phone,
+                  approverName: approver.name ?? "Aprovador",
+                  approverId: approver.id,
+                  requestId: input.requestId,
+                  requestNumber: req.requestNumber,
+                  requesterName: req.requesterName,
+                  department: req.department,
+                  urgencyLevel: req.urgencyLevel,
+                  suppliers: savedSuppliers.map((s: any) => ({
+                    id: s.id,
+                    supplierName: s.supplierName,
+                    totalValue: s.totalValue,
+                    paymentTerms: s.paymentTerms,
+                    deliveryDays: s.deliveryDays,
+                    observations: s.observations,
+                  })),
+                });
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("[WhatsApp] Falha ao notificar aprovadores de cotação:", e);
+        }
+        return result;
+      }),
     // Aprovador seleciona o fornecedor vencedor e avança o fluxo
     approveWithSupplier: protectedProcedure
       .input(z.object({

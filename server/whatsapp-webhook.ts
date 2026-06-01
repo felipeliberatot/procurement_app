@@ -180,7 +180,7 @@ export function registerWhatsAppWebhook(app: Express): void {
 
   // ─── Endpoint de aprovação via link (GET /api/approve?token=xxx&action=approve|reject) ───
   app.get("/api/approve", async (req: Request, res: Response) => {
-    const { token, action } = req.query as { token?: string; action?: string };
+    const { token, action, supplierId: supplierIdRaw } = req.query as { token?: string; action?: string; supplierId?: string };
 
     const htmlPage = (title: string, emoji: string, message: string, color: string) => `
 <!DOCTYPE html>
@@ -248,6 +248,27 @@ export function registerWhatsAppWebhook(app: Express): void {
       }
 
       if (action === "approve") {
+        // Verificar se é uma seleção de fornecedor de cotação (step começa com quotation_supplier_)
+        const isQuotationStep = session.step?.startsWith("quotation_supplier_");
+        const supplierId = supplierIdRaw ? parseInt(supplierIdRaw, 10) : null;
+        if (isQuotationStep && supplierId) {
+          // Selecionar fornecedor e avançar o fluxo
+          const { approveQuotationAndAdvance } = await import("./db");
+          await approveQuotationAndAdvance(session.requestId, supplierId, approverUser);
+          // Expirar TODOS os tokens de cotação pendentes para esta solicitação
+          const { and: andOp } = await import("drizzle-orm");
+          await db.update(whatsappSessions)
+            .set({ status: "approved", resolvedAt: new Date() })
+            .where(andOp(eq(whatsappSessions.requestId, session.requestId), eq(whatsappSessions.status, "pending")));
+          await notifyApproverActionConfirmation({
+            approverPhone: session.approverPhone,
+            approverName: session.approverName || "Aprovador",
+            requestNumber: session.requestNumber,
+            requestId: session.requestId,
+            action: "approved",
+          });
+          return res.send(htmlPage("Fornecedor selecionado!", "✅", `O fornecedor foi selecionado para a solicitação <strong>${session.requestNumber}</strong> e o fluxo avançou automaticamente.`, "#22C55E"));
+        }
         await approveRequest(session.requestId, approverUser, { comment: "Aprovado via link WhatsApp" });
         await db.update(whatsappSessions).set({ status: "approved", resolvedAt: new Date() }).where(eq(whatsappSessions.id, session.id));
         await notifyApproverActionConfirmation({
