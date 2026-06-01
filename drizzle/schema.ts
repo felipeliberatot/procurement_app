@@ -472,6 +472,7 @@ export const quotationSuppliers = mysqlTable("quotationSuppliers", {
   items: text("items").notNull(),
   totalValue: decimal("totalValue", { precision: 14, scale: 2 }).notNull().default("0.00"),
   position: int("position").notNull().default(1),
+  fileUrl: text("fileUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

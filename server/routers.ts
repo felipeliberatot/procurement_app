@@ -1356,6 +1356,32 @@ Retorne JSON:
       .mutation(({ ctx, input }) =>
         db.approveQuotationAndAdvance(input.requestId, input.supplierId, ctx.user, input.estimatedValue)
       ),
+    // Upload de arquivo (PDF ou imagem) vinculado a um fornecedor específico da cotação
+    uploadSupplierFile: protectedProcedure
+      .input(z.object({
+        supplierId: z.number(),
+        fileName: z.string(),
+        base64: z.string(),
+        mimeType: z.string().default("application/pdf"),
+      }))
+      .mutation(async ({ input }) => {
+        const { storagePut } = await import("./storage");
+        const buffer = Buffer.from(input.base64, "base64");
+        const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const key = `quotations/${input.supplierId}/${Date.now()}_${safeName}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        // Atualizar o fileUrl do fornecedor no banco
+        const { getDb } = await import("./db");
+        const { quotationSuppliers } = await import("../drizzle/schema");
+        const { eq } = await import("drizzle-orm");
+        const dbConn = await getDb();
+        if (dbConn) {
+          await dbConn.update(quotationSuppliers)
+            .set({ fileUrl: url })
+            .where(eq(quotationSuppliers.id, input.supplierId));
+        }
+        return { url };
+      }),
   }),
 
   // ─── Integração CGS Manutenções ──────────────────────────────────────────────

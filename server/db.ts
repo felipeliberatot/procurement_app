@@ -3057,8 +3057,9 @@ export async function saveQuotationsForRequest(data: {
   });
   const groupId = (result as any)[0]?.insertId ?? 0;
 
+  const savedSuppliers: Array<{ id: number; position: number; supplierName: string }> = [];
   for (const s of data.suppliers) {
-    await db.insert(quotationSuppliers).values({
+    const insResult = await db.insert(quotationSuppliers).values({
       groupId,
       supplierName: s.supplierName,
       supplierContact: s.supplierContact ?? null,
@@ -3069,8 +3070,10 @@ export async function saveQuotationsForRequest(data: {
       totalValue: s.totalValue,
       position: s.position,
     });
+    const supplierId = (insResult as any)[0]?.insertId ?? 0;
+    savedSuppliers.push({ id: supplierId, position: s.position, supplierName: s.supplierName });
   }
-  return { id: groupId };
+  return { id: groupId, suppliers: savedSuppliers };
 }
 
 /** Aprovador seleciona o fornecedor vencedor e avança o fluxo normalmente */

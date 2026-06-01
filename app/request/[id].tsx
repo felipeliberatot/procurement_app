@@ -732,12 +732,20 @@ export default function RequestDetailScreen() {
     deliveryDays: string;
     observations: string;
     totalValue: string;
+    // Arquivo local pendente de upload (antes de salvar cotações)
+    pendingFileBase64: string | null;
+    pendingFileName: string | null;
+    pendingFileMime: string;
+    // URL do arquivo já salvo no banco (após salvar)
+    savedFileUrl: string | null;
   };
   const emptySupplier = (): SupplierForm => ({
     supplierName: "", supplierContact: "", paymentTerms: "", deliveryDays: "", observations: "", totalValue: "",
+    pendingFileBase64: null, pendingFileName: null, pendingFileMime: "application/pdf", savedFileUrl: null,
   });
   const [quotationSupplierForms, setQuotationSupplierForms] = useState<SupplierForm[]>([emptySupplier(), emptySupplier(), emptySupplier()]);
   const [quotationFormsInitialized, setQuotationFormsInitialized] = useState(false);
+  const uploadSupplierFileMutation = trpc.quotations.uploadSupplierFile.useMutation();
 
   // Pré-preencher formulários com cotações existentes
   useEffect(() => {
@@ -752,6 +760,10 @@ export default function RequestDetailScreen() {
             deliveryDays: s.deliveryDays ? String(s.deliveryDays) : "",
             observations: s.observations ?? "",
             totalValue: s.totalValue ?? "",
+            pendingFileBase64: null,
+            pendingFileName: null,
+            pendingFileMime: "application/pdf",
+            savedFileUrl: s.fileUrl ?? null,
           };
         }
       });
@@ -1601,11 +1613,16 @@ export default function RequestDetailScreen() {
                     </View>
                   ) : null}
 
-                  {/* Formulário de cotações */}
+                  {/* Formulário de cotações - todos os 3 são obrigatórios */}
                   {quotationSupplierForms.map((form, idx) => (
                     <View key={idx} style={{ marginBottom: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.background }}>
-                      <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary, marginBottom: 10 }}>Fornecedor {idx + 1}{idx === 0 ? " *" : " (opcional)"}</Text>
-                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Nome do Fornecedor{idx === 0 ? " *" : ""}</Text>
+                      {/* Cabeçalho do cartão */}
+                      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary, flex: 1 }}>Fornecedor {idx + 1} *</Text>
+                        <Text style={{ fontSize: 10, color: colors.muted }}>Obrigatório</Text>
+                      </View>
+
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Nome do Fornecedor *</Text>
                       <TextInput
                         value={form.supplierName}
                         onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], supplierName: v }; setQuotationSupplierForms(f); }}
@@ -1614,7 +1631,7 @@ export default function RequestDetailScreen() {
                         returnKeyType="next"
                         style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
                       />
-                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Valor Total (R$){idx === 0 ? " *" : ""}</Text>
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Valor Total (R$) *</Text>
                       <TextInput
                         value={form.totalValue}
                         onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], totalValue: v.replace(/[^0-9.,]/g, "") }; setQuotationSupplierForms(f); }}
@@ -1652,17 +1669,110 @@ export default function RequestDetailScreen() {
                         multiline
                         numberOfLines={2}
                         returnKeyType="done"
-                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, minHeight: 60, textAlignVertical: "top" }}
+                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, minHeight: 60, textAlignVertical: "top", marginBottom: 10 }}
                       />
+
+                      {/* Botão de upload de arquivo (PDF ou imagem) */}
+                      <TouchableOpacity
+                        onPress={async () => {
+                          try {
+                            // Mostrar opções: PDF ou Imagem
+                            if (Platform.OS === "web") {
+                              // Na web, usar DocumentPicker que aceita ambos
+                              const result = await DocumentPicker.getDocumentAsync({
+                                type: ["application/pdf", "image/*"],
+                                copyToCacheDirectory: true,
+                              });
+                              if (result.canceled) return;
+                              const file = result.assets[0];
+                              const base64 = await readFileAsBase64(file.uri);
+                              const f = [...quotationSupplierForms];
+                              f[idx] = { ...f[idx], pendingFileBase64: base64, pendingFileName: file.name, pendingFileMime: file.mimeType ?? "application/pdf" };
+                              setQuotationSupplierForms(f);
+                            } else {
+                              // No mobile, oferecer escolha entre câmera/galeria e documentos
+                              Alert.alert(
+                                "Anexar Arquivo",
+                                "Escolha o tipo de arquivo:",
+                                [
+                                  {
+                                    text: "📷 Foto / Imagem",
+                                    onPress: async () => {
+                                      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+                                      if (status !== "granted") { Alert.alert("Permissão necessária", "Permita o acesso à galeria."); return; }
+                                      const res = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8, base64: true });
+                                      if (res.canceled || !res.assets[0]) return;
+                                      const asset = res.assets[0];
+                                      const b64 = asset.base64 ?? await readFileAsBase64(asset.uri);
+                                      const fname = `cotacao_${idx + 1}_${Date.now()}.jpg`;
+                                      const f = [...quotationSupplierForms];
+                                      f[idx] = { ...f[idx], pendingFileBase64: b64, pendingFileName: fname, pendingFileMime: asset.mimeType ?? "image/jpeg" };
+                                      setQuotationSupplierForms(f);
+                                    },
+                                  },
+                                  {
+                                    text: "📄 PDF",
+                                    onPress: async () => {
+                                      const result = await DocumentPicker.getDocumentAsync({ type: "application/pdf", copyToCacheDirectory: true });
+                                      if (result.canceled) return;
+                                      const file = result.assets[0];
+                                      const base64 = await readFileAsBase64(file.uri);
+                                      const f = [...quotationSupplierForms];
+                                      f[idx] = { ...f[idx], pendingFileBase64: base64, pendingFileName: file.name, pendingFileMime: "application/pdf" };
+                                      setQuotationSupplierForms(f);
+                                    },
+                                  },
+                                  { text: "Cancelar", style: "cancel" },
+                                ]
+                              );
+                            }
+                          } catch (err) {
+                            Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
+                          }
+                        }}
+                        style={{
+                          flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
+                          borderWidth: 1.5, borderStyle: "dashed",
+                          borderColor: form.pendingFileName || form.savedFileUrl ? colors.success : `${colors.primary}80`,
+                          borderRadius: 8, paddingVertical: 10, paddingHorizontal: 12,
+                          backgroundColor: form.pendingFileName || form.savedFileUrl ? `${colors.success}10` : `${colors.primary}08`,
+                        }}
+                      >
+                        <Text style={{ fontSize: 16 }}>{form.pendingFileName || form.savedFileUrl ? "✅" : "📎"}</Text>
+                        <Text style={{ fontSize: 13, color: form.pendingFileName || form.savedFileUrl ? colors.success : colors.primary, fontWeight: "600", flex: 1 }} numberOfLines={1}>
+                          {form.pendingFileName
+                            ? form.pendingFileName
+                            : form.savedFileUrl
+                            ? "Arquivo anexado"
+                            : "Anexar PDF ou Imagem"}
+                        </Text>
+                        {(form.pendingFileName || form.savedFileUrl) && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              const f = [...quotationSupplierForms];
+                              f[idx] = { ...f[idx], pendingFileBase64: null, pendingFileName: null, savedFileUrl: null };
+                              setQuotationSupplierForms(f);
+                            }}
+                          >
+                            <Text style={{ fontSize: 12, color: colors.error, marginLeft: 4 }}>✕</Text>
+                          </TouchableOpacity>
+                        )}
+                      </TouchableOpacity>
                     </View>
                   ))}
 
                   {/* Botão Salvar Cotações */}
                   <TouchableOpacity
-                    onPress={() => {
-                      const filled = quotationSupplierForms.filter(f => f.supplierName.trim() && f.totalValue.trim());
-                      if (filled.length === 0) { Alert.alert("Obrigatório", "Preencha ao menos 1 fornecedor com nome e valor."); return; }
-                      const suppliers = filled.map((f, i) => ({
+                    onPress={async () => {
+                      // Validar que todos os 3 fornecedores estão preenchidos
+                      for (let i = 0; i < 3; i++) {
+                        const f = quotationSupplierForms[i];
+                        if (!f.supplierName.trim() || !f.totalValue.trim()) {
+                          Alert.alert("Obrigatório", `Preencha o nome e valor do Fornecedor ${i + 1}.`);
+                          return;
+                        }
+                      }
+                      const suppliers = quotationSupplierForms.map((f, i) => ({
                         supplierName: f.supplierName.trim(),
                         supplierContact: f.supplierContact.trim() || undefined,
                         paymentTerms: f.paymentTerms.trim() || undefined,
@@ -1672,19 +1782,43 @@ export default function RequestDetailScreen() {
                         totalValue: f.totalValue.replace(/\./g, "").replace(",", "."),
                         position: i + 1,
                       }));
-                      saveQuotationsMutation.mutate({ requestId: request.id, suppliers });
+                      saveQuotationsMutation.mutate(
+                        { requestId: request.id, suppliers },
+                        {
+                          onSuccess: async (result: any) => {
+                            // Após salvar, fazer upload dos arquivos pendentes
+                            const savedSuppliers = result?.suppliers ?? [];
+                            const uploadPromises = quotationSupplierForms.map(async (f, i) => {
+                              if (f.pendingFileBase64 && f.pendingFileName && savedSuppliers[i]?.id) {
+                                try {
+                                  await uploadSupplierFileMutation.mutateAsync({
+                                    supplierId: savedSuppliers[i].id,
+                                    fileName: f.pendingFileName,
+                                    base64: f.pendingFileBase64,
+                                    mimeType: f.pendingFileMime,
+                                  });
+                                } catch (e) {
+                                  console.warn(`[Upload] Falha ao enviar arquivo do fornecedor ${i + 1}:`, e);
+                                }
+                              }
+                            });
+                            await Promise.all(uploadPromises);
+                            refetchQuotations();
+                          },
+                        }
+                      );
                     }}
-                    disabled={saveQuotationsMutation.isPending}
-                    style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: saveQuotationsMutation.isPending ? 0.7 : 1, marginBottom: 12 }}
+                    disabled={saveQuotationsMutation.isPending || uploadSupplierFileMutation.isPending}
+                    style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: (saveQuotationsMutation.isPending || uploadSupplierFileMutation.isPending) ? 0.7 : 1, marginBottom: 12 }}
                   >
-                    {saveQuotationsMutation.isPending ? (
+                    {(saveQuotationsMutation.isPending || uploadSupplierFileMutation.isPending) ? (
                       <><ActivityIndicator color="white" /><Text style={{ color: "white", fontWeight: "700", fontSize: 15, marginLeft: 8 }}>Salvando...</Text></>
                     ) : (
                       <><Text style={{ fontSize: 18 }}>💾</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Salvar Cotações</Text></>
                     )}
                   </TouchableOpacity>
 
-                  <Text style={{ fontSize: 11, color: colors.muted, textAlign: "center" }}>Após salvar, aguarde o aprovador escolher a melhor cotação para avançar o fluxo.</Text>
+                  <Text style={{ fontSize: 11, color: colors.muted, textAlign: "center" }}>Os 3 fornecedores são obrigatórios. Após salvar, o aprovador escolherá a melhor cotação para avançar o fluxo.</Text>
 
                   {/* Separador */}
                   <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 16 }} />
