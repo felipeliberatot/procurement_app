@@ -2196,14 +2196,15 @@ export default function RegistersScreen() {
     try {
       const data = exportData as any[];
       if (format === "csv") {
-        // Gerar CSV puro (sem dependências externas)
-        const headers = ["Cód. Patrimonial", "Código", "Descrição", "Categoria", "Localização", "Valor (R$)", "Possui Chassi", "Nº Chassi", "Placa", "Ativo", "Cadastrado em"];
+        // Gerar CSV com ponto e vírgula (padrão PT-BR para Excel)
+        const SEP = ";";
+        const headers = ["Cód. Patrimonial", "Código", "Descrição", "Categoria", "Localização", "Valor (R$)", "Centro de Custo", "Possui Chassi", "Nº Chassi", "Placa", "Ativo", "Cadastrado em"];
         const escape = (v: any) => {
           const s = String(v ?? "");
-          return s.includes(",") || s.includes("\"") || s.includes("\n") ? `"${s.replace(/"/g, "\"\"")}"` : s;
+          return s.includes(";") || s.includes("\"") || s.includes("\n") ? `"${s.replace(/"/g, "\"\"")}`  : s;
         };
         const csvRows = [
-          headers.join(","),
+          headers.join(SEP),
           ...data.map((a) => [
             escape(a.patrimonialCode),
             escape(a.code),
@@ -2211,12 +2212,13 @@ export default function RegistersScreen() {
             escape(a.category),
             escape(a.location),
             escape(a.value),
+            escape(a.costCenterCode),
             a.hasChassi ? "Sim" : "Não",
             escape(a.chassiNumber),
             escape(a.licensePlate),
             a.active ? "Sim" : "Não",
             escape(a.createdAt ? new Date(a.createdAt).toLocaleDateString("pt-BR") : ""),
-          ].join(",")),
+          ].join(SEP)),
         ].join("\n");
         const filename = `bens_${new Date().toISOString().slice(0, 10)}.csv`;
         if (Platform.OS === "web") {
