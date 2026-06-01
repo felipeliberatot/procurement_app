@@ -367,55 +367,80 @@ export default function ApprovalsScreen() {
                 </TouchableOpacity>
               </View>
             ) : (() => {
-              // Encontrar o menor valor para destacar
+              // Encontrar o menor valor para destacar e sugerir
               const suppliers = quotationModalData.suppliers as any[];
               const values = suppliers.map((s: any) => parseFloat(s.totalValue) || Infinity);
               const minValue = Math.min(...values);
-              return suppliers.map((s: any, i: number) => {
-                const val = parseFloat(s.totalValue) || 0;
-                const isBest = val === minValue && val > 0;
-                const diffPct = isBest || minValue === 0 ? 0 : Math.round(((val - minValue) / minValue) * 100);
-                return (
-                  <View key={s.id} style={{ borderWidth: isBest ? 2 : 1, borderColor: isBest ? colors.success : colors.border, borderRadius: 14, padding: 16, backgroundColor: isBest ? `${colors.success}08` : colors.surface }}>
-                    {isBest && (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8, backgroundColor: `${colors.success}20`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" }}>
-                        <Text style={{ fontSize: 14 }}>⭐</Text>
-                        <Text style={{ color: colors.success, fontWeight: "700", fontSize: 12 }}>Menor Preço</Text>
+              const bestSupplier = suppliers.find((s: any) => (parseFloat(s.totalValue) || Infinity) === minValue);
+              return (
+                <>
+                  {/* Banner de sugestão */}
+                  {bestSupplier && (
+                    <View style={{ backgroundColor: `${colors.success}15`, borderWidth: 1.5, borderColor: `${colors.success}50`, borderRadius: 14, padding: 14, flexDirection: "row", alignItems: "center", gap: 12 }}>
+                      <Text style={{ fontSize: 28 }}>💡</Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: colors.success, fontWeight: "800", fontSize: 14, marginBottom: 2 }}>Sugestão: {bestSupplier.supplierName}</Text>
+                        <Text style={{ color: colors.muted, fontSize: 12, lineHeight: 16 }}>Menor preço entre as 3 cotações: <Text style={{ color: colors.success, fontWeight: "700" }}>{(parseFloat(bestSupplier.totalValue) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</Text>. Você pode escolher outro fornecedor se preferir.</Text>
                       </View>
-                    )}
-                    {!isBest && diffPct > 0 && (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8, backgroundColor: `${colors.warning}15`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" }}>
-                        <Text style={{ color: colors.warning, fontWeight: "600", fontSize: 12 }}>+{diffPct}% acima do menor</Text>
+                    </View>
+                  )}
+
+                  {/* Cards de cada fornecedor */}
+                  {suppliers.map((s: any, i: number) => {
+                    const val = parseFloat(s.totalValue) || 0;
+                    const isBest = val === minValue && val > 0;
+                    const diffPct = isBest || minValue === 0 ? 0 : Math.round(((val - minValue) / minValue) * 100);
+                    return (
+                      <View key={s.id} style={{ borderWidth: isBest ? 2 : 1, borderColor: isBest ? colors.success : colors.border, borderRadius: 14, padding: 16, backgroundColor: isBest ? `${colors.success}08` : colors.surface }}>
+                        {isBest && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8, backgroundColor: `${colors.success}20`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" }}>
+                            <Text style={{ fontSize: 14 }}>⭐</Text>
+                            <Text style={{ color: colors.success, fontWeight: "700", fontSize: 12 }}>Menor Preço — Sugerido</Text>
+                          </View>
+                        )}
+                        {!isBest && diffPct > 0 && (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8, backgroundColor: `${colors.warning}15`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" }}>
+                            <Text style={{ color: colors.warning, fontWeight: "600", fontSize: 12 }}>+{diffPct}% acima do menor</Text>
+                          </View>
+                        )}
+                        <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>{i + 1}. {s.supplierName}</Text>
+                        <Text style={{ fontSize: 22, fontWeight: "800", color: isBest ? colors.success : colors.foreground, marginBottom: 8 }}>
+                          {val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                        </Text>
+                        {s.paymentTerms ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2 }}>💳 {s.paymentTerms}</Text> : null}
+                        {s.deliveryDays ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2 }}>📦 Entrega: {s.deliveryDays} dias</Text> : null}
+                        {s.observations ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2, fontStyle: "italic" }}>{s.observations}</Text> : null}
+                        {s.fileUrl ? (
+                          <TouchableOpacity
+                            onPress={() => { if (typeof window !== "undefined") window.open(s.fileUrl, "_blank"); }}
+                            style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, marginBottom: 4 }}
+                          >
+                            <Text style={{ fontSize: 12, color: colors.primary }}>📎 Ver documento anexado</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (approveWithSupplierMutation.isPending) return;
+                            approveWithSupplierMutation.mutate({
+                              requestId: quotationModal!.requestId,
+                              supplierId: s.id,
+                              estimatedValue: val || undefined,
+                            });
+                          }}
+                          disabled={approveWithSupplierMutation.isPending}
+                          style={{ marginTop: 12, backgroundColor: isBest ? colors.success : colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: approveWithSupplierMutation.isPending ? 0.7 : 1 }}
+                        >
+                          {approveWithSupplierMutation.isPending ? (
+                            <><ActivityIndicator color="white" /><Text style={{ color: "white", fontWeight: "700", fontSize: 14, marginLeft: 8 }}>Aprovando...</Text></>
+                          ) : (
+                            <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>{isBest ? "Selecionar (Sugerido)" : "Selecionar este fornecedor"}</Text></>
+                          )}
+                        </TouchableOpacity>
                       </View>
-                    )}
-                    <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>{i + 1}. {s.supplierName}</Text>
-                    <Text style={{ fontSize: 22, fontWeight: "800", color: isBest ? colors.success : colors.foreground, marginBottom: 8 }}>
-                      {val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                    </Text>
-                    {s.paymentTerms ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2 }}>💳 {s.paymentTerms}</Text> : null}
-                    {s.deliveryDays ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2 }}>📦 Entrega: {s.deliveryDays} dias</Text> : null}
-                    {s.observations ? <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 2, fontStyle: "italic" }}>{s.observations}</Text> : null}
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (approveWithSupplierMutation.isPending) return;
-                        approveWithSupplierMutation.mutate({
-                          requestId: quotationModal!.requestId,
-                          supplierId: s.id,
-                          estimatedValue: val || undefined,
-                        });
-                      }}
-                      disabled={approveWithSupplierMutation.isPending}
-                      style={{ marginTop: 12, backgroundColor: isBest ? colors.success : colors.primary, borderRadius: 10, paddingVertical: 12, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: approveWithSupplierMutation.isPending ? 0.7 : 1 }}
-                    >
-                      {approveWithSupplierMutation.isPending ? (
-                        <><ActivityIndicator color="white" /><Text style={{ color: "white", fontWeight: "700", fontSize: 14, marginLeft: 8 }}>Aprovando...</Text></>
-                      ) : (
-                        <><Text style={{ fontSize: 16 }}>✅</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>Selecionar este fornecedor</Text></>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                );
-              });
+                    );
+                  })}
+                </>
+              );
             })()}
           </ScrollView>
         </View>
