@@ -23,6 +23,7 @@ export const users = mysqlTable("users", {
     "solicitante",
     "gerente",
     "orcamento",
+    "compras",
     "controladoria",
     "diretoria",
     "financeiro",
