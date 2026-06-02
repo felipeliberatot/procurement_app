@@ -1155,6 +1155,8 @@ export async function approveRequest(
 
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");
+  
+  console.log(`[approveRequest] requestId=${requestId}, user=${user.name}, status=${request.status}, budgetFileUrl=${request.budgetFileUrl ? 'SIM' : 'NAO ANEXADO'}`);
 
   // ── Verificação de permissão por etapa ─────────────────────────────────────
   // Mapa: status atual → papel(is) que podem aprovar essa etapa
@@ -3089,6 +3091,8 @@ export async function approveQuotationAndAdvance(
 
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");
+  
+  console.log(`[approveQuotationAndAdvance] requestId=${requestId}, supplierId=${supplierId}, user=${user.name}, status=${request.status}, budgetFileUrl=${request.budgetFileUrl ? 'SIM' : 'NAO ANEXADO'}`);
 
   // Marca o fornecedor selecionado no grupo de cotações
   const groups = await db.select().from(quotationGroups)
@@ -3107,9 +3111,11 @@ export async function approveQuotationAndAdvance(
       .limit(1);
     if (supplier) {
       estimatedValue = parseFloat(supplier.totalValue) || undefined;
+      console.log(`[approveQuotationAndAdvance] Fornecedor encontrado: ${supplier.supplierName}, valor=${estimatedValue}`);
     }
   }
 
+  console.log(`[approveQuotationAndAdvance] Chamando approveRequest com orderValue=${estimatedValue}`);
   // Avança o fluxo normalmente (reutiliza approveRequest)
   return approveRequest(requestId, user, estimatedValue !== undefined ? { orderValue: estimatedValue } : {});
 }
