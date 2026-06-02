@@ -725,6 +725,7 @@ export default function RequestDetailScreen() {
   });
 
   // Estado do formulário de cotações
+  type SupplierItem = { description: string; quantity: string; unit: string; unitPrice: string };
   type SupplierForm = {
     supplierName: string;
     supplierContact: string;
@@ -732,6 +733,7 @@ export default function RequestDetailScreen() {
     deliveryDays: string;
     observations: string;
     totalValue: string;
+    items: SupplierItem[];
     // Arquivo local pendente de upload (antes de salvar cotações)
     pendingFileBase64: string | null;
     pendingFileName: string | null;
@@ -739,8 +741,10 @@ export default function RequestDetailScreen() {
     // URL do arquivo já salvo no banco (após salvar)
     savedFileUrl: string | null;
   };
+  const emptyItem = (): SupplierItem => ({ description: "", quantity: "1", unit: "un", unitPrice: "" });
   const emptySupplier = (): SupplierForm => ({
     supplierName: "", supplierContact: "", paymentTerms: "", deliveryDays: "", observations: "", totalValue: "",
+    items: [emptyItem()],
     pendingFileBase64: null, pendingFileName: null, pendingFileMime: "application/pdf", savedFileUrl: null,
   });
   const [quotationSupplierForms, setQuotationSupplierForms] = useState<SupplierForm[]>([emptySupplier(), emptySupplier(), emptySupplier()]);
@@ -753,13 +757,20 @@ export default function RequestDetailScreen() {
       const forms = [emptySupplier(), emptySupplier(), emptySupplier()];
       quotationData.suppliers.forEach((s: any, i: number) => {
         if (i < 3) {
+          // Tentar parsear itens salvos no campo observations (JSON)
+          let parsedItems: SupplierItem[] = [emptyItem()];
+          try {
+            const parsed = JSON.parse(s.observations ?? "");
+            if (Array.isArray(parsed) && parsed.length > 0) parsedItems = parsed;
+          } catch { /* observations é texto simples, manter item vazio */ }
           forms[i] = {
             supplierName: s.supplierName ?? "",
             supplierContact: s.supplierContact ?? "",
             paymentTerms: s.paymentTerms ?? "",
             deliveryDays: s.deliveryDays ? String(s.deliveryDays) : "",
-            observations: s.observations ?? "",
+            observations: "",
             totalValue: s.totalValue ?? "",
+            items: parsedItems,
             pendingFileBase64: null,
             pendingFileName: null,
             pendingFileMime: "application/pdf",
@@ -1623,16 +1634,104 @@ export default function RequestDetailScreen() {
                         <Text style={{ fontSize: 10, color: idx === 0 ? colors.muted : `${colors.muted}80` }}>{idx === 0 ? "Obrigatório" : "Opcional"}</Text>
                       </View>
 
-                      {/* Campo Item */}
-                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Item / Produto{idx === 0 ? " *" : ""}</Text>
-                      <TextInput
-                        value={form.observations}
-                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], observations: v }; setQuotationSupplierForms(f); }}
-                        placeholder="Ex: Filtro de óleo, Pneu 18.4-34, Serviço de manutenção..."
-                        placeholderTextColor={colors.muted}
-                        returnKeyType="next"
-                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
-                      />
+                      {/* Itens da cotação - múltiplos itens */}
+                      <View style={{ marginBottom: 8 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 6 }}>
+                          <Text style={{ fontSize: 11, color: colors.muted, flex: 1 }}>Itens{idx === 0 ? " *" : ""}</Text>
+                          <Text style={{ fontSize: 10, color: colors.muted }}>{form.items.length} item(ns)</Text>
+                        </View>
+                        {/* Cabeçalho das colunas */}
+                        <View style={{ flexDirection: "row", gap: 4, marginBottom: 4 }}>
+                          <Text style={{ flex: 3, fontSize: 10, color: colors.muted }}>Descrição</Text>
+                          <Text style={{ width: 40, fontSize: 10, color: colors.muted, textAlign: "center" }}>Qtd</Text>
+                          <Text style={{ width: 36, fontSize: 10, color: colors.muted, textAlign: "center" }}>Un</Text>
+                          <Text style={{ width: 72, fontSize: 10, color: colors.muted, textAlign: "right" }}>Vl. Unit.</Text>
+                          <View style={{ width: 24 }} />
+                        </View>
+                        {form.items.map((item, itemIdx) => (
+                          <View key={itemIdx} style={{ flexDirection: "row", gap: 4, marginBottom: 6, alignItems: "center" }}>
+                            <TextInput
+                              value={item.description}
+                              onChangeText={(v) => {
+                                const f = [...quotationSupplierForms];
+                                const items = [...f[idx].items];
+                                items[itemIdx] = { ...items[itemIdx], description: v };
+                                f[idx] = { ...f[idx], items };
+                                setQuotationSupplierForms(f);
+                              }}
+                              placeholder="Item..."
+                              placeholderTextColor={colors.muted}
+                              style={{ flex: 3, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 6, fontSize: 12, color: colors.foreground }}
+                            />
+                            <TextInput
+                              value={item.quantity}
+                              onChangeText={(v) => {
+                                const f = [...quotationSupplierForms];
+                                const items = [...f[idx].items];
+                                items[itemIdx] = { ...items[itemIdx], quantity: v.replace(/[^0-9.,]/g, "") };
+                                f[idx] = { ...f[idx], items };
+                                setQuotationSupplierForms(f);
+                              }}
+                              placeholder="1"
+                              placeholderTextColor={colors.muted}
+                              keyboardType="decimal-pad"
+                              style={{ width: 40, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 6, fontSize: 12, color: colors.foreground, textAlign: "center" }}
+                            />
+                            <TextInput
+                              value={item.unit}
+                              onChangeText={(v) => {
+                                const f = [...quotationSupplierForms];
+                                const items = [...f[idx].items];
+                                items[itemIdx] = { ...items[itemIdx], unit: v };
+                                f[idx] = { ...f[idx], items };
+                                setQuotationSupplierForms(f);
+                              }}
+                              placeholder="un"
+                              placeholderTextColor={colors.muted}
+                              style={{ width: 36, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 4, paddingVertical: 6, fontSize: 12, color: colors.foreground, textAlign: "center" }}
+                            />
+                            <TextInput
+                              value={item.unitPrice}
+                              onChangeText={(v) => {
+                                const f = [...quotationSupplierForms];
+                                const items = [...f[idx].items];
+                                items[itemIdx] = { ...items[itemIdx], unitPrice: v.replace(/[^0-9.,]/g, "") };
+                                f[idx] = { ...f[idx], items };
+                                setQuotationSupplierForms(f);
+                              }}
+                              placeholder="0,00"
+                              placeholderTextColor={colors.muted}
+                              keyboardType="decimal-pad"
+                              style={{ width: 72, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 6, fontSize: 12, color: colors.foreground, textAlign: "right" }}
+                            />
+                            {/* Botão remover item */}
+                            <TouchableOpacity
+                              onPress={() => {
+                                if (form.items.length <= 1) return;
+                                const f = [...quotationSupplierForms];
+                                const items = f[idx].items.filter((_, i) => i !== itemIdx);
+                                f[idx] = { ...f[idx], items };
+                                setQuotationSupplierForms(f);
+                              }}
+                              style={{ width: 24, height: 24, alignItems: "center", justifyContent: "center", opacity: form.items.length <= 1 ? 0.3 : 1 }}
+                            >
+                              <Text style={{ fontSize: 16, color: colors.error, lineHeight: 20 }}>−</Text>
+                            </TouchableOpacity>
+                          </View>
+                        ))}
+                        {/* Botão adicionar item */}
+                        <TouchableOpacity
+                          onPress={() => {
+                            const f = [...quotationSupplierForms];
+                            f[idx] = { ...f[idx], items: [...f[idx].items, emptyItem()] };
+                            setQuotationSupplierForms(f);
+                          }}
+                          style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 8, borderWidth: 1, borderStyle: "dashed", borderColor: `${colors.primary}60`, borderRadius: 6, alignSelf: "flex-start", marginTop: 2 }}
+                        >
+                          <Text style={{ fontSize: 16, color: colors.primary, lineHeight: 20 }}>+</Text>
+                          <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>Adicionar item</Text>
+                        </TouchableOpacity>
+                      </View>
 
                       <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Nome do Fornecedor{idx === 0 ? " *" : ""}</Text>
                       <TextInput
@@ -1643,16 +1742,31 @@ export default function RequestDetailScreen() {
                         returnKeyType="next"
                         style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
                       />
-                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Valor Total (R$) *</Text>
-                      <TextInput
-                        value={form.totalValue}
-                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], totalValue: v.replace(/[^0-9.,]/g, "") }; setQuotationSupplierForms(f); }}
-                        placeholder="0,00"
-                        placeholderTextColor={colors.muted}
-                        keyboardType="decimal-pad"
-                        returnKeyType="next"
-                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
-                      />
+                      {/* Valor Total calculado automaticamente a partir dos itens */}
+                      {(() => {
+                        const total = form.items.reduce((sum, item) => {
+                          const qty = parseFloat(item.quantity.replace(",", ".")) || 0;
+                          const price = parseFloat(item.unitPrice.replace(/\./g, "").replace(",", ".")) || 0;
+                          return sum + qty * price;
+                        }, 0);
+                        const totalFormatted = total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        // Sincronizar totalValue no estado para uso no envio
+                        if (form.totalValue !== totalFormatted && total > 0) {
+                          setTimeout(() => {
+                            const f = [...quotationSupplierForms];
+                            if (f[idx]) { f[idx] = { ...f[idx], totalValue: totalFormatted }; setQuotationSupplierForms(f); }
+                          }, 0);
+                        }
+                        return (
+                          <View style={{ marginBottom: 8 }}>
+                            <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Valor Total (R$)</Text>
+                            <View style={{ backgroundColor: `${colors.primary}10`, borderWidth: 1.5, borderColor: `${colors.primary}40`, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                              <Text style={{ fontSize: 13, color: colors.muted }}>Calculado automaticamente</Text>
+                              <Text style={{ fontSize: 16, fontWeight: "700", color: total > 0 ? colors.primary : colors.muted }}>R$ {totalFormatted}</Text>
+                            </View>
+                          </View>
+                        );
+                      })()}
                       <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Prazo de Entrega (dias)</Text>
                       <TextInput
                         value={form.deliveryDays}
@@ -1777,30 +1891,55 @@ export default function RequestDetailScreen() {
                   <TouchableOpacity
                     onPress={async () => {
                       // Validar que o fornecedor 1 está preenchido (2 e 3 são opcionais)
-                      if (!quotationSupplierForms[0].supplierName.trim() || !quotationSupplierForms[0].totalValue.trim()) {
-                        Alert.alert("Obrigatório", "Preencha o nome e valor do Fornecedor 1.");
+                      const f1 = quotationSupplierForms[0];
+                      const f1Total = f1.items.reduce((sum, item) => {
+                        const qty = parseFloat(item.quantity.replace(",", ".")) || 0;
+                        const price = parseFloat(item.unitPrice.replace(/\./g, "").replace(",", ".")) || 0;
+                        return sum + qty * price;
+                      }, 0);
+                      if (!f1.supplierName.trim()) {
+                        Alert.alert("Obrigatório", "Preencha o nome do Fornecedor 1.");
                         return;
                       }
-                      // Validar fornecedores 2 e 3 apenas se o nome foi preenchido
-                      for (let i = 1; i < 3; i++) {
-                        const f = quotationSupplierForms[i];
-                        if (f.supplierName.trim() && !f.totalValue.trim()) {
-                          Alert.alert("Obrigatório", `Preencha o valor do Fornecedor ${i + 1} ou deixe em branco para ignorar.`);
-                          return;
-                        }
+                      if (f1Total <= 0 && !f1.totalValue.trim()) {
+                        Alert.alert("Obrigatório", "Adicione pelo menos um item com valor unitário no Fornecedor 1.");
+                        return;
                       }
                       // Filtrar apenas fornecedores com nome preenchido
                       const suppliersFiltered = quotationSupplierForms.filter(f => f.supplierName.trim());
-                      const suppliers = suppliersFiltered.map((f, i) => ({
-                        supplierName: f.supplierName.trim(),
-                        supplierContact: f.supplierContact.trim() || undefined,
-                        paymentTerms: f.paymentTerms.trim() || undefined,
-                        deliveryDays: f.deliveryDays ? parseInt(f.deliveryDays) : undefined,
-                        observations: f.observations.trim() || undefined,
-                        items: [{ description: f.observations.trim() || "Item", quantity: "1", unit: "un", unitPrice: f.totalValue, totalPrice: f.totalValue }],
-                        totalValue: f.totalValue.replace(/\./g, "").replace(",", "."),
-                        position: i + 1,
-                      }));
+                      const suppliers = suppliersFiltered.map((f, i) => {
+                        // Calcular total a partir dos itens
+                        const computedTotal = f.items.reduce((sum, item) => {
+                          const qty = parseFloat(item.quantity.replace(",", ".")) || 0;
+                          const price = parseFloat(item.unitPrice.replace(/\./g, "").replace(",", ".")) || 0;
+                          return sum + qty * price;
+                        }, 0);
+                        // Usar totalValue do estado se já calculado, senão calcular agora
+                        const totalStr = computedTotal > 0
+                          ? computedTotal.toFixed(2)
+                          : (f.totalValue.replace(/\./g, "").replace(",", ".") || "0");
+                        return {
+                          supplierName: f.supplierName.trim(),
+                          supplierContact: f.supplierContact.trim() || undefined,
+                          paymentTerms: f.paymentTerms.trim() || undefined,
+                          deliveryDays: f.deliveryDays ? parseInt(f.deliveryDays) : undefined,
+                          // Serializar itens como JSON no campo observations para persistência
+                          observations: JSON.stringify(f.items.filter(item => item.description.trim())),
+                          items: f.items.filter(item => item.description.trim()).map(item => ({
+                            description: item.description.trim(),
+                            quantity: item.quantity || "1",
+                            unit: item.unit || "un",
+                            unitPrice: item.unitPrice,
+                            totalPrice: (() => {
+                              const q = parseFloat(item.quantity.replace(",", ".")) || 0;
+                              const p = parseFloat(item.unitPrice.replace(/\./g, "").replace(",", ".")) || 0;
+                              return (q * p).toFixed(2);
+                            })(),
+                          })),
+                          totalValue: totalStr,
+                          position: i + 1,
+                        };
+                      });
                       saveQuotationsMutation.mutate(
                         { requestId: request.id, suppliers },
                         {
