@@ -751,6 +751,28 @@ export default function RequestDetailScreen() {
   const [quotationFormsInitialized, setQuotationFormsInitialized] = useState(false);
   const uploadSupplierFileMutation = trpc.quotations.uploadSupplierFile.useMutation();
 
+  // Calcular e sincronizar valores totais automaticamente quando itens mudam
+  useEffect(() => {
+    const updatedForms = quotationSupplierForms.map((form) => {
+      const total = form.items.reduce((sum, item) => {
+        const qty = parseFloat(item.quantity.replace(",", ".")) || 0;
+        const price = parseFloat(item.unitPrice.replace(/\./g, "").replace(",", ".")) || 0;
+        return sum + qty * price;
+      }, 0);
+      const totalFormatted = total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      // Só atualizar se o total mudou
+      if (form.totalValue !== totalFormatted) {
+        return { ...form, totalValue: totalFormatted };
+      }
+      return form;
+    });
+    // Verificar se há mudanças antes de atualizar o estado
+    const hasChanges = updatedForms.some((form, idx) => form.totalValue !== quotationSupplierForms[idx].totalValue);
+    if (hasChanges) {
+      setQuotationSupplierForms(updatedForms);
+    }
+  }, [quotationSupplierForms.map(f => f.items.map(i => `${i.quantity}-${i.unitPrice}`).join("|")).join("##")]);
+
   // Pré-preencher formulários com cotações existentes
   useEffect(() => {
     if (!quotationFormsInitialized && quotationData?.suppliers?.length) {
@@ -1743,30 +1765,13 @@ export default function RequestDetailScreen() {
                         style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
                       />
                       {/* Valor Total calculado automaticamente a partir dos itens */}
-                      {(() => {
-                        const total = form.items.reduce((sum, item) => {
-                          const qty = parseFloat(item.quantity.replace(",", ".")) || 0;
-                          const price = parseFloat(item.unitPrice.replace(/\./g, "").replace(",", ".")) || 0;
-                          return sum + qty * price;
-                        }, 0);
-                        const totalFormatted = total.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                        // Sincronizar totalValue no estado para uso no envio
-                        if (form.totalValue !== totalFormatted && total > 0) {
-                          setTimeout(() => {
-                            const f = [...quotationSupplierForms];
-                            if (f[idx]) { f[idx] = { ...f[idx], totalValue: totalFormatted }; setQuotationSupplierForms(f); }
-                          }, 0);
-                        }
-                        return (
-                          <View style={{ marginBottom: 8 }}>
-                            <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Valor Total (R$)</Text>
-                            <View style={{ backgroundColor: `${colors.primary}10`, borderWidth: 1.5, borderColor: `${colors.primary}40`, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-                              <Text style={{ fontSize: 13, color: colors.muted }}>Calculado automaticamente</Text>
-                              <Text style={{ fontSize: 16, fontWeight: "700", color: total > 0 ? colors.primary : colors.muted }}>R$ {totalFormatted}</Text>
-                            </View>
-                          </View>
-                        );
-                      })()}
+                      <View style={{ marginBottom: 8 }}>
+                        <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Valor Total (R$)</Text>
+                        <View style={{ backgroundColor: `${colors.primary}10`, borderWidth: 1.5, borderColor: `${colors.primary}40`, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                          <Text style={{ fontSize: 13, color: colors.muted }}>Calculado automaticamente</Text>
+                          <Text style={{ fontSize: 16, fontWeight: "700", color: form.totalValue && parseFloat(form.totalValue.replace(/\./g, "").replace(",", ".")) > 0 ? colors.primary : colors.muted }}>R$ {form.totalValue || "0,00"}</Text>
+                        </View>
+                      </View>
                       <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Prazo de Entrega (dias)</Text>
                       <TextInput
                         value={form.deliveryDays}
