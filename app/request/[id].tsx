@@ -826,7 +826,8 @@ export default function RequestDetailScreen() {
   const canCancel = (isOwner || isMasterUser) && !isCancelled && !isDone;
 
   // Determina se deve mostrar botões fixos de aprovar/rejeitar
-  const showFixedButtons = canAct && !isDone && !isCancelled && !isRejected && !isApproveOnly;
+  // Na etapa aguardando_orcamento, o fluxo é controlado pelo bloco de Cotações (botão Salvar Cotações)
+  const showFixedButtons = canAct && !isDone && !isCancelled && !isRejected && !isApproveOnly && currentStatus !== "aguardando_orcamento";
   const showFixedApproveOnly = canAct && !isDone && !isCancelled && isApproveOnly;
   const bottomBarHeight = 80 + (insets.bottom > 0 ? insets.bottom : 16);
 
@@ -1613,16 +1614,27 @@ export default function RequestDetailScreen() {
                     </View>
                   ) : null}
 
-                  {/* Formulário de cotações - todos os 3 são obrigatórios */}
+                  {/* Formulário de cotações - cotação 1 obrigatória, 2 e 3 opcionais */}
                   {quotationSupplierForms.map((form, idx) => (
-                    <View key={idx} style={{ marginBottom: 16, borderWidth: 1, borderColor: colors.border, borderRadius: 12, padding: 12, backgroundColor: colors.background }}>
+                    <View key={idx} style={{ marginBottom: 16, borderWidth: 1, borderColor: idx === 0 ? colors.border : `${colors.border}80`, borderRadius: 12, padding: 12, backgroundColor: colors.background }}>
                       {/* Cabeçalho do cartão */}
                       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
-                        <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary, flex: 1 }}>Fornecedor {idx + 1} *</Text>
-                        <Text style={{ fontSize: 10, color: colors.muted }}>Obrigatório</Text>
+                        <Text style={{ fontSize: 13, fontWeight: "700", color: idx === 0 ? colors.primary : colors.muted, flex: 1 }}>Fornecedor {idx + 1} {idx === 0 ? "*" : "(opcional)"}</Text>
+                        <Text style={{ fontSize: 10, color: idx === 0 ? colors.muted : `${colors.muted}80` }}>{idx === 0 ? "Obrigatório" : "Opcional"}</Text>
                       </View>
 
-                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Nome do Fornecedor *</Text>
+                      {/* Campo Item */}
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Item / Produto{idx === 0 ? " *" : ""}</Text>
+                      <TextInput
+                        value={form.observations}
+                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], observations: v }; setQuotationSupplierForms(f); }}
+                        placeholder="Ex: Filtro de óleo, Pneu 18.4-34, Serviço de manutenção..."
+                        placeholderTextColor={colors.muted}
+                        returnKeyType="next"
+                        style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8, fontSize: 14, color: colors.foreground, marginBottom: 8 }}
+                      />
+
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Nome do Fornecedor{idx === 0 ? " *" : ""}</Text>
                       <TextInput
                         value={form.supplierName}
                         onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], supplierName: v }; setQuotationSupplierForms(f); }}
@@ -1662,9 +1674,9 @@ export default function RequestDetailScreen() {
                       />
                       <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Observações</Text>
                       <TextInput
-                        value={form.observations}
-                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], observations: v }; setQuotationSupplierForms(f); }}
-                        placeholder="Informações adicionais..."
+                        value={form.supplierContact}
+                        onChangeText={(v) => { const f = [...quotationSupplierForms]; f[idx] = { ...f[idx], supplierContact: v }; setQuotationSupplierForms(f); }}
+                        placeholder="Informações adicionais, contato do fornecedor..."
                         placeholderTextColor={colors.muted}
                         multiline
                         numberOfLines={2}
@@ -1764,21 +1776,28 @@ export default function RequestDetailScreen() {
                   {/* Botão Salvar Cotações */}
                   <TouchableOpacity
                     onPress={async () => {
-                      // Validar que todos os 3 fornecedores estão preenchidos
-                      for (let i = 0; i < 3; i++) {
+                      // Validar que o fornecedor 1 está preenchido (2 e 3 são opcionais)
+                      if (!quotationSupplierForms[0].supplierName.trim() || !quotationSupplierForms[0].totalValue.trim()) {
+                        Alert.alert("Obrigatório", "Preencha o nome e valor do Fornecedor 1.");
+                        return;
+                      }
+                      // Validar fornecedores 2 e 3 apenas se o nome foi preenchido
+                      for (let i = 1; i < 3; i++) {
                         const f = quotationSupplierForms[i];
-                        if (!f.supplierName.trim() || !f.totalValue.trim()) {
-                          Alert.alert("Obrigatório", `Preencha o nome e valor do Fornecedor ${i + 1}.`);
+                        if (f.supplierName.trim() && !f.totalValue.trim()) {
+                          Alert.alert("Obrigatório", `Preencha o valor do Fornecedor ${i + 1} ou deixe em branco para ignorar.`);
                           return;
                         }
                       }
-                      const suppliers = quotationSupplierForms.map((f, i) => ({
+                      // Filtrar apenas fornecedores com nome preenchido
+                      const suppliersFiltered = quotationSupplierForms.filter(f => f.supplierName.trim());
+                      const suppliers = suppliersFiltered.map((f, i) => ({
                         supplierName: f.supplierName.trim(),
                         supplierContact: f.supplierContact.trim() || undefined,
                         paymentTerms: f.paymentTerms.trim() || undefined,
                         deliveryDays: f.deliveryDays ? parseInt(f.deliveryDays) : undefined,
                         observations: f.observations.trim() || undefined,
-                        items: [{ description: "Item", quantity: "1", unit: "un", unitPrice: f.totalValue, totalPrice: f.totalValue }],
+                        items: [{ description: f.observations.trim() || "Item", quantity: "1", unit: "un", unitPrice: f.totalValue, totalPrice: f.totalValue }],
                         totalValue: f.totalValue.replace(/\./g, "").replace(",", "."),
                         position: i + 1,
                       }));
@@ -1788,7 +1807,7 @@ export default function RequestDetailScreen() {
                           onSuccess: async (result: any) => {
                             // Após salvar, fazer upload dos arquivos pendentes
                             const savedSuppliers = result?.suppliers ?? [];
-                            const uploadPromises = quotationSupplierForms.map(async (f, i) => {
+                            const uploadPromises = suppliersFiltered.map(async (f, i) => {
                               if (f.pendingFileBase64 && f.pendingFileName && savedSuppliers[i]?.id) {
                                 try {
                                   await uploadSupplierFileMutation.mutateAsync({
@@ -1818,7 +1837,7 @@ export default function RequestDetailScreen() {
                     )}
                   </TouchableOpacity>
 
-                  <Text style={{ fontSize: 11, color: colors.muted, textAlign: "center" }}>Os 3 fornecedores são obrigatórios. Após salvar, o aprovador escolherá a melhor cotação para avançar o fluxo.</Text>
+                  <Text style={{ fontSize: 11, color: colors.muted, textAlign: "center" }}>Fornecedor 1 obrigatório. Cotações 2 e 3 são opcionais. Após salvar, o aprovador escolherá a melhor cotação.</Text>
                 </View>
               )}
 
@@ -2773,44 +2792,13 @@ export default function RequestDetailScreen() {
 
             {/* Botão Aprovar */}
             {(() => {
-              // Na etapa de orçamento, o botão fixo não deve ser usado — o fluxo é controlado pelo bloco de Orçamento
-              // (que exige PDF + Valor Estimado e chama submitBudgetMutation diretamente)
-              // O botão fixo é bloqueado se: (1) PDF não anexado OU (2) valor estimado não preenchido
-              const hasBudgetFile = !!(request.budgetFileUrl || budgetFileName);
-              const orcamentoBloqueado = currentStatus === "aguardando_orcamento" && (!hasBudgetFile || !estimatedValueInput.trim());
-              const orcamentoLabel = !hasBudgetFile ? "Anexe o Orçamento" : !estimatedValueInput.trim() ? "Informe o Valor" : "Aprovar";
+              // Na etapa de orçamento, o botão fixo não deve ser usado — o fluxo é controlado pelo bloco de Cotações
+              // O botão fica oculto na etapa aguardando_orcamento
+              const orcamentoBloqueado = false;
+              const orcamentoLabel = "Aprovar";
               return (
                 <TouchableOpacity
                   onPress={() => {
-                    if (currentStatus === "aguardando_orcamento") {
-                      const hasBudgetFileLocal = !!(request.budgetFileUrl || budgetFileName);
-                      if (!hasBudgetFileLocal) {
-                        Alert.alert("⚠️ Orçamento obrigatório", "Selecione o PDF do orçamento antes de enviar.");
-                        return;
-                      }
-                      if (!estimatedValueInput.trim()) {
-                        Alert.alert("⚠️ Valor obrigatório", "Informe o Valor Estimado antes de enviar o orçamento.");
-                        return;
-                      }
-                      const raw = estimatedValueInput.trim();
-                      const parsedEstimated = raw.includes(",")
-                        ? parseFloat(raw.replace(/\./g, "").replace(",", "."))
-                        : parseFloat(raw);
-                      if (isNaN(parsedEstimated) || parsedEstimated <= 0) {
-                        Alert.alert("Valor inválido", "Informe um valor válido (ex: 4.556,25).");
-                        return;
-                      }
-                      // Se há PDF pendente (não enviado ainda), fazer upload primeiro depois submitBudget
-                      if (pendingBudgetBase64 && budgetFileName) {
-                        uploadFileMutation.mutate(
-                          { requestId: request.id, fileName: budgetFileName, base64: pendingBudgetBase64, mimeType: pendingBudgetMime },
-                          { onSuccess: () => submitBudgetMutation.mutate({ requestId: request.id, estimatedValue: parsedEstimated }) }
-                        );
-                      } else {
-                        submitBudgetMutation.mutate({ requestId: request.id, estimatedValue: parsedEstimated });
-                      }
-                      return;
-                    }
                     setShowApproveModal(true);
                   }}
                   disabled={approveMutation.isPending || rejectMutation.isPending || submitBudgetMutation.isPending}
