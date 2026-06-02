@@ -71,3 +71,4 @@ Thumbs.db
 certs/*.p12
 certs/*.mobileprovision
 credentials.json
+.project-config.json
