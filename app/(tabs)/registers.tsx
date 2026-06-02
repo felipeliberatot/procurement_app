@@ -57,6 +57,7 @@ const ROLE_COLORS: Record<ProcurementRole, string> = {
   solicitante: "#6366F1",
   gerente: "#0EA5E9",
   orcamento: "#8B5CF6",
+  compras: "#06B6D4",
   controladoria: "#F59E0B",
   diretoria: "#EF4444",
   financeiro: "#10B981",

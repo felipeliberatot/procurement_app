@@ -29,6 +29,7 @@ const ROLE_DESCRIPTIONS: Record<ProcurementRole, string> = {
   solicitante: "Você não tem pendências de aprovação.",
   gerente: "Solicitações aguardando sua aprovação como Gerente de Unidade.",
   orcamento: "Solicitações aguardando orçamento, emissão de OC ou verificação final.",
+  compras: "Solicitações aguardando seleção de orçamento (escolher melhor fornecedor).",
   controladoria: "Solicitações aguardando aprovação da Controladoria.",
   diretoria: "Solicitações aguardando aprovação da Diretoria.",
   financeiro: "Solicitações aguardando comprovante de pagamento.",

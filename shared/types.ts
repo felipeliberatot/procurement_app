@@ -44,6 +44,7 @@ export type ProcurementRole =
   | "solicitante"
   | "gerente"
   | "orcamento"
+  | "compras"
   | "controladoria"
   | "diretoria"
   | "financeiro"
@@ -112,6 +113,7 @@ export const ROLE_LABELS: Record<ProcurementRole, string> = {
   solicitante: "Solicitante",
   gerente: "Gerente de Unidade",
   orcamento: "Orçamento",
+  compras: "Compras",
   controladoria: "Controladoria",
   diretoria: "Diretoria",
   financeiro: "Financeiro",

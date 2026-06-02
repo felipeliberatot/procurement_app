@@ -695,6 +695,9 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
       pendingStatuses.add("aguardando_orcamento");
       pendingStatuses.add("aguardando_ordem_compra");
       pendingStatuses.add("aguardando_verificacao_compras");
+    } else if (r === "compras") {
+      // Role compras (Wellington, Victor) responde por seleção de orçamento
+      pendingStatuses.add("aguardando_orcamento");
     } else {
       if (r === "financeiro") {
         // Financeiro responde por 2 etapas: aprovação de compra + comprovante de pagamento
@@ -1160,7 +1163,7 @@ export async function approveRequest(
   // Mapa: status atual → papel(is) que podem aprovar essa etapa
   const STEP_ROLE_MAP: Record<string, string[]> = {
     aguardando_gerente:               ["gerente", "master"],
-    aguardando_orcamento:             ["orcamento", "master"],
+    aguardando_orcamento:             ["compras", "master"],  // Alterado: apenas usuários de Compras (Wellington, Victor) podem escolher o orçamento
     aguardando_controladoria:         ["controladoria", "master"],
     aguardando_diretoria:             ["diretoria", "master"],
     aguardando_ordem_compra:          ["orcamento", "master"],
@@ -1184,7 +1187,7 @@ export async function approveRequest(
     if (!hasPermission) {
       const stepLabel = ({
         aguardando_gerente: "Gerente",
-        aguardando_orcamento: "Orçamento",
+        aguardando_orcamento: "Seleção de Orçamento (Compras)",
         aguardando_controladoria: "Controladoria",
         aguardando_diretoria: "Diretoria",
         aguardando_ordem_compra: "Compras",
