@@ -24,6 +24,8 @@ __export(schema_exports, {
   maloteTags: () => maloteTags,
   malotes: () => malotes,
   purchaseRequests: () => purchaseRequests,
+  quotationGroups: () => quotationGroups,
+  quotationSuppliers: () => quotationSuppliers,
   requestItems: () => requestItems,
   units: () => units,
   users: () => users,
@@ -40,7 +42,7 @@ import {
   timestamp,
   varchar
 } from "drizzle-orm/mysql-core";
-var users, costCenters, assets, purchaseRequests, requestItems, approvalHistory, whatsappSessions, malotes, maloteItems, units, businessUnits, departments, maloteTags, maloteTagLinks, harvests, budgets, apiKeys;
+var users, costCenters, assets, purchaseRequests, requestItems, approvalHistory, whatsappSessions, malotes, maloteItems, units, businessUnits, departments, maloteTags, maloteTagLinks, harvests, budgets, apiKeys, quotationGroups, quotationSuppliers;
 var init_schema = __esm({
   "drizzle/schema.ts"() {
     "use strict";
@@ -407,6 +409,35 @@ var init_schema = __esm({
       createdAt: timestamp("createdAt").defaultNow().notNull(),
       updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
     });
+    quotationGroups = mysqlTable("quotationGroups", {
+      id: int("id").autoincrement().primaryKey(),
+      title: varchar("title", { length: 255 }).notNull(),
+      description: text("description"),
+      department: varchar("department", { length: 128 }),
+      costCenterCode: varchar("costCenterCode", { length: 32 }),
+      status: mysqlEnum("status", ["em_andamento", "concluido", "cancelado"]).default("em_andamento").notNull(),
+      selectedSupplierId: int("selectedSupplierId"),
+      requestId: int("requestId"),
+      createdById: int("createdById").notNull(),
+      createdByName: varchar("createdByName", { length: 128 }).notNull(),
+      createdAt: timestamp("createdAt").defaultNow().notNull(),
+      updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+    });
+    quotationSuppliers = mysqlTable("quotationSuppliers", {
+      id: int("id").autoincrement().primaryKey(),
+      groupId: int("groupId").notNull(),
+      supplierName: varchar("supplierName", { length: 255 }).notNull(),
+      supplierContact: varchar("supplierContact", { length: 255 }),
+      paymentTerms: varchar("paymentTerms", { length: 128 }),
+      deliveryDays: int("deliveryDays"),
+      observations: text("observations"),
+      items: text("items").notNull(),
+      totalValue: decimal("totalValue", { precision: 14, scale: 2 }).notNull().default("0.00"),
+      position: int("position").notNull().default(1),
+      fileUrl: text("fileUrl"),
+      createdAt: timestamp("createdAt").defaultNow().notNull(),
+      updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+    });
   }
 });
 
@@ -448,6 +479,7 @@ __export(whatsapp_exports, {
   notifyBudgetRequired: () => notifyBudgetRequired,
   notifyNewRequest: () => notifyNewRequest,
   notifyNewUserRegistration: () => notifyNewUserRegistration,
+  notifyQuotationApprover: () => notifyQuotationApprover,
   notifyRejection: () => notifyRejection,
   resolveSession: () => resolveSession,
   sendDailyDeadlineReport: () => sendDailyDeadlineReport,
@@ -872,6 +904,85 @@ function getProviderInfo() {
     webhookUrl: getWebhookUrl()
   };
 }
+async function notifyQuotationApprover(opts) {
+  const db = await getDb();
+  if (!db) return false;
+  const serverBase = resolveServerBaseUrl();
+  const urgencyEmoji = opts.urgencyLevel === "emergencial" ? "\u{1F534}" : opts.urgencyLevel === "urgente" ? "\u{1F7E1}" : "\u{1F7E2}";
+  const values = opts.suppliers.map((s) => parseFloat(s.totalValue) || Infinity);
+  const minValue = Math.min(...values);
+  const supplierLinks = [];
+  for (const supplier of opts.suppliers) {
+    const token = generateApprovalToken();
+    const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1e3);
+    const phone = normalizePhone(opts.approverPhone);
+    try {
+      await db.update(whatsappSessions).set({ status: "expired" }).where(
+        and(
+          eq(whatsappSessions.requestId, opts.requestId),
+          eq(whatsappSessions.approverId, opts.approverId),
+          eq(whatsappSessions.status, "pending")
+        )
+      );
+    } catch {
+    }
+    await db.insert(whatsappSessions).values({
+      token,
+      requestId: opts.requestId,
+      requestNumber: opts.requestNumber,
+      approverPhone: phone,
+      approverId: opts.approverId,
+      approverName: opts.approverName,
+      step: `quotation_supplier_${supplier.id}`,
+      status: "pending",
+      expiresAt
+    });
+    const link = `${serverBase}/api/approve?token=${token}&action=approve&supplierId=${supplier.id}`;
+    supplierLinks.push(link);
+  }
+  const supplierLines = opts.suppliers.map((s, i) => {
+    const val = parseFloat(s.totalValue) || 0;
+    const isBest = val === minValue && val > 0;
+    const bestTag = isBest ? " \u2B50 *MENOR PRE\xC7O*" : "";
+    const valFormatted = val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const paymentLine = s.paymentTerms ? `
+     \u{1F4B3} ${s.paymentTerms}` : "";
+    const deliveryLine = s.deliveryDays ? `
+     \u{1F4E6} Entrega: ${s.deliveryDays} dias` : "";
+    const obsLine = s.observations ? `
+     \u{1F4DD} ${s.observations}` : "";
+    return [
+      `*${i + 1}. ${s.supplierName}*${bestTag}`,
+      `   \u{1F4B0} *${valFormatted}*${paymentLine}${deliveryLine}${obsLine}`,
+      `   \u2705 Selecionar: ${supplierLinks[i]}`
+    ].join("\n");
+  }).join("\n\n");
+  const message = [
+    `\u{1F4CB} *Cota\xE7\xF5es para Aprova\xE7\xE3o \u2014 CGS Agr\xEDcola*`,
+    ``,
+    `Ol\xE1, *${opts.approverName}*! As cota\xE7\xF5es da solicita\xE7\xE3o abaixo est\xE3o prontas para sua an\xE1lise.`,
+    ``,
+    `*N\xBA:* ${opts.requestNumber}`,
+    `*Solicitante:* ${opts.requesterName}`,
+    `*Departamento:* ${opts.department}`,
+    `*Urg\xEAncia:* ${urgencyEmoji}`,
+    ``,
+    `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`,
+    `*COMPARATIVO DE COTA\xC7\xD5ES*`,
+    `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`,
+    ``,
+    supplierLines,
+    ``,
+    `\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`,
+    `_Clique no link do fornecedor escolhido para aprovar e avan\xE7ar o fluxo._`,
+    ``,
+    `\u{1F517} Ver detalhes no app:`,
+    `${APP_BASE_URL}/request/${opts.requestId}`,
+    ``,
+    `_Voc\xEA tem 72h para responder._`
+  ].join("\n");
+  return sendWhatsAppMessage(opts.approverPhone, message);
+}
 var ZAPI_INSTANCE_ID, ZAPI_TOKEN, ZAPI_CLIENT_TOKEN, PROVIDER, WHATSAPP_API_URL, WHATSAPP_API_TOKEN, WHATSAPP_FROM, APP_BASE_URL, WEBHOOK_BASE_URL;
 var init_whatsapp = __esm({
   "server/whatsapp.ts"() {
@@ -894,6 +1005,7 @@ var init_whatsapp = __esm({
 var db_exports = {};
 __export(db_exports, {
   addRequestToMalote: () => addRequestToMalote,
+  approveQuotationAndAdvance: () => approveQuotationAndAdvance,
   approveRequest: () => approveRequest,
   attachBudget: () => attachBudget,
   attachInvoice: () => attachInvoice,
@@ -910,6 +1022,7 @@ __export(db_exports, {
   createMalote: () => createMalote,
   createMaloteTag: () => createMaloteTag,
   createPurchaseRequest: () => createPurchaseRequest,
+  createQuotationGroup: () => createQuotationGroup,
   createUnit: () => createUnit,
   deductFromBudget: () => deductFromBudget,
   deleteApiKey: () => deleteApiKey,
@@ -920,6 +1033,8 @@ __export(db_exports, {
   deleteDepartment: () => deleteDepartment,
   deleteHarvest: () => deleteHarvest,
   deletePurchaseRequest: () => deletePurchaseRequest,
+  deleteQuotationGroup: () => deleteQuotationGroup,
+  deleteQuotationsByRequestId: () => deleteQuotationsByRequestId,
   deleteUnit: () => deleteUnit,
   deleteUser: () => deleteUser,
   finalizeOC: () => finalizeOC,
@@ -938,6 +1053,8 @@ __export(db_exports, {
   getNextDepartmentCode: () => getNextDepartmentCode,
   getPendingRequestsForUser: () => getPendingRequestsForUser,
   getPurchaseRequestWithDetails: () => getPurchaseRequestWithDetails,
+  getQuotationGroupByRequestId: () => getQuotationGroupByRequestId,
+  getQuotationGroupWithSuppliers: () => getQuotationGroupWithSuppliers,
   getRankingByCostCenter: () => getRankingByCostCenter,
   getRankingByItem: () => getRankingByItem,
   getRequestsByRequester: () => getRequestsByRequester,
@@ -952,6 +1069,7 @@ __export(db_exports, {
   importDepartmentsBatch: () => importDepartmentsBatch,
   importUnitsBatch: () => importUnitsBatch,
   importUsersBatch: () => importUsersBatch,
+  linkQuotationToRequest: () => linkQuotationToRequest,
   linkUserByEmail: () => linkUserByEmail,
   listAllCostCenters: () => listAllCostCenters,
   listApiKeys: () => listApiKeys,
@@ -963,6 +1081,7 @@ __export(db_exports, {
   listHarvests: () => listHarvests,
   listMaloteTags: () => listMaloteTags,
   listMalotes: () => listMalotes,
+  listQuotationGroups: () => listQuotationGroups,
   listUnits: () => listUnits,
   listUsers: () => listUsers,
   receiveMalote: () => receiveMalote,
@@ -971,6 +1090,8 @@ __export(db_exports, {
   reopenRequest: () => reopenRequest,
   revokeApiKey: () => revokeApiKey,
   saveBudgetAnalysis: () => saveBudgetAnalysis,
+  saveQuotationsForRequest: () => saveQuotationsForRequest,
+  selectQuotationSupplier: () => selectQuotationSupplier,
   sendMalote: () => sendMalote,
   setMaloteTags: () => setMaloteTags,
   submitBudget: () => submitBudget,
@@ -1133,7 +1254,7 @@ async function upsertUserByAdmin(data) {
   const extraRolesJson = data.extraRoles && data.extraRoles.length > 0 ? JSON.stringify([...new Set(data.extraRoles.filter((r) => r !== data.procurementRole))]) : null;
   const extraApprovalLevelsJson = data.extraApprovalLevels && data.extraApprovalLevels.length > 0 ? JSON.stringify([...new Set(data.extraApprovalLevels.filter((l) => l !== (data.approvalLevel ?? "nenhum")))]) : null;
   if (data.id) {
-    await db.update(users).set({
+    const updatePayload = {
       name: data.name,
       email: data.email ?? null,
       procurementRole: data.procurementRole,
@@ -1143,10 +1264,15 @@ async function upsertUserByAdmin(data) {
       jobTitle: data.jobTitle ?? null,
       approvalLevel: data.approvalLevel ?? "nenhum",
       extraApprovalLevels: extraApprovalLevelsJson,
-      active: data.active ?? true,
-      registerPermissions: data.registerPermissions !== void 0 ? data.registerPermissions : void 0,
-      ...finalPasswordHash !== void 0 ? { passwordHash: finalPasswordHash } : {}
-    }).where(eq2(users.id, data.id));
+      active: data.active ?? true
+    };
+    if (data.registerPermissions !== void 0) {
+      updatePayload.registerPermissions = data.registerPermissions;
+    }
+    if (finalPasswordHash !== void 0) {
+      updatePayload.passwordHash = finalPasswordHash;
+    }
+    await db.update(users).set(updatePayload).where(eq2(users.id, data.id));
     return { id: data.id };
   } else {
     const openId = `admin_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
@@ -3058,6 +3184,141 @@ async function validateApiKey(rawKey) {
   const { keyHash: _kh, ...rest } = key;
   return rest;
 }
+async function listQuotationGroups(userId) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(quotationGroups).where(eq2(quotationGroups.createdById, userId)).orderBy(desc(quotationGroups.createdAt));
+}
+async function getQuotationGroupWithSuppliers(id) {
+  const db = await getDb();
+  if (!db) return null;
+  const groups = await db.select().from(quotationGroups).where(eq2(quotationGroups.id, id)).limit(1);
+  if (!groups.length) return null;
+  const suppliers = await db.select().from(quotationSuppliers).where(eq2(quotationSuppliers.groupId, id)).orderBy(quotationSuppliers.position);
+  return { ...groups[0], suppliers };
+}
+async function createQuotationGroup(data) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(quotationGroups).values({
+    title: data.title,
+    description: data.description ?? null,
+    department: data.department ?? null,
+    costCenterCode: data.costCenterCode ?? null,
+    createdById: data.createdById,
+    createdByName: data.createdByName,
+    status: "em_andamento"
+  });
+  const groupId = result[0]?.insertId ?? 0;
+  for (const s of data.suppliers) {
+    await db.insert(quotationSuppliers).values({
+      groupId,
+      supplierName: s.supplierName,
+      supplierContact: s.supplierContact ?? null,
+      paymentTerms: s.paymentTerms ?? null,
+      deliveryDays: s.deliveryDays ?? null,
+      observations: s.observations ?? null,
+      items: JSON.stringify(s.items),
+      totalValue: s.totalValue,
+      position: s.position
+    });
+  }
+  return { id: groupId };
+}
+async function selectQuotationSupplier(groupId, supplierId) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(quotationGroups).set({ selectedSupplierId: supplierId, status: "concluido", updatedAt: /* @__PURE__ */ new Date() }).where(eq2(quotationGroups.id, groupId));
+  return { success: true };
+}
+async function linkQuotationToRequest(groupId, requestId) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(quotationGroups).set({ requestId, updatedAt: /* @__PURE__ */ new Date() }).where(eq2(quotationGroups.id, groupId));
+}
+async function deleteQuotationGroup(id, userId) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const group = await db.select().from(quotationGroups).where(eq2(quotationGroups.id, id)).limit(1);
+  if (!group.length) throw new Error("Cota\xE7\xE3o n\xE3o encontrada");
+  if (group[0].createdById !== userId) throw new Error("Sem permiss\xE3o para excluir esta cota\xE7\xE3o");
+  await db.delete(quotationSuppliers).where(eq2(quotationSuppliers.groupId, id));
+  await db.delete(quotationGroups).where(eq2(quotationGroups.id, id));
+  return { success: true };
+}
+async function getQuotationGroupByRequestId(requestId) {
+  const db = await getDb();
+  if (!db) return null;
+  const groups = await db.select().from(quotationGroups).where(eq2(quotationGroups.requestId, requestId)).orderBy(desc(quotationGroups.createdAt)).limit(1);
+  if (!groups.length) return null;
+  const suppliers = await db.select().from(quotationSuppliers).where(eq2(quotationSuppliers.groupId, groups[0].id)).orderBy(quotationSuppliers.position);
+  return { ...groups[0], suppliers };
+}
+async function saveQuotationsForRequest(data) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await db.select().from(quotationGroups).where(eq2(quotationGroups.requestId, data.requestId)).limit(1);
+  if (existing.length) {
+    await db.delete(quotationSuppliers).where(eq2(quotationSuppliers.groupId, existing[0].id));
+    await db.delete(quotationGroups).where(eq2(quotationGroups.id, existing[0].id));
+  }
+  const [req] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, data.requestId)).limit(1);
+  if (!req) throw new Error("Solicita\xE7\xE3o n\xE3o encontrada");
+  const result = await db.insert(quotationGroups).values({
+    title: `Cota\xE7\xF5es \u2014 ${req.requestNumber ?? `#${data.requestId}`}`,
+    description: `Cota\xE7\xF5es para a solicita\xE7\xE3o ${req.requestNumber ?? data.requestId}`,
+    department: req.department ?? null,
+    costCenterCode: req.costCenterCode ?? null,
+    requestId: data.requestId,
+    createdById: data.createdById,
+    createdByName: data.createdByName,
+    status: "em_andamento"
+  });
+  const groupId = result[0]?.insertId ?? 0;
+  const savedSuppliers = [];
+  for (const s of data.suppliers) {
+    const insResult = await db.insert(quotationSuppliers).values({
+      groupId,
+      supplierName: s.supplierName,
+      supplierContact: s.supplierContact ?? null,
+      paymentTerms: s.paymentTerms ?? null,
+      deliveryDays: s.deliveryDays ?? null,
+      observations: s.observations ?? null,
+      items: JSON.stringify(s.items),
+      totalValue: s.totalValue,
+      position: s.position
+    });
+    const supplierId = insResult[0]?.insertId ?? 0;
+    savedSuppliers.push({ id: supplierId, position: s.position, supplierName: s.supplierName });
+  }
+  return { id: groupId, suppliers: savedSuppliers };
+}
+async function approveQuotationAndAdvance(requestId, supplierId, user, estimatedValue) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
+  if (!request) throw new Error("Solicita\xE7\xE3o n\xE3o encontrada");
+  const groups = await db.select().from(quotationGroups).where(eq2(quotationGroups.requestId, requestId)).limit(1);
+  if (groups.length) {
+    await db.update(quotationGroups).set({ selectedSupplierId: supplierId, status: "concluido", updatedAt: /* @__PURE__ */ new Date() }).where(eq2(quotationGroups.id, groups[0].id));
+  }
+  if (!estimatedValue) {
+    const [supplier] = await db.select().from(quotationSuppliers).where(eq2(quotationSuppliers.id, supplierId)).limit(1);
+    if (supplier) {
+      estimatedValue = parseFloat(supplier.totalValue) || void 0;
+    }
+  }
+  return approveRequest(requestId, user, estimatedValue !== void 0 ? { orderValue: estimatedValue } : {});
+}
+async function deleteQuotationsByRequestId(requestId, _userId) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const groups = await db.select().from(quotationGroups).where(eq2(quotationGroups.requestId, requestId)).limit(1);
+  if (!groups.length) return { success: true };
+  await db.delete(quotationSuppliers).where(eq2(quotationSuppliers.groupId, groups[0].id));
+  await db.delete(quotationGroups).where(eq2(quotationGroups.id, groups[0].id));
+  return { success: true };
+}
 var STEP_LABELS_SERVER, _db, STEP_FLOW_NORMAL, STEP_FLOW_URGENT, REJECT_FLOW_NORMAL, REJECT_FLOW_URGENT, EDITABLE_STATUSES;
 var init_db = __esm({
   "server/db.ts"() {
@@ -3589,6 +3850,8 @@ import net from "net";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { pipeline } from "stream/promises";
+import unzipper from "unzipper";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 
@@ -4430,7 +4693,7 @@ var appRouter = router({
       name: z2.string().min(1),
       email: z2.string().email().optional().or(z2.literal("")),
       procurementRole: z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"]),
-      extraRoles: z2.array(z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"])).optional(),
+      extraRoles: z2.array(z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "assets_admin"])).optional(),
       department: z2.string().optional(),
       phone: z2.string().optional(),
       jobTitle: z2.string().optional(),
@@ -5445,7 +5708,113 @@ Itens de exemplo: ${c.sampleItems.join("; ")}`
       return deleteApiKey(input.id);
     })
   }),
-  // ─── Integração CGS Manutenções ────────────────────────────────────────────
+  // ─── Cotações / Orçamentos de Fornecedores (integrado ao fluxo de solicitação) ──────────
+  quotations: router({
+    // Buscar cotações vinculadas a uma solicitação
+    getByRequestId: protectedProcedure.input(z2.object({ requestId: z2.number() })).query(({ input }) => getQuotationGroupByRequestId(input.requestId)),
+    // Salvar/substituir cotações para uma solicitação (papel: orçamento)
+    saveForRequest: protectedProcedure.input(z2.object({
+      requestId: z2.number(),
+      suppliers: z2.array(z2.object({
+        supplierName: z2.string().min(1),
+        supplierContact: z2.string().optional(),
+        paymentTerms: z2.string().optional(),
+        deliveryDays: z2.number().optional(),
+        observations: z2.string().optional(),
+        items: z2.array(z2.object({
+          description: z2.string().min(1),
+          quantity: z2.string(),
+          unit: z2.string().default("un"),
+          unitPrice: z2.string(),
+          totalPrice: z2.string()
+        })),
+        totalValue: z2.string(),
+        position: z2.number().min(1).max(3)
+      })).min(1).max(3)
+    })).mutation(async ({ ctx, input }) => {
+      const result = await saveQuotationsForRequest({
+        requestId: input.requestId,
+        suppliers: input.suppliers,
+        createdById: ctx.user.id,
+        createdByName: ctx.user.name ?? "Usu\xE1rio"
+      });
+      try {
+        const { notifyQuotationApprover: notifyQuotationApprover2 } = await Promise.resolve().then(() => (init_whatsapp(), whatsapp_exports));
+        const { getDb: getDb2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+        const { users: usersTable, purchaseRequests: purchaseRequests2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+        const { eq: eqDrizzle, or: orDrizzle, and: andDrizzle } = await import("drizzle-orm");
+        const dbConn = await getDb2();
+        if (dbConn) {
+          const [req] = await dbConn.select().from(purchaseRequests2).where(eqDrizzle(purchaseRequests2.id, input.requestId)).limit(1);
+          const approversRaw = await dbConn.select().from(usersTable).where(andDrizzle(
+            eqDrizzle(usersTable.active, true),
+            orDrizzle(
+              eqDrizzle(usersTable.procurementRole, "orcamento"),
+              eqDrizzle(usersTable.approvalLevel, "orcamento")
+            )
+          ));
+          const approvers = [...new Map(approversRaw.map((a) => [a.id, a])).values()];
+          const savedGroup = await getQuotationGroupByRequestId(input.requestId);
+          const savedSuppliers = savedGroup?.suppliers ?? [];
+          for (const approver of approvers) {
+            if (approver.phone && req) {
+              await notifyQuotationApprover2({
+                approverPhone: approver.phone,
+                approverName: approver.name ?? "Aprovador",
+                approverId: approver.id,
+                requestId: input.requestId,
+                requestNumber: req.requestNumber,
+                requesterName: req.requesterName,
+                department: req.department,
+                urgencyLevel: req.urgencyLevel,
+                suppliers: savedSuppliers.map((s) => ({
+                  id: s.id,
+                  supplierName: s.supplierName,
+                  totalValue: s.totalValue,
+                  paymentTerms: s.paymentTerms,
+                  deliveryDays: s.deliveryDays,
+                  observations: s.observations
+                }))
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[WhatsApp] Falha ao notificar aprovadores de cota\xE7\xE3o:", e);
+      }
+      return result;
+    }),
+    // Aprovador seleciona o fornecedor vencedor e avança o fluxo
+    approveWithSupplier: protectedProcedure.input(z2.object({
+      requestId: z2.number(),
+      supplierId: z2.number(),
+      estimatedValue: z2.number().optional()
+    })).mutation(
+      ({ ctx, input }) => approveQuotationAndAdvance(input.requestId, input.supplierId, ctx.user, input.estimatedValue)
+    ),
+    // Upload de arquivo (PDF ou imagem) vinculado a um fornecedor específico da cotação
+    uploadSupplierFile: protectedProcedure.input(z2.object({
+      supplierId: z2.number(),
+      fileName: z2.string(),
+      base64: z2.string(),
+      mimeType: z2.string().default("application/pdf")
+    })).mutation(async ({ input }) => {
+      const { storagePut: storagePut2 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+      const buffer = Buffer.from(input.base64, "base64");
+      const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const key = `quotations/${input.supplierId}/${Date.now()}_${safeName}`;
+      const { url } = await storagePut2(key, buffer, input.mimeType);
+      const { getDb: getDb2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const { quotationSuppliers: quotationSuppliers2 } = await Promise.resolve().then(() => (init_schema(), schema_exports));
+      const { eq: eq3 } = await import("drizzle-orm");
+      const dbConn = await getDb2();
+      if (dbConn) {
+        await dbConn.update(quotationSuppliers2).set({ fileUrl: url }).where(eq3(quotationSuppliers2.id, input.supplierId));
+      }
+      return { url };
+    })
+  }),
+  // ─── Integração CGS Manutenções ──────────────────────────────────────────────
   maintenance: router({
     listWorkOrders: protectedProcedure.input(z2.object({
       search: z2.string().optional(),
@@ -5599,7 +5968,7 @@ function registerWhatsAppWebhook(app) {
     }
   });
   app.get("/api/approve", async (req, res) => {
-    const { token, action } = req.query;
+    const { token, action, supplierId: supplierIdRaw } = req.query;
     const htmlPage = (title, emoji, message, color) => `
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -5656,6 +6025,22 @@ function registerWhatsAppWebhook(app) {
         return res.status(404).send(htmlPage("Usu\xE1rio n\xE3o encontrado", "\u274C", "O aprovador associado a este link n\xE3o foi encontrado no sistema.", "#EF4444"));
       }
       if (action === "approve") {
+        const isQuotationStep = session.step?.startsWith("quotation_supplier_");
+        const supplierId = supplierIdRaw ? parseInt(supplierIdRaw, 10) : null;
+        if (isQuotationStep && supplierId) {
+          const { approveQuotationAndAdvance: approveQuotationAndAdvance2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+          await approveQuotationAndAdvance2(session.requestId, supplierId, approverUser);
+          const { and: andOp } = await import("drizzle-orm");
+          await db.update(whatsappSessions2).set({ status: "approved", resolvedAt: /* @__PURE__ */ new Date() }).where(andOp(eq3(whatsappSessions2.requestId, session.requestId), eq3(whatsappSessions2.status, "pending")));
+          await notifyApproverActionConfirmation({
+            approverPhone: session.approverPhone,
+            approverName: session.approverName || "Aprovador",
+            requestNumber: session.requestNumber,
+            requestId: session.requestId,
+            action: "approved"
+          });
+          return res.send(htmlPage("Fornecedor selecionado!", "\u2705", `O fornecedor foi selecionado para a solicita\xE7\xE3o <strong>${session.requestNumber}</strong> e o fluxo avan\xE7ou automaticamente.`, "#22C55E"));
+        }
         await approveRequest2(session.requestId, approverUser, { comment: "Aprovado via link WhatsApp" });
         await db.update(whatsappSessions2).set({ status: "approved", resolvedAt: /* @__PURE__ */ new Date() }).where(eq3(whatsappSessions2.id, session.id));
         await notifyApproverActionConfirmation({
@@ -6083,6 +6468,37 @@ async function startServer() {
         indexHtmlExists: fs2.existsSync(indexPath)
       });
     });
+  });
+  app.post("/api/admin/hot-deploy", async (req, res) => {
+    const token = req.headers["x-deploy-token"] || req.query.token;
+    const expectedToken = process.env.HOT_DEPLOY_TOKEN;
+    if (!expectedToken || token !== expectedToken) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+    const webDistPath = path.resolve(__currentDir, "web");
+    try {
+      const chunks = [];
+      await new Promise((resolve, reject) => {
+        req.on("data", (chunk) => chunks.push(chunk));
+        req.on("end", resolve);
+        req.on("error", reject);
+      });
+      const zipBuffer = Buffer.concat(chunks);
+      if (zipBuffer.length === 0) {
+        return res.status(400).json({ ok: false, error: "Empty body" });
+      }
+      const { Readable } = await import("stream");
+      const readable = Readable.from(zipBuffer);
+      await pipeline(
+        readable,
+        unzipper.Extract({ path: webDistPath })
+      );
+      console.log(`[HotDeploy] Bundle atualizado em ${webDistPath} (${zipBuffer.length} bytes)`);
+      res.json({ ok: true, message: "Bundle atualizado com sucesso", bytes: zipBuffer.length });
+    } catch (err) {
+      console.error("[HotDeploy] Erro:", err);
+      res.status(500).json({ ok: false, error: String(err) });
+    }
   });
   app.post("/api/admin/daily-report", async (_req, res) => {
     console.log("[Admin] Manual daily report triggered via API");
