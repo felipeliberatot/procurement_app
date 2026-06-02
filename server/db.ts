@@ -3091,8 +3091,21 @@ export async function approveQuotationAndAdvance(
 
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");
-  
-  console.log(`[approveQuotationAndAdvance] requestId=${requestId}, supplierId=${supplierId}, user=${user.name}, status=${request.status}, budgetFileUrl=${request.budgetFileUrl ? 'SIM' : 'NAO ANEXADO'}`);
+
+  if (request.status !== "aguardando_orcamento") {
+    throw new Error(`Esta solicitação não está aguardando seleção de cotação (status atual: ${request.status}).`);
+  }
+
+  // Verificar permissão: apenas usuários com papel orcamento ou master podem selecionar
+  const userRole = (user as any).procurementRole ?? "";
+  const userLevel = (user as any).approvalLevel ?? "";
+  const isMaster = userLevel === "master";
+  const hasPermission = isMaster || userRole === "orcamento" || userLevel === "orcamento";
+  if (!hasPermission) {
+    throw new Error("Você não tem permissão para selecionar o fornecedor. Apenas usuários com papel Orçamento podem executar esta ação.");
+  }
+
+  console.log(`[approveQuotationAndAdvance] requestId=${requestId}, supplierId=${supplierId}, user=${user.name}, status=${request.status}`);
 
   // Marca o fornecedor selecionado no grupo de cotações
   const groups = await db.select().from(quotationGroups)
@@ -3104,20 +3117,109 @@ export async function approveQuotationAndAdvance(
       .where(eq(quotationGroups.id, groups[0].id));
   }
 
-  // Busca o fornecedor selecionado para usar o valor como estimatedValue se não fornecido
+  // Busca o fornecedor selecionado para usar o valor como orderValue
+  let supplierName = "Fornecedor selecionado";
   if (!estimatedValue) {
     const [supplier] = await db.select().from(quotationSuppliers)
       .where(eq(quotationSuppliers.id, supplierId))
       .limit(1);
     if (supplier) {
       estimatedValue = parseFloat(supplier.totalValue) || undefined;
-      console.log(`[approveQuotationAndAdvance] Fornecedor encontrado: ${supplier.supplierName}, valor=${estimatedValue}`);
+      supplierName = supplier.supplierName ?? supplierName;
+      console.log(`[approveQuotationAndAdvance] Fornecedor: ${supplierName}, valor=${estimatedValue}`);
     }
   }
 
-  console.log(`[approveQuotationAndAdvance] Chamando approveRequest com orderValue=${estimatedValue}`);
-  // Avança o fluxo normalmente (reutiliza approveRequest)
-  return approveRequest(requestId, user, estimatedValue !== undefined ? { orderValue: estimatedValue } : {});
+  // Determinar próximo status com base na urgência (igual ao submitBudget)
+  const isUrgent = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
+  let nextStatus: string;
+  if (isUrgent && request.orcamentoFeitoUrgente) {
+    nextStatus = "aguardando_controladoria";
+  } else {
+    const stepFlow = getStepFlow(request.urgencyLevel);
+    const flow = stepFlow["aguardando_orcamento"];
+    if (!flow) throw new Error("Fluxo de orçamento não configurado");
+    nextStatus = flow.nextStatus;
+  }
+
+  // Avançar o status diretamente — sem validar budgetFileUrl (as cotações são o orçamento)
+  const updateData: Record<string, unknown> = {
+    status: nextStatus,
+    stepDeadlineAt: getStepDeadline(),
+    ...(estimatedValue != null ? { orderValue: String(estimatedValue) } : {}),
+    ...(isUrgent ? { orcamentoFeitoUrgente: true } : {}),
+  };
+  await db.update(purchaseRequests).set(updateData).where(eq(purchaseRequests.id, requestId));
+
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: user.id,
+    userName: user.name ?? "Usuário",
+    step: "orcamento" as any,
+    action: "aprovada" as any,
+    comment: `Fornecedor selecionado: ${supplierName}${estimatedValue ? ` — Valor: R$ ${estimatedValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : ""}`,
+  });
+
+  // Notificar aprovadores da próxima etapa via WhatsApp
+  try {
+    const WA = await import("./whatsapp");
+    const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+    const [requester] = req ? await db.select().from(users).where(eq(users.id, req.requesterId)).limit(1) : [];
+    const items = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+    const itemsForMsg = items.map((it: any) => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
+
+    const STEP_LABELS_LOCAL: Record<string, string> = {
+      aguardando_controladoria: "Controladoria",
+      aguardando_diretoria: "Diretoria",
+    };
+    const nextRoleMap: Record<string, string> = {
+      aguardando_controladoria: "controladoria",
+      aguardando_diretoria: "diretoria",
+    };
+    const nextRole = nextRoleMap[nextStatus];
+    if (nextRole && req) {
+      const nextApproversRaw = await db.select().from(users).where(and(
+        eq(users.active, true),
+        or(eq(users.procurementRole, nextRole as any), eq(users.approvalLevel, nextRole as any)),
+      ));
+      const nextApprovers = [...new Map(nextApproversRaw.map((a: any) => [a.id, a])).values()];
+      for (const approver of nextApprovers as any[]) {
+        if (approver.phone) {
+          await WA.notifyApproverWithToken({
+            approverPhone: approver.phone,
+            approverName: approver.name ?? "Aprovador",
+            approverId: approver.id,
+            requestNumber: req.requestNumber,
+            requestId,
+            requesterName: req.requesterName,
+            application: req.application,
+            urgencyLevel: req.urgencyLevel,
+            department: req.department,
+            stepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
+            step: nextRole,
+            items: itemsForMsg,
+            totalValue: req.totalEstimatedValue ?? undefined,
+          });
+        }
+      }
+    }
+    // Notificar solicitante do progresso
+    if (requester?.phone && req) {
+      await WA.notifyApproval({
+        requesterPhone: requester.phone,
+        requesterName: requester.name ?? "Solicitante",
+        requestNumber: req.requestNumber,
+        requestId,
+        approverName: user.name ?? "Aprovador",
+        stepLabel: "Orçamento",
+        nextStepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
+      });
+    }
+  } catch (e) {
+    console.warn("[WhatsApp] Falha ao notificar após seleção de fornecedor:", e);
+  }
+
+  return { success: true, nextStatus };
 }
 
 /** Remove cotações vinculadas a uma solicitação */
