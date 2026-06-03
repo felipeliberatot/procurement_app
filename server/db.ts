@@ -1204,18 +1204,33 @@ export async function approveRequest(
   if (!flow) throw new Error("Ação não permitida neste status");;
 
   // ── Verificação de orçamento obrigatório ─────────────────────────────────────
-  // Na etapa de orçamento, o PDF deve estar anexado antes de aprovar/avançar
+  // Na etapa de orçamento via fluxo antigo (PDF), o PDF deve estar anexado.
+  // No fluxo de cotações, a seleção é feita via approveQuotationAndAdvance — não via approveRequest.
+  // Se approveRequest for chamado em aguardando_orcamento sem PDF, verifica se há cotações.
   if (request.status === "aguardando_orcamento" && !request.budgetFileUrl) {
-    console.error(`[approveRequest] Orçamento não anexado. requestId=${requestId}, user=${user.name}, budgetFileUrl=${request.budgetFileUrl}`);
-    throw new Error("PDF do orçamento não encontrado. Antes de selecionar um fornecedor, é necessário anexar o PDF do orçamento. Volte à solicitação, clique em 'Anexar Orçamento' e envie o arquivo PDF.");
+    const quotationGroupsForRequest = await db.select()
+      .from(quotationGroups)
+      .where(eq(quotationGroups.requestId, requestId))
+      .limit(1);
+    const hasQuotations = quotationGroupsForRequest.length > 0;
+    if (!hasQuotations) {
+      console.error(`[approveRequest] Orçamento não anexado. requestId=${requestId}, user=${user.name}`);
+      throw new Error("PDF do orçamento não encontrado. Antes de selecionar um fornecedor, é necessário anexar o PDF do orçamento ou registrar as cotações de fornecedores.");
+    }
   }
 
   // ── Verificação de orçamento obrigatório na etapa da Diretoria ───────────────
-  // A Diretoria só pode aprovar se o orçamento já estiver anexado.
-  // Isso evita que usuários com múltiplos papéis (ex: Gerente + Diretoria)
-  // aprovem a etapa da Diretoria sem que o orçamento tenha sido enviado.
+  // A Diretoria só pode aprovar se o orçamento foi feito — via PDF anexado OU via cotações.
   if (request.status === "aguardando_diretoria" && !request.budgetFileUrl) {
-    throw new Error("Não é possível aprovar a etapa da Diretoria sem orçamento anexado. O responsável pelo orçamento deve enviar o PDF antes desta aprovação.");
+    // Verificar se há cotações registradas para esta solicitação (fluxo de cotações)
+    const quotationGroupsForRequest = await db.select()
+      .from(quotationGroups)
+      .where(eq(quotationGroups.requestId, requestId))
+      .limit(1);
+    const hasQuotations = quotationGroupsForRequest.length > 0;
+    if (!hasQuotations) {
+      throw new Error("Não é possível aprovar a etapa da Diretoria sem orçamento. O responsável pelo orçamento deve enviar o PDF ou registrar as cotações de fornecedores antes desta aprovação.");
+    }
   }
 
   // ── Aprovação simples da Diretoria ───────────────────────────────────────────
