@@ -1458,6 +1458,66 @@ export default function RequestDetailScreen() {
           })()}
 
 
+          {/* Resumo de Cotações — visível para todos quando há cotações registradas (inclusive Diretoria/Controladoria) */}
+          {(quotationData?.suppliers?.length ?? 0) > 0 && currentStatus !== "aguardando_orcamento" && (
+            <View style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 16, padding: 16, marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground, marginBottom: 12 }}>📋 Cotações de Fornecedores</Text>
+              {((quotationData?.suppliers ?? []) as any[]).map((s: any, i: number) => {
+                const isSelected = (quotationData?.selectedSupplierId ?? null) === s.id;
+                return (
+                  <View key={i} style={{
+                    backgroundColor: isSelected ? `${colors.success}12` : colors.background,
+                    borderWidth: 1.5,
+                    borderColor: isSelected ? `${colors.success}50` : colors.border,
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: i < (quotationData?.suppliers?.length ?? 0) - 1 ? 8 : 0,
+                  }}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: isSelected ? colors.success : colors.foreground, flex: 1 }}>
+                        {isSelected ? "⭐ " : ""}{s.supplierName || `Fornecedor ${i + 1}`}
+                      </Text>
+                      {isSelected && (
+                        <View style={{ backgroundColor: `${colors.success}20`, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 }}>
+                          <Text style={{ color: colors.success, fontSize: 11, fontWeight: "700" }}>SELECIONADO</Text>
+                        </View>
+                      )}
+                    </View>
+                    {s.deliveryDays ? (
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>⏱ Prazo: {s.deliveryDays} dias</Text>
+                    ) : null}
+                    {/* Itens da cotação */}
+                    {s.observations ? (() => {
+                      try {
+                        const parsedItems = JSON.parse(s.observations);
+                        if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+                          return (
+                            <View style={{ marginTop: 4, marginBottom: 4 }}>
+                              {parsedItems.map((it: any, itIdx: number) => (
+                                <View key={itIdx} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 3, borderTopWidth: itIdx > 0 ? 0.5 : 0, borderTopColor: colors.border }}>
+                                  <Text style={{ fontSize: 11, color: colors.muted, flex: 1 }}>{it.description || `Item ${itIdx + 1}`} · {it.quantity} {it.unit}</Text>
+                                  <Text style={{ fontSize: 11, color: colors.foreground, fontWeight: "600", marginLeft: 8 }}>
+                                    {it.unitPrice ? `R$ ${parseFloat(String(it.unitPrice).replace(/\./g, "").replace(",", ".")).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : ""}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          );
+                        }
+                      } catch {}
+                      return null;
+                    })() : null}
+                    <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 6, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: colors.border }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: isSelected ? colors.success : colors.foreground }}>
+                        Total: R$ {parseFloat(s.totalValue || "0").toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
           {/* OC — visível para todos nos fluxos 07, 08, 09 e concluída (após emissão pelo Compras) */}
           {(currentStatus === "aguardando_aprovacao_compra" || currentStatus === "aguardando_comprovante_pagamento" || currentStatus === "aguardando_verificacao_compras" || currentStatus === "concluida") && (request.purchaseOrderNumber || (request as any).ocSiagriUrl) && (
             <View style={{ marginBottom: 16 }}>
