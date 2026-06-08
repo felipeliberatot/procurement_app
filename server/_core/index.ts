@@ -129,6 +129,36 @@ async function startServer() {
     }
   });
 
+  // Hot-deploy para arquivos PWA (landing page, manifest, icones, sw)
+  app.post("/api/admin/hot-deploy-pwa", async (req, res) => {
+    const token = req.headers["x-deploy-token"] || req.query.token;
+    const expectedToken = process.env.HOT_DEPLOY_TOKEN;
+    if (!expectedToken || token !== expectedToken) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+    const pwaDistPath = path.resolve(__currentDir, "pwa");
+    try {
+      const chunks: Buffer[] = [];
+      await new Promise<void>((resolve, reject) => {
+        req.on("data", (chunk: Buffer) => chunks.push(chunk));
+        req.on("end", resolve);
+        req.on("error", reject);
+      });
+      const zipBuffer = Buffer.concat(chunks);
+      if (zipBuffer.length === 0) {
+        return res.status(400).json({ ok: false, error: "Empty body" });
+      }
+      const { Readable } = await import("stream");
+      const readable = Readable.from(zipBuffer);
+      await pipeline(readable, unzipper.Extract({ path: pwaDistPath }));
+      console.log(`[HotDeploy-PWA] Arquivos PWA atualizados em ${pwaDistPath} (${zipBuffer.length} bytes)`);
+      res.json({ ok: true, message: "Arquivos PWA atualizados com sucesso", bytes: zipBuffer.length });
+    } catch (err) {
+      console.error("[HotDeploy-PWA] Erro:", err);
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
   // Manual trigger for daily report (admin use only)
   app.post("/api/admin/daily-report", async (_req, res) => {
     console.log("[Admin] Manual daily report triggered via API");
@@ -155,6 +185,45 @@ async function startServer() {
   });
 
   const isProduction = process.env.NODE_ENV === "production";
+
+  // ── Landing Page PWA ──────────────────────────────────────────────────────
+  // Servir assets estaticos da landing page (icones, manifest, sw)
+  // Em producao: __currentDir = dist/, entao pwa fica em dist/pwa/
+  // Em desenvolvimento: usa process.cwd()/public/pwa
+  const pwaPublicPath = isProduction
+    ? path.resolve(__currentDir, "pwa")
+    : path.resolve(process.cwd(), "public", "pwa");
+  const pwaIconsPath = isProduction
+    ? path.resolve(__currentDir, "pwa", "icons")
+    : path.resolve(process.cwd(), "public", "icons");
+
+  // Servir icones PWA
+  app.use("/api/pwa/icons", express.static(pwaIconsPath, { maxAge: "7d" }));
+
+  // Servir manifest.json e sw.js
+  app.get("/api/pwa/manifest.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/manifest+json");
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(path.join(pwaPublicPath, "manifest.json"));
+  });
+
+  app.get("/api/pwa/sw.js", (_req, res) => {
+    res.setHeader("Content-Type", "application/javascript");
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(path.join(pwaPublicPath, "sw.js"));
+  });
+
+  // Landing page principal — servida na raiz do dominio
+  app.get("/", (_req, res) => {
+    const landingPath = path.join(pwaPublicPath, "index.html");
+    if (fs.existsSync(landingPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.sendFile(landingPath);
+    } else {
+      res.redirect("/api/app/");
+    }
+  });
 
   if (isProduction) {
     // Em producao: servir o bundle estatico do Expo web
