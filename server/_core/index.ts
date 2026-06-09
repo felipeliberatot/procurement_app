@@ -188,13 +188,13 @@ async function startServer() {
 
   // ── Landing Page PWA ──────────────────────────────────────────────────────
   // Servir assets estaticos da landing page (icones, manifest, sw)
-  // Em producao: __currentDir = dist/, entao pwa fica em dist/pwa/
+  // Em producao: os arquivos PWA ficam em dist/web/pwa/ (incluidos no hot-deploy)
   // Em desenvolvimento: usa process.cwd()/public/pwa
   const pwaPublicPath = isProduction
-    ? path.resolve(__currentDir, "pwa")
+    ? path.resolve(__currentDir, "web", "pwa")
     : path.resolve(process.cwd(), "public", "pwa");
   const pwaIconsPath = isProduction
-    ? path.resolve(__currentDir, "pwa", "icons")
+    ? path.resolve(__currentDir, "web", "pwa", "icons")
     : path.resolve(process.cwd(), "public", "icons");
 
   // Servir icones PWA
@@ -279,6 +279,20 @@ async function startServer() {
         res.status(503).send("Frontend not built. Run: pnpm build:web");
       }
     };
+
+    // Rota especial: landing page PWA (servir HTML estatico, nao SPA fallback)
+    const servePwaLanding = (_req: express.Request, res: express.Response) => {
+      const pwaLandingPath = path.join(webDistPath, "pwa", "index.html");
+      if (fs.existsSync(pwaLandingPath)) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.sendFile(pwaLandingPath);
+      } else {
+        serveWebApp(_req, res);
+      }
+    };
+    app.get("/api/app/pwa", servePwaLanding);
+    app.get("/api/app/pwa/", servePwaLanding);
 
     // SPA fallback: qualquer rota /api/app/* que nao seja um arquivo estatico
     // serve o index.html (o Expo Router cuida do roteamento no cliente)

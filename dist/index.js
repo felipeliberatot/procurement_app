@@ -57,6 +57,7 @@ var init_schema = __esm({
         "solicitante",
         "gerente",
         "orcamento",
+        "compras",
         "controladoria",
         "diretoria",
         "financeiro",
@@ -1907,6 +1908,7 @@ async function approveRequest(requestId, user, data) {
   if (!db) throw new Error("Database not available");
   const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicita\xE7\xE3o n\xE3o encontrada");
+  console.log(`[approveRequest] requestId=${requestId}, user=${user.name}, status=${request.status}, budgetFileUrl=${request.budgetFileUrl ? "SIM" : "NAO ANEXADO"}`);
   const STEP_ROLE_MAP = {
     aguardando_gerente: ["gerente", "master"],
     aguardando_orcamento: ["orcamento", "master"],
@@ -1957,10 +1959,19 @@ async function approveRequest(requestId, user, data) {
   if (!flow) throw new Error("A\xE7\xE3o n\xE3o permitida neste status");
   ;
   if (request.status === "aguardando_orcamento" && !request.budgetFileUrl) {
-    throw new Error('\xC9 obrigat\xF3rio anexar o PDF do or\xE7amento antes de aprovar esta etapa. Clique em "Anexar Or\xE7amento" e envie o arquivo para continuar.');
+    const quotationGroupsForRequest = await db.select().from(quotationGroups).where(eq2(quotationGroups.requestId, requestId)).limit(1);
+    const hasQuotations = quotationGroupsForRequest.length > 0;
+    if (!hasQuotations) {
+      console.error(`[approveRequest] Or\xE7amento n\xE3o anexado. requestId=${requestId}, user=${user.name}`);
+      throw new Error("PDF do or\xE7amento n\xE3o encontrado. Antes de selecionar um fornecedor, \xE9 necess\xE1rio anexar o PDF do or\xE7amento ou registrar as cota\xE7\xF5es de fornecedores.");
+    }
   }
   if (request.status === "aguardando_diretoria" && !request.budgetFileUrl) {
-    throw new Error("N\xE3o \xE9 poss\xEDvel aprovar a etapa da Diretoria sem or\xE7amento anexado. O respons\xE1vel pelo or\xE7amento deve enviar o PDF antes desta aprova\xE7\xE3o.");
+    const quotationGroupsForRequest = await db.select().from(quotationGroups).where(eq2(quotationGroups.requestId, requestId)).limit(1);
+    const hasQuotations = quotationGroupsForRequest.length > 0;
+    if (!hasQuotations) {
+      throw new Error("N\xE3o \xE9 poss\xEDvel aprovar a etapa da Diretoria sem or\xE7amento. O respons\xE1vel pelo or\xE7amento deve enviar o PDF ou registrar as cota\xE7\xF5es de fornecedores antes desta aprova\xE7\xE3o.");
+    }
   }
   if (request.status === "aguardando_diretoria") {
     await db.update(purchaseRequests).set({
@@ -3298,17 +3309,111 @@ async function approveQuotationAndAdvance(requestId, supplierId, user, estimated
   if (!db) throw new Error("Database not available");
   const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicita\xE7\xE3o n\xE3o encontrada");
+  if (request.status !== "aguardando_orcamento") {
+    throw new Error(`Esta solicita\xE7\xE3o n\xE3o est\xE1 aguardando sele\xE7\xE3o de cota\xE7\xE3o (status atual: ${request.status}).`);
+  }
+  const userRole = user.procurementRole ?? "";
+  const userLevel = user.approvalLevel ?? "";
+  const isMaster = userLevel === "master";
+  const hasPermission = isMaster || userRole === "orcamento" || userLevel === "orcamento";
+  if (!hasPermission) {
+    throw new Error("Voc\xEA n\xE3o tem permiss\xE3o para selecionar o fornecedor. Apenas usu\xE1rios com papel Or\xE7amento podem executar esta a\xE7\xE3o.");
+  }
+  console.log(`[approveQuotationAndAdvance] requestId=${requestId}, supplierId=${supplierId}, user=${user.name}, status=${request.status}`);
   const groups = await db.select().from(quotationGroups).where(eq2(quotationGroups.requestId, requestId)).limit(1);
   if (groups.length) {
     await db.update(quotationGroups).set({ selectedSupplierId: supplierId, status: "concluido", updatedAt: /* @__PURE__ */ new Date() }).where(eq2(quotationGroups.id, groups[0].id));
   }
+  let supplierName = "Fornecedor selecionado";
   if (!estimatedValue) {
     const [supplier] = await db.select().from(quotationSuppliers).where(eq2(quotationSuppliers.id, supplierId)).limit(1);
     if (supplier) {
       estimatedValue = parseFloat(supplier.totalValue) || void 0;
+      supplierName = supplier.supplierName ?? supplierName;
+      console.log(`[approveQuotationAndAdvance] Fornecedor: ${supplierName}, valor=${estimatedValue}`);
     }
   }
-  return approveRequest(requestId, user, estimatedValue !== void 0 ? { orderValue: estimatedValue } : {});
+  const isUrgent = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
+  let nextStatus;
+  if (isUrgent && request.orcamentoFeitoUrgente) {
+    nextStatus = "aguardando_controladoria";
+  } else {
+    const stepFlow = getStepFlow(request.urgencyLevel);
+    const flow = stepFlow["aguardando_orcamento"];
+    if (!flow) throw new Error("Fluxo de or\xE7amento n\xE3o configurado");
+    nextStatus = flow.nextStatus;
+  }
+  const updateData = {
+    status: nextStatus,
+    stepDeadlineAt: getStepDeadline(),
+    ...estimatedValue != null ? { orderValue: String(estimatedValue) } : {},
+    ...isUrgent ? { orcamentoFeitoUrgente: true } : {}
+  };
+  await db.update(purchaseRequests).set(updateData).where(eq2(purchaseRequests.id, requestId));
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: user.id,
+    userName: user.name ?? "Usu\xE1rio",
+    step: "orcamento",
+    action: "aprovada",
+    comment: `Fornecedor selecionado: ${supplierName}${estimatedValue ? ` \u2014 Valor: R$ ${estimatedValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : ""}`
+  });
+  try {
+    const WA = await Promise.resolve().then(() => (init_whatsapp(), whatsapp_exports));
+    const [req] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
+    const [requester] = req ? await db.select().from(users).where(eq2(users.id, req.requesterId)).limit(1) : [];
+    const items = await db.select().from(requestItems).where(eq2(requestItems.requestId, requestId));
+    const itemsForMsg = items.map((it) => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
+    const STEP_LABELS_LOCAL = {
+      aguardando_controladoria: "Controladoria",
+      aguardando_diretoria: "Diretoria"
+    };
+    const nextRoleMap = {
+      aguardando_controladoria: "controladoria",
+      aguardando_diretoria: "diretoria"
+    };
+    const nextRole = nextRoleMap[nextStatus];
+    if (nextRole && req) {
+      const nextApproversRaw = await db.select().from(users).where(and2(
+        eq2(users.active, true),
+        or(eq2(users.procurementRole, nextRole), eq2(users.approvalLevel, nextRole))
+      ));
+      const nextApprovers = [...new Map(nextApproversRaw.map((a) => [a.id, a])).values()];
+      for (const approver of nextApprovers) {
+        if (approver.phone) {
+          await WA.notifyApproverWithToken({
+            approverPhone: approver.phone,
+            approverName: approver.name ?? "Aprovador",
+            approverId: approver.id,
+            requestNumber: req.requestNumber,
+            requestId,
+            requesterName: req.requesterName,
+            application: req.application,
+            urgencyLevel: req.urgencyLevel,
+            department: req.department,
+            stepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
+            step: nextRole,
+            items: itemsForMsg,
+            totalValue: req.totalEstimatedValue ?? void 0
+          });
+        }
+      }
+    }
+    if (requester?.phone && req) {
+      await WA.notifyApproval({
+        requesterPhone: requester.phone,
+        requesterName: requester.name ?? "Solicitante",
+        requestNumber: req.requestNumber,
+        requestId,
+        approverName: user.name ?? "Aprovador",
+        stepLabel: "Or\xE7amento",
+        nextStepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus
+      });
+    }
+  } catch (e) {
+    console.warn("[WhatsApp] Falha ao notificar ap\xF3s sele\xE7\xE3o de fornecedor:", e);
+  }
+  return { success: true, nextStatus };
 }
 async function deleteQuotationsByRequestId(requestId, _userId) {
   const db = await getDb();
@@ -4682,7 +4787,7 @@ var appRouter = router({
     list: protectedProcedure.query(() => listUsers()),
     getById: protectedProcedure.input(z2.object({ id: z2.number() })).query(({ input }) => getUserById(input.id)),
     updateProfile: protectedProcedure.input(z2.object({
-      procurementRole: z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"]).optional(),
+      procurementRole: z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras"]).optional(),
       department: z2.string().optional(),
       phone: z2.string().optional(),
       jobTitle: z2.string().optional(),
@@ -4692,8 +4797,8 @@ var appRouter = router({
       id: z2.number().optional(),
       name: z2.string().min(1),
       email: z2.string().email().optional().or(z2.literal("")),
-      procurementRole: z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"]),
-      extraRoles: z2.array(z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "assets_admin"])).optional(),
+      procurementRole: z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras"]),
+      extraRoles: z2.array(z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras", "assets_admin"])).optional(),
       department: z2.string().optional(),
       phone: z2.string().optional(),
       jobTitle: z2.string().optional(),
@@ -4771,7 +4876,7 @@ var appRouter = router({
         email: z2.string().optional(),
         phone: z2.string().optional(),
         department: z2.string().optional(),
-        procurementRole: z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento"])
+        procurementRole: z2.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras"])
       }))
     })).mutation(({ input }) => importUsersBatch(input.users)),
     verifyPin: protectedProcedure.input(z2.object({ pin: z2.string().min(1) })).mutation(async ({ ctx, input }) => {
@@ -6500,6 +6605,34 @@ async function startServer() {
       res.status(500).json({ ok: false, error: String(err) });
     }
   });
+  app.post("/api/admin/hot-deploy-pwa", async (req, res) => {
+    const token = req.headers["x-deploy-token"] || req.query.token;
+    const expectedToken = process.env.HOT_DEPLOY_TOKEN;
+    if (!expectedToken || token !== expectedToken) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+    const pwaDistPath = path.resolve(__currentDir, "pwa");
+    try {
+      const chunks = [];
+      await new Promise((resolve, reject) => {
+        req.on("data", (chunk) => chunks.push(chunk));
+        req.on("end", resolve);
+        req.on("error", reject);
+      });
+      const zipBuffer = Buffer.concat(chunks);
+      if (zipBuffer.length === 0) {
+        return res.status(400).json({ ok: false, error: "Empty body" });
+      }
+      const { Readable } = await import("stream");
+      const readable = Readable.from(zipBuffer);
+      await pipeline(readable, unzipper.Extract({ path: pwaDistPath }));
+      console.log(`[HotDeploy-PWA] Arquivos PWA atualizados em ${pwaDistPath} (${zipBuffer.length} bytes)`);
+      res.json({ ok: true, message: "Arquivos PWA atualizados com sucesso", bytes: zipBuffer.length });
+    } catch (err) {
+      console.error("[HotDeploy-PWA] Erro:", err);
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
   app.post("/api/admin/daily-report", async (_req, res) => {
     console.log("[Admin] Manual daily report triggered via API");
     try {
@@ -6521,6 +6654,29 @@ async function startServer() {
     res.sendFile(path.resolve(process.cwd(), "public", "privacidade.html"));
   });
   const isProduction = process.env.NODE_ENV === "production";
+  const pwaPublicPath = isProduction ? path.resolve(__currentDir, "web", "pwa") : path.resolve(process.cwd(), "public", "pwa");
+  const pwaIconsPath = isProduction ? path.resolve(__currentDir, "web", "pwa", "icons") : path.resolve(process.cwd(), "public", "icons");
+  app.use("/api/pwa/icons", express.static(pwaIconsPath, { maxAge: "7d" }));
+  app.get("/api/pwa/manifest.json", (_req, res) => {
+    res.setHeader("Content-Type", "application/manifest+json");
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(path.join(pwaPublicPath, "manifest.json"));
+  });
+  app.get("/api/pwa/sw.js", (_req, res) => {
+    res.setHeader("Content-Type", "application/javascript");
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(path.join(pwaPublicPath, "sw.js"));
+  });
+  app.get("/", (_req, res) => {
+    const landingPath = path.join(pwaPublicPath, "index.html");
+    if (fs.existsSync(landingPath)) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.sendFile(landingPath);
+    } else {
+      res.redirect("/api/app/");
+    }
+  });
   if (isProduction) {
     const webDistPath = path.resolve(__currentDir, "web");
     console.log(`[Server] Production mode: serving static files from ${webDistPath}`);
@@ -6555,6 +6711,18 @@ async function startServer() {
         res.status(503).send("Frontend not built. Run: pnpm build:web");
       }
     };
+    const servePwaLanding = (_req, res) => {
+      const pwaLandingPath = path.join(webDistPath, "pwa", "index.html");
+      if (fs.existsSync(pwaLandingPath)) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Content-Type", "text/html; charset=utf-8");
+        res.sendFile(pwaLandingPath);
+      } else {
+        serveWebApp(_req, res);
+      }
+    };
+    app.get("/api/app/pwa", servePwaLanding);
+    app.get("/api/app/pwa/", servePwaLanding);
     app.get("/api/app", serveWebApp);
     app.get("/api/app/*", (req, res, next) => {
       const hasExtension = path.extname(req.path).length > 0;
