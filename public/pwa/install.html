@@ -526,8 +526,13 @@
 
     // Registrar Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/api/app/pwa/sw.js', { scope: '/api/app/' })
-        .then(reg => console.log('SW registrado:', reg.scope))
+      // Força atualização do SW ao registrar
+      navigator.serviceWorker.register('/api/app/pwa/sw.js?v=3', { scope: '/api/app/' })
+        .then(reg => {
+          console.log('SW registrado:', reg.scope);
+          // Força verificação de atualização imediata
+          reg.update();
+        })
         .catch(err => console.log('SW erro:', err));
     }
 
