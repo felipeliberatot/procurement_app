@@ -35,21 +35,33 @@ import { STEP_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_ICONS } from "@/shar
 
 // Lê um arquivo como base64 — compatível com web (FileReader) e nativo (expo-file-system)
 async function readFileAsBase64(uri: string): Promise<string> {
-  if (Platform.OS === "web") {
-    // Na web, o DocumentPicker retorna um blob URL (blob:http://...)
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result as string;
-        // Remove o prefixo "data:...;base64,"
-        const base64 = result.split(",")[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+  // Detectar se o URI é do tipo web (blob:, content://, ou plataforma web)
+  // Isso cobre: PWA no Android (content://), web browser (blob:), e web nativo
+  const isWebUri = Platform.OS === "web" || uri.startsWith("blob:") || uri.startsWith("content://");
+
+  if (isWebUri) {
+    // Para blob: e content:// URIs, usar fetch + FileReader (funciona em PWA e web)
+    try {
+      const response = await fetch(uri);
+      const blob = await response.blob();
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove o prefixo "data:...;base64,"
+          const base64 = result.split(",")[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (fetchErr) {
+      // Se fetch falhar em content:// (alguns Androids bloqueiam), tentar FileSystem
+      if (!uri.startsWith("blob:") && Platform.OS !== "web") {
+        return FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      }
+      throw fetchErr;
+    }
   } else {
     // No iOS, arquivos de apps externos (WhatsApp, Files, etc.) podem ter URIs
     // que não são diretamente legíveis. Copiar para o cache garante acesso.
