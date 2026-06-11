@@ -1457,6 +1457,49 @@ export default function RequestDetailScreen() {
             );
           })()}
 
+          {/* Botão "Enviar Orçamento" — visível apenas na etapa aguardando_orcamento quando há PDF anexado */}
+          {currentStatus === "aguardando_orcamento" && request.budgetFileUrl && (allUserRoles.some(r => ["orcamento", "admin"].includes(r)) || isMasterUser) && (
+            <TouchableOpacity
+              onPress={() => {
+                showConfirm({
+                  title: "📤 Enviar Orçamento",
+                  message: "Confirma o envio do orçamento? A solicitação avançará para a próxima etapa de aprovação.",
+                  confirmText: "Enviar",
+                  onConfirm: () => {
+                    submitBudgetMutation.mutate(
+                      { requestId: request.id },
+                      {
+                        onSuccess: () => {
+                          Alert.alert("✅ Orçamento enviado!", "A solicitação foi encaminhada para aprovação.");
+                        },
+                        onError: (err: any) => {
+                          Alert.alert("❌ Erro", err?.message || "Falha ao enviar orçamento.");
+                        },
+                      }
+                    );
+                  },
+                });
+              }}
+              disabled={submitBudgetMutation.isPending}
+              style={{
+                backgroundColor: colors.success,
+                borderRadius: 12,
+                paddingVertical: 14,
+                alignItems: "center",
+                flexDirection: "row",
+                justifyContent: "center",
+                gap: 8,
+                marginBottom: 16,
+                opacity: submitBudgetMutation.isPending ? 0.7 : 1,
+              }}
+            >
+              {submitBudgetMutation.isPending ? (
+                <><ActivityIndicator color="white" /><Text style={{ color: "white", fontWeight: "700", fontSize: 15, marginLeft: 8 }}>Enviando...</Text></>
+              ) : (
+                <><Text style={{ fontSize: 18 }}>📤</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Enviar Orçamento</Text></>
+              )}
+            </TouchableOpacity>
+          )}
 
           {/* Resumo de Cotações — visível para todos quando há cotações registradas (inclusive Diretoria/Controladoria) */}
           {(quotationData?.suppliers?.length ?? 0) > 0 && currentStatus !== "aguardando_orcamento" && (
