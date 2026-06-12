@@ -14,7 +14,7 @@ import * as Haptics from "expo-haptics";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import { router, useLocalSearchParams } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -468,6 +468,8 @@ export default function RequestDetailScreen() {
   const [isPrinting, setIsPrinting] = useState(false);
 
   // Modais de confirmação cross-platform (substitui Alert.alert com callbacks na web)
+  // onConfirmRef: armazena o callback em uma ref para evitar closure stale com valores de estado
+  const onConfirmRef = useRef<() => void>(() => {});
   const [confirmModal, setConfirmModal] = useState<{
     visible: boolean;
     title: string;
@@ -475,12 +477,10 @@ export default function RequestDetailScreen() {
     confirmText?: string;
     cancelText?: string;
     destructive?: boolean;
-    onConfirm: () => void;
   }>({
     visible: false,
     title: "",
     message: "",
-    onConfirm: () => {},
   });
 
   const showConfirm = (opts: {
@@ -491,7 +491,10 @@ export default function RequestDetailScreen() {
     destructive?: boolean;
     onConfirm: () => void;
   }) => {
-    setConfirmModal({ visible: true, ...opts });
+    // Armazena o callback na ref para garantir que o valor mais recente seja sempre usado
+    onConfirmRef.current = opts.onConfirm;
+    const { onConfirm: _unused, ...rest } = opts;
+    setConfirmModal({ visible: true, ...rest });
   };
 
   const hideConfirm = () => {
@@ -3359,7 +3362,7 @@ export default function RequestDetailScreen() {
         confirmDestructive={confirmModal.destructive}
         onConfirm={() => {
           hideConfirm();
-          confirmModal.onConfirm();
+          onConfirmRef.current();
         }}
         onCancel={hideConfirm}
       />
