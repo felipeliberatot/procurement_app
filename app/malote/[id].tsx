@@ -16,6 +16,7 @@ import { useColors } from "@/hooks/use-colors";
 import { trpc } from "@/lib/trpc";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { SignaturePad } from "@/components/signature-pad";
+import { ConfirmModal } from "@/components/confirm-modal";
 
 type ItemReceipt = {
   itemId: number;
@@ -47,6 +48,8 @@ export default function MaloteReceiptScreen() {
   const [itemReceipts, setItemReceipts] = useState<Record<number, ItemReceipt>>({});
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmMessage, setConfirmMessage] = useState("");
 
   const setItemStatus = (itemId: number, status: "recebido" | "devolvido") => {
     setItemReceipts((prev) => ({
@@ -67,6 +70,15 @@ export default function MaloteReceiptScreen() {
     }));
   };
 
+  const doReceive = () => {
+    receiveMutation.mutate({
+      maloteId,
+      receiptNotes,
+      signatureData: signatureData ?? undefined,
+      itemReceipts: Object.values(itemReceipts),
+    });
+  };
+
   const handleConfirm = () => {
     if (!data?.items?.length) {
       Alert.alert("Atenção", "Este malote não possui itens.");
@@ -78,36 +90,17 @@ export default function MaloteReceiptScreen() {
       return;
     }
     if (!signatureData) {
-      Alert.alert(
-        "Assinatura Obrigatória",
-        "É necessário coletar a assinatura do responsável pelo recebimento.",
-        [
-          { text: "Cancelar", style: "cancel" },
-          { text: "Assinar Agora", onPress: () => setShowSignaturePad(true) },
-        ]
-      );
+      // Abre o pad de assinatura diretamente (sem Alert que não funciona na web)
+      setShowSignaturePad(true);
       return;
     }
     const hasReturn = Object.values(itemReceipts).some((r) => r.receiptStatus === "devolvido");
-    Alert.alert(
-      "Confirmar Recebimento",
+    setConfirmMessage(
       hasReturn
         ? "Há itens marcados como DEVOLVIDOS. As solicitações correspondentes serão reabertas automaticamente. Confirmar?"
-        : "Confirmar o recebimento completo do malote?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Confirmar",
-          onPress: () =>
-            receiveMutation.mutate({
-              maloteId,
-              receiptNotes,
-              signatureData: signatureData ?? undefined,
-              itemReceipts: Object.values(itemReceipts),
-            }),
-        },
-      ]
+        : "Confirmar o recebimento completo do malote?"
     );
+    setShowConfirmModal(true);
   };
 
   if (isLoading) {
@@ -328,6 +321,18 @@ export default function MaloteReceiptScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      <ConfirmModal
+        visible={showConfirmModal}
+        title="Confirmar Recebimento"
+        message={confirmMessage}
+        confirmText="Confirmar"
+        onConfirm={() => {
+          setShowConfirmModal(false);
+          doReceive();
+        }}
+        onCancel={() => setShowConfirmModal(false)}
+      />
     </ScreenContainer>
   );
 }
