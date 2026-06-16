@@ -1890,6 +1890,37 @@ export async function receiveMalote(opts: {
   }
 }
 
+export async function updateMalote(opts: {
+  id: number;
+  originUnit?: string;
+  destinationUnit?: string;
+  notes?: string | null;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [malote] = await db.select().from(malotes).where(eq(malotes.id, opts.id)).limit(1);
+  if (!malote) throw new Error("Malote não encontrado.");
+  if (malote.status !== "aberto") throw new Error("Apenas malotes com status 'Aberto' podem ser editados.");
+  const updateSet: Record<string, unknown> = {};
+  if (opts.originUnit !== undefined) updateSet.originUnit = opts.originUnit;
+  if (opts.destinationUnit !== undefined) updateSet.destinationUnit = opts.destinationUnit;
+  if (opts.notes !== undefined) updateSet.notes = opts.notes;
+  if (Object.keys(updateSet).length === 0) return;
+  await db.update(malotes).set(updateSet).where(eq(malotes.id, opts.id));
+}
+
+export async function deleteMalote(maloteId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [malote] = await db.select().from(malotes).where(eq(malotes.id, maloteId)).limit(1);
+  if (!malote) throw new Error("Malote não encontrado.");
+  if (malote.status === "enviado") throw new Error("Malote enviado não pode ser excluído. Aguarde o recebimento.");
+  // Delete related records first
+  await db.delete(maloteTagLinks).where(eq(maloteTagLinks.maloteId, maloteId));
+  await db.delete(maloteItems).where(eq(maloteItems.maloteId, maloteId));
+  await db.delete(malotes).where(eq(malotes.id, maloteId));
+}
+
 export async function getMaloteStats(): Promise<{ abertos: number; enviados: number; recebidos: number }> {
   const db = await getDb();
   if (!db) return { abertos: 0, enviados: 0, recebidos: 0 };

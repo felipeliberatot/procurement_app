@@ -221,6 +221,12 @@ export default function MalotesScreen() {
   const sendMutation = trpc.malotes.send.useMutation({
     onSuccess: () => utils.malotes.list.invalidate(),
   });
+  const updateMutation = trpc.malotes.update.useMutation({
+    onSuccess: () => { utils.malotes.list.invalidate(); utils.malotes.getById.invalidate(); },
+  });
+  const deleteMutation = trpc.malotes.delete.useMutation({
+    onSuccess: () => { utils.malotes.list.invalidate(); utils.malotes.stats.invalidate(); },
+  });
 
   const [showCreate, setShowCreate] = useState(false);
   const [originUnit, setOriginUnit] = useState("");
@@ -233,6 +239,11 @@ export default function MalotesScreen() {
   const [filterUnit, setFilterUnit] = useState<string>("todas");
   const [showUnitPicker, setShowUnitPicker] = useState<"filter" | null>(null);
   const [confirmSendMaloteId, setConfirmSendMaloteId] = useState<number | null>(null);
+  const [confirmDeleteMaloteId, setConfirmDeleteMaloteId] = useState<number | null>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editOriginUnit, setEditOriginUnit] = useState("");
+  const [editDestinationUnit, setEditDestinationUnit] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   const { data: maloteDetail } = trpc.malotes.getById.useQuery(
     { id: selectedMalote?.id ?? 0 },
@@ -316,6 +327,36 @@ export default function MalotesScreen() {
   const formatDate = (d: string | Date) =>
     new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 
+  const handleOpenEdit = (item: Malote) => {
+    setSelectedMalote(item);
+    setEditOriginUnit(item.originUnit);
+    setEditDestinationUnit(item.destinationUnit);
+    setEditNotes(item.notes ?? "");
+    setShowEdit(true);
+  };
+
+  const handleEdit = () => {
+    if (!selectedMalote) return;
+    if (!editOriginUnit.trim() || !editDestinationUnit.trim()) {
+      Alert.alert("Atenção", "Selecione a unidade de origem e destino.");
+      return;
+    }
+    if (editOriginUnit === editDestinationUnit) {
+      Alert.alert("Atenção", "Origem e destino não podem ser iguais.");
+      return;
+    }
+    updateMutation.mutate(
+      { id: selectedMalote.id, originUnit: editOriginUnit, destinationUnit: editDestinationUnit, notes: editNotes.trim() || null },
+      {
+        onSuccess: () => {
+          setShowEdit(false);
+          Alert.alert("Sucesso", "Malote atualizado!");
+        },
+        onError: (e) => Alert.alert("Erro", e.message),
+      }
+    );
+  };
+
   const renderMalote = ({ item }: { item: Malote }) => (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
@@ -332,6 +373,29 @@ export default function MalotesScreen() {
       </View>
       <Text style={[styles.route, { color: colors.muted }]}>📦 {item.originUnit} → {item.destinationUnit}</Text>
       <Text style={[styles.meta, { color: colors.muted }]}>Criado por {item.createdByName} · {formatDate(item.createdAt)}</Text>
+      {/* Botões de ação rápida */}
+      <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+        {item.status === "aberto" && (
+          <TouchableOpacity
+            style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "44" }}
+            onPress={(e) => { e.stopPropagation?.(); handleOpenEdit(item); }}
+            activeOpacity={0.7}
+          >
+            <IconSymbol name="pencil" size={14} color={colors.primary} />
+            <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>Editar</Text>
+          </TouchableOpacity>
+        )}
+        {item.status !== "enviado" && (
+          <TouchableOpacity
+            style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: "#EF444418", borderWidth: 1, borderColor: "#EF444444" }}
+            onPress={(e) => { e.stopPropagation?.(); setSelectedMalote(item); setConfirmDeleteMaloteId(item.id); }}
+            activeOpacity={0.7}
+          >
+            <IconSymbol name="trash.fill" size={14} color="#EF4444" />
+            <Text style={{ fontSize: 12, color: "#EF4444", fontWeight: "600" }}>Excluir</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </TouchableOpacity>
   );
 
@@ -816,6 +880,89 @@ export default function MalotesScreen() {
         }}
         onCancel={() => setConfirmSendMaloteId(null)}
       />
+
+      {/* ConfirmModal: Excluir Malote */}
+      <ConfirmModal
+        visible={confirmDeleteMaloteId !== null}
+        title="Excluir Malote"
+        message={`Tem certeza que deseja excluir o malote ${selectedMalote?.maloteCode}? Esta ação não pode ser desfeita.`}
+        confirmText="Excluir"
+        confirmDestructive
+        onConfirm={() => {
+          if (confirmDeleteMaloteId !== null) {
+            deleteMutation.mutate(
+              { id: confirmDeleteMaloteId },
+              {
+                onSuccess: () => {
+                  setConfirmDeleteMaloteId(null);
+                  setShowDetail(false);
+                  setSelectedMalote(null);
+                  Alert.alert("Excluído", "Malote excluído com sucesso.");
+                },
+                onError: (e) => {
+                  setConfirmDeleteMaloteId(null);
+                  Alert.alert("Erro", e.message);
+                },
+              }
+            );
+          }
+        }}
+        onCancel={() => setConfirmDeleteMaloteId(null)}
+      />
+
+      {/* Modal: Editar Malote */}
+      <Modal visible={showEdit} transparent animationType="slide" statusBarTranslucent>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <View style={styles.overlay}>
+            <View style={[styles.modal, { backgroundColor: colors.surface }]}>
+              <View style={styles.modalHeader}>
+                <Text style={[styles.modalTitle, { color: colors.foreground }]}>Editar Malote</Text>
+                <TouchableOpacity onPress={() => setShowEdit(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <IconSymbol name="xmark" size={22} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" nestedScrollEnabled={true} contentContainerStyle={{ paddingBottom: 8 }}>
+                <UnitSelector
+                  label="Unidade de Origem *"
+                  value={editOriginUnit}
+                  units={unitEntries}
+                  onChange={setEditOriginUnit}
+                  colors={colors}
+                />
+                <UnitSelector
+                  label="Unidade de Destino *"
+                  value={editDestinationUnit}
+                  units={unitEntries}
+                  onChange={setEditDestinationUnit}
+                  colors={colors}
+                />
+                <Text style={[styles.label, { color: colors.muted }]}>Observações</Text>
+                <TextInput
+                  style={[styles.input, { borderColor: colors.border, backgroundColor: colors.background, color: colors.foreground, height: 80, textAlignVertical: "top" }]}
+                  placeholder="Informações adicionais..."
+                  placeholderTextColor={colors.muted}
+                  value={editNotes}
+                  onChangeText={setEditNotes}
+                  multiline
+                  numberOfLines={3}
+                  maxLength={500}
+                />
+                <View style={[styles.row, { marginTop: 20 }]}>
+                  <TouchableOpacity style={[styles.btn, { backgroundColor: colors.border }]} onPress={() => setShowEdit(false)}>
+                    <Text style={{ color: colors.foreground, fontWeight: "600" }}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.btn, { backgroundColor: colors.primary }]} onPress={handleEdit} disabled={updateMutation.isPending}>
+                    {updateMutation.isPending
+                      ? <ActivityIndicator color="#fff" size="small" />
+                      : <Text style={{ color: "#fff", fontWeight: "600" }}>Salvar</Text>
+                    }
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </ScreenContainer>
   );
 }

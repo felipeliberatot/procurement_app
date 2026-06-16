@@ -1124,6 +1124,17 @@ Retorne JSON:
           itemReceipts: input.itemReceipts,
         })
       ),
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        originUnit: z.string().min(1).optional(),
+        destinationUnit: z.string().min(1).optional(),
+        notes: z.string().nullable().optional(),
+      }))
+      .mutation(({ input }) => db.updateMalote(input)),
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(({ input }) => db.deleteMalote(input.id)),
   }),
 
   // ─── Safras (Harvests) ────────────────────────────────────────────────────────────────────────────────
