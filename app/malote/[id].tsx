@@ -50,6 +50,7 @@ export default function MaloteReceiptScreen() {
   const [showSignaturePad, setShowSignaturePad] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmMessage, setConfirmMessage] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const setItemStatus = (itemId: number, status: "recebido" | "devolvido") => {
     setItemReceipts((prev) => ({
@@ -80,17 +81,18 @@ export default function MaloteReceiptScreen() {
   };
 
   const handleConfirm = () => {
+    setValidationError(null);
     if (!data?.items?.length) {
-      Alert.alert("Atenção", "Este malote não possui itens.");
+      setValidationError("Este malote não possui itens.");
       return;
     }
     const unappointed = data.items.filter((item) => !itemReceipts[item.id]);
     if (unappointed.length > 0) {
-      Alert.alert("Atenção", `Aponte o status de todos os ${data.items.length} item(s) antes de confirmar.`);
+      setValidationError(`Aponte o status de todos os ${data.items.length} item(s) antes de confirmar.`);
       return;
     }
     if (!signatureData) {
-      // Abre o pad de assinatura diretamente (sem Alert que não funciona na web)
+      setValidationError("Colete a assinatura do responsável antes de confirmar.");
       setShowSignaturePad(true);
       return;
     }
@@ -305,8 +307,13 @@ export default function MaloteReceiptScreen() {
 
       {/* Botão de confirmar */}
       <View style={[styles.footer, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+        {validationError ? (
+          <View style={{ backgroundColor: "#FEF2F2", borderRadius: 8, padding: 10, marginBottom: 10, borderWidth: 1, borderColor: "#FECACA" }}>
+            <Text style={{ color: "#DC2626", fontSize: 13, textAlign: "center" }}>{validationError}</Text>
+          </View>
+        ) : null}
         <TouchableOpacity
-          style={[styles.confirmBtn, { backgroundColor: signatureData ? colors.primary : colors.border }]}
+          style={[styles.confirmBtn, { backgroundColor: colors.primary }]}
           onPress={handleConfirm}
           activeOpacity={0.85}
           disabled={receiveMutation.isPending}
