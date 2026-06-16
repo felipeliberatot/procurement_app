@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ConfirmModal } from "@/components/confirm-modal";
+import { useAuth } from "@/hooks/use-auth";
 import {
   View,
   Text,
@@ -203,6 +204,24 @@ export default function MalotesScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const bottomPad = Math.max(insets.bottom, 16);
+  const { user } = useAuth();
+  const isMaster = (user as any)?.approvalLevel === "master";
+  const userRole = (user as any)?.procurementRole as string ?? "";
+  const parseJsonArr = (val: any): string[] => {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    try { return JSON.parse(val); } catch { return []; }
+  };
+  const allRoles: string[] = [
+    userRole,
+    ...parseJsonArr((user as any)?.extraRoles),
+    ...((user as any)?.approvalLevel && !['nenhum','master'].includes((user as any)?.approvalLevel) ? [(user as any).approvalLevel] : []),
+    ...parseJsonArr((user as any)?.extraApprovalLevels).filter((l: string) => !['nenhum','master'].includes(l)),
+  ];
+  const isOrcamento = allRoles.includes("orcamento");
+  // master pode editar e excluir; orcamento pode apenas editar
+  const canEdit = isMaster || isOrcamento;
+  const canDelete = isMaster;
 
   const { data: malotes = [], isLoading } = trpc.malotes.list.useQuery();
   const { data: readyRequests = [] } = trpc.malotes.readyRequests.useQuery();
@@ -373,29 +392,31 @@ export default function MalotesScreen() {
       </View>
       <Text style={[styles.route, { color: colors.muted }]}>📦 {item.originUnit} → {item.destinationUnit}</Text>
       <Text style={[styles.meta, { color: colors.muted }]}>Criado por {item.createdByName} · {formatDate(item.createdAt)}</Text>
-      {/* Botões de ação rápida */}
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-        {item.status === "aberto" && (
-          <TouchableOpacity
-            style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "44" }}
-            onPress={(e) => { e.stopPropagation?.(); handleOpenEdit(item); }}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="pencil" size={14} color={colors.primary} />
-            <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>Editar</Text>
-          </TouchableOpacity>
-        )}
-        {item.status !== "enviado" && (
-          <TouchableOpacity
-            style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: "#EF444418", borderWidth: 1, borderColor: "#EF444444" }}
-            onPress={(e) => { e.stopPropagation?.(); setSelectedMalote(item); setConfirmDeleteMaloteId(item.id); }}
-            activeOpacity={0.7}
-          >
-            <IconSymbol name="trash.fill" size={14} color="#EF4444" />
-            <Text style={{ fontSize: 12, color: "#EF4444", fontWeight: "600" }}>Excluir</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      {/* Botões de ação rápida — visíveis por papel */}
+      {(canEdit || canDelete) && (
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+          {canEdit && item.status === "aberto" && (
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "44" }}
+              onPress={() => handleOpenEdit(item)}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="pencil" size={14} color={colors.primary} />
+              <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>Editar</Text>
+            </TouchableOpacity>
+          )}
+          {canDelete && item.status !== "enviado" && (
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: "#EF444418", borderWidth: 1, borderColor: "#EF444444" }}
+              onPress={() => { setSelectedMalote(item); setConfirmDeleteMaloteId(item.id); }}
+              activeOpacity={0.7}
+            >
+              <IconSymbol name="trash.fill" size={14} color="#EF4444" />
+              <Text style={{ fontSize: 12, color: "#EF4444", fontWeight: "600" }}>Excluir</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </TouchableOpacity>
   );
 
@@ -867,16 +888,17 @@ export default function MalotesScreen() {
         message="Confirma o envio deste malote para a unidade de destino?"
         confirmText="Enviar"
         onConfirm={() => {
-          if (confirmSendMaloteId !== null) {
+          const id = confirmSendMaloteId;
+          setConfirmSendMaloteId(null);
+          if (id !== null) {
             sendMutation.mutate(
-              { maloteId: confirmSendMaloteId },
+              { maloteId: id },
               {
-                onSuccess: () => { setShowDetail(false); Alert.alert("Sucesso", "Malote enviado!"); },
+                onSuccess: () => { utils.malotes.list.invalidate(); utils.malotes.stats.invalidate(); Alert.alert("Sucesso", "Malote enviado!"); },
                 onError: (e) => Alert.alert("Erro", e.message),
               }
             );
           }
-          setConfirmSendMaloteId(null);
         }}
         onCancel={() => setConfirmSendMaloteId(null)}
       />
