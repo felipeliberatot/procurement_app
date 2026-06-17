@@ -30,6 +30,8 @@ interface Item {
   unitPrice: string;
 }
 
+const UNIT_OPTIONS = ["un", "kg", "g", "t", "L", "mL", "m", "m²", "m³", "cx", "pc", "par", "rolo", "saco", "bd", "hr", "sc", "fardo", "galao"];
+
 const URGENCY_OPTIONS: Array<{ value: UrgencyLevel; label: string; icon: string; days: number; color: string }> = [
   { value: "normal",      label: "Normal",      icon: "🔵", days: 7, color: "border-primary bg-primary/10" },
   { value: "urgente",     label: "Urgente",     icon: "🟡", days: 3, color: "border-warning bg-warning/10" },
@@ -62,6 +64,7 @@ export default function NewRequestScreen() {
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [showCostCenterPicker, setShowCostCenterPicker] = useState(false);
   const [showOsPicker, setShowOsPicker] = useState(false);
+  const [unitPickerItemId, setUnitPickerItemId] = useState<string | null>(null);
   const [assetSearch, setAssetSearch] = useState("");
   const [deptSearch, setDeptSearch] = useState("");
   const [costCenterSearch, setCostCenterSearch] = useState("");
@@ -97,6 +100,8 @@ export default function NewRequestScreen() {
     cc.code.toLowerCase().includes(costCenterSearch.toLowerCase())
   );
 
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
   const createMutation = trpc.requests.create.useMutation({
     onSuccess: () => {
       utils.requests.all.invalidate();
@@ -104,19 +109,15 @@ export default function NewRequestScreen() {
       utils.requests.dashboardStats.invalidate();
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          "✅ Solicitação Criada!",
-          "Sua solicitação foi enviada para aprovação do Gerente de Unidade.",
-          [{ text: "OK", onPress: () => router.back() }]
-        );
-      } else {
-        // No web, Alert.alert não bloqueia a execução — navegar primeiro, depois exibir mensagem
-        router.back();
-        setTimeout(() => Alert.alert("✅ Solicitação Criada!", "Sua solicitação foi enviada para aprovação do Gerente de Unidade."), 400);
       }
+      // Navegar imediatamente — Alert.alert não bloqueia na web
+      router.back();
     },
     onError: (error) => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      if (Platform.OS !== "web") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      setSuccessMsg(null);
       Alert.alert("Erro", error.message || "Não foi possível criar a solicitação.");
     },
   });
@@ -152,6 +153,8 @@ export default function NewRequestScreen() {
     }
     const validItems = items.filter((i) => i.description.trim());
     if (validItems.length === 0) { Alert.alert("Campo obrigatório", "Adicione ao menos um item com descrição."); return; }
+    const itemSemUnidade = validItems.find((i) => !i.unit.trim());
+    if (itemSemUnidade) { Alert.alert("Campo obrigatório", "Selecione a unidade de medida de todos os itens."); return; }
 
     createMutation.mutate({
       department: department.trim(),
@@ -346,20 +349,33 @@ export default function NewRequestScreen() {
                       returnKeyType="next"
                     />
                   </View>
-                  <View style={{ width: 60 }}>
-                    <TextInput
-                      value={item.unit}
-                      onChangeText={(v) => updateItem(item.id, "unit", v)}
-                      placeholder="Un"
-                      placeholderTextColor={colors.muted}
-                      className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
-                      returnKeyType="next"
-                    />
-                  </View>
+                  {/* Picker de unidade — botão que abre modal */}
+                  <TouchableOpacity
+                    onPress={() => setUnitPickerItemId(item.id)}
+                    style={{
+                      width: 72,
+                      backgroundColor: colors.background,
+                      borderWidth: 1,
+                      borderColor: item.unit ? colors.primary : colors.error,
+                      borderRadius: 8,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      paddingVertical: 8,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: item.unit ? colors.primary : colors.error }}>
+                      {item.unit || "Un ⚠"}
+                    </Text>
+                    <Text style={{ fontSize: 9, color: colors.muted }}>toque</Text>
+                  </TouchableOpacity>
                   <View className="flex-1">
                     <TextInput
                       value={item.unitPrice}
-                      onChangeText={(v) => updateItem(item.id, "unitPrice", v)}
+                      onChangeText={(v) => {
+                        // Aceita apenas dígitos, vírgula e ponto
+                        const sanitized = v.replace(/[^0-9.,]/g, "");
+                        updateItem(item.id, "unitPrice", sanitized);
+                      }}
                       placeholder="Valor unit."
                       placeholderTextColor={colors.muted}
                       className="bg-background border border-border rounded-lg px-3 py-2 text-sm text-foreground"
@@ -470,6 +486,62 @@ export default function NewRequestScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Modal: Selecionar Unidade de Medida */}
+      {unitPickerItemId !== null && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", zIndex: 9999 }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "60%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>Unidade de Medida</Text>
+              <Pressable onPress={() => setUnitPickerItemId(null)} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 32 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                {UNIT_OPTIONS.map((u) => {
+                  const currentItem = items.find((i) => i.id === unitPickerItemId);
+                  const isSelected = currentItem?.unit === u;
+                  return (
+                    <TouchableOpacity
+                      key={u}
+                      onPress={() => {
+                        updateItem(unitPickerItemId!, "unit", u);
+                        setUnitPickerItemId(null);
+                      }}
+                      style={{
+                        paddingHorizontal: 18,
+                        paddingVertical: 10,
+                        borderRadius: 10,
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? colors.primary : colors.border,
+                        backgroundColor: isSelected ? `${colors.primary}15` : colors.surface,
+                        minWidth: 60,
+                        alignItems: "center",
+                      }}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: "700", color: isSelected ? colors.primary : colors.foreground }}>{u}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              {/* Digitar manualmente */}
+              <Text style={{ fontSize: 13, color: colors.muted, marginTop: 16, marginBottom: 8 }}>Ou digitar manualmente:</Text>
+              <TextInput
+                placeholder="Ex: pct, gl, balde..."
+                placeholderTextColor={colors.muted}
+                defaultValue={items.find((i) => i.id === unitPickerItemId)?.unit ?? ""}
+                onSubmitEditing={(e) => {
+                  const val = e.nativeEvent.text.trim();
+                  if (val) { updateItem(unitPickerItemId!, "unit", val); setUnitPickerItemId(null); }
+                }}
+                returnKeyType="done"
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+              />
+            </ScrollView>
+          </View>
+        </View>
+      )}
 
       {/* Modal: Selecionar Centro de Custo */}
       {showCostCenterPicker && (
