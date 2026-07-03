@@ -3321,9 +3321,18 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, item.requestId)).limit(1);
   if (!request) return { itemStatus, requestStatus: "concluida" };
 
-  // Só atualizar status se a solicitação já está concluída ou parcialmente concluída
-  if (request.status === "concluida" || request.status === "parcialmente_concluida") {
-    const newStatus = allFulfilled ? "concluida" : (anyFulfilled ? "parcialmente_concluida" : "concluida");
+  // Atualizar status da solicitação quando está em etapas onde itens podem ser marcados
+  const statusElegivel = ["aguardando_ordem_compra", "concluida", "parcialmente_concluida"];
+  if (statusElegivel.includes(request.status ?? "")) {
+    let newStatus: string;
+    if (allFulfilled) {
+      newStatus = "concluida";
+    } else if (anyFulfilled) {
+      newStatus = "parcialmente_concluida";
+    } else {
+      // Nenhum item comprado ainda — manter no status atual (aguardando_ordem_compra ou parcialmente_concluida)
+      newStatus = request.status ?? "aguardando_ordem_compra";
+    }
     if (newStatus !== request.status) {
       await db.update(purchaseRequests).set({ status: newStatus as any }).where(eq(purchaseRequests.id, item.requestId));
     }

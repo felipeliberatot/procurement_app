@@ -537,19 +537,26 @@ export default function RequestDetailScreen() {
     }
   }, [request, estimatedValueInitialized, estimatedValueInput]);
 
-  // Inicializar itemFulfillment com os dados já salvos no banco
+  // Sincronizar itemFulfillment com dados do banco sempre que a query atualizar
+  // Usa uma ref para rastrear o último timestamp de atualização e evitar loops
+  const lastItemsHashRef = useRef<string>("");
   useEffect(() => {
-    if (!itemFulfillmentInitialized && request && (request as any).items?.length > 0) {
-      const initial: Record<number, "comprado" | "pendente"> = {};
-      for (const item of (request as any).items) {
-        if (item.id) {
-          initial[item.id] = (item.itemStatus === "comprado") ? "comprado" : "pendente";
+    if (request && (request as any).items?.length > 0) {
+      // Gerar hash simples dos itemStatus para detectar mudanças reais
+      const hash = (request as any).items.map((i: any) => `${i.id}:${i.itemStatus}`).join(",");
+      if (hash !== lastItemsHashRef.current) {
+        lastItemsHashRef.current = hash;
+        const updated: Record<number, "comprado" | "pendente"> = {};
+        for (const item of (request as any).items) {
+          if (item.id) {
+            updated[item.id] = (item.itemStatus === "comprado") ? "comprado" : "pendente";
+          }
         }
+        setItemFulfillment(updated);
+        setItemFulfillmentInitialized(true);
       }
-      setItemFulfillment(initial);
-      setItemFulfillmentInitialized(true);
     }
-  }, [request, itemFulfillmentInitialized]);
+  }, [request]);
 
   const invalidateAll = () => {
     utils.requests.getById.invalidate({ id: requestId });
@@ -2318,6 +2325,54 @@ export default function RequestDetailScreen() {
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">💰 Aprovação Financeiro</Text>
                   <Text className="text-xs text-muted mb-4">Revise os dados da compra e aprove ou recuse (somente Financeiro)</Text>
+
+                  {/* Visualização de itens comprados/pendentes para o Financeiro */}
+                  {(request as any).items && (request as any).items.length > 0 && (
+                    <View style={{ marginBottom: 20, backgroundColor: colors.background, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border }}>
+                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>📊 Situação dos Itens</Text>
+                      {(request as any).items.map((item: any, idx: number) => {
+                        const st = item.itemStatus === "comprado" ? "comprado" : "pendente";
+                        return (
+                          <View key={item.id} style={{
+                            flexDirection: "row", alignItems: "center", gap: 10,
+                            paddingVertical: 8,
+                            borderTopWidth: idx > 0 ? 1 : 0,
+                            borderTopColor: colors.border,
+                          }}>
+                            <View style={{
+                              width: 20, height: 20, borderRadius: 10,
+                              backgroundColor: st === "comprado" ? colors.success : `${colors.warning}30`,
+                              alignItems: "center", justifyContent: "center",
+                            }}>
+                              <Text style={{ fontSize: 11, color: st === "comprado" ? "white" : colors.warning, fontWeight: "700" }}>
+                                {st === "comprado" ? "✓" : "!"}
+                              </Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.foreground }} numberOfLines={1}>{item.name}</Text>
+                              <Text style={{ fontSize: 11, color: colors.muted }}>{item.quantity} {item.unit}</Text>
+                            </View>
+                            <View style={{
+                              paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+                              backgroundColor: st === "comprado" ? `${colors.success}20` : `${colors.warning}20`,
+                            }}>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: st === "comprado" ? colors.success : colors.warning }}>
+                                {st === "comprado" ? "Comprado" : "Pendente"}
+                              </Text>
+                            </View>
+                          </View>
+                        );
+                      })}
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
+                        <Text style={{ fontSize: 11, color: colors.success, fontWeight: "600" }}>
+                          ✓ {(request as any).items.filter((i: any) => i.itemStatus === "comprado").length} comprado(s)
+                        </Text>
+                        <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>
+                          ⏳ {(request as any).items.filter((i: any) => i.itemStatus !== "comprado").length} pendente(s)
+                        </Text>
+                      </View>
+                    </View>
+                  )}
 
                   {/* Seletor de Método de Pagamento */}
                   <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 8 }}>Método de Pagamento *</Text>
