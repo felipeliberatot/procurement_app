@@ -3322,11 +3322,16 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
   if (!request) return { itemStatus, requestStatus: "concluida" };
 
   // Atualizar status da solicitação quando está em etapas onde itens podem ser marcados
-  const statusElegivel = ["aguardando_ordem_compra", "concluida", "parcialmente_concluida"];
+  // IMPORTANTE: ao marcar itens na Emissão de OC, NÃO pular etapas.
+  // Quando todos os itens são comprados → avança para Aprovação Financeiro (próxima etapa normal)
+  // Quando parte dos itens é comprada → marca como parcialmente_concluida (fica em aberto)
+  // Quando nenhum item é comprado → mantém no status atual
+  const statusElegivel = ["aguardando_ordem_compra", "parcialmente_concluida"];
   if (statusElegivel.includes(request.status ?? "")) {
     let newStatus: string;
     if (allFulfilled) {
-      newStatus = "concluida";
+      // Todos comprados → avança para próxima etapa (Aprovação Financeiro), NÃO conclui diretamente
+      newStatus = "aguardando_aprovacao_compra";
     } else if (anyFulfilled) {
       newStatus = "parcialmente_concluida";
     } else {
