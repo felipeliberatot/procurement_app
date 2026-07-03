@@ -32,6 +32,7 @@ const FILTER_TABS = [
   { key: "aguardando_comprovante_pagamento", label: "Comprovante" },
   { key: "aguardando_verificacao_compras", label: "Verif. Compras" },
   { key: "concluida", label: "Concluídas" },
+  { key: "parcialmente_concluida", label: "Parciais" },
   { key: "rejeitada", label: "Rejeitadas" },
   { key: "cancelada", label: "Canceladas" },
 ];

@@ -3330,11 +3330,41 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
     } else if (anyFulfilled) {
       newStatus = "parcialmente_concluida";
     } else {
-      // Nenhum item comprado ainda — manter no status atual (aguardando_ordem_compra ou parcialmente_concluida)
+      // Nenhum item comprado ainda — manter no status atual
       newStatus = request.status ?? "aguardando_ordem_compra";
     }
     if (newStatus !== request.status) {
       await db.update(purchaseRequests).set({ status: newStatus as any }).where(eq(purchaseRequests.id, item.requestId));
+
+      // Notificar solicitante via WhatsApp quando a solicitação passa a ser parcialmente concluída
+      if (newStatus === "parcialmente_concluida") {
+        try {
+          // Buscar dados do solicitante
+          const [requester] = await db.select().from(users).where(eq(users.id, request.userId!)).limit(1);
+          if (requester?.phone) {
+            // Montar lista de itens com status
+            const updatedItems = allItems.map(i => ({
+              ...i,
+              itemStatus: i.id === itemId ? itemStatus : i.itemStatus,
+            }));
+            const comprados = updatedItems.filter(i => i.itemStatus === "comprado").map(i => `  ✅ ${i.name} (${i.quantity} ${i.unit})`).join("\n");
+            const pendentes = updatedItems.filter(i => i.itemStatus !== "comprado").map(i => `  ⏳ ${i.name} (${i.quantity} ${i.unit})`).join("\n");
+            const msg = [
+              `📦 *Solicitação Parcialmente Concluída*`,
+              ``,
+              `Olá ${requester.name?.split(" ")[0] ?? ""}, sua solicitação *${request.requestNumber}* foi parcialmente atendida pelo setor de Compras.`,
+              ``,
+              comprados ? `*Itens Comprados:*\n${comprados}` : "",
+              pendentes ? `*Itens Pendentes:*\n${pendentes}` : "",
+              ``,
+              `Os itens pendentes serão adquiridos em uma próxima oportunidade. Em caso de dúvidas, entre em contato com o setor de Compras.`,
+            ].filter(Boolean).join("\n");
+            await WA.sendSimpleWhatsApp(requester.phone, msg);
+          }
+        } catch (err) {
+          console.warn("[WhatsApp] Falha ao notificar solicitante sobre cumprimento parcial:", err);
+        }
+      }
     }
     return { itemStatus, requestStatus: newStatus };
   }

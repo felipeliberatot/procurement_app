@@ -431,6 +431,56 @@ function ApproveModal({
   );
 }
 
+// ─── Componente: Situação dos Itens (Cumprimento Parcial) ───────────────────────
+function ItemFulfillmentCard({ items }: { items: any[] }) {
+  const colors = useColors();
+  if (!items || items.length === 0) return null;
+  const comprados = items.filter(i => i.itemStatus === "comprado");
+  const pendentes = items.filter(i => i.itemStatus !== "comprado");
+  return (
+    <View style={{ marginBottom: 16, backgroundColor: colors.background, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border }}>
+      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>📊 Situação dos Itens</Text>
+      {items.map((item: any, idx: number) => {
+        const st = item.itemStatus === "comprado" ? "comprado" : "pendente";
+        return (
+          <View key={item.id} style={{
+            flexDirection: "row", alignItems: "center", gap: 10,
+            paddingVertical: 8,
+            borderTopWidth: idx > 0 ? 1 : 0,
+            borderTopColor: colors.border,
+          }}>
+            <View style={{
+              width: 20, height: 20, borderRadius: 10,
+              backgroundColor: st === "comprado" ? colors.success : `${colors.warning}30`,
+              alignItems: "center", justifyContent: "center",
+            }}>
+              <Text style={{ fontSize: 11, color: st === "comprado" ? "white" : colors.warning, fontWeight: "700" }}>
+                {st === "comprado" ? "✓" : "!"}
+              </Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.foreground }} numberOfLines={1}>{item.name}</Text>
+              <Text style={{ fontSize: 11, color: colors.muted }}>{item.quantity} {item.unit}</Text>
+            </View>
+            <View style={{
+              paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
+              backgroundColor: st === "comprado" ? `${colors.success}20` : `${colors.warning}20`,
+            }}>
+              <Text style={{ fontSize: 11, fontWeight: "700", color: st === "comprado" ? colors.success : colors.warning }}>
+                {st === "comprado" ? "Comprado" : "Pendente"}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
+        <Text style={{ fontSize: 11, color: colors.success, fontWeight: "600" }}>✓ {comprados.length} comprado(s)</Text>
+        <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>⏳ {pendentes.length} pendente(s)</Text>
+      </View>
+    </View>
+  );
+}
+
 // ─── Tela Principal ───────────────────────────────────────────────────────────
 export default function RequestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -1701,6 +1751,13 @@ export default function RequestDetailScreen() {
             </Pressable>
           )}
 
+          {/* Situação dos itens (visível para todos quando concluída ou parcialmente concluída) */}
+          {(currentStatus === "concluida" || currentStatus === "parcialmente_concluida") && (request as any).items && (request as any).items.length > 0 && (
+            <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+              <ItemFulfillmentCard items={(request as any).items} />
+            </View>
+          )}
+
           {/* Fluxo de aprovação */}
           <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
             <Text className="text-sm font-bold text-foreground mb-4">Fluxo de Aprovação</Text>
@@ -2328,49 +2385,8 @@ export default function RequestDetailScreen() {
 
                   {/* Visualização de itens comprados/pendentes para o Financeiro */}
                   {(request as any).items && (request as any).items.length > 0 && (
-                    <View style={{ marginBottom: 20, backgroundColor: colors.background, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border }}>
-                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>📊 Situação dos Itens</Text>
-                      {(request as any).items.map((item: any, idx: number) => {
-                        const st = item.itemStatus === "comprado" ? "comprado" : "pendente";
-                        return (
-                          <View key={item.id} style={{
-                            flexDirection: "row", alignItems: "center", gap: 10,
-                            paddingVertical: 8,
-                            borderTopWidth: idx > 0 ? 1 : 0,
-                            borderTopColor: colors.border,
-                          }}>
-                            <View style={{
-                              width: 20, height: 20, borderRadius: 10,
-                              backgroundColor: st === "comprado" ? colors.success : `${colors.warning}30`,
-                              alignItems: "center", justifyContent: "center",
-                            }}>
-                              <Text style={{ fontSize: 11, color: st === "comprado" ? "white" : colors.warning, fontWeight: "700" }}>
-                                {st === "comprado" ? "✓" : "!"}
-                              </Text>
-                            </View>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.foreground }} numberOfLines={1}>{item.name}</Text>
-                              <Text style={{ fontSize: 11, color: colors.muted }}>{item.quantity} {item.unit}</Text>
-                            </View>
-                            <View style={{
-                              paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-                              backgroundColor: st === "comprado" ? `${colors.success}20` : `${colors.warning}20`,
-                            }}>
-                              <Text style={{ fontSize: 11, fontWeight: "700", color: st === "comprado" ? colors.success : colors.warning }}>
-                                {st === "comprado" ? "Comprado" : "Pendente"}
-                              </Text>
-                            </View>
-                          </View>
-                        );
-                      })}
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-                        <Text style={{ fontSize: 11, color: colors.success, fontWeight: "600" }}>
-                          ✓ {(request as any).items.filter((i: any) => i.itemStatus === "comprado").length} comprado(s)
-                        </Text>
-                        <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>
-                          ⏳ {(request as any).items.filter((i: any) => i.itemStatus !== "comprado").length} pendente(s)
-                        </Text>
-                      </View>
+                    <View style={{ marginBottom: 4 }}>
+                      <ItemFulfillmentCard items={(request as any).items} />
                     </View>
                   )}
 
@@ -2517,6 +2533,11 @@ export default function RequestDetailScreen() {
                 return (
                   <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                     <Text className="text-sm font-bold text-foreground mb-1">💳 Comprovante de Pagamento</Text>
+
+                    {/* Situação dos itens comprados/pendentes */}
+                    {(request as any).items && (request as any).items.length > 0 && (
+                      <ItemFulfillmentCard items={(request as any).items} />
+                    )}
 
                     {/* Método de pagamento */}
                     {payMethod && (
@@ -2740,6 +2761,11 @@ export default function RequestDetailScreen() {
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">📝 Verificação Final — Compras</Text>
                   <Text className="text-xs text-muted mb-3">Verifique o comprovante, anexe a nota fiscal e finalize a OC</Text>
+
+                  {/* Situação dos itens comprados/pendentes */}
+                  {(request as any).items && (request as any).items.length > 0 && (
+                    <ItemFulfillmentCard items={(request as any).items} />
+                  )}
 
                   {/* Card de dados de pagamento para conferência */}
                   {((request as any).paymentMethod || (request as any).paymentInfo || (request as any).paymentObservations) && (
