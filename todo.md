@@ -781,3 +781,6 @@
 - [x] Pré-preenchimento automático de itens, departamento, centro de custo e observações no formulário de nova solicitação
 - [x] Vinculação automática da cotação à solicitação criada
 - [x] Adicionar aba Cotações no sidebar e tab bar
+- [x] Cumprimento parcial de solicitações — itens não comprados mantêm solicitação em aberto
+- [x] Indicador de cumprimento parcial no painel (dashboard)
+- [ ] Tela de relatórios com gráficos: compras por período, centro de custo, itens mais comprados, usuários que mais solicitam

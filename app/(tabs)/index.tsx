@@ -446,9 +446,12 @@ export default function DashboardScreen() {
                     <MetricCard label="Em Andamento" value={stats?.pending ?? 0} icon="⏳" color="warning" onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "pending" } })} />
                     <MetricCard label="Concluídas" value={stats?.approved ?? 0} icon="✅" color="success" onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "concluida" } })} />
                   </View>
-                  <View className="flex-row gap-3">
+                  <View className="flex-row gap-3 mb-3">
+                    <MetricCard label="Parciais" value={(stats as any)?.partial ?? 0} icon="🔄" color="primary" onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "parcialmente_concluida" } })} />
                     <MetricCard label="Rejeitadas" value={stats?.rejected ?? 0} icon="❌" color="error" onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "rejeitada" } })} />
                     <MetricCard label="Canceladas" value={(stats as any)?.cancelled ?? 0} icon="🚫" color="muted" onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "cancelada" } })} />
+                  </View>
+                  <View className="flex-row gap-3">
                     <MetricCard label="Emergenciais" value={stats?.emergency ?? 0} icon="🔴" color="error" onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { urgency: "emergencial" } })} />
                   </View>
                 </>

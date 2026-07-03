@@ -131,6 +131,7 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
     "aguardando_comprovante_pagamento",
     "aguardando_verificacao_compras",
     "concluida",
+    "parcialmente_concluida",
     "rejeitada",
     "cancelada",
   ])
@@ -192,6 +193,9 @@ export const requestItems = mysqlTable("requestItems", {
   unit: varchar("unit", { length: 32 }).default("un").notNull(),
   unitPrice: decimal("unitPrice", { precision: 12, scale: 2 }),
   totalPrice: decimal("totalPrice", { precision: 14, scale: 2 }),
+  // Cumprimento parcial
+  fulfilledQty: decimal("fulfilledQty", { precision: 10, scale: 2 }).default("0").notNull(),
+  itemStatus: mysqlEnum("itemStatus", ["pendente", "parcial", "comprado"]).default("pendente").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

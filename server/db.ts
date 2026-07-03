@@ -48,6 +48,7 @@ const STEP_LABELS_SERVER: Record<string, string> = {
   aguardando_comprovante_pagamento:"Comprovante de Pagamento",
   aguardando_verificacao_compras:  "Verificação Final (Compras)",
   concluida:                       "Concluída",
+  parcialmente_concluida:           "Parcialmente Concluída",
 };
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -738,6 +739,7 @@ export async function getDashboardStats(userId: number, role: string) {
 
   const pending = all.filter(r => r.status.startsWith("aguardando")).length;
   const approved = all.filter(r => r.status === "concluida").length;
+  const partial = all.filter(r => r.status === "parcialmente_concluida").length;
   // Separar rejeitadas e canceladas corretamente
   const rejected = all.filter(r => r.status === "rejeitada").length;
   const cancelled = all.filter(r => r.status === "cancelada").length;
@@ -751,7 +753,7 @@ export async function getDashboardStats(userId: number, role: string) {
     r.deadlineAt > now &&
     r.deadlineAt <= in24h
   ).length;
-  return { total: all.length, pending, approved, rejected, cancelled, urgent, emergency, expiringSoon };
+  return { total: all.length, pending, approved, partial, rejected, cancelled, urgent, emergency, expiringSoon };
 }
 
 export async function getMonthlyReport(year: number, month: number) {
@@ -3279,4 +3281,184 @@ export async function deleteQuotationsByRequestId(requestId: number, _userId: nu
   await db.delete(quotationSuppliers).where(eq(quotationSuppliers.groupId, groups[0].id));
   await db.delete(quotationGroups).where(eq(quotationGroups.id, groups[0].id));
   return { success: true };
+}
+
+
+// ─── Cumprimento Parcial ─────────────────────────────────────────────────────
+
+/**
+ * Atualiza a quantidade cumprida de um item e recalcula o status do item e da solicitação.
+ * Se todos os itens estiverem comprados, a solicitação fica "concluida".
+ * Se pelo menos um item foi parcialmente comprado, fica "parcialmente_concluida".
+ */
+export async function updateItemFulfillment(itemId: number, fulfilledQty: number, userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Buscar item
+  const [item] = await db.select().from(requestItems).where(eq(requestItems.id, itemId)).limit(1);
+  if (!item) throw new Error("Item não encontrado");
+
+  const totalQty = parseFloat(item.quantity);
+  const clampedQty = Math.min(Math.max(fulfilledQty, 0), totalQty);
+  
+  // Determinar status do item
+  let itemStatus: "pendente" | "parcial" | "comprado" = "pendente";
+  if (clampedQty >= totalQty) itemStatus = "comprado";
+  else if (clampedQty > 0) itemStatus = "parcial";
+
+  // Atualizar item
+  await db.update(requestItems)
+    .set({ fulfilledQty: String(clampedQty), itemStatus })
+    .where(eq(requestItems.id, itemId));
+
+  // Recalcular status da solicitação
+  const allItems = await db.select().from(requestItems).where(eq(requestItems.requestId, item.requestId));
+  const allFulfilled = allItems.every(i => i.id === itemId ? itemStatus === "comprado" : i.itemStatus === "comprado");
+  const anyFulfilled = allItems.some(i => i.id === itemId ? clampedQty > 0 : parseFloat(i.fulfilledQty) > 0);
+
+  // Buscar solicitação
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, item.requestId)).limit(1);
+  if (!request) return { itemStatus, requestStatus: "concluida" };
+
+  // Só atualizar status se a solicitação já está concluída ou parcialmente concluída
+  if (request.status === "concluida" || request.status === "parcialmente_concluida") {
+    const newStatus = allFulfilled ? "concluida" : (anyFulfilled ? "parcialmente_concluida" : "concluida");
+    if (newStatus !== request.status) {
+      await db.update(purchaseRequests).set({ status: newStatus as any }).where(eq(purchaseRequests.id, item.requestId));
+    }
+    return { itemStatus, requestStatus: newStatus };
+  }
+
+  return { itemStatus, requestStatus: request.status };
+}
+
+/**
+ * Busca itens de uma solicitação com informações de cumprimento parcial.
+ */
+export async function getItemsWithFulfillment(requestId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+}
+
+/**
+ * Retorna estatísticas de cumprimento parcial para o dashboard.
+ */
+export async function getPartialFulfillmentStats() {
+  const db = await getDb();
+  if (!db) return { parciais: 0, totalItens: 0, itensPendentes: 0, itensComprados: 0 };
+
+  // Contar solicitações parcialmente concluídas
+  const parciais = await db.select({ id: purchaseRequests.id })
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.status, "parcialmente_concluida" as any));
+
+  if (parciais.length === 0) return { parciais: 0, totalItens: 0, itensPendentes: 0, itensComprados: 0 };
+
+  const ids = parciais.map(p => p.id);
+  const items = await db.select().from(requestItems).where(inArray(requestItems.requestId, ids));
+
+  return {
+    parciais: parciais.length,
+    totalItens: items.length,
+    itensPendentes: items.filter(i => i.itemStatus === "pendente").length,
+    itensComprados: items.filter(i => i.itemStatus === "comprado").length,
+  };
+}
+
+// ─── Ranking por Usuário (Relatórios) ────────────────────────────────────────
+
+/**
+ * Retorna ranking dos usuários que mais fazem solicitações no período.
+ */
+export async function getRankingByUser(year: number, month: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 1);
+
+  const requests = await db
+    .select({
+      requesterId: purchaseRequests.requesterId,
+      requesterName: purchaseRequests.requesterName,
+      department: purchaseRequests.department,
+      totalEstimatedValue: purchaseRequests.totalEstimatedValue,
+    })
+    .from(purchaseRequests)
+    .where(
+      and(
+        gte(purchaseRequests.createdAt, startDate),
+        lte(purchaseRequests.createdAt, endDate),
+        sql`${purchaseRequests.status} NOT IN ('cancelada', 'rascunho')`
+      )
+    );
+
+  // Agrupar por solicitante
+  const grouped = new Map<number, { name: string; department: string; count: number; total: number }>();
+  for (const req of requests) {
+    if (!grouped.has(req.requesterId)) {
+      grouped.set(req.requesterId, { name: req.requesterName, department: req.department, count: 0, total: 0 });
+    }
+    const entry = grouped.get(req.requesterId)!;
+    entry.count++;
+    entry.total += parseFloat(req.totalEstimatedValue ?? "0");
+  }
+
+  return Array.from(grouped.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10)
+    .map(u => ({
+      name: u.name,
+      department: u.department,
+      count: u.count,
+      total: Math.round(u.total * 100) / 100,
+    }));
+}
+
+/**
+ * Retorna dados de compras por período (últimos 6 meses) para gráfico de tendência.
+ */
+export async function getPurchaseTrend(year: number, month: number) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const results: Array<{ month: string; total: number; count: number; concluidas: number }> = [];
+
+  for (let i = 5; i >= 0; i--) {
+    let m = month - i;
+    let y = year;
+    while (m <= 0) { m += 12; y--; }
+
+    const startDate = new Date(y, m - 1, 1);
+    const endDate = new Date(y, m, 1);
+
+    const requests = await db
+      .select({
+        id: purchaseRequests.id,
+        status: purchaseRequests.status,
+        totalEstimatedValue: purchaseRequests.totalEstimatedValue,
+      })
+      .from(purchaseRequests)
+      .where(
+        and(
+          gte(purchaseRequests.createdAt, startDate),
+          lte(purchaseRequests.createdAt, endDate),
+          sql`${purchaseRequests.status} NOT IN ('cancelada', 'rascunho')`
+        )
+      );
+
+    const total = requests.reduce((sum, r) => sum + parseFloat(r.totalEstimatedValue ?? "0"), 0);
+    const concluidas = requests.filter(r => r.status === "concluida" || r.status === "parcialmente_concluida").length;
+
+    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    results.push({
+      month: `${monthNames[m - 1]}/${String(y).slice(2)}`,
+      total: Math.round(total * 100) / 100,
+      count: requests.length,
+      concluidas,
+    });
+  }
+
+  return results;
 }

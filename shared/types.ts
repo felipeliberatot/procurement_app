@@ -21,6 +21,7 @@ export type RequestStatus =
   | "aguardando_comprovante_pagamento"
   | "aguardando_verificacao_compras"
   | "concluida"
+  | "parcialmente_concluida"
   | "rejeitada"
   | "cancelada";
 
@@ -105,6 +106,7 @@ export const STATUS_LABELS: Record<RequestStatus, string> = {
   aguardando_comprovante_pagamento: "Comprovante Pagamento",
   aguardando_verificacao_compras: "Verif. Compras",
   concluida: "Concluída",
+  parcialmente_concluida: "Parcial",
   rejeitada: "Rejeitada",
   cancelada: "Cancelada",
 };
@@ -187,6 +189,7 @@ export const STATUS_COLORS: Record<RequestStatus, "primary" | "warning" | "succe
   aguardando_comprovante_pagamento: "warning",
   aguardando_verificacao_compras: "warning",
   concluida: "success",
+  parcialmente_concluida: "primary",
   rejeitada: "error",
   cancelada: "muted",
 };

@@ -41,11 +41,11 @@ export default function ReportScreen() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [activeTab, setActiveTab] = useState<"resumo" | "departamentos" | "rankings" | "detalhes">("resumo");
+  const [activeTab, setActiveTab] = useState<"resumo" | "tendencia" | "rankings" | "usuarios" | "detalhes">("resumo");
   const [exporting, setExporting] = useState(false);
   const { isDesktop } = useBreakpoint();
 
-  const { data, isLoading, refetch } = trpc.requests.monthlyReport.useQuery(
+  const { data, isLoading } = trpc.requests.monthlyReport.useQuery(
     { year: selectedYear, month: selectedMonth },
     { placeholderData: (prev: any) => prev }
   );
@@ -60,6 +60,18 @@ export default function ReportScreen() {
     { placeholderData: (prev: any) => prev }
   );
 
+  const { data: rankingUser, isLoading: loadingUser } = trpc.requests.rankingByUser.useQuery(
+    { year: selectedYear, month: selectedMonth },
+    { placeholderData: (prev: any) => prev }
+  );
+
+  const { data: purchaseTrend, isLoading: loadingTrend } = trpc.requests.purchaseTrend.useQuery(
+    { year: selectedYear, month: selectedMonth },
+    { placeholderData: (prev: any) => prev }
+  );
+
+  const { data: partialStats } = trpc.requests.partialFulfillmentStats.useQuery();
+
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
   // ── Exportar CSV ─────────────────────────────────────────────────────────────
@@ -68,7 +80,7 @@ export default function ReportScreen() {
     setExporting(true);
     try {
       const header = "Nº Solicitação;Solicitante;Departamento;Aplicação;Status;Urgência;Valor Total;Data Criação;Nº OC;Itens\n";
-      const rows = data.requests.map(r =>
+      const rows = data.requests.map((r: any) =>
         [
           r.requestNumber ?? r.id,
           `"${r.requesterName ?? ""}"`,
@@ -142,7 +154,7 @@ export default function ReportScreen() {
     <ScreenContainer>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Relatório Mensal</Text>
+        <Text style={styles.headerTitle}>Relatórios</Text>
         <View style={styles.exportRow}>
           <TouchableOpacity
             style={[styles.exportBtn, { backgroundColor: colors.primary }]}
@@ -167,7 +179,6 @@ export default function ReportScreen() {
 
       {/* Seletor de Mês/Ano */}
       <View style={styles.selectorRow}>
-        {/* Ano */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
           {years.map(y => (
             <Pressable
@@ -193,19 +204,25 @@ export default function ReportScreen() {
       </ScrollView>
 
       {/* Tabs */}
-      <View style={styles.tabRow}>
-        {(["resumo", "departamentos", "rankings", "detalhes"] as const).map(tab => (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabRow}>
+        {([
+          { key: "resumo", label: "Resumo" },
+          { key: "tendencia", label: "Tendência" },
+          { key: "rankings", label: "Rankings" },
+          { key: "usuarios", label: "Usuários" },
+          { key: "detalhes", label: "Detalhes" },
+        ] as const).map(tab => (
           <Pressable
-            key={tab}
-            style={[styles.tab, activeTab === tab && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab(tab)}
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab(tab.key as any)}
           >
-            <Text style={[styles.tabText, activeTab === tab && { color: colors.primary, fontWeight: "700" }]}>
-              {tab === "resumo" ? "Resumo" : tab === "departamentos" ? "Departamentos" : tab === "rankings" ? "Rankings" : "Detalhes"}
+            <Text style={[styles.tabText, activeTab === tab.key && { color: colors.primary, fontWeight: "700" }]}>
+              {tab.label}
             </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       {/* Conteúdo */}
       {isLoading ? (
@@ -218,9 +235,9 @@ export default function ReportScreen() {
           <Text style={styles.emptyText}>Nenhuma solicitação em {MONTHS[selectedMonth - 1]} de {selectedYear}.</Text>
         </View>
       ) : activeTab === "resumo" ? (
-        <ResumoTab data={data} colors={colors} styles={styles} />
-      ) : activeTab === "departamentos" ? (
-        <DepartamentosTab data={data} colors={colors} styles={styles} />
+        <ResumoTab data={data} colors={colors} styles={styles} partialStats={partialStats} />
+      ) : activeTab === "tendencia" ? (
+        <TendenciaTab purchaseTrend={purchaseTrend ?? []} loading={loadingTrend} colors={colors} isDesktop={isDesktop} />
       ) : activeTab === "rankings" ? (
         <RankingsTab
           rankingCC={rankingCC ?? []}
@@ -228,9 +245,10 @@ export default function ReportScreen() {
           loadingCC={loadingCC}
           loadingItem={loadingItem}
           colors={colors}
-          styles={styles}
           isDesktop={isDesktop}
         />
+      ) : activeTab === "usuarios" ? (
+        <UsuariosTab rankingUser={rankingUser ?? []} loading={loadingUser} colors={colors} isDesktop={isDesktop} />
       ) : (
         <DetalhesTab data={data} colors={colors} styles={styles} />
       )}
@@ -238,7 +256,6 @@ export default function ReportScreen() {
   );
 }
 
-// ── Aba Resumo ────────────────────────────────────────────────────────────────
 // ── Gráfico de Barras Horizontal ──────────────────────────────────────────────
 function BarChart({ items, colors: c }: { items: { label: string; value: number; color: string }[]; colors: any }) {
   const [width, setWidth] = useState(0);
@@ -265,7 +282,8 @@ function BarChart({ items, colors: c }: { items: { label: string; value: number;
   );
 }
 
-function ResumoTab({ data, colors, styles }: any) {
+// ── Aba Resumo ────────────────────────────────────────────────────────────────
+function ResumoTab({ data, colors, styles, partialStats }: any) {
   const s = data.summary;
   const statusItems = [
     { label: "Concluídas", value: s.concluidas, color: colors.success },
@@ -276,12 +294,12 @@ function ResumoTab({ data, colors, styles }: any) {
   const urgencyItems = data.byUrgency.map((u: any) => ({
     label: URGENCY_LABELS[u.urgency as keyof typeof URGENCY_LABELS] ?? u.urgency,
     value: u.count,
-    color: u.urgency === "alta" ? colors.error : u.urgency === "media" ? colors.warning : colors.success,
+    color: u.urgency === "emergencial" ? colors.error : u.urgency === "urgente" ? colors.warning : colors.success,
   }));
   const detailedStatusItems = data.byStatus.map((st: any) => ({
     label: STATUS_LABELS[st.status as keyof typeof STATUS_LABELS] ?? st.status,
     value: st.count,
-    color: st.status === "concluida" ? colors.success : st.status.startsWith("aguardando") ? colors.warning : colors.error,
+    color: st.status === "concluida" ? colors.success : st.status === "parcialmente_concluida" ? colors.primary : st.status.startsWith("aguardando") ? colors.warning : colors.error,
   }));
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -291,8 +309,28 @@ function ResumoTab({ data, colors, styles }: any) {
         <SummaryCard label="Concluídas" value={s.concluidas} color={colors.success} styles={styles} />
         <SummaryCard label="Pendentes" value={s.pendentes} color={colors.warning} styles={styles} />
         <SummaryCard label="Rejeitadas" value={s.rejeitadas} color={colors.error} styles={styles} />
-        <SummaryCard label="Canceladas" value={s.canceladas} color={colors.muted} styles={styles} />
       </View>
+
+      {/* Cumprimento Parcial */}
+      {partialStats && partialStats.parciais > 0 && (
+        <View style={[styles.card, { marginTop: 8, borderLeftWidth: 4, borderLeftColor: colors.primary }]}>
+          <Text style={[styles.sectionTitle, { marginBottom: 8 }]}>Cumprimento Parcial</Text>
+          <View style={{ flexDirection: "row", justifyContent: "space-around" }}>
+            <View style={{ alignItems: "center" }}>
+              <Text style={{ fontSize: 22, fontWeight: "700", color: colors.primary }}>{partialStats.parciais}</Text>
+              <Text style={{ fontSize: 11, color: colors.muted }}>Solicitações</Text>
+            </View>
+            <View style={{ alignItems: "center" }}>
+              <Text style={{ fontSize: 22, fontWeight: "700", color: colors.warning }}>{partialStats.itensPendentes}</Text>
+              <Text style={{ fontSize: 11, color: colors.muted }}>Itens Pendentes</Text>
+            </View>
+            <View style={{ alignItems: "center" }}>
+              <Text style={{ fontSize: 22, fontWeight: "700", color: colors.success }}>{partialStats.itensComprados}</Text>
+              <Text style={{ fontSize: 11, color: colors.muted }}>Itens Comprados</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
       {/* Valor total */}
       <View style={[styles.card, { marginTop: 8 }]}>
@@ -305,18 +343,9 @@ function ResumoTab({ data, colors, styles }: any) {
       {/* Gráfico de Status */}
       {statusItems.length > 0 && (
         <View style={[styles.card, { marginTop: 8 }]}>
-          <Text style={styles.sectionTitle}>📊 Distribuição por Status</Text>
+          <Text style={styles.sectionTitle}>Distribuição por Status</Text>
           <View style={{ marginTop: 12 }}>
             <BarChart items={statusItems} colors={colors} />
-          </View>
-          {/* Legenda visual */}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-            {statusItems.map((item, idx) => (
-              <View key={idx} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: item.color }} />
-                <Text style={{ fontSize: 11, color: colors.muted }}>{item.label}: {item.value}</Text>
-              </View>
-            ))}
           </View>
         </View>
       )}
@@ -324,7 +353,7 @@ function ResumoTab({ data, colors, styles }: any) {
       {/* Gráfico de Urgência */}
       {urgencyItems.length > 0 && (
         <View style={[styles.card, { marginTop: 8 }]}>
-          <Text style={styles.sectionTitle}>⚡ Por Urgência</Text>
+          <Text style={styles.sectionTitle}>Por Urgência</Text>
           <View style={{ marginTop: 12 }}>
             <BarChart items={urgencyItems} colors={colors} />
           </View>
@@ -334,7 +363,7 @@ function ResumoTab({ data, colors, styles }: any) {
       {/* Gráfico de Status Detalhado */}
       {detailedStatusItems.length > 0 && (
         <View style={[styles.card, { marginTop: 8 }]}>
-          <Text style={styles.sectionTitle}>📋 Por Etapa de Aprovação</Text>
+          <Text style={styles.sectionTitle}>Por Etapa de Aprovação</Text>
           <View style={{ marginTop: 12 }}>
             <BarChart items={detailedStatusItems} colors={colors} />
           </View>
@@ -353,71 +382,197 @@ function SummaryCard({ label, value, color, styles }: any) {
   );
 }
 
-// ── Aba Departamentos ─────────────────────────────────────────────────────────
-function DepartamentosTab({ data, colors, styles }: any) {
+// ── Aba Tendência ─────────────────────────────────────────────────────────────
+function TendenciaTab({ purchaseTrend, loading, colors, isDesktop }: any) {
+  const [chartWidth, setChartWidth] = useState(0);
+  const maxTotal = Math.max(...(purchaseTrend?.map((m: any) => m.total) ?? [0]), 1);
+  const maxCount = Math.max(...(purchaseTrend?.map((m: any) => m.count) ?? [0]), 1);
+  const chartHeight = isDesktop ? 200 : 160;
+
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      {data.byDepartment.map((dept: any) => (
-        <View key={dept.department} style={[styles.card, { marginBottom: 8 }]}>
-          <Text style={styles.deptName}>{dept.department}</Text>
-          <View style={styles.deptRow}>
-            <DeptStat label="Total" value={dept.total} color={colors.primary} />
-            <DeptStat label="Concluídas" value={dept.concluidas} color={colors.success} />
-            <DeptStat label="Pendentes" value={dept.pendentes} color={colors.warning} />
-            <DeptStat label="Rejeit./Canc." value={dept.rejeitadas} color={colors.error} />
+      {loading ? (
+        <ActivityIndicator size="large" color={colors.primary} />
+      ) : !purchaseTrend || purchaseTrend.length === 0 ? (
+        <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>Sem dados de tendência</Text>
+      ) : (
+        <>
+          {/* Gráfico de Valor Total (últimos 6 meses) */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
+              Valor Total de Compras (6 meses)
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Evolução do valor total das solicitações</Text>
+            <View
+              onLayout={e => setChartWidth(e.nativeEvent.layout.width)}
+              style={{ height: chartHeight, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 20 }}
+            >
+              {purchaseTrend.map((m: any, idx: number) => {
+                const barH = Math.max((m.total / maxTotal) * (chartHeight - 30), 4);
+                const barW = chartWidth > 0 ? Math.min((chartWidth / purchaseTrend.length) - 12, 50) : 30;
+                return (
+                  <View key={idx} style={{ alignItems: "center", flex: 1 }}>
+                    <Text style={{ fontSize: 9, color: colors.primary, fontWeight: "700", marginBottom: 4 }}>
+                      {formatCurrency(m.total).replace("R$\u00a0", "R$")}
+                    </Text>
+                    <View style={{ width: barW, height: barH, backgroundColor: colors.primary, borderRadius: 4 }} />
+                    <Text style={{ fontSize: 10, color: colors.muted, marginTop: 4 }}>{m.month}</Text>
+                  </View>
+                );
+              })}
+            </View>
           </View>
-          <Text style={[styles.deptValue, { color: colors.primary }]}>
-            {formatCurrency(dept.totalValue)}
-          </Text>
-        </View>
-      ))}
+
+          {/* Gráfico de Quantidade (últimos 6 meses) */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
+              Quantidade de Solicitações (6 meses)
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Total de solicitações vs concluídas por mês</Text>
+            <View style={{ height: chartHeight, flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", paddingTop: 20 }}>
+              {purchaseTrend.map((m: any, idx: number) => {
+                const barH = Math.max((m.count / maxCount) * (chartHeight - 30), 4);
+                const barHConc = Math.max((m.concluidas / maxCount) * (chartHeight - 30), m.concluidas > 0 ? 4 : 0);
+                const barW = chartWidth > 0 ? Math.min((chartWidth / purchaseTrend.length) - 16, 24) : 16;
+                return (
+                  <View key={idx} style={{ alignItems: "center", flex: 1 }}>
+                    <Text style={{ fontSize: 10, color: colors.foreground, fontWeight: "600", marginBottom: 4 }}>{m.count}</Text>
+                    <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 2 }}>
+                      <View style={{ width: barW, height: barH, backgroundColor: colors.primary, borderRadius: 3 }} />
+                      <View style={{ width: barW, height: barHConc, backgroundColor: colors.success, borderRadius: 3 }} />
+                    </View>
+                    <Text style={{ fontSize: 10, color: colors.muted, marginTop: 4 }}>{m.month}</Text>
+                  </View>
+                );
+              })}
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "center", gap: 16, marginTop: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: colors.primary }} />
+                <Text style={{ fontSize: 11, color: colors.muted }}>Total</Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <View style={{ width: 12, height: 12, borderRadius: 3, backgroundColor: colors.success }} />
+                <Text style={{ fontSize: 11, color: colors.muted }}>Concluídas</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Tabela resumo */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground, marginBottom: 8 }}>
+              Resumo Mensal
+            </Text>
+            <View style={{ flexDirection: "row", paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+              <Text style={{ flex: 1, fontSize: 11, fontWeight: "700", color: colors.muted }}>Mês</Text>
+              <Text style={{ width: 60, fontSize: 11, fontWeight: "700", color: colors.muted, textAlign: "center" }}>Qtd</Text>
+              <Text style={{ width: 60, fontSize: 11, fontWeight: "700", color: colors.muted, textAlign: "center" }}>Concl.</Text>
+              <Text style={{ flex: 1, fontSize: 11, fontWeight: "700", color: colors.muted, textAlign: "right" }}>Valor</Text>
+            </View>
+            {purchaseTrend.map((m: any, idx: number) => (
+              <View key={idx} style={{ flexDirection: "row", paddingVertical: 6, borderBottomWidth: idx < purchaseTrend.length - 1 ? 1 : 0, borderBottomColor: colors.border }}>
+                <Text style={{ flex: 1, fontSize: 12, color: colors.foreground }}>{m.month}</Text>
+                <Text style={{ width: 60, fontSize: 12, color: colors.foreground, textAlign: "center" }}>{m.count}</Text>
+                <Text style={{ width: 60, fontSize: 12, color: colors.success, textAlign: "center", fontWeight: "600" }}>{m.concluidas}</Text>
+                <Text style={{ flex: 1, fontSize: 12, color: colors.primary, textAlign: "right", fontWeight: "600" }}>{formatCurrency(m.total)}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
 
-function DeptStat({ label, value, color }: any) {
+// ── Aba Usuários ──────────────────────────────────────────────────────────────
+function UsuariosTab({ rankingUser, loading, colors, isDesktop }: any) {
+  const maxCount = rankingUser.length > 0 ? rankingUser[0].count : 1;
+  const maxTotal = rankingUser.length > 0 ? Math.max(...rankingUser.map((u: any) => u.total)) : 1;
+
+  const BAR_COLORS = [
+    "#7c3aed", "#6d28d9", "#5b21b6", "#4c1d95", "#8b5cf6",
+    "#a78bfa", "#c4b5fd", "#6366f1", "#4f46e5", "#4338ca",
+  ];
+
   return (
-    <View style={{ alignItems: "center", flex: 1 }}>
-      <Text style={{ fontSize: 18, fontWeight: "700", color }}>{value}</Text>
-      <Text style={{ fontSize: 11, color: "#888", textAlign: "center" }}>{label}</Text>
-    </View>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      {loading ? (
+        <ActivityIndicator size="large" color={colors.primary} />
+      ) : rankingUser.length === 0 ? (
+        <Text style={{ color: colors.muted, textAlign: "center", marginTop: 40 }}>Sem dados para o período</Text>
+      ) : (
+        <>
+          {/* Ranking por quantidade de solicitações */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
+            <Text style={{ fontSize: isDesktop ? 15 : 14, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
+              Top Solicitantes (por quantidade)
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Usuários que mais criaram solicitações no período</Text>
+            {rankingUser.map((user: any, idx: number) => (
+              <UserBar
+                key={idx}
+                rank={idx + 1}
+                name={user.name}
+                department={user.department}
+                value={user.count}
+                maxValue={maxCount}
+                color={BAR_COLORS[idx % BAR_COLORS.length]}
+                suffix={`${user.count} solicitaç${user.count !== 1 ? "ões" : "ão"}`}
+                isDesktop={isDesktop}
+                colors={colors}
+              />
+            ))}
+          </View>
+
+          {/* Ranking por valor total */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: isDesktop ? 15 : 14, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
+              Top Solicitantes (por valor)
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Usuários com maior valor total solicitado</Text>
+            {[...rankingUser].sort((a: any, b: any) => b.total - a.total).map((user: any, idx: number) => (
+              <UserBar
+                key={idx}
+                rank={idx + 1}
+                name={user.name}
+                department={user.department}
+                value={user.total}
+                maxValue={maxTotal}
+                color={BAR_COLORS[idx % BAR_COLORS.length]}
+                suffix={formatCurrency(user.total)}
+                isDesktop={isDesktop}
+                colors={colors}
+              />
+            ))}
+          </View>
+        </>
+      )}
+    </ScrollView>
   );
 }
 
-// ── Aba Detalhes ──────────────────────────────────────────────────────────────
-function DetalhesTab({ data, colors, styles }: any) {
+function UserBar({ rank, name, department, value, maxValue, color, suffix, isDesktop, colors }: any) {
+  const [containerWidth, setContainerWidth] = useState(0);
+  const ratio = maxValue > 0 ? Math.max(value / maxValue, 0.02) : 0.02;
+  const barWidth = containerWidth > 0 ? containerWidth * ratio : 0;
   return (
-    <FlatList
-      data={data.requests}
-      keyExtractor={(item: any) => String(item.id)}
-      style={{ flex: 1 }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-      renderItem={({ item }: any) => (
-        <View style={[styles.card, { marginBottom: 8 }]}>
-          <View style={styles.detailHeader}>
-            <Text style={[styles.detailNumber, { color: colors.primary }]}>
-              #{item.requestNumber ?? item.id}
-            </Text>
-            <View style={[styles.statusBadge, { backgroundColor: getStatusBg(item.status) }]}>
-              <Text style={styles.statusBadgeText}>
-                {STATUS_LABELS[item.status as keyof typeof STATUS_LABELS] ?? item.status}
-              </Text>
-            </View>
-          </View>
-          <Text style={styles.detailName}>{item.requesterName}</Text>
-          <Text style={styles.detailMeta}>{item.department} · {item.application}</Text>
-          <View style={styles.detailFooter}>
-            <Text style={styles.detailMeta}>{formatDate(item.createdAt)}</Text>
-            <Text style={[styles.detailValue, { color: colors.primary }]}>
-              {formatCurrency(item.totalValue)}
-            </Text>
-          </View>
-          {item.purchaseOrderNumber ? (
-            <Text style={styles.detailMeta}>OC: {item.purchaseOrderNumber}</Text>
-          ) : null}
-        </View>
-      )}
-    />
+    <View style={{ marginBottom: 14 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 3 }}>
+        <Text style={{ fontSize: isDesktop ? 13 : 12, fontWeight: "600", color: colors.foreground, flex: 1, marginRight: 8 }} numberOfLines={1}>
+          {rank}. {name}
+        </Text>
+        <Text style={{ fontSize: isDesktop ? 13 : 12, fontWeight: "700", color }}>{suffix}</Text>
+      </View>
+      <View
+        onLayout={e => setContainerWidth(e.nativeEvent.layout.width)}
+        style={{ height: isDesktop ? 12 : 10, backgroundColor: colors.border, borderRadius: 6, overflow: "hidden" }}
+      >
+        {barWidth > 0 && (
+          <View style={{ width: barWidth, height: "100%", backgroundColor: color, borderRadius: 6 }} />
+        )}
+      </View>
+      <Text style={{ fontSize: 10, color: colors.muted, marginTop: 2 }}>{department}</Text>
+    </View>
   );
 }
 
@@ -468,7 +623,7 @@ function RankingsTab({ rankingCC, rankingItem, loadingCC, loadingItem, colors, i
       {/* Ranking por Centro de Custo */}
       <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border, marginBottom: 16 }}>
         <Text style={{ fontSize: isDesktop ? 15 : 14, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
-          🏢 Ranking por Centro de Custo
+          Ranking por Centro de Custo
         </Text>
         <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Top 10 centros de custo por valor total gasto</Text>
         {loadingCC ? (
@@ -478,7 +633,7 @@ function RankingsTab({ rankingCC, rankingItem, loadingCC, loadingItem, colors, i
         ) : (
           rankingCC.map((item: any, idx: number) => (
             <HorizontalBar
-              key={item.code}
+              key={item.code ?? idx}
               label={`${idx + 1}. ${item.label}`}
               value={item.total}
               maxValue={maxCC}
@@ -493,7 +648,7 @@ function RankingsTab({ rankingCC, rankingItem, loadingCC, loadingItem, colors, i
       {/* Ranking por Bem/Item */}
       <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: colors.border }}>
         <Text style={{ fontSize: isDesktop ? 15 : 14, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>
-          📦 Ranking por Bem / Item
+          Ranking por Bem / Item
         </Text>
         <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Top 10 itens mais solicitados por valor total</Text>
         {loadingItem ? (
@@ -518,8 +673,46 @@ function RankingsTab({ rankingCC, rankingItem, loadingCC, loadingItem, colors, i
   );
 }
 
+// ── Aba Detalhes ──────────────────────────────────────────────────────────────
+function DetalhesTab({ data, colors, styles }: any) {
+  return (
+    <FlatList
+      data={data.requests}
+      keyExtractor={(item: any) => String(item.id)}
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
+      renderItem={({ item }: any) => (
+        <View style={[styles.card, { marginBottom: 8 }]}>
+          <View style={styles.detailHeader}>
+            <Text style={[styles.detailNumber, { color: colors.primary }]}>
+              #{item.requestNumber ?? item.id}
+            </Text>
+            <View style={[styles.statusBadge, { backgroundColor: getStatusBg(item.status) }]}>
+              <Text style={styles.statusBadgeText}>
+                {STATUS_LABELS[item.status as keyof typeof STATUS_LABELS] ?? item.status}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.detailName}>{item.requesterName}</Text>
+          <Text style={styles.detailMeta}>{item.department} · {item.application}</Text>
+          <View style={styles.detailFooter}>
+            <Text style={styles.detailMeta}>{formatDate(item.createdAt)}</Text>
+            <Text style={[styles.detailValue, { color: colors.primary }]}>
+              {formatCurrency(item.totalValue)}
+            </Text>
+          </View>
+          {item.purchaseOrderNumber ? (
+            <Text style={styles.detailMeta}>OC: {item.purchaseOrderNumber}</Text>
+          ) : null}
+        </View>
+      )}
+    />
+  );
+}
+
 function getStatusBg(status: string): string {
   if (status === "concluida") return "#dcfce7";
+  if (status === "parcialmente_concluida") return "#dbeafe";
   if (status === "rejeitada" || status === "cancelada") return "#fee2e2";
   if (status.startsWith("aguardando")) return "#fef3c7";
   return "#f3f4f6";
@@ -659,10 +852,9 @@ function createStyles(colors: any) {
       fontWeight: "600",
     },
     tabRow: {
-      flexDirection: "row",
+      flexGrow: 0,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      flexShrink: 0,
     },
     tab: {
       alignItems: "center",
@@ -735,34 +927,6 @@ function createStyles(colors: any) {
       fontSize: 13,
       fontWeight: "700",
       color: colors.foreground,
-      marginBottom: 8,
-    },
-    tableRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      paddingVertical: 5,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-    tableCell: {
-      fontSize: 12,
-      color: colors.muted,
-    },
-    deptName: {
-      fontSize: 14,
-      fontWeight: "700",
-      color: colors.foreground,
-      marginBottom: 8,
-    },
-    deptRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      marginBottom: 8,
-    },
-    deptValue: {
-      fontSize: 13,
-      fontWeight: "600",
-      textAlign: "right",
     },
     detailHeader: {
       flexDirection: "row",

@@ -368,6 +368,16 @@ export const appRouter = router({
     rankingByItem: protectedProcedure
       .input(z.object({ year: z.number().int().min(2020).max(2100), month: z.number().int().min(1).max(12) }))
       .query(({ input }) => db.getRankingByItem(input.year, input.month)),
+    rankingByUser: protectedProcedure
+      .input(z.object({ year: z.number().int().min(2020).max(2100), month: z.number().int().min(1).max(12) }))
+      .query(({ input }) => db.getRankingByUser(input.year, input.month)),
+    purchaseTrend: protectedProcedure
+      .input(z.object({ year: z.number().int().min(2020).max(2100), month: z.number().int().min(1).max(12) }))
+      .query(({ input }) => db.getPurchaseTrend(input.year, input.month)),
+    partialFulfillmentStats: protectedProcedure.query(() => db.getPartialFulfillmentStats()),
+    updateItemFulfillment: protectedProcedure
+      .input(z.object({ itemId: z.number(), fulfilledQty: z.number().min(0) }))
+      .mutation(({ input, ctx }) => db.updateItemFulfillment(input.itemId, input.fulfilledQty, ctx.user.id)),
 
     history: protectedProcedure
       .input(z.object({ requestId: z.number() }))
