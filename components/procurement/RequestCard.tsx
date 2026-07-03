@@ -3,6 +3,49 @@ import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "reac
 import { StatusBadge, UrgencyBadge, DeadlineTimer } from "./Badges";
 import { useColors } from "@/hooks/use-colors";
 import type { RequestStatus, UrgencyLevel } from "@/shared/types";
+import { WORKFLOW_STEPS, WORKFLOW_STEPS_URGENT } from "@/shared/types";
+
+// Mapa de cores por status para a barra lateral
+const STATUS_BAR_COLOR: Record<string, string> = {
+  rascunho: "#9BA1A6",
+  aguardando_gerente: "#F59E0B",
+  aguardando_orcamento: "#F59E0B",
+  aguardando_controladoria: "#F59E0B",
+  aguardando_diretoria: "#F59E0B",
+  aguardando_ordem_compra: "#0a7ea4",
+  aguardando_aprovacao_compra: "#0a7ea4",
+  aguardando_comprovante_pagamento: "#0a7ea4",
+  aguardando_verificacao_compras: "#0a7ea4",
+  concluida: "#22C55E",
+  parcialmente_concluida: "#F59E0B",
+  rejeitada: "#EF4444",
+  cancelada: "#9BA1A6",
+};
+
+// Ícone por status
+const STATUS_ICON: Record<string, string> = {
+  rascunho: "📝",
+  aguardando_gerente: "👔",
+  aguardando_orcamento: "💰",
+  aguardando_controladoria: "🏦",
+  aguardando_diretoria: "🏛️",
+  aguardando_ordem_compra: "🛒",
+  aguardando_aprovacao_compra: "💳",
+  aguardando_comprovante_pagamento: "🧾",
+  aguardando_verificacao_compras: "🔍",
+  concluida: "✅",
+  parcialmente_concluida: "⚠️",
+  rejeitada: "❌",
+  cancelada: "🚫",
+};
+
+function getStepInfo(status: string, urgencyLevel?: string): { current: number; total: number } {
+  const isUrgent = urgencyLevel === "urgente" || urgencyLevel === "emergencial";
+  const steps = isUrgent ? WORKFLOW_STEPS_URGENT : WORKFLOW_STEPS;
+  const idx = steps.findIndex(s => s.status === status);
+  if (idx < 0) return { current: 0, total: steps.length };
+  return { current: idx + 1, total: steps.length };
+}
 
 const MAX_ITEMS_VISIBLE = 3;
 
@@ -66,6 +109,12 @@ export function RequestCard({
   const visibleItems = expanded ? request.items : request.items?.slice(0, MAX_ITEMS_VISIBLE);
   const hiddenCount = totalItems - MAX_ITEMS_VISIBLE;
 
+  const barColor = STATUS_BAR_COLOR[request.status] ?? "#9BA1A6";
+  const statusIcon = STATUS_ICON[request.status] ?? "📋";
+  const stepInfo = getStepInfo(request.status, request.urgencyLevel);
+  const isDone = request.status === "concluida" || request.status === "parcialmente_concluida";
+  const isTerminal = isDone || request.status === "rejeitada" || request.status === "cancelada";
+
   return (
     <Pressable
       onPress={onPress}
@@ -79,13 +128,31 @@ export function RequestCard({
           borderRadius: 16,
           marginBottom: 12,
           overflow: "hidden",
+          flexDirection: "row",
         }}
       >
+        {/* Barra colorida lateral indicando status */}
+        <View style={{ width: 5, backgroundColor: barColor, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }} />
+
+        <View style={{ flex: 1 }}>
         {/* Faixa de destaque para cards com ação pendente */}
         {showActions && (
           <View style={{ backgroundColor: `${colors.warning}15`, paddingHorizontal: 14, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Text style={{ fontSize: 12 }}>⏳</Text>
             <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "700" }}>AGUARDANDO SUA AÇÃO</Text>
+          </View>
+        )}
+        {/* Indicador de etapa */}
+        {!isTerminal && stepInfo.current > 0 && (
+          <View style={{ backgroundColor: `${barColor}12`, paddingHorizontal: 14, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 6, borderBottomWidth: 0.5, borderBottomColor: `${barColor}30` }}>
+            <Text style={{ fontSize: 11 }}>{statusIcon}</Text>
+            <Text style={{ fontSize: 11, color: barColor, fontWeight: "700", flex: 1 }}>
+              ETAPA {stepInfo.current}/{stepInfo.total}
+            </Text>
+            {/* Mini barra de progresso */}
+            <View style={{ width: 60, height: 4, backgroundColor: `${barColor}25`, borderRadius: 2, overflow: "hidden" }}>
+              <View style={{ width: `${(stepInfo.current / stepInfo.total) * 100}%`, height: "100%", backgroundColor: barColor, borderRadius: 2 }} />
+            </View>
           </View>
         )}
 
@@ -272,6 +339,7 @@ export function RequestCard({
               )}
             </View>
           )}
+        </View>
         </View>
       </View>
     </Pressable>
