@@ -3347,8 +3347,8 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
               ...i,
               itemStatus: i.id === itemId ? itemStatus : i.itemStatus,
             }));
-            const comprados = updatedItems.filter(i => i.itemStatus === "comprado").map(i => `  ✅ ${i.name} (${i.quantity} ${i.unit})`).join("\n");
-            const pendentes = updatedItems.filter(i => i.itemStatus !== "comprado").map(i => `  ⏳ ${i.name} (${i.quantity} ${i.unit})`).join("\n");
+            const comprados = updatedItems.filter(i => i.itemStatus === "comprado").map(i => `  ✅ ${(i as any).description ?? (i as any).name} (${i.quantity} ${i.unit})`).join("\n");
+            const pendentes = updatedItems.filter(i => i.itemStatus !== "comprado").map(i => `  ⏳ ${(i as any).description ?? (i as any).name} (${i.quantity} ${i.unit})`).join("\n");
             const msg = [
               `📦 *Solicitação Parcialmente Concluída*`,
               ``,

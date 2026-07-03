@@ -459,7 +459,7 @@ function ItemFulfillmentCard({ items }: { items: any[] }) {
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.foreground }} numberOfLines={1}>{item.name}</Text>
+              <Text style={{ fontSize: 12, fontWeight: "600", color: colors.foreground }} numberOfLines={1}>{item.description ?? item.name}</Text>
               <Text style={{ fontSize: 11, color: colors.muted }}>{item.quantity} {item.unit}</Text>
             </View>
             <View style={{
@@ -2300,8 +2300,8 @@ export default function RequestDetailScreen() {
                               {isComprado && <Text style={{ color: "white", fontSize: 13, fontWeight: "700" }}>✓</Text>}
                             </View>
                             <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }} numberOfLines={2}>{item.name}</Text>
-                              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>{item.quantity} {item.unit} · {item.estimatedUnitPrice ? `R$ ${Number(item.estimatedUnitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "sem valor"}</Text>
+                              <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }} numberOfLines={2}>{item.description ?? item.name}</Text>
+                              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>{item.quantity} {item.unit} · {(item.unitPrice ?? item.estimatedUnitPrice) ? `R$ ${Number(item.unitPrice ?? item.estimatedUnitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "sem valor"}</Text>
                             </View>
                             <View style={{
                               paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
@@ -3459,7 +3459,7 @@ export default function RequestDetailScreen() {
                 {(analysis.items ?? []).map((item: any, i: number) => (
                   <View key={i} style={{ backgroundColor: "#F9FAFB", borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: "#E5E7EB" }}>
                     <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 6 }}>
-                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#11181C", flex: 1, marginRight: 8 }}>{item.name}</Text>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: "#11181C", flex: 1, marginRight: 8 }}>{item.description ?? item.name}</Text>
                       <View style={{ backgroundColor: `${statusColor[item.status] ?? "#687076"}20`, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 20 }}>
                         <Text style={{ fontSize: 10, fontWeight: "700", color: statusColor[item.status] ?? "#687076" }}>{item.status?.replace(/_/g, " ")}</Text>
                       </View>
