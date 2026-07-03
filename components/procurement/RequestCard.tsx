@@ -55,6 +55,8 @@ interface RequestItem {
   quantity: string | number;
   unit: string;
   totalPrice?: string | null;
+  itemStatus?: string | null;
+  fulfilledQty?: string | null;
 }
 
 interface RequestCardProps {
@@ -203,11 +205,27 @@ export function RequestCard({
                       {item.quantity} {item.unit}
                     </Text>
                   </View>
-                  {item.totalPrice && (
-                    <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, flexShrink: 0 }}>
-                      {formatCurrency(item.totalPrice)}
-                    </Text>
-                  )}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                    {item.totalPrice && (
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground }}>
+                        {formatCurrency(item.totalPrice)}
+                      </Text>
+                    )}
+                    {/* Indicador de status do item: comprado=verde, pendente/parcial=amarelo */}
+                    {item.itemStatus && (
+                      <View style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: 7,
+                        backgroundColor: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
+                        shadowColor: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.7,
+                        shadowRadius: 4,
+                        elevation: 3,
+                      }} />
+                    )}
+                  </View>
                 </View>
               ))}
               {/* Botão Ver mais / Ver menos */}
