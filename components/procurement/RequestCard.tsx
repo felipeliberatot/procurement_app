@@ -211,19 +211,24 @@ export function RequestCard({
                         {formatCurrency(item.totalPrice)}
                       </Text>
                     )}
-                    {/* Indicador de status do item: comprado=verde, pendente/parcial=amarelo */}
+                    {/* Badge de status do item: comprado=verde, pendente/parcial=amarelo */}
                     {item.itemStatus && (
                       <View style={{
-                        width: 14,
-                        height: 14,
-                        borderRadius: 7,
-                        backgroundColor: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
-                        shadowColor: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
-                        shadowOffset: { width: 0, height: 0 },
-                        shadowOpacity: 0.7,
-                        shadowRadius: 4,
-                        elevation: 3,
-                      }} />
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        borderRadius: 20,
+                        backgroundColor: item.itemStatus === "comprado" ? "#22C55E20" : "#F59E0B20",
+                        borderWidth: 1,
+                        borderColor: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
+                      }}>
+                        <Text style={{
+                          fontSize: 10,
+                          fontWeight: "700",
+                          color: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
+                        }}>
+                          {item.itemStatus === "comprado" ? "Comprado" : "Pendente"}
+                        </Text>
+                      </View>
                     )}
                   </View>
                 </View>
