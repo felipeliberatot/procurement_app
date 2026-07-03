@@ -1441,9 +1441,30 @@ export default function RequestDetailScreen() {
                     <Text className="text-sm font-medium text-foreground">{item.description}</Text>
                     <Text className="text-xs text-muted">{item.quantity} {item.unit}</Text>
                   </View>
-                  {item.totalPrice && (
-                    <Text className="text-sm font-semibold text-foreground">{formatCurrency(item.totalPrice)}</Text>
-                  )}
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    {item.totalPrice && (
+                      <Text className="text-sm font-semibold text-foreground">{formatCurrency(item.totalPrice)}</Text>
+                    )}
+                    {/* Badge de status do item: só aparece após Emissão de OC */}
+                    {item.itemStatus && (
+                      <View style={{
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 20,
+                        backgroundColor: item.itemStatus === "comprado" ? "#22C55E20" : "#F59E0B20",
+                        borderWidth: 1,
+                        borderColor: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
+                      }}>
+                        <Text style={{
+                          fontSize: 11,
+                          fontWeight: "700",
+                          color: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
+                        }}>
+                          {item.itemStatus === "comprado" ? "Comprado" : "Pendente"}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               ))}
             </View>
