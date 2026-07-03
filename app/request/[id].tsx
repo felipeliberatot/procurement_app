@@ -457,6 +457,9 @@ export default function RequestDetailScreen() {
   const [invoiceLocalUri, setInvoiceLocalUri] = useState<string | null>(null); // URI local para pré-visualização da nota fiscal
   const [ocSiagriFileName, setOcSiagriFileName] = useState<string | null>(null);
   const [showOCViewer, setShowOCViewer] = useState(false);
+  // Estado para controle de itens comprados/pendentes na etapa de Emissão de OC
+  const [itemFulfillment, setItemFulfillment] = useState<Record<number, "comprado" | "pendente">>({})
+  const [itemFulfillmentInitialized, setItemFulfillmentInitialized] = useState(false);
   const [showBudgetViewer, setShowBudgetViewer] = useState(false);
   const [showPaymentProofViewer, setShowPaymentProofViewer] = useState(false);
   const [showInvoiceViewer, setShowInvoiceViewer] = useState(false);
@@ -533,6 +536,20 @@ export default function RequestDetailScreen() {
       setEstimatedValueInitialized(true);
     }
   }, [request, estimatedValueInitialized, estimatedValueInput]);
+
+  // Inicializar itemFulfillment com os dados já salvos no banco
+  useEffect(() => {
+    if (!itemFulfillmentInitialized && request && (request as any).items?.length > 0) {
+      const initial: Record<number, "comprado" | "pendente"> = {};
+      for (const item of (request as any).items) {
+        if (item.id) {
+          initial[item.id] = (item.itemStatus === "comprado") ? "comprado" : "pendente";
+        }
+      }
+      setItemFulfillment(initial);
+      setItemFulfillmentInitialized(true);
+    }
+  }, [request, itemFulfillmentInitialized]);
 
   const invalidateAll = () => {
     utils.requests.getById.invalidate({ id: requestId });
@@ -634,6 +651,15 @@ export default function RequestDetailScreen() {
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Erro ao anexar OC Siagri", e.message);
+    },
+  });
+
+  const updateItemFulfillmentMutation = trpc.requests.updateItemFulfillment.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+    },
+    onError: (e) => {
+      Alert.alert("Erro ao atualizar item", e.message);
     },
   });
 
@@ -2170,6 +2196,71 @@ export default function RequestDetailScreen() {
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">📋 Emissão de Ordem de Compra</Text>
                   <Text className="text-xs text-muted mb-4">Preencha os campos abaixo para emitir a OC e encaminhar ao Financeiro</Text>
+
+                  {/* Seleção de Itens Comprados/Pendentes */}
+                  {(request as any).items && (request as any).items.length > 0 && (
+                    <View style={{ marginBottom: 20 }}>
+                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginBottom: 4 }}>Itens da Solicitação</Text>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 12 }}>Marque quais itens foram efetivamente comprados. Itens não marcados ficarão como pendentes.</Text>
+                      {(request as any).items.map((item: any) => {
+                        const status = itemFulfillment[item.id] ?? "pendente";
+                        const isComprado = status === "comprado";
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            onPress={() => {
+                              const newStatus = isComprado ? "pendente" : "comprado";
+                              setItemFulfillment(prev => ({ ...prev, [item.id]: newStatus }));
+                              updateItemFulfillmentMutation.mutate({ itemId: item.id, fulfilledQty: newStatus === "comprado" ? Number(item.quantity ?? 1) : 0 });
+                            }}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              paddingVertical: 12,
+                              paddingHorizontal: 14,
+                              borderRadius: 12,
+                              borderWidth: 2,
+                              borderColor: isComprado ? colors.success : colors.border,
+                              backgroundColor: isComprado ? `${colors.success}12` : colors.background,
+                              marginBottom: 8,
+                              gap: 12,
+                            }}
+                          >
+                            <View style={{
+                              width: 24, height: 24, borderRadius: 12,
+                              borderWidth: 2,
+                              borderColor: isComprado ? colors.success : colors.muted,
+                              backgroundColor: isComprado ? colors.success : "transparent",
+                              alignItems: "center", justifyContent: "center",
+                            }}>
+                              {isComprado && <Text style={{ color: "white", fontSize: 13, fontWeight: "700" }}>✓</Text>}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }} numberOfLines={2}>{item.name}</Text>
+                              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>{item.quantity} {item.unit} · {item.estimatedUnitPrice ? `R$ ${Number(item.estimatedUnitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "sem valor"}</Text>
+                            </View>
+                            <View style={{
+                              paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+                              backgroundColor: isComprado ? colors.success : `${colors.warning}20`,
+                            }}>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: isComprado ? "white" : colors.warning }}>
+                                {isComprado ? "Comprado" : "Pendente"}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {/* Resumo */}
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 8, paddingHorizontal: 4 }}>
+                        <Text style={{ fontSize: 12, color: colors.success, fontWeight: "600" }}>
+                          ✓ {Object.values(itemFulfillment).filter(s => s === "comprado").length} comprado(s)
+                        </Text>
+                        <Text style={{ fontSize: 12, color: colors.warning, fontWeight: "600" }}>
+                          ⏳ {(request as any).items.length - Object.values(itemFulfillment).filter(s => s === "comprado").length} pendente(s)
+                        </Text>
+                      </View>
+                    </View>
+                  )}
 
                   {/* Upload OC Siagri */}
                   <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>OC Siagri <Text style={{ color: colors.muted, fontWeight: "400" }}>(opcional)</Text></Text>
