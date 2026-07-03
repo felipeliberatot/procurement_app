@@ -943,7 +943,7 @@ export default function RequestDetailScreen() {
     ...((user as any)?.approvalLevel && (user as any)?.approvalLevel !== "nenhum" && (user as any)?.approvalLevel !== "master" ? [(user as any).approvalLevel] : []),
     ...parseJsonArr((user as any)?.extraApprovalLevels).filter((l: string) => l !== "nenhum" && l !== "master"),
   ];
-  const canAct = allUserRoles.some(r => ROLE_CAN_ACT[currentStatus]?.includes(r as ProcurementRole)) ?? false;
+  const canAct = isMasterUser || (allUserRoles.some(r => ROLE_CAN_ACT[currentStatus]?.includes(r as ProcurementRole)) ?? false);
   const isRejected = currentStatus === "rejeitada";
   const isCancelled = currentStatus === "cancelada";
   const isDone = currentStatus === "concluida";
