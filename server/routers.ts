@@ -475,6 +475,11 @@ export const appRouter = router({
       .input(z.object({ requestId: z.number(), orderValue: z.number() }))
       .mutation(({ ctx, input }) => db.finalizeOC(input.requestId, ctx.user, input.orderValue)),
 
+    // Refinalizar OC para solicitações parcialmente concluídas (recompra de itens pendentes)
+    refinalizeOC: protectedProcedure
+      .input(z.object({ requestId: z.number() }))
+      .mutation(({ ctx, input }) => db.refinalizeOC(input.requestId, ctx.user)),
+
     // Cancelar solicitação (somente solicitante ou master)
     cancel: protectedProcedure
       .input(z.object({

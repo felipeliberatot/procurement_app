@@ -733,8 +733,18 @@ export default function RequestDetailScreen() {
     },
   });
 
+  const refinalizeOCMutation = trpc.requests.refinalizeOC.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      router.back();
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao finalizar recompra", e.message);
+    },
+  });
   const [showReopenModal, setShowReopenModal] = useState(false);
-
   const reopenMutation = trpc.requests.reopen.useMutation({
     onSuccess: () => {
       invalidateAll();
@@ -1773,9 +1783,101 @@ export default function RequestDetailScreen() {
           )}
 
           {/* Situação dos itens (visível para todos quando concluída ou parcialmente concluída) */}
-          {(currentStatus === "concluida" || currentStatus === "parcialmente_concluida") && (request as any).items && (request as any).items.length > 0 && (
+          {/* Itens: leitura para concluida, interativo para parcialmente_concluida */}
+          {currentStatus === "concluida" && (request as any).items && (request as any).items.length > 0 && (
             <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
               <ItemFulfillmentCard items={(request as any).items} />
+            </View>
+          )}
+          {currentStatus === "parcialmente_concluida" && (request as any).items && (request as any).items.length > 0 && (
+            <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>📦 Itens da Solicitação</Text>
+              {allUserRoles.some(r => ["orcamento", "compras"].includes(r)) || isMasterUser ? (
+                <>
+                  <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Marque os itens que foram comprados agora e finalize para atualizar o status.</Text>
+                  {(request as any).items.map((item: any) => {
+                    const status = itemFulfillment[item.id] ?? "pendente";
+                    const isComprado = status === "comprado";
+                    return (
+                      <TouchableOpacity
+                        key={item.id}
+                        onPress={() => {
+                          const newStatus = isComprado ? "pendente" : "comprado";
+                          setItemFulfillment(prev => ({ ...prev, [item.id]: newStatus }));
+                          updateItemFulfillmentMutation.mutate({ itemId: item.id, fulfilledQty: newStatus === "comprado" ? Number(item.quantity ?? 1) : 0 });
+                        }}
+                        style={{
+                          flexDirection: "row", alignItems: "center",
+                          paddingVertical: 12, paddingHorizontal: 14,
+                          borderRadius: 12, borderWidth: 2,
+                          borderColor: isComprado ? colors.success : colors.border,
+                          backgroundColor: isComprado ? `${colors.success}12` : colors.background,
+                          marginBottom: 8, gap: 12,
+                        }}
+                      >
+                        <View style={{
+                          width: 24, height: 24, borderRadius: 12, borderWidth: 2,
+                          borderColor: isComprado ? colors.success : colors.muted,
+                          backgroundColor: isComprado ? colors.success : "transparent",
+                          alignItems: "center", justifyContent: "center",
+                        }}>
+                          {isComprado && <Text style={{ color: "white", fontSize: 13, fontWeight: "700" }}>✓</Text>}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }} numberOfLines={2}>{item.description ?? item.name}</Text>
+                          <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>{item.quantity} {item.unit}</Text>
+                        </View>
+                        <View style={{
+                          paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+                          backgroundColor: isComprado ? colors.success : `${colors.warning}20`,
+                        }}>
+                          <Text style={{ fontSize: 11, fontWeight: "700", color: isComprado ? "white" : colors.warning }}>
+                            {isComprado ? "Comprado" : "Pendente"}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 4, paddingHorizontal: 4, marginBottom: 12 }}>
+                    <Text style={{ fontSize: 12, color: colors.success, fontWeight: "600" }}>
+                      ✓ {Object.values(itemFulfillment).filter(s => s === "comprado").length} comprado(s)
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colors.warning, fontWeight: "600" }}>
+                      ⏳ {(request as any).items.length - Object.values(itemFulfillment).filter(s => s === "comprado").length} pendente(s)
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Alert.alert(
+                        "Finalizar Recompra",
+                        "Confirma a finalização? O status será atualizado com base nos itens marcados.",
+                        [
+                          { text: "Cancelar", style: "cancel" },
+                          { text: "Confirmar", onPress: () => refinalizeOCMutation.mutate({ requestId: request.id }) },
+                        ]
+                      );
+                    }}
+                    disabled={refinalizeOCMutation.isPending}
+                    style={{
+                      backgroundColor: colors.success,
+                      borderRadius: 14, paddingVertical: 14,
+                      alignItems: "center", flexDirection: "row",
+                      justifyContent: "center", gap: 8,
+                      opacity: refinalizeOCMutation.isPending ? 0.6 : 1,
+                    }}
+                  >
+                    {refinalizeOCMutation.isPending
+                      ? <ActivityIndicator color="white" />
+                      : <>
+                          <Text style={{ fontSize: 16 }}>✅</Text>
+                          <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Finalizar Recompra</Text>
+                        </>
+                    }
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <ItemFulfillmentCard items={(request as any).items} />
+              )}
             </View>
           )}
 
@@ -2783,9 +2885,63 @@ export default function RequestDetailScreen() {
                   <Text className="text-sm font-bold text-foreground mb-1">📝 Verificação Final — Compras</Text>
                   <Text className="text-xs text-muted mb-3">Verifique o comprovante, anexe a nota fiscal e finalize a OC</Text>
 
-                  {/* Situação dos itens comprados/pendentes */}
+                  {/* Marcação interativa de itens na Verificação Final */}
                   {(request as any).items && (request as any).items.length > 0 && (
-                    <ItemFulfillmentCard items={(request as any).items} />
+                    <View style={{ marginBottom: 14 }}>
+                      <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>📦 Itens da Solicitação</Text>
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 10 }}>Marque os itens que foram efetivamente comprados antes de finalizar.</Text>
+                      {(request as any).items.map((item: any) => {
+                        const status = itemFulfillment[item.id] ?? "pendente";
+                        const isComprado = status === "comprado";
+                        return (
+                          <TouchableOpacity
+                            key={item.id}
+                            onPress={() => {
+                              const newStatus = isComprado ? "pendente" : "comprado";
+                              setItemFulfillment(prev => ({ ...prev, [item.id]: newStatus }));
+                              updateItemFulfillmentMutation.mutate({ itemId: item.id, fulfilledQty: newStatus === "comprado" ? Number(item.quantity ?? 1) : 0 });
+                            }}
+                            style={{
+                              flexDirection: "row", alignItems: "center",
+                              paddingVertical: 12, paddingHorizontal: 14,
+                              borderRadius: 12, borderWidth: 2,
+                              borderColor: isComprado ? colors.success : colors.border,
+                              backgroundColor: isComprado ? `${colors.success}12` : colors.background,
+                              marginBottom: 8, gap: 12,
+                            }}
+                          >
+                            <View style={{
+                              width: 24, height: 24, borderRadius: 12, borderWidth: 2,
+                              borderColor: isComprado ? colors.success : colors.muted,
+                              backgroundColor: isComprado ? colors.success : "transparent",
+                              alignItems: "center", justifyContent: "center",
+                            }}>
+                              {isComprado && <Text style={{ color: "white", fontSize: 13, fontWeight: "700" }}>✓</Text>}
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }} numberOfLines={2}>{item.description ?? item.name}</Text>
+                              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2 }}>{item.quantity} {item.unit}</Text>
+                            </View>
+                            <View style={{
+                              paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
+                              backgroundColor: isComprado ? colors.success : `${colors.warning}20`,
+                            }}>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: isComprado ? "white" : colors.warning }}>
+                                {isComprado ? "Comprado" : "Pendente"}
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 4, paddingHorizontal: 4 }}>
+                        <Text style={{ fontSize: 12, color: colors.success, fontWeight: "600" }}>
+                          ✓ {Object.values(itemFulfillment).filter(s => s === "comprado").length} comprado(s)
+                        </Text>
+                        <Text style={{ fontSize: 12, color: colors.warning, fontWeight: "600" }}>
+                          ⏳ {(request as any).items.length - Object.values(itemFulfillment).filter(s => s === "comprado").length} pendente(s)
+                        </Text>
+                      </View>
+                    </View>
                   )}
 
                   {/* Card de dados de pagamento para conferência */}
