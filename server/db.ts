@@ -1523,10 +1523,14 @@ export async function finalizeOC(requestId: number, user: User, orderValue?: num
   if (!request) throw new Error("Solicitação não encontrada");
   if (request.status !== "aguardando_verificacao_compras") throw new Error("Status inválido para finalizar OC");
 
-  // Marcar como concluída e habilitar nos Malotes
-  // orderValue: Valor da Ordem de Compra definido pelo Compras na Emissão de OC
+  // Determinar status final com base nos itens: se há pendentes → parcialmente_concluida
+  const allItemsForRequest = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+  const hasPendingItems = allItemsForRequest.some(i => i.itemStatus === "pendente" || i.itemStatus === "parcial");
+  const finalStatus = hasPendingItems ? "parcialmente_concluida" : "concluida";
+
+  // Marcar como concluída/parcialmente concluída e habilitar nos Malotes
   await db.update(purchaseRequests).set({
-    status: "concluida" as any,
+    status: finalStatus as any,
     isEnabledInMalotes: true,
     stepDeadlineAt: null,
     ...(orderValue != null ? { orderValue: String(orderValue) } : {}),
@@ -1538,7 +1542,9 @@ export async function finalizeOC(requestId: number, user: User, orderValue?: num
     userName: user.name ?? "Usuário",
     step: "verificacao_compras" as any,
     action: "oc_finalizada" as any,
-    comment: "Ordem de Compra finalizada. Nota fiscal verificada.",
+    comment: hasPendingItems
+      ? "Ordem de Compra finalizada. Itens pendentes registrados — solicitação parcialmente concluída."
+      : "Ordem de Compra finalizada. Nota fiscal verificada.",
   });
 
   // Notificar solicitante
@@ -3288,8 +3294,8 @@ export async function deleteQuotationsByRequestId(requestId: number, _userId: nu
 
 /**
  * Atualiza a quantidade cumprida de um item e recalcula o status do item e da solicitação.
- * Se todos os itens estiverem comprados, a solicitação fica "concluida".
- * Se pelo menos um item foi parcialmente comprado, fica "parcialmente_concluida".
+ * Opção A: qualquer item comprado avança para Financeiro (aguardando_aprovacao_compra).
+ * O status parcialmente_concluida é definido apenas ao finalizar a OC (finalizeOC).
  */
 export async function updateItemFulfillment(itemId: number, fulfilledQty: number, userId: number) {
   const db = await getDb();
@@ -3321,55 +3327,19 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, item.requestId)).limit(1);
   if (!request) return { itemStatus, requestStatus: "concluida" };
 
-  // Atualizar status da solicitação quando está em etapas onde itens podem ser marcados
-  // IMPORTANTE: ao marcar itens na Emissão de OC, NÃO pular etapas.
-  // Quando todos os itens são comprados → avança para Aprovação Financeiro (próxima etapa normal)
-  // Quando parte dos itens é comprada → marca como parcialmente_concluida (fica em aberto)
-  // Quando nenhum item é comprado → mantém no status atual
-  const statusElegivel = ["aguardando_ordem_compra", "parcialmente_concluida"];
-  if (statusElegivel.includes(request.status ?? "")) {
+  // OPÇÃO A: qualquer item comprado avança para Financeiro.
+  // parcialmente_concluida é definido apenas em finalizeOC (Verificação Final).
+  if (request.status === "aguardando_ordem_compra") {
     let newStatus: string;
-    if (allFulfilled) {
-      // Todos comprados → avança para próxima etapa (Aprovação Financeiro), NÃO conclui diretamente
+    if (allFulfilled || anyFulfilled) {
+      // ≥1 item comprado → avança para Financeiro
       newStatus = "aguardando_aprovacao_compra";
-    } else if (anyFulfilled) {
-      newStatus = "parcialmente_concluida";
     } else {
-      // Nenhum item comprado ainda — manter no status atual
-      newStatus = request.status ?? "aguardando_ordem_compra";
+      // Nenhum item comprado ainda — manter em aguardando_ordem_compra
+      newStatus = "aguardando_ordem_compra";
     }
     if (newStatus !== request.status) {
       await db.update(purchaseRequests).set({ status: newStatus as any }).where(eq(purchaseRequests.id, item.requestId));
-
-      // Notificar solicitante via WhatsApp quando a solicitação passa a ser parcialmente concluída
-      if (newStatus === "parcialmente_concluida") {
-        try {
-          // Buscar dados do solicitante
-          const [requester] = await db.select().from(users).where(eq(users.id, request.userId!)).limit(1);
-          if (requester?.phone) {
-            // Montar lista de itens com status
-            const updatedItems = allItems.map(i => ({
-              ...i,
-              itemStatus: i.id === itemId ? itemStatus : i.itemStatus,
-            }));
-            const comprados = updatedItems.filter(i => i.itemStatus === "comprado").map(i => `  ✅ ${(i as any).description ?? (i as any).name} (${i.quantity} ${i.unit})`).join("\n");
-            const pendentes = updatedItems.filter(i => i.itemStatus !== "comprado").map(i => `  ⏳ ${(i as any).description ?? (i as any).name} (${i.quantity} ${i.unit})`).join("\n");
-            const msg = [
-              `📦 *Solicitação Parcialmente Concluída*`,
-              ``,
-              `Olá ${requester.name?.split(" ")[0] ?? ""}, sua solicitação *${request.requestNumber}* foi parcialmente atendida pelo setor de Compras.`,
-              ``,
-              comprados ? `*Itens Comprados:*\n${comprados}` : "",
-              pendentes ? `*Itens Pendentes:*\n${pendentes}` : "",
-              ``,
-              `Os itens pendentes serão adquiridos em uma próxima oportunidade. Em caso de dúvidas, entre em contato com o setor de Compras.`,
-            ].filter(Boolean).join("\n");
-            await WA.sendSimpleWhatsApp(requester.phone, msg);
-          }
-        } catch (err) {
-          console.warn("[WhatsApp] Falha ao notificar solicitante sobre cumprimento parcial:", err);
-        }
-      }
     }
     return { itemStatus, requestStatus: newStatus };
   }

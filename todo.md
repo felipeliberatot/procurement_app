@@ -784,3 +784,4 @@
 - [x] Cumprimento parcial de solicitações — itens não comprados mantêm solicitação em aberto
 - [x] Indicador de cumprimento parcial no painel (dashboard)
 - [ ] Tela de relatórios com gráficos: compras por período, centro de custo, itens mais comprados, usuários que mais solicitam
+- [x] Opção A para itens parciais: quando ≥1 item comprado na Emissão de OC, avançar para Financeiro normalmente; ao finalizar OC com itens pendentes, marcar como parcialmente_concluida em vez de concluida
