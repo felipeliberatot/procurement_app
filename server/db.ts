@@ -1523,10 +1523,13 @@ export async function finalizeOC(requestId: number, user: User, orderValue?: num
   if (!request) throw new Error("Solicitação não encontrada");
   if (request.status !== "aguardando_verificacao_compras") throw new Error("Status inválido para finalizar OC");
 
-  // Determinar status final com base nos itens: se há pendentes → parcialmente_concluida
+  // Determinar status final com base nos itens:
+  // parcialmente_concluida SOMENTE quando há ≥1 comprado E ≥1 pendente/parcial
+  // Se nenhum item foi marcado (todos pendentes) → concluida normalmente
   const allItemsForRequest = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
+  const hasComprado = allItemsForRequest.some(i => i.itemStatus === "comprado");
   const hasPendingItems = allItemsForRequest.some(i => i.itemStatus === "pendente" || i.itemStatus === "parcial");
-  const finalStatus = hasPendingItems ? "parcialmente_concluida" : "concluida";
+  const finalStatus = (hasComprado && hasPendingItems) ? "parcialmente_concluida" : "concluida";
 
   // Marcar como concluída/parcialmente concluída e habilitar nos Malotes
   await db.update(purchaseRequests).set({
