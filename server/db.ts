@@ -3404,6 +3404,16 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
     // O status final (concluida / parcialmente_concluida) é decidido em finalizeOC
     return { itemStatus, requestStatus: request.status };
   }
+  // Parcialmente concluída: se todos os itens forem marcados como comprados, avança automaticamente para concluida
+  if (request.status === "parcialmente_concluida") {
+    const allItemsForRequest = await db.select().from(requestItems).where(eq(requestItems.requestId, item.requestId));
+    const allNowComprado = allItemsForRequest.every(i => i.itemStatus === "comprado");
+    if (allNowComprado) {
+      await db.update(purchaseRequests).set({ status: "concluida" as any }).where(eq(purchaseRequests.id, item.requestId));
+      return { itemStatus, requestStatus: "concluida" };
+    }
+    return { itemStatus, requestStatus: "parcialmente_concluida" };
+  }
   return { itemStatus, requestStatus: request.status };
 }
 
