@@ -767,7 +767,28 @@ export default function MalotesScreen() {
                   onPress={async () => {
                     const malote = selectedMalote;
                     const dataEnvio = malote.sentAt ? new Date(malote.sentAt).toLocaleDateString("pt-BR") : "—";
-                    const itensHtml = (malote.items ?? []).map((item: MaloteItem, idx: number) => `
+                    const itensHtml = (malote.items ?? []).map((item: MaloteItem, idx: number) => {
+                      const ocItemsHtml = item.ocItems && item.ocItems.length > 0
+                        ? `<tr><td colspan="4" style="padding:0;">
+                            <table style="width:100%;border-collapse:collapse;background:#f0fdf4;">
+                              <thead><tr>
+                                <th style="padding:5px 10px 5px 24px;font-size:10px;color:#166534;background:#dcfce7;text-align:left;font-weight:700;">Item</th>
+                                <th style="padding:5px 8px;font-size:10px;color:#166534;background:#dcfce7;text-align:center;font-weight:700;">Qtd</th>
+                                <th style="padding:5px 8px;font-size:10px;color:#166534;background:#dcfce7;text-align:center;font-weight:700;">Un.</th>
+                                <th style="padding:5px 10px;font-size:10px;color:#166534;background:#dcfce7;text-align:right;font-weight:700;">Vlr Unit.</th>
+                              </tr></thead>
+                              <tbody>${item.ocItems.map((oc: OcItem, oi: number) => `
+                                <tr style="background:${oi % 2 === 0 ? '#f0fdf4' : '#fff'}">
+                                  <td style="padding:5px 10px 5px 24px;font-size:11px;border-bottom:1px solid #d1fae5;">${oc.description}</td>
+                                  <td style="padding:5px 8px;font-size:11px;border-bottom:1px solid #d1fae5;text-align:center;">${Number(oc.quantity).toLocaleString('pt-BR')}</td>
+                                  <td style="padding:5px 8px;font-size:11px;border-bottom:1px solid #d1fae5;text-align:center;">${oc.unit ?? '—'}</td>
+                                  <td style="padding:5px 10px;font-size:11px;border-bottom:1px solid #d1fae5;text-align:right;">${oc.unitPrice ? 'R$ ' + Number(oc.unitPrice).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '—'}</td>
+                                </tr>
+                              `).join('')}</tbody>
+                            </table>
+                          </td></tr>`
+                        : '';
+                      return `
                       <tr style="background:${idx % 2 === 0 ? "#f9fafb" : "#fff"}">
                         <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;font-weight:600;">${item.requestCode}</td>
                         <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12px;">${item.application}</td>
@@ -778,7 +799,9 @@ export default function MalotesScreen() {
                           </span>
                         </td>
                       </tr>
-                    `).join("");
+                      ${ocItemsHtml}
+                    `;
+                    }).join("");
                     const html = `
                       <!DOCTYPE html>
                       <html lang="pt-BR">
