@@ -44,6 +44,7 @@ const STEP_LABELS_SERVER: Record<string, string> = {
   aguardando_controladoria:        "Aprovação Controladoria",
   aguardando_diretoria:            "Aprovação Diretoria",
   aguardando_ordem_compra:         "Emissão de OC (Compras)",
+  aguardando_aprovacao_ceo:        "Aprovação CEO",
   aguardando_aprovacao_compra:     "Aprovação Financeiro",
   aguardando_comprovante_pagamento:"Comprovante de Pagamento",
   aguardando_verificacao_compras:  "Verificação Final (Compras)",
@@ -1291,9 +1292,10 @@ export async function approveRequest(
       aguardando_controladoria:        "controladoria",
       aguardando_diretoria:            "diretoria",
       aguardando_ordem_compra:         "orcamento",          // Fluxo 06: OC → Orçamento
-      aguardando_aprovacao_compra:     "financeiro",         // Fluxo 06b: Aprovação de Compra → Financeiro
-      aguardando_comprovante_pagamento:"financeiro",         // Fluxo 07: Comprovante → Financeiro
-      aguardando_verificacao_compras:  "orcamento",          // Fluxo 08: Verificação Final → Orçamento
+      aguardando_aprovacao_ceo:        "ceo",                // Fluxo 06b: Aprovação CEO
+      aguardando_aprovacao_compra:     "financeiro",         // Fluxo 07: Aprovação de Compra → Financeiro
+      aguardando_comprovante_pagamento:"financeiro",         // Fluxo 08: Comprovante → Financeiro
+      aguardando_verificacao_compras:  "orcamento",          // Fluxo 09: Verificação Final → Orçamento
     };
 
     const isUrgentOrEmergency = request.urgencyLevel === "urgente" || request.urgencyLevel === "emergencial";
