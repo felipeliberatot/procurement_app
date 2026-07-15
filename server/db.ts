@@ -1,5 +1,5 @@
 import {
-  and, desc, eq, gte, inArray, lte, or, sql
+  and, desc, eq, gt, gte, inArray, lt, lte, or, sql
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool as createPromisePool } from "mysql2/promise";
@@ -764,13 +764,15 @@ export async function getMonthlyReport(year: number, month: number) {
   if (!db) return { requests: [], summary: { total: 0, concluidas: 0, pendentes: 0, rejeitadas: 0, canceladas: 0, totalValue: 0 }, byDepartment: [], byStatus: [], byUrgency: [] };
 
   // Filtrar pelo mês/ano selecionado
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0, 23, 59, 59);
+  // startDate: primeiro milissegundo do mês
+  const startDate = new Date(year, month - 1, 1, 0, 0, 0, 0);
+  // endDate: primeiro milissegundo do próximo mês (exclusivo) — evita problema de fuso horário no último dia
+  const endDate = new Date(year, month, 1, 0, 0, 0, 0);
 
   const all = await db.select().from(purchaseRequests)
     .where(and(
       gte(purchaseRequests.createdAt, startDate),
-      lte(purchaseRequests.createdAt, endDate)
+      lt(purchaseRequests.createdAt, endDate)
     ))
     .orderBy(purchaseRequests.createdAt);
 

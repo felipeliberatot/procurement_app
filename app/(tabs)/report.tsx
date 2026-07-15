@@ -50,7 +50,7 @@ export default function ReportScreen() {
   const [exporting, setExporting] = useState(false);
   const { isDesktop } = useBreakpoint();
 
-  const { data, isLoading } = trpc.requests.monthlyReport.useQuery(
+  const { data, isLoading, isFetching } = trpc.requests.monthlyReport.useQuery(
     { year: selectedYear, month: selectedMonth },
     { placeholderData: (prev: any) => prev }
   );
@@ -170,22 +170,28 @@ export default function ReportScreen() {
         <Text style={styles.headerTitle}>Relatórios</Text>
         <View style={styles.exportRow}>
           <TouchableOpacity
-            style={[styles.exportBtn, { backgroundColor: colors.primary }]}
+            style={[styles.exportBtn, { backgroundColor: colors.primary }, (exporting || isLoading || isFetching || !data) && { opacity: 0.5 }]}
             onPress={exportPDF}
-            disabled={exporting || isLoading || !data}
+            disabled={exporting || isLoading || isFetching || !data}
           >
             {exporting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : isFetching ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={styles.exportBtnText}>PDF</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.exportBtn, { backgroundColor: colors.success }]}
+            style={[styles.exportBtn, { backgroundColor: colors.success }, (exporting || isLoading || isFetching || !data) && { opacity: 0.5 }]}
             onPress={exportCSV}
-            disabled={exporting || isLoading || !data}
+            disabled={exporting || isLoading || isFetching || !data}
           >
-            <Text style={styles.exportBtnText}>CSV</Text>
+            {isFetching ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.exportBtnText}>CSV</Text>
+            )}
           </TouchableOpacity>
         </View>
       </View>
