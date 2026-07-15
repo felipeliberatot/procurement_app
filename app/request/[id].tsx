@@ -101,6 +101,7 @@ const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
 const STATUS_APPROVE_ONLY: RequestStatus[] = [
   "aguardando_orcamento",
   "aguardando_ordem_compra",
+  "aguardando_aprovacao_ceo",
   "aguardando_aprovacao_compra",
   "aguardando_comprovante_pagamento",
   "aguardando_verificacao_compras",
@@ -959,7 +960,7 @@ export default function RequestDetailScreen() {
   const isDone = currentStatus === "concluida";
   const isApproveOnly = STATUS_APPROVE_ONLY.includes(currentStatus);
   // A partir do Fluxo 06 (Emissão de OC), o valor estimado passa a se chamar "Valor da OC"
-  const isAfterOC = ["aguardando_ordem_compra", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(currentStatus);
+  const isAfterOC = ["aguardando_ordem_compra", "aguardando_aprovacao_ceo", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(currentStatus);
 
   // Permissão de cancelar: somente o solicitante que abriu ou master
   // Comparar como Number para evitar mismatch entre string e number
@@ -1042,7 +1043,7 @@ export default function RequestDetailScreen() {
     ${(request as any).paymentInfo ? `<div class="row"><span class="label">Dados de Pagamento:</span><span class="value">${(request as any).paymentInfo}</span></div>` : ""}
     ${(request as any).paymentObservations ? `<div class="row"><span class="label">Obs. Pagamento:</span><span class="value">${(request as any).paymentObservations}</span></div>` : ""}
     ${request.totalEstimatedValue ? (() => {
-              const isAfterOCStatus = ["aguardando_ordem_compra", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(request.status ?? "");
+              const isAfterOCStatus = ["aguardando_ordem_compra", "aguardando_aprovacao_ceo", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(request.status ?? "");
               const valorLabel = isAfterOCStatus ? "Valor da OC" : "Valor Estimado";
               const valorColor = isAfterOCStatus ? "#166534" : "#92400e";
               const bgColor = isAfterOCStatus ? "#dcfce7" : "#fef3c7";
@@ -1058,7 +1059,7 @@ export default function RequestDetailScreen() {
       <thead><tr><th>Descrição</th><th style="text-align:center">Qtd/Un</th><th style="text-align:right">Valor Unit.</th><th style="text-align:right">Total</th></tr></thead>
       <tbody>${itemsRows}</tbody>
       ${request.totalEstimatedValue ? (() => {
-              const isAfterOCStatus2 = ["aguardando_ordem_compra", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(request.status ?? "");
+              const isAfterOCStatus2 = ["aguardando_ordem_compra", "aguardando_aprovacao_ceo", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(request.status ?? "");
               const footerLabel = isAfterOCStatus2 ? "Valor da OC" : "Valor Estimado";
               return `<tfoot><tr class="total-row"><td colspan="3">${footerLabel}</td><td style="text-align:right">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td></tr></tfoot>`;
             })() : ""}
@@ -2496,6 +2497,49 @@ export default function RequestDetailScreen() {
                         </>
                       )
                     }
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Fluxo 06b: Aprovação CEO */}
+              {currentStatus === "aguardando_aprovacao_ceo" && (
+                <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
+                  <Text className="text-sm font-bold text-foreground mb-1">👔 Aprovação CEO</Text>
+                  <Text className="text-xs text-muted mb-4">Revise a Ordem de Compra e aprove ou recuse (somente CEO)</Text>
+
+                  {/* Visualização de itens comprados/pendentes para o CEO */}
+                  {(request as any).items && (request as any).items.length > 0 && (
+                    <View style={{ marginBottom: 4 }}>
+                      <ItemFulfillmentCard items={(request as any).items} />
+                    </View>
+                  )}
+
+                  {/* Botão de Aprovação */}
+                  <TouchableOpacity
+                    onPress={() => approveMutation.mutate({ requestId: request.id })}
+                    disabled={approveMutation.isPending}
+                    style={[
+                      styles.btn,
+                      { backgroundColor: colors.success, marginTop: 12 },
+                      approveMutation.isPending && { opacity: 0.6 },
+                    ]}
+                  >
+                    <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
+                      {approveMutation.isPending ? "Processando..." : "✓ Aprovar"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Botão de Recusa */}
+                  <TouchableOpacity
+                    onPress={() => setShowRejectReason(true)}
+                    disabled={approveMutation.isPending}
+                    style={[
+                      styles.btn,
+                      { backgroundColor: colors.error, borderWidth: 0, marginTop: 8 },
+                      approveMutation.isPending && { opacity: 0.6 },
+                    ]}
+                  >
+                    <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>✕ Recusar</Text>
                   </TouchableOpacity>
                 </View>
               )}

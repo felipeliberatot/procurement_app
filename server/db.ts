@@ -683,6 +683,7 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
       "aguardando_controladoria",
       "aguardando_diretoria",
       "aguardando_ordem_compra",
+      "aguardando_aprovacao_ceo",
       "aguardando_aprovacao_compra",
       "aguardando_comprovante_pagamento",
       "aguardando_verificacao_compras",
@@ -702,11 +703,12 @@ export async function getPendingRequestsForUser(role: string, extraRoles?: strin
         pendingStatuses.add("aguardando_aprovacao_compra");
         pendingStatuses.add("aguardando_comprovante_pagamento");
       } else {
-        const singleStatusMap: Record<string, string> = {
-          gerente: "aguardando_gerente",
-          controladoria: "aguardando_controladoria",
-          diretoria: "aguardando_diretoria",
-        };
+      const singleStatusMap: Record<string, string> = {
+        gerente: "aguardando_gerente",
+        controladoria: "aguardando_controladoria",
+        diretoria: "aguardando_diretoria",
+        ceo: "aguardando_aprovacao_ceo",
+      };
         const s = singleStatusMap[r];
         if (s) pendingStatuses.add(s);
       }
@@ -979,19 +981,21 @@ const STEP_FLOW_NORMAL: Record<string, { step: string; nextStatus: string; actio
   aguardando_orcamento:            { step: "orcamento",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
   aguardando_controladoria:        { step: "controladoria",     nextStatus: "aguardando_diretoria",              action: "aprovada" },
   aguardando_diretoria:            { step: "diretoria",         nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
-  aguardando_ordem_compra:         { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_compra",       action: "ordem_emitida" },
+  aguardando_ordem_compra:         { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_ceo",          action: "ordem_emitida" },
+  aguardando_aprovacao_ceo:        { step: "ceo",               nextStatus: "aguardando_aprovacao_compra",       action: "aprovada" },
   aguardando_aprovacao_compra:     { step: "aprovacao_compra",  nextStatus: "aguardando_comprovante_pagamento",  action: "compra_aprovada" },
   aguardando_comprovante_pagamento:{ step: "financeiro",        nextStatus: "aguardando_verificacao_compras",   action: "comprovante_aprovado" },
   rejeitada:                       { step: "gerente",           nextStatus: "aguardando_gerente",                action: "reaberta" },
 };
 
-// Fluxo URGENTE/EMERGENCIAL: Gerente → Orçamento → Diretoria → Controladoria → OC → Financeiro → Comprovante → Verificação
+// Fluxo URGENTE/EMERGENCIAL: Gerente → Orçamento → Diretoria → Controladoria → OC → CEO → Financeiro → Comprovante → Verificação
 const STEP_FLOW_URGENT: Record<string, { step: string; nextStatus: string; action: string }> = {
   aguardando_gerente:              { step: "gerente",           nextStatus: "aguardando_orcamento",              action: "aprovada" },
   aguardando_orcamento:            { step: "orcamento",         nextStatus: "aguardando_diretoria",              action: "aprovada" },
   aguardando_diretoria:            { step: "diretoria",         nextStatus: "aguardando_controladoria",          action: "aprovada" },
   aguardando_controladoria:        { step: "controladoria",     nextStatus: "aguardando_ordem_compra",           action: "aprovada" },
-  aguardando_ordem_compra:         { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_compra",       action: "ordem_emitida" },
+  aguardando_ordem_compra:         { step: "ordem_compra",      nextStatus: "aguardando_aprovacao_ceo",          action: "ordem_emitida" },
+  aguardando_aprovacao_ceo:        { step: "ceo",               nextStatus: "aguardando_aprovacao_compra",       action: "aprovada" },
   aguardando_aprovacao_compra:     { step: "aprovacao_compra",  nextStatus: "aguardando_comprovante_pagamento",  action: "compra_aprovada" },
   aguardando_comprovante_pagamento:{ step: "financeiro",        nextStatus: "aguardando_verificacao_compras",   action: "comprovante_aprovado" },
   rejeitada:                       { step: "gerente",           nextStatus: "aguardando_gerente",                action: "reaberta" },
@@ -1168,6 +1172,7 @@ export async function approveRequest(
     aguardando_controladoria:         ["controladoria", "master"],
     aguardando_diretoria:             ["diretoria", "master"],
     aguardando_ordem_compra:          ["orcamento", "master"],
+    aguardando_aprovacao_ceo:         ["ceo", "master"],
     aguardando_aprovacao_compra:      ["financeiro", "master"],
     aguardando_comprovante_pagamento: ["financeiro", "master"],
     aguardando_verificacao_compras:   ["orcamento", "master"],
@@ -1192,6 +1197,7 @@ export async function approveRequest(
         aguardando_controladoria: "Controladoria",
         aguardando_diretoria: "Diretoria",
         aguardando_ordem_compra: "Compras",
+        aguardando_aprovacao_ceo: "CEO",
         aguardando_aprovacao_compra: "Financeiro",
         aguardando_comprovante_pagamento: "Financeiro",
         aguardando_verificacao_compras: "Compras",
