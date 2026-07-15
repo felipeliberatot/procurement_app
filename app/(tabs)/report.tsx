@@ -6,11 +6,13 @@ import {
   ActivityIndicator,
   FlatList,
   LayoutChangeEvent,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -41,7 +43,10 @@ export default function ReportScreen() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [activeTab, setActiveTab] = useState<"resumo" | "tendencia" | "rankings" | "usuarios" | "detalhes">("resumo");
+  const [activeTab, setActiveTab] = useState<"resumo" | "tendencia" | "rankings" | "usuarios" | "detalhes" | "porbem">("resumo");
+  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [assetSearch, setAssetSearch] = useState("");
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { isDesktop } = useBreakpoint();
 
@@ -71,6 +76,14 @@ export default function ReportScreen() {
   );
 
   const { data: partialStats } = trpc.requests.partialFulfillmentStats.useQuery();
+  const { data: assetsList } = trpc.assets.list.useQuery();
+  const { data: assetReport, isLoading: loadingAssetReport } = trpc.requests.requestsByAsset.useQuery(
+    { application: selectedAsset ?? "" },
+    { enabled: !!selectedAsset, placeholderData: (prev: any) => prev }
+  );
+  const filteredAssets = (assetsList ?? []).filter((a: any) =>
+    !assetSearch || a.code.toLowerCase().includes(assetSearch.toLowerCase()) || a.description.toLowerCase().includes(assetSearch.toLowerCase())
+  );
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
@@ -211,6 +224,7 @@ export default function ReportScreen() {
           { key: "rankings", label: "Rankings" },
           { key: "usuarios", label: "Usuários" },
           { key: "detalhes", label: "Detalhes" },
+          { key: "porbem", label: "Por Bem" },
         ] as const).map(tab => (
           <Pressable
             key={tab.key}
@@ -225,7 +239,22 @@ export default function ReportScreen() {
       </ScrollView>
 
       {/* Conteúdo */}
-      {isLoading ? (
+      {activeTab === "porbem" ? (
+        <PorBemTab
+          assetsList={assetsList ?? []}
+          selectedAsset={selectedAsset}
+          setSelectedAsset={setSelectedAsset}
+          assetSearch={assetSearch}
+          setAssetSearch={setAssetSearch}
+          showAssetPicker={showAssetPicker}
+          setShowAssetPicker={setShowAssetPicker}
+          filteredAssets={filteredAssets}
+          assetReport={assetReport}
+          loading={loadingAssetReport}
+          colors={colors}
+          styles={styles}
+        />
+      ) : isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.emptyText, { marginTop: 12 }]}>Carregando relatório...</Text>
@@ -790,6 +819,154 @@ function generatePDFHtml(data: any, monthName: string, year: number): string {
 </table>
 </body>
 </html>`;
+}
+
+// ── Aba Por Bem ─────────────────────────────────────────────────────────────
+function PorBemTab({
+  assetsList, selectedAsset, setSelectedAsset,
+  assetSearch, setAssetSearch,
+  showAssetPicker, setShowAssetPicker,
+  filteredAssets, assetReport, loading, colors, styles,
+}: any) {
+  const selectedAssetObj = selectedAsset
+    ? (assetsList ?? []).find((a: any) => `${a.code} — ${a.description}` === selectedAsset)
+    : null;
+
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      {/* Seletor de Bem */}
+      <View style={{ marginBottom: 16 }}>
+        <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Bem / Equipamento</Text>
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 }}
+          onPress={() => setShowAssetPicker(true)}
+        >
+          <Text style={{ fontSize: 22 }}>📦</Text>
+          <View style={{ flex: 1 }}>
+            {selectedAssetObj ? (
+              <>
+                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}>{selectedAssetObj.description}</Text>
+                <Text style={{ fontSize: 12, color: colors.muted }}>{selectedAssetObj.code}{selectedAssetObj.category ? ` · ${selectedAssetObj.category}` : ""}</Text>
+              </>
+            ) : (
+              <Text style={{ fontSize: 15, color: colors.muted }}>Selecionar bem cadastrado...</Text>
+            )}
+          </View>
+          <Text style={{ fontSize: 18, color: colors.muted }}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Resumo do bem */}
+      {selectedAsset && assetReport && (
+        <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+          <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: colors.primary }}>{assetReport.summary.totalSolicitacoes}</Text>
+            <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>Solicitações</Text>
+          </View>
+          <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 18, fontWeight: "800", color: colors.success }} numberOfLines={1} adjustsFontSizeToFit>
+              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(assetReport.summary.totalGasto)}
+            </Text>
+            <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>Total Gasto</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Lista de solicitações */}
+      {!selectedAsset ? (
+        <View style={styles.centered}>
+          <Text style={{ fontSize: 40, marginBottom: 8 }}>🔍</Text>
+          <Text style={[styles.emptyText, { textAlign: "center" }]}>Selecione um bem para ver o histórico de compras concluídas.</Text>
+        </View>
+      ) : loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.emptyText, { marginTop: 12 }]}>Carregando...</Text>
+        </View>
+      ) : !assetReport || assetReport.requests.length === 0 ? (
+        <View style={styles.centered}>
+          <Text style={{ fontSize: 40, marginBottom: 8 }}>📭</Text>
+          <Text style={[styles.emptyText, { textAlign: "center" }]}>Nenhuma solicitação concluída encontrada para este bem.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={assetReport.requests}
+          keyExtractor={(item: any) => String(item.id)}
+          scrollEnabled={false}
+          renderItem={({ item }: any) => (
+            <View style={[styles.detailCard, { marginBottom: 10 }]}>
+              <View style={styles.detailHeader}>
+                <Text style={styles.detailNumber}>{item.requestNumber}</Text>
+                <View style={[styles.statusBadge, { backgroundColor: item.status === "concluida" ? colors.success + "22" : colors.warning + "22" }]}>
+                  <Text style={[styles.statusBadgeText, { color: item.status === "concluida" ? colors.success : colors.warning }]}>
+                    {item.status === "concluida" ? "Concluída" : "Parcial"}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.detailMeta}>{item.requesterName} · {item.department}</Text>
+              {item.costCenterCode && <Text style={styles.detailMeta}>CC: {item.costCenterCode}</Text>}
+              {item.observations && <Text style={[styles.detailMeta, { marginTop: 4 }]} numberOfLines={2}>{item.observations}</Text>}
+              <View style={styles.detailFooter}>
+                <Text style={[styles.detailValue, { color: colors.success }]}>
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(item.totalEstimatedValue ?? "0"))}
+                </Text>
+                <Text style={styles.detailMeta}>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</Text>
+              </View>
+            </View>
+          )}
+        />
+      )}
+
+      {/* Modal seletor de bem */}
+      <Modal visible={showAssetPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAssetPicker(false)}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>📦 Selecionar Bem</Text>
+            <TouchableOpacity onPress={() => setShowAssetPicker(false)}>
+              <Text style={{ fontSize: 16, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ padding: 12 }}>
+            <TextInput
+              style={{ backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 10, fontSize: 14, color: colors.foreground }}
+              placeholder="Buscar bem por código ou descrição..."
+              placeholderTextColor={colors.muted}
+              value={assetSearch}
+              onChangeText={setAssetSearch}
+              autoFocus
+            />
+          </View>
+          <FlatList
+            data={filteredAssets}
+            keyExtractor={(item: any) => String(item.id)}
+            renderItem={({ item }: any) => (
+              <TouchableOpacity
+                style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", gap: 12 }}
+                onPress={() => {
+                  setSelectedAsset(`${item.code} — ${item.description}`);
+                  setAssetSearch("");
+                  setShowAssetPicker(false);
+                }}
+              >
+                <View style={{ backgroundColor: colors.primary + "22", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>{item.code}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}>{item.description}</Text>
+                  {item.category && <Text style={{ fontSize: 12, color: colors.muted }}>{item.category}</Text>}
+                </View>
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={
+              <View style={{ padding: 32, alignItems: "center" }}>
+                <Text style={{ color: colors.muted }}>Nenhum bem encontrado.</Text>
+              </View>
+            }
+          />
+        </View>
+      </Modal>
+    </ScrollView>
+  );
 }
 
 // ── Estilos ───────────────────────────────────────────────────────────────────

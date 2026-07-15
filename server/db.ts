@@ -3554,3 +3554,45 @@ export async function getPurchaseTrend(year: number, month: number) {
 
   return results;
 }
+
+// ─── Relatório por Bem ────────────────────────────────────────────────────────
+export async function getRequestsByAsset(application: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const rows = await db
+    .select({
+      id: purchaseRequests.id,
+      requestNumber: purchaseRequests.requestNumber,
+      requesterName: purchaseRequests.requesterName,
+      department: purchaseRequests.department,
+      costCenterCode: purchaseRequests.costCenterCode,
+      urgencyLevel: purchaseRequests.urgencyLevel,
+      status: purchaseRequests.status,
+      totalEstimatedValue: purchaseRequests.totalEstimatedValue,
+      observations: purchaseRequests.observations,
+      createdAt: purchaseRequests.createdAt,
+    })
+    .from(purchaseRequests)
+    .where(
+      and(
+        eq(purchaseRequests.application, application),
+        or(
+          eq(purchaseRequests.status, "concluida"),
+          eq(purchaseRequests.status, "parcialmente_concluida"),
+        )
+      )
+    )
+    .orderBy(desc(purchaseRequests.createdAt));
+
+  const totalGasto = rows.reduce((sum, r) => sum + parseFloat(r.totalEstimatedValue ?? "0"), 0);
+  const totalSolicitacoes = rows.length;
+
+  return {
+    requests: rows,
+    summary: {
+      totalSolicitacoes,
+      totalGasto: Math.round(totalGasto * 100) / 100,
+    },
+  };
+}
