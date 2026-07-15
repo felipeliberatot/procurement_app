@@ -89,27 +89,50 @@ export default function ReportScreen() {
 
   // ── Exportar CSV ─────────────────────────────────────────────────────────────
   async function exportCSV() {
-    if (!data) return;
     setExporting(true);
     try {
-      const header = "Nº Solicitação;Solicitante;Departamento;Aplicação;Status;Urgência;Valor Total;Data Criação;Nº OC;Itens\n";
-      const rows = data.requests.map((r: any) =>
-        [
-          r.requestNumber ?? r.id,
-          `"${r.requesterName ?? ""}"`,
-          `"${r.department ?? ""}"`,
-          `"${r.application ?? ""}"`,
-          STATUS_LABELS[r.status as keyof typeof STATUS_LABELS] ?? r.status,
-          URGENCY_LABELS[r.urgencyLevel as keyof typeof URGENCY_LABELS] ?? r.urgencyLevel,
-          r.totalValue?.toFixed(2).replace(".", ",") ?? "0,00",
-          formatDate(r.createdAt),
-          r.purchaseOrderNumber ?? "",
-          r.itemCount ?? 0,
-        ].join(";")
-      ).join("\n");
+      let csvContent: string;
+      let fileName: string;
 
-      const csvContent = header + rows;
-      const fileName = `relatorio_${selectedYear}_${String(selectedMonth).padStart(2, "0")}.csv`;
+      if (activeTab === "porbem" && selectedAsset && assetReport) {
+        // CSV da aba Por Bem: solicitações do bem selecionado
+        const header = "Nº Solicitação;Solicitante;Departamento;Centro de Custo;Urgência;Valor Total;Data Criação;Data Conclusão\n";
+        const rows = (assetReport.requests ?? []).map((r: any) =>
+          [
+            r.requestNumber ?? r.id,
+            `"${r.requesterName ?? ""}"`,
+            `"${r.department ?? ""}"`,
+            `"${r.costCenter ?? ""}"`,
+            r.urgency === "emergencial" ? "Emergencial" : r.urgency === "urgente" ? "Urgente" : "Normal",
+            (r.totalEstimatedValue ?? 0).toFixed(2).replace(".", ","),
+            r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
+            r.updatedAt ? new Date(r.updatedAt).toLocaleDateString("pt-BR") : "",
+          ].join(";")
+        ).join("\n");
+        csvContent = header + rows;
+        const assetCode = assetReport.asset?.code ?? selectedAsset;
+        fileName = `bem_${assetCode.replace(/[^a-zA-Z0-9]/g, "_")}.csv`;
+      } else {
+        // CSV das demais abas: relatório mensal
+        if (!data) { setExporting(false); return; }
+        const header = "Nº Solicitação;Solicitante;Departamento;Aplicação;Status;Urgência;Valor Total;Data Criação;Nº OC;Itens\n";
+        const rows = data.requests.map((r: any) =>
+          [
+            r.requestNumber ?? r.id,
+            `"${r.requesterName ?? ""}"`,
+            `"${r.department ?? ""}"`,
+            `"${r.application ?? ""}"`,
+            STATUS_LABELS[r.status as keyof typeof STATUS_LABELS] ?? r.status,
+            URGENCY_LABELS[r.urgencyLevel as keyof typeof URGENCY_LABELS] ?? r.urgencyLevel,
+            r.totalValue?.toFixed(2).replace(".", ",") ?? "0,00",
+            formatDate(r.createdAt),
+            r.purchaseOrderNumber ?? "",
+            r.itemCount ?? 0,
+          ].join(";")
+        ).join("\n");
+        csvContent = header + rows;
+        fileName = `relatorio_${selectedYear}_${String(selectedMonth).padStart(2, "0")}.csv`;
+      }
 
       if (Platform.OS === "web") {
         const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
