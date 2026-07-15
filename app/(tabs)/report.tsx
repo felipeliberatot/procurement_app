@@ -135,12 +135,16 @@ export default function ReportScreen() {
 
   // ── Exportar PDF ─────────────────────────────────────────────────────────────
   async function exportPDF() {
-    if (!data) return;
     setExporting(true);
     try {
-      const monthName = MONTHS[selectedMonth - 1];
-      const html = generatePDFHtml(data, monthName, selectedYear);
-
+      let html: string;
+      if (activeTab === "porbem" && selectedAsset && assetReport) {
+        html = generateAssetPDFHtml(assetReport, selectedAsset);
+      } else {
+        if (!data) { setExporting(false); return; }
+        const monthName = MONTHS[selectedMonth - 1];
+        html = generatePDFHtml(data, monthName, selectedYear);
+      }
       if (Platform.OS === "web") {
         const win = window.open("", "_blank");
         if (win) {
@@ -1151,4 +1155,80 @@ function createStyles(colors: any) {
       fontWeight: "700",
     },
   });
+}
+
+function generateAssetPDFHtml(assetReport: any, assetApplication: string): string {
+  const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v ?? 0);
+  const fmtDate = (d: string | Date) => d ? new Date(d).toLocaleDateString("pt-BR") : "-";
+
+  const rows = (assetReport.requests ?? []).map((r: any) => `
+    <tr>
+      <td>${r.requestNumber ?? "-"}</td>
+      <td>${r.requesterName ?? "-"}</td>
+      <td>${r.department ?? "-"}</td>
+      <td>${r.costCenter ?? "-"}</td>
+      <td>${r.urgency === "emergencial" ? "Emergencial" : r.urgency === "urgente" ? "Urgente" : "Normal"}</td>
+      <td style="text-align:right">${fmt(r.totalEstimatedValue ?? 0)}</td>
+      <td>${fmtDate(r.createdAt)}</td>
+      <td>${fmtDate(r.updatedAt)}</td>
+    </tr>
+  `).join("");
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>Relatório por Bem</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 24px; }
+  h1 { font-size: 18px; color: #1a5c2a; margin-bottom: 4px; }
+  .subtitle { color: #555; font-size: 11px; margin-bottom: 16px; }
+  .summary { display: flex; gap: 16px; margin-bottom: 20px; }
+  .card { background: #f5f5f5; border-radius: 8px; padding: 12px 20px; min-width: 140px; }
+  .card-value { font-size: 22px; font-weight: 800; color: #1a5c2a; }
+  .card-label { font-size: 11px; color: #666; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { background: #1a5c2a; color: #fff; padding: 7px 8px; text-align: left; font-size: 11px; }
+  td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .asset-code { display: inline-block; background: #e6f4ea; color: #1a5c2a; border-radius: 4px; padding: 2px 8px; font-weight: 700; font-size: 12px; margin-right: 8px; }
+</style>
+</head>
+<body>
+<h1>Relatório por Bem</h1>
+<div class="subtitle">Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+<div style="margin-bottom:16px">
+  <span class="asset-code">${assetReport.asset?.code ?? assetApplication}</span>
+  <strong>${assetReport.asset?.description ?? assetApplication}</strong>
+  ${assetReport.asset?.category ? `<span style="color:#666; margin-left:8px">${assetReport.asset.category}</span>` : ""}
+</div>
+<div class="summary">
+  <div class="card">
+    <div class="card-value">${assetReport.summary?.totalSolicitacoes ?? 0}</div>
+    <div class="card-label">Solicitações Concluídas</div>
+  </div>
+  <div class="card">
+    <div class="card-value" style="font-size:16px">${fmt(assetReport.summary?.totalGasto ?? 0)}</div>
+    <div class="card-label">Total Gasto</div>
+  </div>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th>Nº</th>
+      <th>Solicitante</th>
+      <th>Departamento</th>
+      <th>Centro de Custo</th>
+      <th>Urgência</th>
+      <th style="text-align:right">Valor</th>
+      <th>Criado em</th>
+      <th>Concluído em</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${rows || '<tr><td colspan="8" style="text-align:center;color:#999">Nenhuma solicitação encontrada</td></tr>'}
+  </tbody>
+</table>
+</body>
+</html>`;
 }
