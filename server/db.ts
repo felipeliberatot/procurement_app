@@ -3576,6 +3576,8 @@ export async function getRequestsByAsset(application: string) {
       urgencyLevel: purchaseRequests.urgencyLevel,
       status: purchaseRequests.status,
       totalEstimatedValue: purchaseRequests.totalEstimatedValue,
+      // Valor real da OC (preenchido pelo Compras) — preferido ao totalEstimatedValue
+      orderValue: purchaseRequests.orderValue,
       observations: purchaseRequests.observations,
       createdAt: purchaseRequests.createdAt,
       // Data de finalização efetiva (competência do gasto)
@@ -3594,7 +3596,8 @@ export async function getRequestsByAsset(application: string) {
     // Ordenar por data de finalização (competência do gasto), mais recente primeiro
     .orderBy(desc(purchaseRequests.completedAt));
 
-  const totalGasto = rows.reduce((sum, r) => sum + parseFloat(r.totalEstimatedValue ?? "0"), 0);
+  // Usar orderValue quando disponível (valor real da OC), senão totalEstimatedValue (estimativa)
+  const totalGasto = rows.reduce((sum, r) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
   const totalSolicitacoes = rows.length;
 
   return {
