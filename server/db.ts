@@ -769,12 +769,29 @@ export async function getMonthlyReport(year: number, month: number) {
   // endDate: primeiro milissegundo do próximo mês (exclusivo) — evita problema de fuso horário no último dia
   const endDate = new Date(year, month, 1, 0, 0, 0, 0);
 
-  const all = await db.select().from(purchaseRequests)
-    .where(and(
-      gte(purchaseRequests.createdAt, startDate),
-      lt(purchaseRequests.createdAt, endDate)
-    ))
-    .orderBy(purchaseRequests.createdAt);
+  // Buscar solicitações do período usando lógica de competência:
+  // - Concluídas/parcialmente concluídas: filtrar por completedAt (data de conclusão = competência do gasto)
+  // - Demais status (pendentes, rejeitadas, canceladas): filtrar por createdAt (data de abertura)
+  const [concluidas, naoConcluidasRaw] = await Promise.all([
+    db.select().from(purchaseRequests)
+      .where(and(
+        or(
+          eq(purchaseRequests.status, "concluida"),
+          eq(purchaseRequests.status, "parcialmente_concluida"),
+        ),
+        gte(purchaseRequests.completedAt, startDate),
+        lt(purchaseRequests.completedAt, endDate)
+      ))
+      .orderBy(purchaseRequests.completedAt),
+    db.select().from(purchaseRequests)
+      .where(and(
+        sql`${purchaseRequests.status} NOT IN ('concluida', 'parcialmente_concluida')`,
+        gte(purchaseRequests.createdAt, startDate),
+        lt(purchaseRequests.createdAt, endDate)
+      ))
+      .orderBy(purchaseRequests.createdAt),
+  ]);
+  const all = [...concluidas, ...naoConcluidasRaw];
 
   // Buscar itens de todas as solicitações do período
   const allIds = all.map(r => r.id);
