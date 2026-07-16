@@ -349,6 +349,9 @@ function BarChart({ items, colors: c }: { items: { label: string; value: number;
 // ── Aba Resumo ────────────────────────────────────────────────────────────────
 function ResumoTab({ data, colors, styles, partialStats }: any) {
   const s = data.summary;
+  const rankingByAsset: { application: string; totalGasto: number; count: number }[] = data.rankingByAsset ?? [];
+  const maxAssetVal = Math.max(...rankingByAsset.map((a: any) => a.totalGasto), 1);
+
   const statusItems = [
     { label: "Concluídas", value: s.concluidas, color: colors.success },
     { label: "Pendentes", value: s.pendentes, color: colors.warning },
@@ -367,12 +370,47 @@ function ResumoTab({ data, colors, styles, partialStats }: any) {
   }));
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      {/* Cards de resumo */}
+
+      {/* Cards de contagem */}
       <View style={styles.cardGrid}>
         <SummaryCard label="Total" value={s.total} color={colors.primary} styles={styles} />
         <SummaryCard label="Concluídas" value={s.concluidas} color={colors.success} styles={styles} />
         <SummaryCard label="Pendentes" value={s.pendentes} color={colors.warning} styles={styles} />
         <SummaryCard label="Rejeitadas" value={s.rejeitadas} color={colors.error} styles={styles} />
+      </View>
+
+      {/* Métricas financeiras */}
+      <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
+        <View style={[styles.card, { flex: 1, margin: 0 }]}>
+          <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Valor Gasto (OC)</Text>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: colors.success }} numberOfLines={1} adjustsFontSizeToFit>
+            {formatCurrency(s.totalGastoReal ?? 0)}
+          </Text>
+          <Text style={{ fontSize: 10, color: colors.muted, marginTop: 2 }}>Valor real das OCs concluídas</Text>
+        </View>
+        <View style={[styles.card, { flex: 1, margin: 0 }]}>
+          <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 4 }}>Ticket Médio</Text>
+          <Text style={{ fontSize: 16, fontWeight: "800", color: colors.primary }} numberOfLines={1} adjustsFontSizeToFit>
+            {formatCurrency(s.ticketMedio ?? 0)}
+          </Text>
+          <Text style={{ fontSize: 10, color: colors.muted, marginTop: 2 }}>Por solicitação concluída</Text>
+        </View>
+      </View>
+
+      {/* Taxa de conclusão */}
+      <View style={[styles.card, { marginTop: 8 }]}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <Text style={styles.sectionTitle}>Taxa de Conclusão</Text>
+          <Text style={{ fontSize: 20, fontWeight: "800", color: (s.taxaConclusao ?? 0) >= 70 ? colors.success : (s.taxaConclusao ?? 0) >= 40 ? colors.warning : colors.error }}>
+            {s.taxaConclusao ?? 0}%
+          </Text>
+        </View>
+        <View style={{ height: 10, backgroundColor: colors.border, borderRadius: 5, overflow: "hidden" }}>
+          <View style={{ width: `${s.taxaConclusao ?? 0}%`, height: "100%", backgroundColor: (s.taxaConclusao ?? 0) >= 70 ? colors.success : (s.taxaConclusao ?? 0) >= 40 ? colors.warning : colors.error, borderRadius: 5 }} />
+        </View>
+        <Text style={{ fontSize: 11, color: colors.muted, marginTop: 6 }}>
+          {s.concluidas} de {s.total} solicitações concluídas no período
+        </Text>
       </View>
 
       {/* Cumprimento Parcial */}
@@ -396,13 +434,40 @@ function ResumoTab({ data, colors, styles, partialStats }: any) {
         </View>
       )}
 
-      {/* Valor total */}
-      <View style={[styles.card, { marginTop: 8 }]}>
-        <Text style={styles.cardLabel}>Valor Total do Período</Text>
-        <Text style={[styles.cardValue, { color: colors.primary, fontSize: 22 }]}>
-          {formatCurrency(s.totalValue)}
-        </Text>
-      </View>
+      {/* Ranking de Bens por Valor Gasto */}
+      {rankingByAsset.length > 0 && (
+        <View style={[styles.card, { marginTop: 8 }]}>
+          <Text style={styles.sectionTitle}>Ranking de Bens por Gasto</Text>
+          <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 12 }}>Top 10 equipamentos com maior valor de OC no período</Text>
+          {rankingByAsset.map((asset: any, idx: number) => {
+            const barPct = (asset.totalGasto / maxAssetVal) * 100;
+            const parts = asset.application.split(" — ");
+            const code = parts[0] ?? asset.application;
+            const desc = parts[1] ?? "";
+            const RANK_COLORS = [colors.error, colors.warning, colors.primary];
+            const barColor = idx < 3 ? RANK_COLORS[idx] : colors.muted;
+            return (
+              <View key={idx} style={{ marginBottom: 14 }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 4 }}>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: barColor, alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ fontSize: 10, fontWeight: "800", color: "#fff" }}>{idx + 1}</Text>
+                      </View>
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.foreground, flex: 1 }} numberOfLines={1}>{desc || code}</Text>
+                    </View>
+                    <Text style={{ fontSize: 10, color: colors.muted, marginLeft: 26 }}>{code} · {asset.count} solicitação{asset.count !== 1 ? "ões" : ""}</Text>
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: "800", color: barColor }}>{formatCurrency(asset.totalGasto)}</Text>
+                </View>
+                <View style={{ height: 6, backgroundColor: colors.border, borderRadius: 3, overflow: "hidden", marginLeft: 26 }}>
+                  <View style={{ width: `${barPct}%`, height: "100%", backgroundColor: barColor, borderRadius: 3 }} />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+      )}
 
       {/* Gráfico de Status */}
       {statusItems.length > 0 && (

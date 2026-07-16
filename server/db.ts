@@ -852,14 +852,37 @@ export async function getMonthlyReport(year: number, month: number) {
     status: r.status,
     urgencyLevel: r.urgencyLevel,
     totalEstimatedValue: r.totalEstimatedValue,
+    orderValue: r.orderValue,
     createdAt: r.createdAt,
+    completedAt: r.completedAt,
     paymentMethod: r.paymentMethod,
     purchaseOrderNumber: r.purchaseOrderNumber,
     itemCount: items.filter(i => i.requestId === r.id).length,
     totalValue: items.filter(i => i.requestId === r.id).reduce((sum, i) => sum + parseFloat(i.totalPrice ?? "0"), 0),
   }));
 
-  return { requests, summary, byDepartment, byStatus, byUrgency };
+  // Ranking de bens por valor gasto (usa orderValue das concluídas, com fallback para totalEstimatedValue)
+  const assetMap = new Map<string, { application: string; totalGasto: number; count: number }>();
+  for (const r of concluidas) {
+    if (!r.application) continue;
+    const valor = parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0");
+    if (!assetMap.has(r.application)) assetMap.set(r.application, { application: r.application, totalGasto: 0, count: 0 });
+    const entry = assetMap.get(r.application)!;
+    entry.totalGasto += valor;
+    entry.count++;
+  }
+  const rankingByAsset = Array.from(assetMap.values())
+    .sort((a, b) => b.totalGasto - a.totalGasto)
+    .slice(0, 10);
+
+  // Métricas adicionais para o resumo
+  const concluidasArr = all.filter(r => r.status === "concluida" || r.status === "parcialmente_concluida");
+  const totalGastoReal = concluidasArr.reduce((sum, r) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
+  const taxaConclusao = all.length > 0 ? Math.round((concluidasArr.length / all.length) * 100) : 0;
+  const ticketMedio = concluidasArr.length > 0 ? totalGastoReal / concluidasArr.length : 0;
+  const summaryEnhanced = { ...summary, totalGastoReal, taxaConclusao, ticketMedio };
+
+  return { requests, summary: summaryEnhanced, byDepartment, byStatus, byUrgency, rankingByAsset };
 }
 
 export async function getApprovalHistory(requestId: number) {
