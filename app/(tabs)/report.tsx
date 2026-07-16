@@ -102,11 +102,11 @@ export default function ReportScreen() {
             r.requestNumber ?? r.id,
             `"${r.requesterName ?? ""}"`,
             `"${r.department ?? ""}"`,
-            `"${r.costCenter ?? ""}"`,
-            r.urgency === "emergencial" ? "Emergencial" : r.urgency === "urgente" ? "Urgente" : "Normal",
-            (r.totalEstimatedValue ?? 0).toFixed(2).replace(".", ","),
+            `"${r.costCenterCode ?? ""}"`,
+            r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal",
+            parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ","),
             r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
-            r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString("pt-BR") : ""),
+            r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : "",
           ].join(";")
         ).join("\n");
         csvContent = header + rows;
@@ -941,7 +941,7 @@ function PorBemTab({
               {item.observations && <Text style={[styles.detailMeta, { marginTop: 4 }]} numberOfLines={2}>{item.observations}</Text>}
               <View style={styles.detailFooter}>
                 <Text style={[styles.detailValue, { color: colors.success }]}>
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(item.totalEstimatedValue ?? "0"))}
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(item.orderValue ?? item.totalEstimatedValue ?? "0"))}
                 </Text>
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={styles.detailMeta}>
@@ -1200,11 +1200,11 @@ function generateAssetPDFHtml(assetReport: any, assetApplication: string): strin
       <td>${r.requestNumber ?? "-"}</td>
       <td>${r.requesterName ?? "-"}</td>
       <td>${r.department ?? "-"}</td>
-      <td>${r.costCenter ?? "-"}</td>
-      <td>${r.urgency === "emergencial" ? "Emergencial" : r.urgency === "urgente" ? "Urgente" : "Normal"}</td>
-      <td style="text-align:right">${fmt(r.totalEstimatedValue ?? 0)}</td>
+      <td>${r.costCenterCode ?? "-"}</td>
+      <td>${r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal"}</td>
+      <td style="text-align:right">${fmt(parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"))}</td>
       <td>${fmtDate(r.createdAt)}</td>
-      <td>${r.completedAt ? fmtDate(r.completedAt) : fmtDate(r.updatedAt)}</td>
+      <td>${r.completedAt ? fmtDate(r.completedAt) : "-"}</td>
     </tr>
   `).join("");
 
