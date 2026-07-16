@@ -26,8 +26,11 @@ export const users = mysqlTable("users", {
     "compras",
     "controladoria",
     "diretoria",
+    "ceo",
     "financeiro",
     "admin",
+    "master",
+    "assets_admin",
   ])
     .default("solicitante")
     .notNull(),
