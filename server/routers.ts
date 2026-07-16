@@ -26,7 +26,7 @@ export const appRouter = router({
       .query(({ input }) => db.getUserById(input.id)),
     updateProfile: protectedProcedure
       .input(z.object({
-        procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras"]).optional(),
+        procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras", "ceo", "master", "assets_admin"]).optional(),
         department: z.string().optional(),
         phone: z.string().optional(),
         jobTitle: z.string().optional(),
@@ -38,8 +38,8 @@ export const appRouter = router({
         id: z.number().optional(),
         name: z.string().min(1),
         email: z.string().email().optional().or(z.literal("")),
-        procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras"]),
-        extraRoles: z.array(z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras", "assets_admin"])).optional(),
+        procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras", "ceo", "master", "assets_admin"]),
+        extraRoles: z.array(z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras", "ceo", "master", "assets_admin"])).optional(),
         department: z.string().optional(),
         phone: z.string().optional(),
         jobTitle: z.string().optional(),
@@ -132,7 +132,7 @@ export const appRouter = router({
           email: z.string().optional(),
           phone: z.string().optional(),
           department: z.string().optional(),
-          procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras"]),
+          procurementRole: z.enum(["solicitante", "gerente", "controladoria", "diretoria", "financeiro", "admin", "orcamento", "compras", "ceo", "master", "assets_admin"]),
         }))
       }))
       .mutation(({ input }) => db.importUsersBatch(input.users)),

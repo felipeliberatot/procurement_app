@@ -257,7 +257,7 @@ export function RequestCard({
               {request.totalEstimatedValue ? (
                 <>
                   {(() => {
-                    const afterOC = ["aguardando_ordem_compra", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida"].includes(request.status ?? "");
+                    const afterOC = ["aguardando_aprovacao_ceo", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "parcialmente_concluida", "concluida"].includes(request.status ?? "");
                     return (
                       <>
                         <Text style={{ fontSize: 11, color: afterOC ? colors.success : colors.warning, fontWeight: "600" }}>{afterOC ? "Valor da OC" : "Valor Estimado"}</Text>
