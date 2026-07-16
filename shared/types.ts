@@ -17,6 +17,7 @@ export type RequestStatus =
   | "aguardando_controladoria"
   | "aguardando_diretoria"
   | "aguardando_ordem_compra"
+  | "aguardando_aprovacao_ceo"
   | "aguardando_aprovacao_compra"
   | "aguardando_comprovante_pagamento"
   | "aguardando_verificacao_compras"
@@ -48,8 +49,10 @@ export type ProcurementRole =
   | "compras"
   | "controladoria"
   | "diretoria"
+  | "ceo"
   | "financeiro"
   | "admin"
+  | "master"
   | "assets_admin";
 
 export type ApprovalStep =
@@ -59,6 +62,7 @@ export type ApprovalStep =
   | "controladoria"
   | "diretoria"
   | "ordem_compra"
+  | "ceo"
   | "aprovacao_compra"
   | "financeiro"
   | "verificacao_compras"
@@ -102,6 +106,7 @@ export const STATUS_LABELS: Record<RequestStatus, string> = {
   aguardando_controladoria: "Aguard. Controladoria",
   aguardando_diretoria: "Aguard. Diretoria",
   aguardando_ordem_compra: "Emissão de OC",
+  aguardando_aprovacao_ceo: "Aprovação CEO",
   aguardando_aprovacao_compra: "Aprovação Financeiro",
   aguardando_comprovante_pagamento: "Comprovante Pagamento",
   aguardando_verificacao_compras: "Verif. Compras",
@@ -118,8 +123,10 @@ export const ROLE_LABELS: Record<ProcurementRole, string> = {
   compras: "Compras",
   controladoria: "Controladoria",
   diretoria: "Diretoria",
+  ceo: "CEO",
   financeiro: "Financeiro",
   admin: "Administrador",
+  master: "Master",
   assets_admin: "Admin de Bens",
 };
 
@@ -130,6 +137,7 @@ export const STEP_LABELS: Record<ApprovalStep, string> = {
   controladoria: "Controladoria",
   diretoria: "Diretoria",
   ordem_compra: "Emissão de OC (Compras)",
+  ceo: "Aprovação CEO",
   aprovacao_compra: "Aprovação Financeiro",
   financeiro: "Comprovante de Pagamento",
   verificacao_compras: "Verificação Final (Compras)",
@@ -187,6 +195,7 @@ export const STATUS_COLORS: Record<RequestStatus, "primary" | "warning" | "succe
   aguardando_controladoria: "warning",
   aguardando_diretoria: "warning",
   aguardando_ordem_compra: "warning",
+  aguardando_aprovacao_ceo: "warning",
   aguardando_aprovacao_compra: "warning",
   aguardando_comprovante_pagamento: "warning",
   aguardando_verificacao_compras: "warning",

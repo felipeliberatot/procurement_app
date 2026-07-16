@@ -89,10 +89,12 @@ const ROLE_CAN_ACT: Record<RequestStatus, ProcurementRole[]> = {
   aguardando_controladoria: ["controladoria"],
   aguardando_diretoria: ["diretoria"],
   aguardando_ordem_compra: ["orcamento"],
+  aguardando_aprovacao_ceo: ["ceo"],
   aguardando_aprovacao_compra: ["financeiro"],
   aguardando_comprovante_pagamento: ["financeiro"],
   aguardando_verificacao_compras: ["orcamento"],
   concluida: [],
+  parcialmente_concluida: [],
   rejeitada: ["solicitante"],
   cancelada: [],
 };
@@ -2518,11 +2520,14 @@ export default function RequestDetailScreen() {
                   <TouchableOpacity
                     onPress={() => approveMutation.mutate({ requestId: request.id })}
                     disabled={approveMutation.isPending}
-                    style={[
-                      styles.btn,
-                      { backgroundColor: colors.success, marginTop: 12 },
-                      approveMutation.isPending && { opacity: 0.6 },
-                    ]}
+                    style={{
+                      backgroundColor: colors.success,
+                      borderRadius: 12,
+                      paddingVertical: 14,
+                      alignItems: "center",
+                      marginTop: 12,
+                      opacity: approveMutation.isPending ? 0.6 : 1,
+                    }}
                   >
                     <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>
                       {approveMutation.isPending ? "Processando..." : "✓ Aprovar"}
@@ -2531,13 +2536,16 @@ export default function RequestDetailScreen() {
 
                   {/* Botão de Recusa */}
                   <TouchableOpacity
-                    onPress={() => setShowRejectReason(true)}
+                    onPress={() => setShowRejectModal(true)}
                     disabled={approveMutation.isPending}
-                    style={[
-                      styles.btn,
-                      { backgroundColor: colors.error, borderWidth: 0, marginTop: 8 },
-                      approveMutation.isPending && { opacity: 0.6 },
-                    ]}
+                    style={{
+                      backgroundColor: colors.error,
+                      borderRadius: 12,
+                      paddingVertical: 14,
+                      alignItems: "center",
+                      marginTop: 8,
+                      opacity: approveMutation.isPending ? 0.6 : 1,
+                    }}
                   >
                     <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>✕ Recusar</Text>
                   </TouchableOpacity>

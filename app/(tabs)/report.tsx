@@ -110,7 +110,7 @@ export default function ReportScreen() {
           ].join(";")
         ).join("\n");
         csvContent = header + rows;
-        const assetCode = assetReport.asset?.code ?? selectedAsset;
+        const assetCode = (assetReport as any).asset?.code ?? selectedAsset;
         fileName = `bem_${assetCode.replace(/[^a-zA-Z0-9]/g, "_")}.csv`;
       } else {
         // CSV das demais abas: relatório mensal

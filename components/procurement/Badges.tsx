@@ -13,10 +13,12 @@ const STATUS_STYLE: Record<RequestStatus, { bg: string; text: string }> = {
   aguardando_controladoria:  { bg: "bg-warning/15", text: "text-warning" },
   aguardando_diretoria:      { bg: "bg-warning/15", text: "text-warning" },
   aguardando_ordem_compra:              { bg: "bg-primary/15", text: "text-primary" },
+  aguardando_aprovacao_ceo:             { bg: "bg-warning/15", text: "text-warning" },
   aguardando_aprovacao_compra:          { bg: "bg-primary/15", text: "text-primary" },
   aguardando_comprovante_pagamento:     { bg: "bg-primary/15", text: "text-primary" },
   aguardando_verificacao_compras:       { bg: "bg-primary/15", text: "text-primary" },
   concluida:                 { bg: "bg-success/15", text: "text-success" },
+  parcialmente_concluida:    { bg: "bg-primary/15", text: "text-primary" },
   rejeitada:                 { bg: "bg-error/15",   text: "text-error" },
   cancelada:                 { bg: "bg-muted/20",   text: "text-muted" },
 };

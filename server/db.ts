@@ -3604,7 +3604,7 @@ export async function getPurchaseTrend(year: number, month: number) {
 // ─── Relatório por Bem ────────────────────────────────────────────────────────
 export async function getRequestsByAsset(application: string, year?: number, month?: number) {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return { requests: [], summary: { totalSolicitacoes: 0, totalGasto: 0 } };
 
   const rows = await db
     .select({

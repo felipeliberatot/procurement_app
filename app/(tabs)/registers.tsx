@@ -60,8 +60,10 @@ const ROLE_COLORS: Record<ProcurementRole, string> = {
   compras: "#06B6D4",
   controladoria: "#F59E0B",
   diretoria: "#EF4444",
+  ceo: "#DC2626",
   financeiro: "#10B981",
   admin: "#8B5CF6",
+  master: "#7C3AED",
   assets_admin: "#059669",
 };
 // ─── Permissões Granulares de Cadastro ────────────────────────────────────────
