@@ -78,7 +78,7 @@ export default function ReportScreen() {
   const { data: partialStats } = trpc.requests.partialFulfillmentStats.useQuery();
   const { data: assetsList } = trpc.assets.list.useQuery();
   const { data: assetReport, isLoading: loadingAssetReport } = trpc.requests.requestsByAsset.useQuery(
-    { application: selectedAsset ?? "" },
+    { application: selectedAsset ?? "", year: selectedYear, month: selectedMonth },
     { enabled: !!selectedAsset, placeholderData: (prev: any) => prev }
   );
   const filteredAssets = (assetsList ?? []).filter((a: any) =>
@@ -197,9 +197,9 @@ export default function ReportScreen() {
         <Text style={styles.headerTitle}>Relatórios</Text>
         <View style={styles.exportRow}>
           <TouchableOpacity
-            style={[styles.exportBtn, { backgroundColor: colors.primary }, (exporting || isLoading || isFetching || !data) && { opacity: 0.5 }]}
+            style={[styles.exportBtn, { backgroundColor: colors.primary }, (exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (loadingAssetReport || !assetReport))) && { opacity: 0.5 }]}
             onPress={exportPDF}
-            disabled={exporting || isLoading || isFetching || !data}
+            disabled={exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (loadingAssetReport || !assetReport))}
           >
             {exporting ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -210,9 +210,9 @@ export default function ReportScreen() {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.exportBtn, { backgroundColor: colors.success }, (exporting || isLoading || isFetching || !data) && { opacity: 0.5 }]}
+            style={[styles.exportBtn, { backgroundColor: colors.success }, (exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (loadingAssetReport || !assetReport))) && { opacity: 0.5 }]}
             onPress={exportCSV}
-            disabled={exporting || isLoading || isFetching || !data}
+            disabled={exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (loadingAssetReport || !assetReport))}
           >
             {isFetching ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -222,6 +222,28 @@ export default function ReportScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Tabs */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabRow}>
+        {([
+          { key: "resumo", label: "Resumo" },
+          { key: "tendencia", label: "Tendência" },
+          { key: "rankings", label: "Rankings" },
+          { key: "usuarios", label: "Usuários" },
+          { key: "detalhes", label: "Detalhes" },
+          { key: "porbem", label: "Por Bem" },
+        ] as const).map(tab => (
+          <Pressable
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+            onPress={() => setActiveTab(tab.key as any)}
+          >
+            <Text style={[styles.tabText, activeTab === tab.key && { color: colors.primary, fontWeight: "700" }]}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
 
       {/* Seletor de Mês/Ano */}
       <View style={styles.selectorRow}>
@@ -249,28 +271,6 @@ export default function ReportScreen() {
         ))}
       </ScrollView>
 
-      {/* Tabs */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabRow}>
-        {([
-          { key: "resumo", label: "Resumo" },
-          { key: "tendencia", label: "Tendência" },
-          { key: "rankings", label: "Rankings" },
-          { key: "usuarios", label: "Usuários" },
-          { key: "detalhes", label: "Detalhes" },
-          { key: "porbem", label: "Por Bem" },
-        ] as const).map(tab => (
-          <Pressable
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
-            onPress={() => setActiveTab(tab.key as any)}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && { color: colors.primary, fontWeight: "700" }]}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        ))}
-      </ScrollView>
-
       {/* Conteúdo */}
       {activeTab === "porbem" ? (
         <PorBemTab
@@ -284,6 +284,8 @@ export default function ReportScreen() {
           filteredAssets={filteredAssets}
           assetReport={assetReport}
           loading={loadingAssetReport}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
           colors={colors}
           styles={styles}
         />
@@ -860,15 +862,18 @@ function PorBemTab({
   assetSearch, setAssetSearch,
   showAssetPicker, setShowAssetPicker,
   filteredAssets, assetReport, loading, colors, styles,
+  selectedYear, selectedMonth,
 }: any) {
   const selectedAssetObj = selectedAsset
     ? (assetsList ?? []).find((a: any) => `${a.code} — ${a.description}` === selectedAsset)
     : null;
+  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const periodoLabel = selectedYear && selectedMonth ? `${MONTH_NAMES[selectedMonth - 1]} de ${selectedYear}` : "Todo o histórico";
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       {/* Seletor de Bem */}
-      <View style={{ marginBottom: 16 }}>
+      <View style={{ marginBottom: 12 }}>
         <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Bem / Equipamento</Text>
         <TouchableOpacity
           style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 }}
@@ -887,6 +892,13 @@ function PorBemTab({
           </View>
           <Text style={{ fontSize: 18, color: colors.muted }}>›</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Competência ativa */}
+      <View style={{ backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 14, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Text style={{ fontSize: 12, color: colors.muted }}>Competência:</Text>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>{periodoLabel}</Text>
+        {loading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 4 }} />}
       </View>
 
       {/* Resumo do bem */}

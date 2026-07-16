@@ -3579,7 +3579,7 @@ export async function getPurchaseTrend(year: number, month: number) {
 }
 
 // ─── Relatório por Bem ────────────────────────────────────────────────────────
-export async function getRequestsByAsset(application: string) {
+export async function getRequestsByAsset(application: string, year?: number, month?: number) {
   const db = await getDb();
   if (!db) return [];
 
@@ -3607,7 +3607,12 @@ export async function getRequestsByAsset(application: string) {
         or(
           eq(purchaseRequests.status, "concluida"),
           eq(purchaseRequests.status, "parcialmente_concluida"),
-        )
+        ),
+        // Filtrar por mês/ano de conclusão (competência) quando fornecido
+        ...(year && month ? [
+          gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
+          lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0)),
+        ] : [])
       )
     )
     // Ordenar por data de finalização (competência do gasto), mais recente primeiro

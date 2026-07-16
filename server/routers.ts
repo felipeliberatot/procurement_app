@@ -376,8 +376,8 @@ export const appRouter = router({
       .query(({ input }) => db.getPurchaseTrend(input.year, input.month)),
     partialFulfillmentStats: protectedProcedure.query(() => db.getPartialFulfillmentStats()),
     requestsByAsset: protectedProcedure
-      .input(z.object({ application: z.string().min(1) }))
-      .query(({ input }) => db.getRequestsByAsset(input.application)),
+      .input(z.object({ application: z.string().min(1), year: z.number().optional(), month: z.number().optional() }))
+      .query(({ input }) => db.getRequestsByAsset(input.application, input.year, input.month)),
     updateItemFulfillment: protectedProcedure
       .input(z.object({ itemId: z.number(), fulfilledQty: z.number().min(0) }))
       .mutation(({ input, ctx }) => db.updateItemFulfillment(input.itemId, input.fulfilledQty, ctx.user.id)),
