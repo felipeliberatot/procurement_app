@@ -106,7 +106,7 @@ export default function ReportScreen() {
             r.urgency === "emergencial" ? "Emergencial" : r.urgency === "urgente" ? "Urgente" : "Normal",
             (r.totalEstimatedValue ?? 0).toFixed(2).replace(".", ","),
             r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
-            r.updatedAt ? new Date(r.updatedAt).toLocaleDateString("pt-BR") : "",
+            r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : (r.updatedAt ? new Date(r.updatedAt).toLocaleDateString("pt-BR") : ""),
           ].join(";")
         ).join("\n");
         csvContent = header + rows;
@@ -943,7 +943,18 @@ function PorBemTab({
                 <Text style={[styles.detailValue, { color: colors.success }]}>
                   {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(item.totalEstimatedValue ?? "0"))}
                 </Text>
-                <Text style={styles.detailMeta}>{new Date(item.createdAt).toLocaleDateString("pt-BR")}</Text>
+                <View style={{ alignItems: "flex-end" }}>
+                  <Text style={styles.detailMeta}>
+                    {item.completedAt
+                      ? `✅ ${new Date(item.completedAt).toLocaleDateString("pt-BR")}`
+                      : `Aberto: ${new Date(item.createdAt).toLocaleDateString("pt-BR")}`}
+                  </Text>
+                  {item.completedAt && (
+                    <Text style={[styles.detailMeta, { fontSize: 10, color: colors.muted }]}>
+                      Aberto: {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                    </Text>
+                  )}
+                </View>
               </View>
             </View>
           )}
@@ -1193,7 +1204,7 @@ function generateAssetPDFHtml(assetReport: any, assetApplication: string): strin
       <td>${r.urgency === "emergencial" ? "Emergencial" : r.urgency === "urgente" ? "Urgente" : "Normal"}</td>
       <td style="text-align:right">${fmt(r.totalEstimatedValue ?? 0)}</td>
       <td>${fmtDate(r.createdAt)}</td>
-      <td>${fmtDate(r.updatedAt)}</td>
+      <td>${r.completedAt ? fmtDate(r.completedAt) : fmtDate(r.updatedAt)}</td>
     </tr>
   `).join("");
 

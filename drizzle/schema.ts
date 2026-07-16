@@ -178,6 +178,9 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   // Timestamps
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  // Data de finalização efetiva (preenchida quando status = concluida ou parcialmente_concluida)
+  // Usada como competência do gasto no relatório Por Bem
+  completedAt: timestamp("completedAt"),
 });
 
 export type PurchaseRequest = typeof purchaseRequests.$inferSelect;

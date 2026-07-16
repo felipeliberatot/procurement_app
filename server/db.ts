@@ -1542,10 +1542,12 @@ export async function finalizeOC(requestId: number, user: User, orderValue?: num
   const finalStatus = (hasComprado && hasPendingItems) ? "parcialmente_concluida" : "concluida";
 
   // Marcar como concluída/parcialmente concluída e habilitar nos Malotes
+  const now = new Date();
   await db.update(purchaseRequests).set({
     status: finalStatus as any,
     isEnabledInMalotes: true,
     stepDeadlineAt: null,
+    completedAt: now,
     ...(orderValue != null ? { orderValue: String(orderValue) } : {}),
   }).where(eq(purchaseRequests.id, requestId));
 
@@ -1598,9 +1600,11 @@ export async function refinalizeOC(requestId: number, user: User): Promise<void>
   const hasComprado = allItems.some(i => i.itemStatus === "comprado");
   const hasPendingItems = allItems.some(i => i.itemStatus === "pendente" || i.itemStatus === "parcial");
   const finalStatus = (hasComprado && hasPendingItems) ? "parcialmente_concluida" : "concluida";
+  const nowRecompra = new Date();
   await db.update(purchaseRequests).set({
     status: finalStatus as any,
     stepDeadlineAt: null,
+    completedAt: nowRecompra,
   }).where(eq(purchaseRequests.id, requestId));
   await db.insert(approvalHistory).values({
     requestId,
@@ -3574,6 +3578,8 @@ export async function getRequestsByAsset(application: string) {
       totalEstimatedValue: purchaseRequests.totalEstimatedValue,
       observations: purchaseRequests.observations,
       createdAt: purchaseRequests.createdAt,
+      // Data de finalização efetiva (competência do gasto)
+      completedAt: purchaseRequests.completedAt,
     })
     .from(purchaseRequests)
     .where(
@@ -3585,7 +3591,8 @@ export async function getRequestsByAsset(application: string) {
         )
       )
     )
-    .orderBy(desc(purchaseRequests.createdAt));
+    // Ordenar por data de finalização (competência do gasto), mais recente primeiro
+    .orderBy(desc(purchaseRequests.completedAt));
 
   const totalGasto = rows.reduce((sum, r) => sum + parseFloat(r.totalEstimatedValue ?? "0"), 0);
   const totalSolicitacoes = rows.length;
