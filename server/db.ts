@@ -1296,6 +1296,14 @@ export async function approveRequest(
     }
   }
 
+  // ── Validação obrigatória do Valor da OC ──────────────────────────────────────
+  // Na etapa de Emissão de OC, o valor da ordem de compra é obrigatório.
+  if (request.status === "aguardando_ordem_compra") {
+    if (data.orderValue == null || isNaN(data.orderValue) || data.orderValue <= 0) {
+      throw new Error("O Valor da OC é obrigatório para emitir a Ordem de Compra. Informe o valor antes de avançar.");
+    }
+  }
+
   // ── Aprovação simples da Diretoria ───────────────────────────────────────────
   // Uma aprovação de qualquer diretor é suficiente para avançar o status
   if (request.status === "aguardando_diretoria") {
@@ -1577,9 +1585,14 @@ export async function attachOCSiagri(requestId: number, fileUrl: string): Promis
   await db.update(purchaseRequests).set({ ocSiagriUrl: fileUrl }).where(eq(purchaseRequests.id, requestId));
 }
 
-export async function finalizeOC(requestId: number, user: User, orderValue?: number): Promise<void> {
+export async function finalizeOC(requestId: number, user: User, orderValue: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  // Valor da OC é obrigatório
+  if (!orderValue || isNaN(orderValue) || orderValue <= 0) {
+    throw new Error("O Valor da OC é obrigatório para finalizar a Ordem de Compra. Informe o valor antes de avançar.");
+  }
 
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");
