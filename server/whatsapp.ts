@@ -32,21 +32,27 @@ const WHATSAPP_API_URL = ZAPI_INSTANCE_ID
   : (process.env.WHATSAPP_API_URL ?? "");
 const WHATSAPP_API_TOKEN = ZAPI_CLIENT_TOKEN || (process.env.WHATSAPP_API_TOKEN ?? "");
 const WHATSAPP_FROM = process.env.WHATSAPP_FROM ?? "";
-const APP_BASE_URL = process.env.APP_BASE_URL ?? "https://compras.cgsagricola.com.br";
+// APP_BASE_URL é lido dinamicamente para refletir mudanças de env sem reiniciar
+function getAppBaseUrl(): string {
+  return process.env.APP_BASE_URL ?? "https://procureapp-3hnvqvcm.manus.space";
+}
+// Manter compatibilidade com código que usa APP_BASE_URL diretamente
+const APP_BASE_URL = process.env.APP_BASE_URL ?? "https://procureapp-3hnvqvcm.manus.space";
 
 // Derivar a URL do servidor backend dinamicamente:
 // 1. WEBHOOK_BASE_URL (configurada manualmente) — prioridade máxima
 // 2. EXPO_PACKAGER_PROXY_URL substituindo porta 8081 por 3000 (URL dinâmica do ambiente Manus)
 // 3. APP_BASE_URL (fallback para produção com domínio fixo)
 function resolveServerBaseUrl(): string {
-  if (process.env.WEBHOOK_BASE_URL) return process.env.WEBHOOK_BASE_URL.replace(/\/$/, "");
+  // Sempre ler process.env dinamicamente para pegar variáveis atualizadas
+  const webhookBase = process.env.WEBHOOK_BASE_URL;
+  if (webhookBase) return webhookBase.replace(/\/$/, "");
   const expoUrl = process.env.EXPO_PACKAGER_PROXY_URL ?? "";
   if (expoUrl) {
-    // Substitui a porta 8081 por 3000 para obter a URL do servidor backend
     const serverUrl = expoUrl.replace(/8081-/, "3000-").replace(/\/+$/, "");
     if (serverUrl !== expoUrl) return serverUrl;
   }
-  return APP_BASE_URL;
+  return process.env.APP_BASE_URL ?? "https://procureapp-3hnvqvcm.manus.space";
 }
 
 const WEBHOOK_BASE_URL = process.env.WEBHOOK_BASE_URL ?? "";
@@ -312,7 +318,7 @@ export async function notifyApproverWithToken(opts: {
     `_Ou responda: APROVAR ou REJEITAR <motivo>_`,
     ``,
     `🔗 Ver detalhes no app:`,
-    `${APP_BASE_URL}/request/${opts.requestId}`,
+    `${getAppBaseUrl()}/request/${opts.requestId}`,
     ``,
     `_Você tem 48h para responder. Após esse prazo a solicitação será cancelada automaticamente._`,
   ].join("\n");
@@ -362,7 +368,7 @@ export async function notifyRejection(opts: {
     `⏰ Você tem *48 horas* para corrigir e reenviar. Após esse prazo, a solicitação será cancelada automaticamente.`,
     ``,
     `🔗 Corrigir no app:`,
-    `${APP_BASE_URL}/request/${opts.requestId}`,
+    `${getAppBaseUrl()}/request/${opts.requestId}`,
   ].join("\n");
 
   return sendWhatsAppMessage(opts.requesterPhone, message);
@@ -389,7 +395,7 @@ export async function notifyApproval(opts: {
         `*Próxima etapa:* ${opts.nextStepLabel}`,
         ``,
         `🔗 Acompanhar no app:`,
-        `${APP_BASE_URL}/request/${opts.requestId}`,
+        `${getAppBaseUrl()}/request/${opts.requestId}`,
       ].join("\n")
     : [
         `🎉 *Solicitação Concluída! — CGS Agrícola*`,
@@ -399,7 +405,7 @@ export async function notifyApproval(opts: {
         `Sua solicitação *${opts.requestNumber}* foi *concluída com sucesso*! O pagamento foi confirmado pelo financeiro.`,
         ``,
         `🔗 Ver detalhes no app:`,
-        `${APP_BASE_URL}/request/${opts.requestId}`,
+        `${getAppBaseUrl()}/request/${opts.requestId}`,
       ].join("\n");
 
   return sendWhatsAppMessage(opts.requesterPhone, message);
@@ -437,7 +443,7 @@ export async function notifyBudgetRequired(opts: {
     `Agora você precisa *anexar o PDF do orçamento* para continuar o processo.`,
     ``,
     `🔗 Anexar orçamento no app:`,
-    `${APP_BASE_URL}/request/${opts.requestId}`,
+    `${getAppBaseUrl()}/request/${opts.requestId}`,
     ``,
     `_Você tem 48h para anexar o orçamento._`,
   );
@@ -463,7 +469,7 @@ export async function notifyAutoCancellation(opts: {
     `Se necessário, crie uma nova solicitação no app.`,
     opts.requestId ? `` : null,
     opts.requestId ? `🔗 Ver detalhes no app:` : null,
-    opts.requestId ? `${APP_BASE_URL}/request/${opts.requestId}` : null,
+    opts.requestId ? `${getAppBaseUrl()}/request/${opts.requestId}` : null,
   ].filter(Boolean).join("\n");
 
   return sendWhatsAppMessage(opts.requesterPhone, message);
@@ -478,7 +484,7 @@ export async function notifyApproverActionConfirmation(opts: {
   comment?: string;
 }) {
   const link = opts.requestId
-    ? [``, `🔗 Ver solicitação no app:`, `${APP_BASE_URL}/request/${opts.requestId}`]
+    ? [``, `🔗 Ver solicitação no app:`, `${getAppBaseUrl()}/request/${opts.requestId}`]
     : [];
 
   const message = opts.action === "approved"
@@ -640,7 +646,7 @@ export async function sendWhatsAppTestMessage(opts: {
 
 export function getWebhookUrl(): string {
   const base = resolveServerBaseUrl();
-  if (base && base !== APP_BASE_URL) return `${base}/api/whatsapp/webhook`;
+  if (base && base !== getAppBaseUrl()) return `${base}/api/whatsapp/webhook`;
   if (WEBHOOK_BASE_URL) return `${WEBHOOK_BASE_URL}/api/whatsapp/webhook`;
   return "(configure WEBHOOK_BASE_URL no servidor para obter a URL)";
 }
@@ -764,7 +770,7 @@ export async function notifyQuotationApprover(opts: {
     `_Clique no link do fornecedor escolhido para aprovar e avançar o fluxo._`,
     ``,
     `🔗 Ver detalhes no app:`,
-    `${APP_BASE_URL}/request/${opts.requestId}`,
+    `${getAppBaseUrl()}/request/${opts.requestId}`,
     ``,
     `_Você tem 72h para responder._`,
   ].join("\n");
