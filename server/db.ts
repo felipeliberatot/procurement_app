@@ -1,5 +1,5 @@
 import {
-  and, desc, eq, gt, gte, inArray, lt, lte, or, sql
+  and, desc, eq, gt, gte, inArray, like, lt, lte, or, sql
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool as createPromisePool } from "mysql2/promise";
@@ -874,12 +874,15 @@ export async function getMonthlyReport(year: number, month: number) {
   }));
 
   // Ranking de bens por valor gasto (usa orderValue das concluídas, com fallback para totalEstimatedValue)
+  // Agrupa por código do bem (parte antes do ' — ') para tolerar variações de descrição
   const assetMap = new Map<string, { application: string; totalGasto: number; count: number }>();
   for (const r of concluidas) {
     if (!r.application) continue;
     const valor = parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0");
-    if (!assetMap.has(r.application)) assetMap.set(r.application, { application: r.application, totalGasto: 0, count: 0 });
-    const entry = assetMap.get(r.application)!;
+    // Normalizar chave: usar código do bem se disponível, senão usar application completo
+    const mapKey = r.application.includes(' — ') ? r.application.split(' — ')[0].trim() : r.application;
+    if (!assetMap.has(mapKey)) assetMap.set(mapKey, { application: r.application, totalGasto: 0, count: 0 });
+    const entry = assetMap.get(mapKey)!;
     entry.totalGasto += valor;
     entry.count++;
   }
@@ -3631,6 +3634,16 @@ export async function getRequestsByAsset(application: string, year?: number, mon
   const db = await getDb();
   if (!db) return { requests: [], summary: { totalSolicitacoes: 0, totalGasto: 0 } };
 
+  // Extrair o código do bem (parte antes do ' — ') para usar como filtro tolerante a variações de descrição
+  // Ex: "MQ-56 — TRATOR VALTRA BT 230" → código = "MQ-56"
+  const assetCode = application.includes(' — ') ? application.split(' — ')[0].trim() : null;
+
+  // Filtro: se temos código, busca por LIKE 'CÓDIGO — %' (tolerante a variações de descrição)
+  // Caso contrário, usa correspondência exata (para bens genéricos sem código)
+  const applicationFilter = assetCode
+    ? like(purchaseRequests.application, `${assetCode} — %`)
+    : eq(purchaseRequests.application, application);
+
   const rows = await db
     .select({
       id: purchaseRequests.id,
@@ -3651,7 +3664,7 @@ export async function getRequestsByAsset(application: string, year?: number, mon
     .from(purchaseRequests)
     .where(
       and(
-        eq(purchaseRequests.application, application),
+        applicationFilter,
         or(
           eq(purchaseRequests.status, "concluida"),
           eq(purchaseRequests.status, "parcialmente_concluida"),
