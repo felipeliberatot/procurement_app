@@ -254,24 +254,31 @@ export function RequestCard({
               {request.deadlineAt && <DeadlineTimer deadline={request.deadlineAt} />}
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              {(request.orderValue || request.totalEstimatedValue) ? (
-                <>
-                  {(() => {
+              {(() => {
                     const afterOC = ["aguardando_aprovacao_ceo", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "parcialmente_concluida", "concluida"].includes(request.status ?? "");
                     const displayValue = afterOC
                       ? (request.orderValue ?? request.totalEstimatedValue)
                       : request.totalEstimatedValue;
-                    return (
-                      <>
-                        <Text style={{ fontSize: 11, color: afterOC ? colors.success : colors.warning, fontWeight: "600" }}>{afterOC ? "Valor da OC" : "Valor Estimado"}</Text>
-                        <Text style={{ fontSize: 13, fontWeight: "700", color: afterOC ? colors.success : colors.foreground }}>
-                          {formatCurrency(displayValue)}
-                        </Text>
-                      </>
-                    );
+                    if (displayValue) {
+                      return (
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text style={{ fontSize: 11, color: afterOC ? colors.success : colors.warning, fontWeight: "600" }}>{afterOC ? "Valor da OC" : "Valor Estimado"}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: "700", color: afterOC ? colors.success : colors.foreground }}>
+                            {formatCurrency(displayValue)}
+                          </Text>
+                        </View>
+                      );
+                    }
+                    if (afterOC) {
+                      return (
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text style={{ fontSize: 11, color: colors.muted, fontWeight: "600" }}>Valor da OC</Text>
+                          <Text style={{ fontSize: 12, color: colors.muted }}>Sem valor</Text>
+                        </View>
+                      );
+                    }
+                    return null;
                   })()}
-                </>
-              ) : null}
             </View>
           </View>
 
