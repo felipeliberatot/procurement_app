@@ -1491,16 +1491,7 @@ function AssetModal({
       chassiNumber: hasChassi ? (chassiNumber.trim() || undefined) : undefined,
       licensePlate: hasChassi ? (licensePlate.trim() || undefined) : undefined,
     });
-    if (!isEditing) {
-      setCode("");
-      setDescription("");
-      setCategory("");
-      setLocation("");
-      setValue("");
-      setHasChassi(false);
-      setChassiNumber("");
-      setLicensePlate("");
-    }
+    // Nota: a limpeza dos campos é feita no onSuccess da mutação (no componente pai)
   };
 
   return (
@@ -2355,8 +2346,16 @@ export default function RegistersScreen() {
       utils.assets.list.invalidate();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowAssetModal(false);
+      setEditingAsset(null);
     },
-    onError: (e) => Alert.alert("Erro", e.message),
+    onError: (e) => {
+      const msg = e.message || "Erro desconhecido ao salvar bem.";
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert("Erro ao salvar bem: " + msg);
+      } else {
+        Alert.alert("Erro ao salvar", msg);
+      }
+    },
   });
   const createUnitMutation = trpc.units.create.useMutation({
     onSuccess: () => {
@@ -2408,7 +2407,14 @@ export default function RegistersScreen() {
       setShowAssetModal(false);
       setEditingAsset(null);
     },
-    onError: (e) => Alert.alert("Erro", e.message),
+    onError: (e) => {
+      const msg = e.message || "Erro desconhecido ao atualizar bem.";
+      if (typeof window !== 'undefined' && window.alert) {
+        window.alert("Erro ao atualizar bem: " + msg);
+      } else {
+        Alert.alert("Erro ao atualizar", msg);
+      }
+    },
   });
   const deleteAsset = trpc.assets.delete.useMutation({
     onSuccess: () => {

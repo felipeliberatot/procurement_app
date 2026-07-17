@@ -435,19 +435,31 @@ async function generatePatrimonialCode(db: Awaited<ReturnType<typeof getDb>>): P
 export async function createAsset(data: { code: string; description: string; category?: string; location?: string; value?: string; hasChassi?: boolean; chassiNumber?: string; licensePlate?: string }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // Verificar se já existe um bem com o mesmo código
+  const existing = await db.select({ id: assets.id }).from(assets).where(eq(assets.code, data.code)).limit(1);
+  if (existing.length > 0) {
+    throw new Error(`Já existe um bem com o código "${data.code}". Altere o código e tente novamente.`);
+  }
   const patrimonialCode = await generatePatrimonialCode(db);
-  const result = await db.insert(assets).values({
-    code: data.code,
-    description: data.description,
-    category: data.category ?? null,
-    location: data.location ?? null,
-    value: data.value ?? null,
-    hasChassi: data.hasChassi ?? false,
-    chassiNumber: data.chassiNumber ?? null,
-    licensePlate: data.licensePlate ?? null,
-    patrimonialCode,
-  });
-  return (result as unknown as [{ insertId: number }])[0].insertId;
+  try {
+    const result = await db.insert(assets).values({
+      code: data.code,
+      description: data.description,
+      category: data.category ?? null,
+      location: data.location ?? null,
+      value: data.value ?? null,
+      hasChassi: data.hasChassi ?? false,
+      chassiNumber: data.chassiNumber ?? null,
+      licensePlate: data.licensePlate ?? null,
+      patrimonialCode,
+    });
+    return (result as unknown as [{ insertId: number }])[0].insertId;
+  } catch (e: any) {
+    if (e?.code === 'ER_DUP_ENTRY' || e?.message?.includes('Duplicate entry')) {
+      throw new Error(`Já existe um bem com o código "${data.code}". Altere o código e tente novamente.`);
+    }
+    throw e;
+  }
 }
 export async function updateAsset(id: number, data: Partial<{ code: string; description: string; category: string; location: string; active: boolean; value: string; hasChassi: boolean; chassiNumber: string; licensePlate: string }>) {
   const db = await getDb();
