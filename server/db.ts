@@ -2142,7 +2142,7 @@ export async function getMaloteStats(): Promise<{ abertos: number; enviados: num
   };
 }
 
-export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; requestNumber: string; requesterName: string; application: string; department: string }>> {
+export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; requestNumber: string; requesterName: string; application: string; department: string; status: string }>> {
   const db = await getDb();
   if (!db) return [];
   const inMalote = await db.select({ requestId: maloteItems.requestId }).from(maloteItems);
@@ -2154,9 +2154,12 @@ export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; r
       requesterName: purchaseRequests.requesterName,
       application: purchaseRequests.application,
       department: purchaseRequests.department,
+      status: purchaseRequests.status,
     })
     .from(purchaseRequests)
-    .where(eq(purchaseRequests.status, "concluida"));
+    .where(
+      sql`${purchaseRequests.status} IN ('concluida', 'parcialmente_concluida')`
+    );
   return concluded.filter(r => !inMaloteIds.has(r.id));
 }
 

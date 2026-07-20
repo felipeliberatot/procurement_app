@@ -742,28 +742,47 @@ export default function MalotesScreen() {
                           </TouchableOpacity>
                         )}
                       </View>
-                      {/* Itens da OC */}
-                      {item.ocItems && item.ocItems.length > 0 && (
-                        <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 8, padding: 8 }}>
-                          <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Itens da Ordem de Compra</Text>
-                          {item.ocItems.map((oc, idx) => (
-                            <View key={oc.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 4, borderTopWidth: idx > 0 ? 0.5 : 0, borderTopColor: colors.border }}>
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ fontSize: 13, color: colors.foreground, fontWeight: "500" }}>{oc.description}</Text>
-                                <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
-                                  {parseFloat(oc.quantity || "0").toLocaleString("pt-BR")} {oc.unit}
-                                  {oc.unitPrice ? ` · R$ ${parseFloat(oc.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} un.` : ""}
-                                </Text>
-                              </View>
-                              {oc.totalPrice ? (
-                                <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
-                                  R$ {parseFloat(oc.totalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                                </Text>
-                              ) : null}
+                      {/* Itens da OC com status de cumprimento */}
+                      {item.ocItems && item.ocItems.length > 0 && (() => {
+                        const hasPartialItems = item.ocItems.some((oc: any) => oc.itemStatus === "pendente" || oc.itemStatus === "parcial");
+                        return (
+                          <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 8, padding: 8 }}>
+                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Itens da Ordem de Compra</Text>
+                              {hasPartialItems && (
+                                <View style={{ backgroundColor: "#F59E0B20", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                                  <Text style={{ fontSize: 9, fontWeight: "800", color: "#F59E0B" }}>SOLICITAÇÃO PARCIAL</Text>
+                                </View>
+                              )}
                             </View>
-                          ))}
-                        </View>
-                      )}
+                            {item.ocItems.map((oc: any, idx: number) => {
+                              const isPending = oc.itemStatus === "pendente" || oc.itemStatus === "parcial";
+                              const isBought = oc.itemStatus === "comprado";
+                              return (
+                                <View key={oc.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 5, borderTopWidth: idx > 0 ? 0.5 : 0, borderTopColor: colors.border, opacity: isPending ? 0.6 : 1 }}>
+                                  <View style={{ flex: 1 }}>
+                                    <View style={{ flexDirection: "row", alignItems: "center", gap: 5, flexWrap: "wrap" }}>
+                                      <Text style={{ fontSize: 13, color: isPending ? colors.muted : colors.foreground, fontWeight: "500", textDecorationLine: isPending ? "line-through" : "none" }}>{oc.description}</Text>
+                                      {isBought && <Text style={{ fontSize: 10 }}>✅</Text>}
+                                      {isPending && <Text style={{ fontSize: 10 }}>⏳</Text>}
+                                    </View>
+                                    <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
+                                      {parseFloat(oc.quantity || "0").toLocaleString("pt-BR")} {oc.unit}
+                                      {oc.unitPrice ? ` · R$ ${parseFloat(oc.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} un.` : ""}
+                                      {isPending ? " — pendente de recompra" : ""}
+                                    </Text>
+                                  </View>
+                                  {oc.totalPrice && isBought ? (
+                                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
+                                      R$ {parseFloat(oc.totalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </Text>
+                                  ) : null}
+                                </View>
+                              );
+                            })}
+                          </View>
+                        );
+                      })()}
                     </TouchableOpacity>
                   );
                 })
@@ -786,16 +805,36 @@ export default function MalotesScreen() {
                     <Text style={{ color: "#fff", fontWeight: "700", marginLeft: 6, fontSize: 14 }}>Enviar Malote Completo</Text>
                   </TouchableOpacity>
                   {/* Envio Parcial */}
-                  {(maloteDetail?.items ?? []).length > 1 && (
-                    <TouchableOpacity
-                      style={[styles.btn, { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: "#F59E0B", justifyContent: "center", paddingVertical: 14 }]}
-                      onPress={() => { setPartialSendMode(true); setSelectedItemIds(new Set()); }}
-                      activeOpacity={0.8}
-                    >
-                      <Text style={{ fontSize: 16 }}>📦</Text>
-                      <Text style={{ color: "#F59E0B", fontWeight: "700", marginLeft: 6, fontSize: 14 }}>Envio Parcial (selecionar itens)</Text>
-                    </TouchableOpacity>
-                  )}
+                  {(maloteDetail?.items ?? []).length >= 1 && (() => {
+                    // Verificar se há solicitações parciais ou mais de 1 item
+                    const hasPartialRequests = (maloteDetail?.items ?? []).some(
+                      (it: any) => it.ocItems?.some((oc: any) => oc.itemStatus === "pendente" || oc.itemStatus === "parcial")
+                    );
+                    const showPartialBtn = (maloteDetail?.items ?? []).length > 1 || hasPartialRequests;
+                    if (!showPartialBtn) return null;
+                    return (
+                      <TouchableOpacity
+                        style={[styles.btn, { backgroundColor: colors.surface, borderWidth: 1.5, borderColor: "#F59E0B", justifyContent: "center", paddingVertical: 14 }]}
+                        onPress={() => {
+                          setPartialSendMode(true);
+                          // Pré-selecionar apenas itens cujos ocItems são todos comprados (ou sem itens pendentes)
+                          const preSelected = new Set<number>();
+                          (maloteDetail?.items ?? []).forEach((it: any) => {
+                            if (it.sentStatus === "enviado") return; // já enviado
+                            const hasPending = it.ocItems?.some((oc: any) => oc.itemStatus === "pendente" || oc.itemStatus === "parcial");
+                            if (!hasPending) preSelected.add(it.id); // só pré-seleciona se não tem pendentes
+                          });
+                          setSelectedItemIds(preSelected);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={{ fontSize: 16 }}>📦</Text>
+                        <Text style={{ color: "#F59E0B", fontWeight: "700", marginLeft: 6, fontSize: 14 }}>
+                          {hasPartialRequests ? "Envio Parcial (itens comprados pré-selecionados)" : "Envio Parcial (selecionar itens)"}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })()}
                 </View>
               )}
               {/* Barra de confirmação do envio parcial */}
@@ -989,19 +1028,32 @@ export default function MalotesScreen() {
                 <IconSymbol name="xmark" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.meta, { color: colors.muted, marginBottom: 8 }]}>Solicitações concluídas disponíveis:</Text>
+            <Text style={[styles.meta, { color: colors.muted, marginBottom: 8 }]}>Solicitações concluídas ou parcialmente concluídas disponíveis:</Text>
             <FlatList
               data={readyRequests}
               keyExtractor={(item: any) => String(item.id)}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={[styles.itemRow, { borderBottomColor: colors.border }]} onPress={() => handleAddRequest(item)} activeOpacity={0.7}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.itemCode, { color: colors.foreground }]}>{item.requestNumber}</Text>
-                    <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={1}>{item.application} · {item.department}</Text>
-                  </View>
-                  <IconSymbol name="plus" size={20} color={colors.primary} />
-                </TouchableOpacity>
-              )}
+              renderItem={({ item }) => {
+                const isPartial = item.status === "parcialmente_concluida";
+                return (
+                  <TouchableOpacity style={[styles.itemRow, { borderBottomColor: colors.border }]} onPress={() => handleAddRequest(item)} activeOpacity={0.7}>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <Text style={[styles.itemCode, { color: colors.foreground }]}>{item.requestNumber}</Text>
+                        {isPartial && (
+                          <View style={{ backgroundColor: "#F59E0B20", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                            <Text style={{ fontSize: 9, fontWeight: "800", color: "#F59E0B" }}>PARCIAL</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={1}>{item.application} · {item.department}</Text>
+                      {isPartial && (
+                        <Text style={{ fontSize: 10, color: "#F59E0B", marginTop: 2 }}>Alguns itens ainda pendentes de recompra</Text>
+                      )}
+                    </View>
+                    <IconSymbol name="plus" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                );
+              }}
               ListEmptyComponent={
                 <Text style={[styles.emptyText, { color: colors.muted, fontSize: 13 }]}>Nenhuma solicitação disponível para malote</Text>
               }
