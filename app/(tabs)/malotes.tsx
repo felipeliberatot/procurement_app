@@ -254,6 +254,7 @@ export default function MalotesScreen() {
   const [selectedMalote, setSelectedMalote] = useState<Malote | null>(null);
   const [showDetail, setShowDetail] = useState(false);
   const [showAddRequest, setShowAddRequest] = useState(false);
+  const [addSearchQuery, setAddSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterUnit, setFilterUnit] = useState<string>("todas");
   const [showUnitPicker, setShowUnitPicker] = useState<"filter" | null>(null);
@@ -699,28 +700,48 @@ export default function MalotesScreen() {
                         </TouchableOpacity>
                       )}
                     </View>
-                    {/* Itens da OC */}
-                    {item.ocItems && item.ocItems.length > 0 && (
-                      <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 8, padding: 8 }}>
-                        <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Itens da Ordem de Compra</Text>
-                        {item.ocItems.map((oc, idx) => (
-                          <View key={oc.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 4, borderTopWidth: idx > 0 ? 0.5 : 0, borderTopColor: colors.border }}>
-                            <View style={{ flex: 1 }}>
-                              <Text style={{ fontSize: 13, color: colors.foreground, fontWeight: "500" }}>{oc.description}</Text>
-                              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
-                                {parseFloat(oc.quantity || "0").toLocaleString("pt-BR")} {oc.unit}
-                                {oc.unitPrice ? ` · R$ ${parseFloat(oc.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} un.` : ""}
+                    {/* Itens da OC — apenas itens comprados */}
+                    {item.ocItems && item.ocItems.length > 0 && (() => {
+                      const boughtItems = item.ocItems.filter((oc: any) => oc.itemStatus === "comprado" || !oc.itemStatus);
+                      const pendingItems = item.ocItems.filter((oc: any) => oc.itemStatus === "pendente" || oc.itemStatus === "parcial");
+                      const hasPartial = pendingItems.length > 0;
+                      if (boughtItems.length === 0 && !hasPartial) return null;
+                      return (
+                        <View style={{ marginTop: 8, backgroundColor: colors.background, borderRadius: 8, padding: 8 }}>
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                            <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Itens da Ordem de Compra</Text>
+                            {hasPartial && (
+                              <View style={{ backgroundColor: "#F59E0B20", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                                <Text style={{ fontSize: 9, fontWeight: "800", color: "#F59E0B" }}>PARCIAL — {pendingItems.length} item(s) pendente(s)</Text>
+                              </View>
+                            )}
+                          </View>
+                          {boughtItems.map((oc: any, idx: number) => (
+                            <View key={oc.id} style={{ flexDirection: "row", alignItems: "center", paddingVertical: 4, borderTopWidth: idx > 0 ? 0.5 : 0, borderTopColor: colors.border }}>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ fontSize: 13, color: colors.foreground, fontWeight: "500" }}>{oc.description}</Text>
+                                <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>
+                                  {parseFloat(oc.quantity || "0").toLocaleString("pt-BR")} {oc.unit}
+                                  {oc.unitPrice ? ` · R$ ${parseFloat(oc.unitPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })} un.` : ""}
+                                </Text>
+                              </View>
+                              {oc.totalPrice ? (
+                                <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
+                                  R$ {parseFloat(oc.totalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                </Text>
+                              ) : null}
+                            </View>
+                          ))}
+                          {hasPartial && (
+                            <View style={{ marginTop: 6, paddingTop: 6, borderTopWidth: 0.5, borderTopColor: colors.border }}>
+                              <Text style={{ fontSize: 10, color: "#F59E0B", fontStyle: "italic" }}>
+                                ⚠️ {pendingItems.map((p: any) => p.description).join(", ")} — aguardando recompra
                               </Text>
                             </View>
-                            {oc.totalPrice ? (
-                              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.primary }}>
-                                R$ {parseFloat(oc.totalPrice).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                              </Text>
-                            ) : null}
-                          </View>
-                        ))}
-                      </View>
-                    )}
+                          )}
+                        </View>
+                      );
+                    })()}
                   </View>
                 ))
               ) : (
@@ -875,30 +896,70 @@ export default function MalotesScreen() {
       </Modal>
 
       {/* ─── Modal: Adicionar Solicitação ─── */}
-      <Modal visible={showAddRequest} transparent animationType="slide">
+      <Modal visible={showAddRequest} transparent animationType="slide" onRequestClose={() => { setShowAddRequest(false); setAddSearchQuery(""); }}>
         <View style={styles.overlay}>
-          <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "80%" }]}>
+          <View style={[styles.modal, { backgroundColor: colors.surface, maxHeight: "85%" }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: colors.foreground }]}>Adicionar Solicitação</Text>
-              <TouchableOpacity onPress={() => setShowAddRequest(false)}>
+              <TouchableOpacity onPress={() => { setShowAddRequest(false); setAddSearchQuery(""); }}>
                 <IconSymbol name="xmark" size={22} color={colors.muted} />
               </TouchableOpacity>
             </View>
-            <Text style={[styles.meta, { color: colors.muted, marginBottom: 8 }]}>Solicitações concluídas disponíveis:</Text>
-            <FlatList
-              data={readyRequests}
-              keyExtractor={(item: any) => String(item.id)}
-              renderItem={({ item }) => (
-                <TouchableOpacity style={[styles.itemRow, { borderBottomColor: colors.border }]} onPress={() => handleAddRequest(item)} activeOpacity={0.7}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.itemCode, { color: colors.foreground }]}>{item.requestNumber}</Text>
-                    <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={1}>{item.application} · {item.department}</Text>
-                  </View>
-                  <IconSymbol name="plus" size={20} color={colors.primary} />
+            {/* Campo de busca */}
+            <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.background, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
+              <IconSymbol name="magnifyingglass" size={16} color={colors.muted} />
+              <TextInput
+                style={{ flex: 1, marginLeft: 8, fontSize: 14, color: colors.foreground }}
+                placeholder="Buscar por número, descrição ou departamento..."
+                placeholderTextColor={colors.muted}
+                value={addSearchQuery}
+                onChangeText={setAddSearchQuery}
+                autoCapitalize="none"
+                returnKeyType="search"
+              />
+              {addSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setAddSearchQuery("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <IconSymbol name="xmark" size={14} color={colors.muted} />
                 </TouchableOpacity>
               )}
+            </View>
+            <Text style={[styles.meta, { color: colors.muted, marginBottom: 6 }]}>
+              {addSearchQuery ? `${readyRequests.filter((r: any) => {
+                const q = addSearchQuery.toLowerCase();
+                return r.requestNumber?.toLowerCase().includes(q) || r.application?.toLowerCase().includes(q) || r.department?.toLowerCase().includes(q) || r.requesterName?.toLowerCase().includes(q);
+              }).length} resultado(s)` : `${readyRequests.length} solicitação(s) disponível(is)`}
+            </Text>
+            <FlatList
+              data={readyRequests.filter((r: any) => {
+                if (!addSearchQuery) return true;
+                const q = addSearchQuery.toLowerCase();
+                return r.requestNumber?.toLowerCase().includes(q) || r.application?.toLowerCase().includes(q) || r.department?.toLowerCase().includes(q) || r.requesterName?.toLowerCase().includes(q);
+              })}
+              keyExtractor={(item: any) => String(item.id)}
+              renderItem={({ item }) => {
+                const isPartial = (item as any).status === "parcialmente_concluida";
+                return (
+                  <TouchableOpacity style={[styles.itemRow, { borderBottomColor: colors.border }]} onPress={() => { handleAddRequest(item); setAddSearchQuery(""); }} activeOpacity={0.7}>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <Text style={[styles.itemCode, { color: colors.foreground }]}>{item.requestNumber}</Text>
+                        {isPartial && (
+                          <View style={{ backgroundColor: "#F59E0B20", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                            <Text style={{ fontSize: 9, fontWeight: "800", color: "#F59E0B" }}>PARCIAL</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={1}>{item.application} · {item.department}</Text>
+                      {item.requesterName ? <Text style={{ fontSize: 10, color: colors.muted, marginTop: 1 }}>👤 {item.requesterName}</Text> : null}
+                    </View>
+                    <IconSymbol name="plus" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                );
+              }}
               ListEmptyComponent={
-                <Text style={[styles.emptyText, { color: colors.muted, fontSize: 13 }]}>Nenhuma solicitação disponível para malote</Text>
+                <Text style={[styles.emptyText, { color: colors.muted, fontSize: 13 }]}>
+                  {addSearchQuery ? "Nenhuma solicitação encontrada para esta busca" : "Nenhuma solicitação disponível para malote"}
+                </Text>
               }
             />
           </View>
