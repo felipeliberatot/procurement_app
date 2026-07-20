@@ -44,7 +44,8 @@ export default function ReportScreen() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
   const [activeTab, setActiveTab] = useState<"resumo" | "tendencia" | "rankings" | "usuarios" | "detalhes" | "porbem">("resumo");
-  const [selectedAsset, setSelectedAsset] = useState<string | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<string | null>(null); // kept for CSV/PDF compat
+  const [selectedAssets, setSelectedAssets] = useState<string[]>([]); // multi-select
   const [assetSearch, setAssetSearch] = useState("");
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -79,7 +80,11 @@ export default function ReportScreen() {
   const { data: assetsList } = trpc.assets.list.useQuery();
   const { data: assetReport, isLoading: loadingAssetReport } = trpc.requests.requestsByAsset.useQuery(
     { application: selectedAsset ?? "", year: selectedYear, month: selectedMonth },
-    { enabled: !!selectedAsset, placeholderData: (prev: any) => prev }
+    { enabled: !!selectedAsset && selectedAssets.length <= 1, placeholderData: (prev: any) => prev }
+  );
+  const { data: assetsReports, isLoading: loadingAssetsReports } = trpc.requests.requestsByAssets.useQuery(
+    { applications: selectedAssets, year: selectedYear, month: selectedMonth },
+    { enabled: selectedAssets.length > 0, placeholderData: (prev: any) => prev }
   );
   const filteredAssets = (assetsList ?? []).filter((a: any) =>
     !assetSearch || a.code.toLowerCase().includes(assetSearch.toLowerCase()) || a.description.toLowerCase().includes(assetSearch.toLowerCase())
@@ -277,13 +282,16 @@ export default function ReportScreen() {
           assetsList={assetsList ?? []}
           selectedAsset={selectedAsset}
           setSelectedAsset={setSelectedAsset}
+          selectedAssets={selectedAssets}
+          setSelectedAssets={setSelectedAssets}
           assetSearch={assetSearch}
           setAssetSearch={setAssetSearch}
           showAssetPicker={showAssetPicker}
           setShowAssetPicker={setShowAssetPicker}
           filteredAssets={filteredAssets}
           assetReport={assetReport}
-          loading={loadingAssetReport}
+          assetsReports={assetsReports}
+          loading={loadingAssetReport || loadingAssetsReports}
           selectedYear={selectedYear}
           selectedMonth={selectedMonth}
           colors={colors}
@@ -924,39 +932,100 @@ function generatePDFHtml(data: any, monthName: string, year: number): string {
 // ── Aba Por Bem ─────────────────────────────────────────────────────────────
 function PorBemTab({
   assetsList, selectedAsset, setSelectedAsset,
+  selectedAssets, setSelectedAssets,
   assetSearch, setAssetSearch,
   showAssetPicker, setShowAssetPicker,
-  filteredAssets, assetReport, loading, colors, styles,
+  filteredAssets, assetReport, assetsReports, loading, colors, styles,
   selectedYear, selectedMonth,
 }: any) {
-  const selectedAssetObj = selectedAsset
-    ? (assetsList ?? []).find((a: any) => `${a.code} — ${a.description}` === selectedAsset)
-    : null;
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const periodoLabel = selectedYear && selectedMonth ? `${MONTH_NAMES[selectedMonth - 1]} de ${selectedYear}` : "Todo o histórico";
+  const fmtCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  function toggleAsset(assetKey: string) {
+    setSelectedAssets((prev: string[]) => {
+      const next = prev.includes(assetKey) ? prev.filter((k: string) => k !== assetKey) : [...prev, assetKey];
+      // keep selectedAsset in sync for CSV/PDF compat
+      setSelectedAsset(next.length === 1 ? next[0] : next.length > 1 ? next[0] : null);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    const allKeys = (assetsList ?? []).map((a: any) => `${a.code} — ${a.description}`);
+    setSelectedAssets(allKeys);
+    setSelectedAsset(allKeys.length > 0 ? allKeys[0] : null);
+  }
+
+  function clearAll() {
+    setSelectedAssets([]);
+    setSelectedAsset(null);
+  }
+
+  const reportsToShow: any[] = assetsReports ?? [];
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-      {/* Seletor de Bem */}
-      <View style={{ marginBottom: 12 }}>
-        <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>Bem / Equipamento</Text>
+      {/* Cabeçalho do seletor */}
+      <View style={{ marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Bens / Equipamentos</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            {selectedAssets.length > 0 && (
+              <TouchableOpacity
+                style={{ backgroundColor: colors.error + "22", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 }}
+                onPress={clearAll}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: colors.error }}>Limpar</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={{ backgroundColor: colors.primary + "22", borderRadius: 6, paddingHorizontal: 10, paddingVertical: 5 }}
+              onPress={selectAll}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>Selecionar Todos</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Botão abrir picker */}
         <TouchableOpacity
           style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, padding: 14, gap: 10 }}
           onPress={() => setShowAssetPicker(true)}
         >
           <Text style={{ fontSize: 22 }}>📦</Text>
           <View style={{ flex: 1 }}>
-            {selectedAssetObj ? (
-              <>
-                <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}>{selectedAssetObj.description}</Text>
-                <Text style={{ fontSize: 12, color: colors.muted }}>{selectedAssetObj.code}{selectedAssetObj.category ? ` · ${selectedAssetObj.category}` : ""}</Text>
-              </>
+            {selectedAssets.length === 0 ? (
+              <Text style={{ fontSize: 15, color: colors.muted }}>Toque para selecionar bens...</Text>
+            ) : selectedAssets.length === 1 ? (
+              <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }} numberOfLines={1}>{selectedAssets[0]}</Text>
             ) : (
-              <Text style={{ fontSize: 15, color: colors.muted }}>Selecionar bem cadastrado...</Text>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }}>{selectedAssets.length} bens selecionados</Text>
             )}
           </View>
           <Text style={{ fontSize: 18, color: colors.muted }}>›</Text>
         </TouchableOpacity>
+
+        {/* Chips dos bens selecionados */}
+        {selectedAssets.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
+            <View style={{ flexDirection: "row", gap: 6, paddingBottom: 4 }}>
+              {selectedAssets.map((key: string) => {
+                const code = key.split(" — ")[0];
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={{ flexDirection: "row", alignItems: "center", backgroundColor: colors.primary + "22", borderRadius: 16, paddingHorizontal: 10, paddingVertical: 5, gap: 5 }}
+                    onPress={() => toggleAsset(key)}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>{code}</Text>
+                    <Text style={{ fontSize: 11, color: colors.primary }}>✕</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+        )}
       </View>
 
       {/* Competência ativa */}
@@ -966,89 +1035,109 @@ function PorBemTab({
         {loading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 4 }} />}
       </View>
 
-      {/* Resumo do bem */}
-      {selectedAsset && assetReport && (
-        <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-          <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ fontSize: 24, fontWeight: "800", color: colors.primary }}>{assetReport.summary.totalSolicitacoes}</Text>
-            <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>Solicitações</Text>
-          </View>
-          <View style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 14, alignItems: "center", borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ fontSize: 18, fontWeight: "800", color: colors.success }} numberOfLines={1} adjustsFontSizeToFit>
-              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(assetReport.summary.totalGasto)}
-            </Text>
-            <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>Total Gasto</Text>
-          </View>
-        </View>
-      )}
-
-      {/* Lista de solicitações */}
-      {!selectedAsset ? (
+      {/* Cards por bem */}
+      {selectedAssets.length === 0 ? (
         <View style={styles.centered}>
           <Text style={{ fontSize: 40, marginBottom: 8 }}>🔍</Text>
-          <Text style={[styles.emptyText, { textAlign: "center" }]}>Selecione um bem para ver o histórico de compras concluídas.</Text>
+          <Text style={[styles.emptyText, { textAlign: "center" }]}>Selecione um ou mais bens, ou toque em "Selecionar Todos" para ver o histórico de compras.</Text>
         </View>
       ) : loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.emptyText, { marginTop: 12 }]}>Carregando...</Text>
         </View>
-      ) : !assetReport || assetReport.requests.length === 0 ? (
-        <View style={styles.centered}>
-          <Text style={{ fontSize: 40, marginBottom: 8 }}>📭</Text>
-          <Text style={[styles.emptyText, { textAlign: "center" }]}>Nenhuma solicitação concluída encontrada para este bem.</Text>
-        </View>
       ) : (
-        <FlatList
-          data={assetReport.requests}
-          keyExtractor={(item: any) => String(item.id)}
-          scrollEnabled={false}
-          renderItem={({ item }: any) => (
-            <View style={[styles.detailCard, { marginBottom: 10 }]}>
-              <View style={styles.detailHeader}>
-                <Text style={styles.detailNumber}>{item.requestNumber}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: item.status === "concluida" ? colors.success + "22" : colors.warning + "22" }]}>
-                  <Text style={[styles.statusBadgeText, { color: item.status === "concluida" ? colors.success : colors.warning }]}>
-                    {item.status === "concluida" ? "Concluída" : "Parcial"}
+        reportsToShow.map((report: any) => {
+          const assetKey = report.application;
+          const assetObj = (assetsList ?? []).find((a: any) => `${a.code} — ${a.description}` === assetKey
+            || assetKey.startsWith(a.code + " — "));
+          return (
+            <View key={assetKey} style={{ marginBottom: 20 }}>
+              {/* Header do bem */}
+              <View style={{ backgroundColor: colors.primary + "18", borderRadius: 10, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: colors.primary + "44", flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <Text style={{ fontSize: 20 }}>📦</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: "800", color: colors.primary }} numberOfLines={1}>
+                    {assetObj?.description ?? assetKey.split(" — ")[1] ?? assetKey}
                   </Text>
+                  <Text style={{ fontSize: 11, color: colors.muted }}>{assetObj?.code ?? assetKey.split(" — ")[0]}{assetObj?.category ? ` · ${assetObj.category}` : ""}</Text>
                 </View>
-              </View>
-              <Text style={styles.detailMeta}>{item.requesterName} · {item.department}</Text>
-              {item.costCenterCode && <Text style={styles.detailMeta}>CC: {item.costCenterCode}</Text>}
-              {item.observations && <Text style={[styles.detailMeta, { marginTop: 4 }]} numberOfLines={2}>{item.observations}</Text>}
-              <View style={styles.detailFooter}>
-                {(item.orderValue || item.totalEstimatedValue) ? (
-                  <Text style={[styles.detailValue, { color: item.orderValue ? colors.success : colors.warning }]}>
-                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(item.orderValue ?? item.totalEstimatedValue ?? "0"))}
-                  </Text>
-                ) : (
-                  <Text style={[styles.detailValue, { color: colors.muted, fontStyle: "italic" }]}>Sem valor</Text>
-                )}
+                {/* Mini resumo */}
                 <View style={{ alignItems: "flex-end" }}>
-                  <Text style={styles.detailMeta}>
-                    {item.completedAt
-                      ? `✅ ${new Date(item.completedAt).toLocaleDateString("pt-BR")}`
-                      : `Aberto: ${new Date(item.createdAt).toLocaleDateString("pt-BR")}`}
-                  </Text>
-                  {item.completedAt && (
-                    <Text style={[styles.detailMeta, { fontSize: 10, color: colors.muted }]}>
-                      Aberto: {new Date(item.createdAt).toLocaleDateString("pt-BR")}
-                    </Text>
-                  )}
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: colors.success }}>{fmtCurrency(report.summary.totalGasto)}</Text>
+                  <Text style={{ fontSize: 11, color: colors.muted }}>{report.summary.totalSolicitacoes} sol.</Text>
                 </View>
               </View>
+
+              {report.requests.length === 0 ? (
+                <View style={{ padding: 16, alignItems: "center" }}>
+                  <Text style={{ color: colors.muted, fontSize: 13 }}>Nenhuma solicitação concluída neste período.</Text>
+                </View>
+              ) : (
+                report.requests.map((item: any) => (
+                  <View key={item.id} style={[styles.detailCard, { marginBottom: 8 }]}>
+                    <View style={styles.detailHeader}>
+                      <Text style={styles.detailNumber}>{item.requestNumber}</Text>
+                      <View style={[styles.statusBadge, { backgroundColor: item.status === "concluida" ? colors.success + "22" : colors.warning + "22" }]}>
+                        <Text style={[styles.statusBadgeText, { color: item.status === "concluida" ? colors.success : colors.warning }]}>
+                          {item.status === "concluida" ? "Concluída" : "Parcial"}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={styles.detailMeta}>{item.requesterName} · {item.department}</Text>
+                    {item.costCenterCode && <Text style={styles.detailMeta}>CC: {item.costCenterCode}</Text>}
+                    {item.observations && <Text style={[styles.detailMeta, { marginTop: 4 }]} numberOfLines={2}>{item.observations}</Text>}
+                    <View style={styles.detailFooter}>
+                      {(item.orderValue || item.totalEstimatedValue) ? (
+                        <Text style={[styles.detailValue, { color: item.orderValue ? colors.success : colors.warning }]}>
+                          {fmtCurrency(parseFloat(item.orderValue ?? item.totalEstimatedValue ?? "0"))}
+                        </Text>
+                      ) : (
+                        <Text style={[styles.detailValue, { color: colors.muted, fontStyle: "italic" }]}>Sem valor</Text>
+                      )}
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={styles.detailMeta}>
+                          {item.completedAt
+                            ? `✅ ${new Date(item.completedAt).toLocaleDateString("pt-BR")}`
+                            : `Aberto: ${new Date(item.createdAt).toLocaleDateString("pt-BR")}`}
+                        </Text>
+                        {item.completedAt && (
+                          <Text style={[styles.detailMeta, { fontSize: 10, color: colors.muted }]}>
+                            Aberto: {new Date(item.createdAt).toLocaleDateString("pt-BR")}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  </View>
+                ))
+              )}
             </View>
-          )}
-        />
+          );
+        })
       )}
 
-      {/* Modal seletor de bem */}
+      {/* Modal seletor de bem — agora com checkboxes */}
       <Modal visible={showAssetPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowAssetPicker(false)}>
         <View style={{ flex: 1, backgroundColor: colors.background }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-            <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>📦 Selecionar Bem</Text>
-            <TouchableOpacity onPress={() => setShowAssetPicker(false)}>
-              <Text style={{ fontSize: 16, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>📦 Selecionar Bens</Text>
+            <TouchableOpacity onPress={() => { setShowAssetPicker(false); setAssetSearch(""); }}>
+              <Text style={{ fontSize: 16, color: colors.primary, fontWeight: "600" }}>Concluir ({selectedAssets.length})</Text>
+            </TouchableOpacity>
+          </View>
+          {/* Selecionar Todos / Limpar */}
+          <View style={{ flexDirection: "row", gap: 8, paddingHorizontal: 12, paddingTop: 10 }}>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 8, paddingVertical: 8, alignItems: "center" }}
+              onPress={() => { selectAll(); }}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff" }}>✅ Selecionar Todos ({(assetsList ?? []).length})</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 8, paddingVertical: 8, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+              onPress={clearAll}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.muted }}>Limpar seleção</Text>
             </TouchableOpacity>
           </View>
           <View style={{ padding: 12 }}>
@@ -1058,30 +1147,33 @@ function PorBemTab({
               placeholderTextColor={colors.muted}
               value={assetSearch}
               onChangeText={setAssetSearch}
-              autoFocus
             />
           </View>
           <FlatList
             data={filteredAssets}
             keyExtractor={(item: any) => String(item.id)}
-            renderItem={({ item }: any) => (
-              <TouchableOpacity
-                style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", gap: 12 }}
-                onPress={() => {
-                  setSelectedAsset(`${item.code} — ${item.description}`);
-                  setAssetSearch("");
-                  setShowAssetPicker(false);
-                }}
-              >
-                <View style={{ backgroundColor: colors.primary + "22", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
-                  <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>{item.code}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}>{item.description}</Text>
-                  {item.category && <Text style={{ fontSize: 12, color: colors.muted }}>{item.category}</Text>}
-                </View>
-              </TouchableOpacity>
-            )}
+            renderItem={({ item }: any) => {
+              const key = `${item.code} — ${item.description}`;
+              const isSelected = selectedAssets.includes(key);
+              return (
+                <TouchableOpacity
+                  style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: isSelected ? colors.primary + "0D" : "transparent" }}
+                  onPress={() => toggleAsset(key)}
+                >
+                  {/* Checkbox */}
+                  <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: isSelected ? colors.primary : colors.border, backgroundColor: isSelected ? colors.primary : "transparent", alignItems: "center", justifyContent: "center" }}>
+                    {isSelected && <Text style={{ color: "#fff", fontSize: 13, fontWeight: "800" }}>✓</Text>}
+                  </View>
+                  <View style={{ backgroundColor: colors.primary + "22", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>{item.code}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}>{item.description}</Text>
+                    {item.category && <Text style={{ fontSize: 12, color: colors.muted }}>{item.category}</Text>}
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
             ListEmptyComponent={
               <View style={{ padding: 32, alignItems: "center" }}>
                 <Text style={{ color: colors.muted }}>Nenhum bem encontrado.</Text>

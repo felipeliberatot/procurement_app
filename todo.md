@@ -814,3 +814,6 @@
 - [x] Campos Fazenda e Safra na nova solicitação (início do formulário)
 - [x] Sistema de prioridades nas solicitações (Willian/Rafael)
 - [x] Badge visual dourado nos cards prioritários
+- [ ] Seleção múltipla de bens na aba Por Bem do relatório (Selecionar Todos + seleção individual)
+- [ ] Endpoint requestsByAssets (plural) no backend para múltiplos bens
+- [ ] Cards individuais por bem selecionado no relatório
