@@ -126,20 +126,33 @@ export function RequestCard({
     >
       <View
         style={{
-          backgroundColor: colors.surface,
-          borderWidth: showActions ? 1.5 : 1,
-          borderColor: showActions ? `${colors.warning}50` : colors.border,
+          backgroundColor: request.isPriority ? "#FFFBEB" : colors.surface,
+          borderWidth: request.isPriority ? 2 : showActions ? 1.5 : 1,
+          borderColor: request.isPriority ? "#F59E0B" : showActions ? `${colors.warning}50` : colors.border,
           borderRadius: 16,
           marginBottom: 12,
           overflow: "hidden",
           flexDirection: "row",
+          shadowColor: request.isPriority ? "#F59E0B" : "transparent",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: request.isPriority ? 0.25 : 0,
+          shadowRadius: 6,
+          elevation: request.isPriority ? 4 : 0,
         }}
       >
         {/* Barra colorida lateral indicando status */}
-        <View style={{ width: 5, backgroundColor: barColor, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }} />
+        <View style={{ width: 5, backgroundColor: request.isPriority ? "#F59E0B" : barColor, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }} />
 
         <View style={{ flex: 1 }}>
         {/* Faixa de destaque para cards com ação pendente */}
+        {/* Faixa de prioridade — aparece acima de tudo */}
+        {request.isPriority && (
+          <View style={{ backgroundColor: "#F59E0B", paddingHorizontal: 14, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text style={{ fontSize: 12 }}>⭐</Text>
+            <Text style={{ fontSize: 11, color: "#fff", fontWeight: "800", flex: 1 }}>PRIORITÁRIA{request.priorityOrder ? ` — #${request.priorityOrder}` : ""}</Text>
+            <Text style={{ fontSize: 12 }}>⭐</Text>
+          </View>
+        )}
         {showActions && (
           <View style={{ backgroundColor: `${colors.warning}15`, paddingHorizontal: 14, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Text style={{ fontSize: 12 }}>⏳</Text>
@@ -166,12 +179,7 @@ export function RequestCard({
             <View style={{ flex: 1, marginRight: 8 }}>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <Text style={{ fontSize: 11, color: colors.muted, fontFamily: "monospace" }}>{request.requestNumber}</Text>
-                {request.isPriority && (
-                  <View style={{ backgroundColor: "#EF444420", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, flexDirection: "row", alignItems: "center", gap: 3 }}>
-                    <Text style={{ fontSize: 9 }}>🔴</Text>
-                    <Text style={{ fontSize: 9, fontWeight: "800", color: "#EF4444" }}>PRIO{request.priorityOrder ? ` #${request.priorityOrder}` : ""}</Text>
-                  </View>
-                )}
+
               </View>
               <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginTop: 2 }} numberOfLines={2}>
                 {request.application}
