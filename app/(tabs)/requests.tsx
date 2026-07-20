@@ -319,13 +319,6 @@ export default function RequestsScreen() {
                 </View>
                 <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
                   <TouchableOpacity
-                    onPress={() => router.push("/priority-rank" as any)}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#EF444415", borderWidth: 1, borderColor: "#EF444440", paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10 }}
-                  >
-                    <Text style={{ fontSize: 14 }}>🔴</Text>
-                    <Text style={{ color: "#EF4444", fontSize: 13, fontWeight: "700" }}>Prioridades</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
                     onPress={() => router.push("/request/new" as any)}
                     style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: colors.primary, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10 }}
                   >
@@ -387,14 +380,7 @@ export default function RequestsScreen() {
       <View className="px-5 pt-4 pb-3 border-b border-border">
         <View className="flex-row items-center justify-between mb-1">
           <Text className="text-2xl font-bold text-foreground">Solicitações</Text>
-          <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
-            <TouchableOpacity
-              onPress={() => router.push("/priority-rank" as any)}
-              style={{ flexDirection: "row", alignItems: "center", gap: 3, backgroundColor: "#EF444415", borderWidth: 1, borderColor: "#EF444440", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20 }}
-            >
-              <Text style={{ fontSize: 12 }}>🔴</Text>
-              <Text style={{ color: "#EF4444", fontSize: 12, fontWeight: "700" }}>Prio</Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
             <TouchableOpacity
               onPress={() => router.push("/request/new" as any)}
               className="flex-row items-center gap-1 bg-primary px-4 py-2 rounded-full"
