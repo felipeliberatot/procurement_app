@@ -206,6 +206,70 @@ export default function NewRequestScreen() {
             <Text className="text-xs text-muted">{user?.email ?? "—"}</Text>
           </View>
 
+          {/* Fazenda (opcional) */}
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-foreground mb-2">Fazenda <Text className="text-muted font-normal">(opcional)</Text></Text>
+            <Pressable
+              onPress={() => setShowFarmPicker(true)}
+              style={({ pressed }) => ({
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: selectedFarmId ? colors.primary : colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 13, color: selectedFarmId ? colors.foreground : colors.muted, flex: 1 }}>
+                {selectedFarmName || "Selecionar fazenda..."}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {selectedFarmId && (
+                  <Pressable onPress={(e) => { e.stopPropagation?.(); setSelectedFarmId(null); setSelectedFarmName(""); }} style={{ padding: 4 }}>
+                    <Text style={{ fontSize: 16, color: colors.muted }}>✕</Text>
+                  </Pressable>
+                )}
+                <Text style={{ fontSize: 16, color: colors.muted }}>🌾</Text>
+              </View>
+            </Pressable>
+          </View>
+
+          {/* Safra (opcional) */}
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-foreground mb-2">Safra <Text className="text-muted font-normal">(opcional)</Text></Text>
+            <Pressable
+              onPress={() => setShowHarvestPicker(true)}
+              style={({ pressed }) => ({
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: selectedHarvestId ? colors.primary : colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 13, color: selectedHarvestId ? colors.foreground : colors.muted, flex: 1 }}>
+                {selectedHarvestName || "Selecionar safra..."}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {selectedHarvestId && (
+                  <Pressable onPress={(e) => { e.stopPropagation?.(); setSelectedHarvestId(null); setSelectedHarvestName(""); }} style={{ padding: 4 }}>
+                    <Text style={{ fontSize: 16, color: colors.muted }}>✕</Text>
+                  </Pressable>
+                )}
+                <Text style={{ fontSize: 16, color: colors.muted }}>🌱</Text>
+              </View>
+            </Pressable>
+          </View>
+
           {/* Departamento */}
           <View className="mb-4">
             <Text className="text-sm font-semibold text-foreground mb-1">Departamento <Text className="text-error">*</Text></Text>
@@ -480,70 +544,6 @@ export default function NewRequestScreen() {
                   </Pressable>
                 )}
                 <Text style={{ fontSize: 18, color: colors.muted }}>🔧</Text>
-              </View>
-            </Pressable>
-          </View>
-
-          {/* Fazenda (opcional) */}
-          <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-2">Fazenda <Text className="text-muted font-normal">(opcional)</Text></Text>
-            <Pressable
-              onPress={() => setShowFarmPicker(true)}
-              style={({ pressed }) => ({
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: selectedFarmId ? colors.primary : colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Text style={{ fontSize: 13, color: selectedFarmId ? colors.foreground : colors.muted, flex: 1 }}>
-                {selectedFarmName || "Selecionar fazenda..."}
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                {selectedFarmId && (
-                  <Pressable onPress={(e) => { e.stopPropagation?.(); setSelectedFarmId(null); setSelectedFarmName(""); }} style={{ padding: 4 }}>
-                    <Text style={{ fontSize: 16, color: colors.muted }}>✕</Text>
-                  </Pressable>
-                )}
-                <Text style={{ fontSize: 16, color: colors.muted }}>🌾</Text>
-              </View>
-            </Pressable>
-          </View>
-
-          {/* Safra (opcional) */}
-          <View className="mb-6">
-            <Text className="text-sm font-semibold text-foreground mb-2">Safra <Text className="text-muted font-normal">(opcional)</Text></Text>
-            <Pressable
-              onPress={() => setShowHarvestPicker(true)}
-              style={({ pressed }) => ({
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: selectedHarvestId ? colors.primary : colors.border,
-                borderRadius: 12,
-                paddingHorizontal: 14,
-                paddingVertical: 12,
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Text style={{ fontSize: 13, color: selectedHarvestId ? colors.foreground : colors.muted, flex: 1 }}>
-                {selectedHarvestName || "Selecionar safra..."}
-              </Text>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                {selectedHarvestId && (
-                  <Pressable onPress={(e) => { e.stopPropagation?.(); setSelectedHarvestId(null); setSelectedHarvestName(""); }} style={{ padding: 4 }}>
-                    <Text style={{ fontSize: 16, color: colors.muted }}>✕</Text>
-                  </Pressable>
-                )}
-                <Text style={{ fontSize: 16, color: colors.muted }}>🌱</Text>
               </View>
             </Pressable>
           </View>
