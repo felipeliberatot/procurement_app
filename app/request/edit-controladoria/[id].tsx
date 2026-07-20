@@ -62,6 +62,8 @@ export default function EditByControladoriaScreen() {
   const { data: costCenters } = trpc.costCenters.list.useQuery();
   const { data: departments } = trpc.departments.list.useQuery();
   const { data: assets } = trpc.assets.list.useQuery();
+  const { data: units } = trpc.units.list.useQuery();
+  const { data: harvests } = trpc.harvests.list.useQuery();
 
   const [initialized, setInitialized] = useState(false);
   const [department, setDepartment] = useState("");
@@ -70,14 +72,22 @@ export default function EditByControladoriaScreen() {
   const [urgency, setUrgency] = useState<UrgencyLevel>("normal");
   const [observations, setObservations] = useState("");
   const [osMyfarm, setOsMyfarm] = useState("");
+  const [farmId, setFarmId] = useState<number | undefined>(undefined);
+  const [farmName, setFarmName] = useState("");
+  const [harvestId, setHarvestId] = useState<number | undefined>(undefined);
+  const [harvestName, setHarvestName] = useState("");
   const [items, setItems] = useState<Item[]>([newItem()]);
 
   const [showDeptPicker, setShowDeptPicker] = useState(false);
   const [showCostCenterPicker, setShowCostCenterPicker] = useState(false);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [showFarmPicker, setShowFarmPicker] = useState(false);
+  const [showHarvestPicker, setShowHarvestPicker] = useState(false);
   const [assetSearch, setAssetSearch] = useState("");
   const [deptSearch, setDeptSearch] = useState("");
   const [costCenterSearch, setCostCenterSearch] = useState("");
+  const [farmSearch, setFarmSearch] = useState("");
+  const [harvestSearch, setHarvestSearch] = useState("");
 
   // Pré-preencher formulário com dados da solicitação
   useEffect(() => {
@@ -88,6 +98,8 @@ export default function EditByControladoriaScreen() {
       setUrgency((request.urgencyLevel as UrgencyLevel) ?? "normal");
       setObservations(request.observations ?? "");
       setOsMyfarm(request.osMyfarm ?? "");
+      if ((request as any).farmId) { setFarmId((request as any).farmId); setFarmName((request as any).farmName ?? ""); }
+      if ((request as any).harvestId) { setHarvestId((request as any).harvestId); setHarvestName((request as any).harvestName ?? ""); }
       if (request.items && request.items.length > 0) {
         setItems(request.items.map((item: any) => ({
           id: String(item.id ?? Date.now() + Math.random()),
@@ -176,6 +188,10 @@ export default function EditByControladoriaScreen() {
       urgencyLevel: urgency,
       observations: observations.trim() || undefined,
       osMyfarm: osMyfarm.trim() || undefined,
+      farmId: farmId || undefined,
+      farmName: farmName || undefined,
+      harvestId: harvestId || undefined,
+      harvestName: harvestName || undefined,
       items: validItems.map((i) => ({
         description: i.description.trim(),
         quantity: i.quantity || "1",
@@ -354,6 +370,48 @@ export default function EditByControladoriaScreen() {
               keyboardType="numeric"
               style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground }}
             />
+          </View>
+
+          {/* Fazenda */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 8 }}>🌾 Fazenda <Text style={{ fontSize: 12, color: colors.muted, fontWeight: "400" }}>(opcional)</Text></Text>
+            <TouchableOpacity
+              onPress={() => setShowFarmPicker(true)}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: farmId ? colors.primary : colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+            >
+              <Text style={{ fontSize: 14, color: farmId ? colors.foreground : colors.muted, flex: 1 }}>
+                {farmName || "Selecionar fazenda..."}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {farmId && (
+                  <TouchableOpacity onPress={() => { setFarmId(undefined); setFarmName(""); }}>
+                    <Text style={{ color: colors.error, fontSize: 12, fontWeight: "600" }}>✕</Text>
+                  </TouchableOpacity>
+                )}
+                <Text style={{ color: colors.muted, fontSize: 12 }}>▼</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Safra */}
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 8 }}>🌱 Safra <Text style={{ fontSize: 12, color: colors.muted, fontWeight: "400" }}>(opcional)</Text></Text>
+            <TouchableOpacity
+              onPress={() => setShowHarvestPicker(true)}
+              style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: harvestId ? colors.primary : colors.border, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
+            >
+              <Text style={{ fontSize: 14, color: harvestId ? colors.foreground : colors.muted, flex: 1 }}>
+                {harvestName || "Selecionar safra..."}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                {harvestId && (
+                  <TouchableOpacity onPress={() => { setHarvestId(undefined); setHarvestName(""); }}>
+                    <Text style={{ color: colors.error, fontSize: 12, fontWeight: "600" }}>✕</Text>
+                  </TouchableOpacity>
+                )}
+                <Text style={{ color: colors.muted, fontSize: 12 }}>▼</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           {/* Observações */}
@@ -650,6 +708,106 @@ export default function EditByControladoriaScreen() {
                     {item.category && <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{item.category}</Text>}
                     {item.location && <Text style={{ fontSize: 12, color: colors.muted }}>📍 {item.location}</Text>}
                   </View>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* ─── Modal: Selecionar Fazenda ─── */}
+      {showFarmPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>🌾 Selecionar Fazenda</Text>
+              <TouchableOpacity onPress={() => { setShowFarmPicker(false); setFarmSearch(""); }}>
+                <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+              <TextInput
+                value={farmSearch}
+                onChangeText={setFarmSearch}
+                placeholder="Buscar fazenda..."
+                placeholderTextColor={colors.muted}
+                autoFocus
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+              />
+            </View>
+            <FlatList
+              data={(units ?? []).filter((u: any) => !farmSearch || u.name.toLowerCase().includes(farmSearch.toLowerCase()))}
+              keyExtractor={(item: any) => String(item.id)}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+              ListHeaderComponent={
+                <TouchableOpacity
+                  onPress={() => { setFarmId(undefined); setFarmName(""); setShowFarmPicker(false); setFarmSearch(""); }}
+                >
+                </TouchableOpacity>
+              }
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🌾</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhuma fazenda encontrada</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => { setFarmId(item.id); setFarmName(item.name); setShowFarmPicker(false); setFarmSearch(""); }}
+                  style={{ backgroundColor: farmId === item.id ? `${colors.primary}15` : colors.surface, borderWidth: 1, borderColor: farmId === item.id ? colors.primary : colors.border, borderRadius: 12, padding: 14, marginBottom: 8 }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
+                  {farmId === item.id && <Text style={{ fontSize: 12, color: colors.primary, marginTop: 2 }}>✓ Selecionada</Text>}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* ─── Modal: Selecionar Safra ─── */}
+      {showHarvestPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>🌱 Selecionar Safra</Text>
+              <TouchableOpacity onPress={() => { setShowHarvestPicker(false); setHarvestSearch(""); }}>
+                <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+              <TextInput
+                value={harvestSearch}
+                onChangeText={setHarvestSearch}
+                placeholder="Buscar safra..."
+                placeholderTextColor={colors.muted}
+                autoFocus
+                style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+              />
+            </View>
+            <FlatList
+              data={(harvests ?? []).filter((h: any) => !harvestSearch || h.name.toLowerCase().includes(harvestSearch.toLowerCase()))}
+              keyExtractor={(item: any) => String(item.id)}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+              ListHeaderComponent={
+                <TouchableOpacity
+                  onPress={() => { setHarvestId(undefined); setHarvestName(""); setShowHarvestPicker(false); setHarvestSearch(""); }}
+                >
+                </TouchableOpacity>
+              }
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🌱</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhuma safra encontrada</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => { setHarvestId(item.id); setHarvestName(item.name); setShowHarvestPicker(false); setHarvestSearch(""); }}
+                  style={{ backgroundColor: harvestId === item.id ? `${colors.primary}15` : colors.surface, borderWidth: 1, borderColor: harvestId === item.id ? colors.primary : colors.border, borderRadius: 12, padding: 14, marginBottom: 8 }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
+                  {harvestId === item.id && <Text style={{ fontSize: 12, color: colors.primary, marginTop: 2 }}>✓ Selecionada</Text>}
                 </TouchableOpacity>
               )}
             />

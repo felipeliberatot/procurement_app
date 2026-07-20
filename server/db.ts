@@ -2870,6 +2870,10 @@ export async function updateByControladoria(
     urgencyLevel: "normal" | "urgente" | "emergencial";
     observations?: string;
     osMyfarm?: string;
+    farmId?: number;
+    farmName?: string;
+    harvestId?: number;
+    harvestName?: string;
     items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
   }
 ): Promise<{ success: boolean; error?: string }> {
@@ -2905,6 +2909,10 @@ export async function updateByControladoria(
       urgencyLevel: input.urgencyLevel,
       observations: input.observations ?? null,
       osMyfarm: input.osMyfarm ?? null,
+      farmId: input.farmId ?? null,
+      farmName: input.farmName ?? null,
+      harvestId: input.harvestId ?? null,
+      harvestName: input.harvestName ?? null,
       totalEstimatedValue: total > 0 ? String(total) : null,
       // status NÃO é alterado — permanece "aguardando_controladoria"
       updatedAt: new Date(),

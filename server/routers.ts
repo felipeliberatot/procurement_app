@@ -556,6 +556,10 @@ export const appRouter = router({
         urgencyLevel: z.enum(["normal", "urgente", "emergencial"]),
         observations: z.string().optional(),
         osMyfarm: z.string().optional(),
+        farmId: z.number().optional(),
+        farmName: z.string().optional(),
+        harvestId: z.number().optional(),
+        harvestName: z.string().optional(),
         items: z.array(z.object({
           description: z.string().min(1),
           quantity: z.string(),
