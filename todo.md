@@ -825,3 +825,10 @@
 - [x] Investigar por que orderValue não aparecia nos cards de aguardando_aprovacao_compra
 - [x] Corrigir handleIssueOrder para salvar totalEstimatedValue como orderValue ao emitir OC
 - [x] Script de correção de dados históricos: 55 solicitações pós-OC atualizadas com orderValue
+
+## Correções do Relatório Por Bem
+- [x] Corrigir botão PDF desabilitado ao selecionar múltiplos bens (condição de disable usava !assetReport em vez de !assetsReports)
+- [x] Corrigir exportCSV para suportar múltiplos bens selecionados (coluna Bem adicionada)
+- [x] Adicionar mensagem clara quando não há movimentação no período selecionado
+- [x] Investigar itens zerados: solicitações antigas sem orderValue nem totalEstimatedValue (dados históricos sem valor preenchido — não recuperável)
+- [x] Script de correção: bens vinculados com totalEstimatedValue disponível já foram corrigidos pelo script anterior

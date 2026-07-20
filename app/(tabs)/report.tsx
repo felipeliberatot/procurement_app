@@ -99,24 +99,32 @@ export default function ReportScreen() {
       let csvContent: string;
       let fileName: string;
 
-      if (activeTab === "porbem" && selectedAsset && assetReport) {
-        // CSV da aba Por Bem: solicitações do bem selecionado
-        const header = "Nº Solicitação;Solicitante;Departamento;Centro de Custo;Urgência;Valor Total;Data Criação;Data Conclusão\n";
-        const rows = (assetReport.requests ?? []).map((r: any) =>
-          [
-            r.requestNumber ?? r.id,
-            `"${r.requesterName ?? ""}"`,
-            `"${r.department ?? ""}"`,
-            `"${r.costCenterCode ?? ""}"`,
-            r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal",
-            (r.orderValue || r.totalEstimatedValue) ? parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ",") : "",
-            r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
-            r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : "",
-          ].join(";")
-        ).join("\n");
-        csvContent = header + rows;
-        const assetCode = (assetReport as any).asset?.code ?? selectedAsset;
-        fileName = `bem_${assetCode.replace(/[^a-zA-Z0-9]/g, "_")}.csv`;
+      if (activeTab === "porbem" && selectedAssets.length > 0) {
+        // CSV da aba Por Bem: suporte a 1 ou múltiplos bens
+        const header = "Bem;Nº Solicitação;Solicitante;Departamento;Centro de Custo;Urgência;Valor Total;Data Criação;Data Conclusão\n";
+        const reportsSource = selectedAssets.length > 1 ? (assetsReports ?? []) : (assetReport ? [{ application: selectedAsset, ...assetReport }] : []);
+        const allRows: string[] = [];
+        for (const rep of reportsSource) {
+          const assetKey = rep.application ?? selectedAsset ?? "";
+          for (const r of (rep.requests ?? [])) {
+            allRows.push([
+              `"${assetKey}"`,
+              r.requestNumber ?? r.id,
+              `"${r.requesterName ?? ""}"`,
+              `"${r.department ?? ""}"`,
+              `"${r.costCenterCode ?? ""}"`,
+              r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal",
+              (r.orderValue || r.totalEstimatedValue) ? parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ",") : "",
+              r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
+              r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : "",
+            ].join(";"));
+          }
+        }
+        csvContent = header + allRows.join("\n");
+        const monthStr = String(selectedMonth).padStart(2, "0");
+        fileName = selectedAssets.length === 1
+          ? `bem_${(selectedAssets[0] ?? "").split(" — ")[0].replace(/[^a-zA-Z0-9]/g, "_")}_${selectedYear}_${monthStr}.csv`
+          : `bens_${selectedYear}_${monthStr}.csv`;
       } else {
         // CSV das demais abas: relatório mensal
         if (!data) { setExporting(false); return; }
@@ -209,9 +217,17 @@ export default function ReportScreen() {
         <Text style={styles.headerTitle}>Relatórios</Text>
         <View style={styles.exportRow}>
           <TouchableOpacity
-            style={[styles.exportBtn, { backgroundColor: colors.primary }, (exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (loadingAssetReport || !assetReport))) && { opacity: 0.5 }]}
+            style={[styles.exportBtn, { backgroundColor: colors.primary }, (exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
+              selectedAssets.length === 0 ||
+              (selectedAssets.length === 1 && (loadingAssetReport || !assetReport)) ||
+              (selectedAssets.length > 1 && (loadingAssetsReports || !assetsReports || assetsReports.length === 0))
+            ))) && { opacity: 0.5 }]}
             onPress={exportPDF}
-            disabled={exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (loadingAssetReport || !assetReport))}
+            disabled={exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
+              selectedAssets.length === 0 ||
+              (selectedAssets.length === 1 && (loadingAssetReport || !assetReport)) ||
+              (selectedAssets.length > 1 && (loadingAssetsReports || !assetsReports || assetsReports.length === 0))
+            ))}
           >
             {exporting ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -222,9 +238,17 @@ export default function ReportScreen() {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.exportBtn, { backgroundColor: colors.success }, (exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (loadingAssetReport || !assetReport))) && { opacity: 0.5 }]}
+            style={[styles.exportBtn, { backgroundColor: colors.success }, (exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
+              selectedAssets.length === 0 ||
+              (selectedAssets.length === 1 && (loadingAssetReport || !assetReport)) ||
+              (selectedAssets.length > 1 && (loadingAssetsReports || !assetsReports || assetsReports.length === 0))
+            ))) && { opacity: 0.5 }]}
             onPress={exportCSV}
-            disabled={exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (loadingAssetReport || !assetReport))}
+            disabled={exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
+              selectedAssets.length === 0 ||
+              (selectedAssets.length === 1 && (loadingAssetReport || !assetReport)) ||
+              (selectedAssets.length > 1 && (loadingAssetsReports || !assetsReports || assetsReports.length === 0))
+            ))}
           >
             {isFetching ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -1066,6 +1090,16 @@ function PorBemTab({
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.emptyText, { marginTop: 12 }]}>Carregando...</Text>
+        </View>
+      ) : reportsToShow.length === 0 && !loading ? (
+        <View style={styles.centered}>
+          <Text style={{ fontSize: 40, marginBottom: 8 }}>📭</Text>
+          <Text style={[styles.emptyText, { textAlign: "center" }]}>
+            Nenhum bem com compras concluídas em {periodoLabel}.
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.muted, textAlign: "center", marginTop: 8 }}>
+            Tente selecionar outro mês/ano ou verifique se as solicitações foram finalizadas.
+          </Text>
         </View>
       ) : (
         reportsToShow.map((report: any) => {
