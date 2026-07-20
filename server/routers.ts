@@ -1154,6 +1154,19 @@ Retorne JSON:
           sentByName: ctx.user.name ?? "Usuário",
         })
       ),
+    sendPartial: protectedProcedure
+      .input(z.object({
+        maloteId: z.number(),
+        itemIds: z.array(z.number()).min(1, "Selecione ao menos um item para enviar."),
+      }))
+      .mutation(({ ctx, input }) =>
+        db.sendMalotePartial({
+          maloteId: input.maloteId,
+          itemIds: input.itemIds,
+          sentById: ctx.user.id,
+          sentByName: ctx.user.name ?? "Usuário",
+        })
+      ),
     receive: protectedProcedure
       .input(z.object({
         maloteId: z.number(),
@@ -1201,8 +1214,9 @@ Retorne JSON:
       .mutation(({ ctx, input }) => {
         const callerRole = (ctx.user as any).procurementRole;
         const callerLevel = (ctx.user as any).approvalLevel;
-        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master";
-        if (!canManage) throw new Error("Apenas administradores podem criar safras.");
+        const regPerms = (() => { try { return JSON.parse((ctx.user as any).registerPermissions || "{}"); } catch { return {}; } })();
+        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master" || regPerms?.harvests?.create === true;
+        if (!canManage) throw new Error("Sem permissão para criar safras.");
         return db.createHarvest(input);
       }),
     update: protectedProcedure
@@ -1217,8 +1231,9 @@ Retorne JSON:
       .mutation(({ ctx, input }) => {
         const callerRole = (ctx.user as any).procurementRole;
         const callerLevel = (ctx.user as any).approvalLevel;
-        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master";
-        if (!canManage) throw new Error("Apenas administradores podem editar safras.");
+        const regPerms = (() => { try { return JSON.parse((ctx.user as any).registerPermissions || "{}"); } catch { return {}; } })();
+        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master" || regPerms?.harvests?.edit === true;
+        if (!canManage) throw new Error("Sem permissão para editar safras.");
         const { id, ...data } = input;
         return db.updateHarvest(id, data);
       }),
@@ -1227,8 +1242,9 @@ Retorne JSON:
       .mutation(({ ctx, input }) => {
         const callerRole = (ctx.user as any).procurementRole;
         const callerLevel = (ctx.user as any).approvalLevel;
-        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master";
-        if (!canManage) throw new Error("Apenas administradores podem excluir safras.");
+        const regPerms = (() => { try { return JSON.parse((ctx.user as any).registerPermissions || "{}"); } catch { return {}; } })();
+        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master" || regPerms?.harvests?.delete === true;
+        if (!canManage) throw new Error("Sem permissão para excluir safras.");
         return db.deleteHarvest(input.id);
       }),
   }),

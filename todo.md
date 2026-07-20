@@ -808,3 +808,9 @@
 - [x] Badge visual de prioridade nos cards de solicitação
 - [x] Tela/modal de Rank de Prioridades com lista ordenada e drag-to-reorder
 - [ ] Filtro "Prioritárias" na tela de Solicitações
+- [x] Envio parcial de malote (selecionar itens individualmente)
+- [x] Campo sentStatus por item no malote
+- [x] Permissões de Safras no cadastro de usuários
+- [x] Campos Fazenda e Safra na nova solicitação (início do formulário)
+- [x] Sistema de prioridades nas solicitações (Willian/Rafael)
+- [x] Badge visual dourado nos cards prioritários

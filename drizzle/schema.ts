@@ -329,6 +329,9 @@ export const maloteItems = mysqlTable("maloteItems", {
   application: varchar("application", { length: 255 }).notNull(),
   addedById: int("addedById").notNull(),
   addedByName: varchar("addedByName", { length: 255 }).notNull(),
+  sentStatus: mysqlEnum("sentStatus", ["pendente", "enviado"])
+    .default("pendente")
+    .notNull(),
   receiptStatus: mysqlEnum("receiptStatus", ["pendente", "recebido", "devolvido"])
     .default("pendente")
     .notNull(),

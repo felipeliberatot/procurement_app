@@ -69,10 +69,11 @@ const ROLE_COLORS: Record<ProcurementRole, string> = {
 // ─── Permissões Granulares de Cadastro ────────────────────────────────────────
 // Estrutura: { [tab]: { create: bool, edit: bool, delete: bool } }
 type RegisterAction = "create" | "edit" | "delete";
-type RegisterTab = "costcenters" | "assets" | "units" | "businessunits" | "departments";
+type RegisterTab = "costcenters" | "assets" | "units" | "businessunits" | "departments" | "harvests";
 type RegisterPerms = Record<RegisterTab, Record<RegisterAction, boolean>>;
 
 const REGISTER_TABS: Array<{ key: RegisterTab; label: string; icon: string }> = [
+  { key: "harvests", label: "Safras", icon: "🌱" },
   { key: "costcenters", label: "Centros de Custo", icon: "🏢" },
   { key: "assets", label: "Bens", icon: "📦" },
   { key: "units", label: "Fazendas", icon: "🌾" },
@@ -86,6 +87,7 @@ const EMPTY_PERMS: RegisterPerms = {
   units: { create: false, edit: false, delete: false },
   businessunits: { create: false, edit: false, delete: false },
   departments: { create: false, edit: false, delete: false },
+  harvests: { create: false, edit: false, delete: false },
 };
 
 const ADMIN_PERMS: RegisterPerms = {
@@ -94,6 +96,7 @@ const ADMIN_PERMS: RegisterPerms = {
   units: { create: true, edit: true, delete: true },
   businessunits: { create: true, edit: true, delete: true },
   departments: { create: true, edit: true, delete: true },
+  harvests: { create: true, edit: true, delete: true },
 };
 
 const parseRegisterPerms = (val: any): RegisterPerms => {

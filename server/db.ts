@@ -1979,6 +1979,63 @@ export async function sendMalote(opts: {
   }
 }
 
+export async function sendMalotePartial(opts: {
+  maloteId: number;
+  itemIds: number[];  // IDs dos maloteItems a enviar
+  sentById: number;
+  sentByName: string;
+}): Promise<{ sentCount: number; remainingCount: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Marcar os itens selecionados como enviados
+  for (const itemId of opts.itemIds) {
+    await db.update(maloteItems)
+      .set({ sentStatus: "enviado" })
+      .where(eq(maloteItems.id, itemId));
+  }
+
+  // Verificar quantos itens ainda estão pendentes
+  const allItems = await db.select().from(maloteItems).where(eq(maloteItems.maloteId, opts.maloteId));
+  const pendingItems = allItems.filter(i => i.sentStatus === "pendente");
+  const sentItems = allItems.filter(i => i.sentStatus === "enviado");
+
+  // Se todos os itens foram enviados, marcar o malote como enviado
+  if (pendingItems.length === 0) {
+    const [malote] = await db.select().from(malotes).where(eq(malotes.id, opts.maloteId)).limit(1);
+    await db.update(malotes).set({
+      status: "enviado",
+      sentAt: new Date(),
+      sentById: opts.sentById,
+      sentByName: opts.sentByName,
+    }).where(eq(malotes.id, opts.maloteId));
+    // Notificar via WhatsApp
+    if (malote) {
+      try {
+        const [destUnit] = await db.select().from(units).where(eq(units.name, malote.destinationUnit)).limit(1);
+        if (destUnit?.responsiblePhone) {
+          const msg = `📦 *Malote ${malote.maloteCode} enviado completamente!*\n\nOrigem: ${malote.originUnit}\nDestino: ${malote.destinationUnit}\nEnviado por: ${opts.sentByName}\n\nTodos os itens foram enviados. Confirme o recebimento no app CGS.`;
+          await WA.sendSimpleWhatsApp(destUnit.responsiblePhone, msg);
+        }
+      } catch (_) { /* silently ignore */ }
+    }
+  } else {
+    // Envio parcial: notificar que parte foi enviada
+    const [malote] = await db.select().from(malotes).where(eq(malotes.id, opts.maloteId)).limit(1);
+    if (malote) {
+      try {
+        const [destUnit] = await db.select().from(units).where(eq(units.name, malote.destinationUnit)).limit(1);
+        if (destUnit?.responsiblePhone) {
+          const msg = `📦 *Envio parcial — Malote ${malote.maloteCode}*\n\nOrigem: ${malote.originUnit}\nDestino: ${malote.destinationUnit}\nEnviado por: ${opts.sentByName}\n\n✅ ${sentItems.length} item(s) enviado(s)\n⏳ ${pendingItems.length} item(s) ainda pendente(s)\n\nO malote permanece aberto para os demais itens.`;
+          await WA.sendSimpleWhatsApp(destUnit.responsiblePhone, msg);
+        }
+      } catch (_) { /* silently ignore */ }
+    }
+  }
+
+  return { sentCount: sentItems.length, remainingCount: pendingItems.length };
+}
+
 export async function receiveMalote(opts: {
   maloteId: number;
   receivedById: number;
