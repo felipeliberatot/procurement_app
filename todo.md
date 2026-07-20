@@ -820,3 +820,8 @@
 - [ ] Estrelinha de prioridade em todos os cards (toggle, apenas Willian/Rafael)
 - [ ] Prioritárias no topo da lista de solicitações
 - [ ] Relatório diário WhatsApp para CEO com OCs prioritárias em aberto
+
+## Correção de Valores nos Cards de Aprovação Financeira
+- [x] Investigar por que orderValue não aparecia nos cards de aguardando_aprovacao_compra
+- [x] Corrigir handleIssueOrder para salvar totalEstimatedValue como orderValue ao emitir OC
+- [x] Script de correção de dados históricos: 55 solicitações pós-OC atualizadas com orderValue

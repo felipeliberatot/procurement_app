@@ -1146,11 +1146,13 @@ export default function RequestDetailScreen() {
   const handleIssueOrder = () => {
     // O valor da OC é o totalEstimatedValue definido na etapa de Orçamento
     const valorExibido = request.totalEstimatedValue ? formatCurrency(request.totalEstimatedValue) : "(valor não informado)";
+    // Ao emitir a OC, salvar o totalEstimatedValue como orderValue para que apareça nos cards subsequentes
+    const ocValue = request.totalEstimatedValue ? parseFloat(request.totalEstimatedValue) : undefined;
     showConfirm({
       title: "Confirmar Emissão de OC",
       message: `Confirmar a emissão da OC (${valorExibido}) e encaminhar para Aprovação Financeiro?`,
       confirmText: "Confirmar",
-      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "" }),
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", ...(ocValue && !isNaN(ocValue) ? { orderValue: ocValue } : {}) }),
     });
   };
 

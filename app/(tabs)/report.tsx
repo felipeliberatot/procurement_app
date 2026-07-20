@@ -166,8 +166,15 @@ export default function ReportScreen() {
     setExporting(true);
     try {
       let html: string;
-      if (activeTab === "porbem" && selectedAsset && assetReport) {
-        html = generateAssetPDFHtml(assetReport, selectedAsset);
+      if (activeTab === "porbem") {
+        // Multi-asset: use assetsReports when multiple bens selected
+        if (selectedAssets.length > 1 && assetsReports && assetsReports.length > 0) {
+          html = generateMultiAssetPDFHtml(assetsReports, selectedYear, selectedMonth);
+        } else if (selectedAssets.length === 1 && selectedAsset && assetReport) {
+          html = generateAssetPDFHtml(assetReport, selectedAsset);
+        } else {
+          setExporting(false); return;
+        }
       } else {
         if (!data) { setExporting(false); return; }
         const monthName = MONTHS[selectedMonth - 1];
@@ -962,7 +969,11 @@ function PorBemTab({
     setSelectedAsset(null);
   }
 
-  const reportsToShow: any[] = assetsReports ?? [];
+  // Only show assets that have at least one concluded request or some value
+  const reportsToShow: any[] = (assetsReports ?? []).filter(
+    (r: any) => (r.summary?.totalSolicitacoes ?? 0) > 0 || (r.summary?.totalGasto ?? 0) > 0
+  );
+  const hiddenCount = (assetsReports ?? []).length - reportsToShow.length;
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -1027,6 +1038,16 @@ function PorBemTab({
           </ScrollView>
         )}
       </View>
+
+      {/* Aviso de bens sem movimentação ocultos */}
+      {hiddenCount > 0 && (
+        <View style={{ backgroundColor: colors.warning + "18", borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 8, borderWidth: 1, borderColor: colors.warning + "44", flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text style={{ fontSize: 16 }}>🙈</Text>
+          <Text style={{ fontSize: 12, color: colors.warning, flex: 1 }}>
+            {hiddenCount} {hiddenCount === 1 ? "bem ocultado" : "bens ocultados"} sem movimentação no período
+          </Text>
+        </View>
+      )}
 
       {/* Competência ativa */}
       <View style={{ backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 14, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -1436,6 +1457,102 @@ function generateAssetPDFHtml(assetReport: any, assetApplication: string): strin
     ${rows || '<tr><td colspan="8" style="text-align:center;color:#999">Nenhuma solicitação encontrada</td></tr>'}
   </tbody>
 </table>
+</body>
+</html>`;
+}
+
+// ── HTML para PDF multi-bens ─────────────────────────────────────────────────
+function generateMultiAssetPDFHtml(reports: any[], year: number, month: number): string {
+  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const periodoLabel = year && month ? `${MONTH_NAMES[month - 1]} de ${year}` : "Todo o histórico";
+  const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v ?? 0);
+  const fmtDate = (d: string | Date) => d ? new Date(d).toLocaleDateString("pt-BR") : "-";
+
+  // Only include reports with at least one concluded request
+  const filtered = reports.filter((r: any) => r.summary?.totalSolicitacoes > 0 || r.summary?.totalGasto > 0);
+  const grandTotal = filtered.reduce((sum: number, r: any) => sum + (r.summary?.totalGasto ?? 0), 0);
+  const grandCount = filtered.reduce((sum: number, r: any) => sum + (r.summary?.totalSolicitacoes ?? 0), 0);
+
+  const sections = filtered.map((report: any) => {
+    const rows = (report.requests ?? []).map((r: any) => `
+      <tr>
+        <td>${r.requestNumber ?? "-"}</td>
+        <td>${r.requesterName ?? "-"}</td>
+        <td>${r.department ?? "-"}</td>
+        <td>${r.costCenterCode ?? "-"}</td>
+        <td style="text-align:right">${(r.orderValue || r.totalEstimatedValue) ? fmt(parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0")) : "—"}</td>
+        <td>${r.completedAt ? fmtDate(r.completedAt) : "-"}</td>
+      </tr>
+    `).join("");
+
+    const code = report.application?.split(" — ")[0] ?? report.application;
+    const desc = report.application?.split(" — ").slice(1).join(" — ") ?? report.application;
+
+    return `
+      <div class="asset-section">
+        <div class="asset-header">
+          <span class="asset-code">${code}</span>
+          <strong>${desc}</strong>
+          <span class="asset-total">${fmt(report.summary?.totalGasto ?? 0)}</span>
+          <span class="asset-count">${report.summary?.totalSolicitacoes ?? 0} sol.</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Nº</th><th>Solicitante</th><th>Departamento</th><th>CC</th>
+              <th style="text-align:right">Valor</th><th>Concluído em</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows || '<tr><td colspan="6" style="text-align:center;color:#999">Nenhuma solicitação</td></tr>'}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }).join("");
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>Relatório por Bem — ${periodoLabel}</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #222; margin: 20px; }
+  h1 { font-size: 18px; color: #1a5c2a; margin-bottom: 4px; }
+  .subtitle { color: #555; font-size: 11px; margin-bottom: 16px; }
+  .grand-summary { display: flex; gap: 16px; margin-bottom: 20px; }
+  .card { background: #f0f9f4; border-radius: 8px; padding: 10px 18px; border: 1px solid #c3e6cb; }
+  .card-value { font-size: 20px; font-weight: 800; color: #1a5c2a; }
+  .card-label { font-size: 10px; color: #666; margin-top: 2px; }
+  .asset-section { margin-bottom: 24px; page-break-inside: avoid; }
+  .asset-header { display: flex; align-items: center; gap: 10px; background: #e6f4ea; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; border: 1px solid #b2dfdb; }
+  .asset-code { background: #1a5c2a; color: #fff; border-radius: 4px; padding: 2px 8px; font-weight: 700; font-size: 11px; white-space: nowrap; }
+  .asset-total { margin-left: auto; font-size: 15px; font-weight: 800; color: #1a5c2a; }
+  .asset-count { font-size: 10px; color: #666; white-space: nowrap; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #1a5c2a; color: #fff; padding: 6px 8px; text-align: left; font-size: 10px; }
+  td { padding: 5px 8px; border-bottom: 1px solid #e5e7eb; font-size: 10px; }
+  tr:nth-child(even) td { background: #f9fafb; }
+</style>
+</head>
+<body>
+<h1>Relatório por Bem</h1>
+<div class="subtitle">Período: ${periodoLabel} · Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+<div class="grand-summary">
+  <div class="card">
+    <div class="card-value">${filtered.length}</div>
+    <div class="card-label">Bens com movimentação</div>
+  </div>
+  <div class="card">
+    <div class="card-value">${grandCount}</div>
+    <div class="card-label">Total de Solicitações</div>
+  </div>
+  <div class="card">
+    <div class="card-value" style="font-size:15px">${fmt(grandTotal)}</div>
+    <div class="card-label">Total Gasto</div>
+  </div>
+</div>
+${sections || '<p style="color:#999;text-align:center">Nenhum bem com movimentação no período selecionado.</p>'}
 </body>
 </html>`;
 }
