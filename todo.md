@@ -785,3 +785,26 @@
 - [x] Indicador de cumprimento parcial no painel (dashboard)
 - [ ] Tela de relatórios com gráficos: compras por período, centro de custo, itens mais comprados, usuários que mais solicitam
 - [x] Opção A para itens parciais: quando ≥1 item comprado na Emissão de OC, avançar para Financeiro normalmente; ao finalizar OC com itens pendentes, marcar como parcialmente_concluida em vez de concluida
+
+## Fazenda e Safra nas Solicitações
+- [ ] Adicionar colunas farmId, farmName, harvestId, harvestName na tabela purchaseRequests
+- [x] Atualizar schema Drizzle com novos campos de fazenda/safra em purchaseRequests
+- [x] Atualizar router requests.create para aceitar farmId/farmName/harvestId/harvestName
+- [x] Atualizar db.createPurchaseRequest para salvar farmId/farmName/harvestId/harvestName
+- [x] Abrir permissão de CRUD de safras para admin e master (não só Oscar)
+- [x] Adicionar aba Safras na tela de Cadastros com modal de criação/edição
+- [x] Adicionar seletores de Fazenda e Safra (opcionais) na tela de nova solicitação
+- [x] Exibir fazenda/safra no detalhe da solicitação (request/[id].tsx)
+
+## Sistema de Prioridades
+- [x] Adicionar coluna priority (0=normal, 1=prioritária) na tabela purchaseRequests
+- [x] Adicionar coluna priorityOrder (INT) para rank de prioridade
+- [x] Criar tabela priorityRanks para controlar a ordem das solicitações priorizadas
+- [x] Atualizar schema Drizzle com novos campos de prioridade
+- [x] Criar função db.setPriority e db.listPriorityRank
+- [x] Criar router requests.setPriority (restrito a Willian Camilo e Rafael)
+- [x] Criar router requests.reorderPriority (restrito a Willian Camilo e Rafael)
+- [x] Botão "Definir Prioridade" na tela de detalhe da solicitação (apenas Willian/Rafael)
+- [x] Badge visual de prioridade nos cards de solicitação
+- [x] Tela/modal de Rank de Prioridades com lista ordenada e drag-to-reorder
+- [ ] Filtro "Prioritárias" na tela de Solicitações

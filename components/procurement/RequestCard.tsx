@@ -73,6 +73,8 @@ interface RequestCardProps {
     deadlineAt?: Date | string | null;
     createdAt: Date | string;
     items?: RequestItem[];
+    isPriority?: boolean | null;
+    priorityOrder?: number | null;
   };
   onPress: () => void;
   /** Se fornecido, exibe botões de ação rápida Aprovar/Rejeitar no card */
@@ -162,7 +164,15 @@ export function RequestCard({
           {/* Cabeçalho */}
           <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={{ fontSize: 11, color: colors.muted, fontFamily: "monospace" }}>{request.requestNumber}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontSize: 11, color: colors.muted, fontFamily: "monospace" }}>{request.requestNumber}</Text>
+                {request.isPriority && (
+                  <View style={{ backgroundColor: "#EF444420", borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, flexDirection: "row", alignItems: "center", gap: 3 }}>
+                    <Text style={{ fontSize: 9 }}>🔴</Text>
+                    <Text style={{ fontSize: 9, fontWeight: "800", color: "#EF4444" }}>PRIO{request.priorityOrder ? ` #${request.priorityOrder}` : ""}</Text>
+                  </View>
+                )}
+              </View>
               <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginTop: 2 }} numberOfLines={2}>
                 {request.application}
               </Text>

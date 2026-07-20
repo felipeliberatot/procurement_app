@@ -158,6 +158,18 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   // OS Myfarm
   osMyfarm: varchar("osMyfarm", { length: 64 }), // Número da OS Myfarm vinculada
 
+  // Fazenda e Safra (opcionais — selecionados na criação da solicitação)
+  farmId: int("farmId"),                                // FK para units (fazendas)
+  farmName: varchar("farmName", { length: 128 }),       // Nome da fazenda (desnormalizado)
+  harvestId: int("harvestId"),                          // FK para harvests (safras)
+  harvestName: varchar("harvestName", { length: 128 }), // Nome da safra (desnormalizado)
+
+  // Prioridade (definida por Willian Camilo ou Rafael)
+  isPriority: boolean("isPriority").default(false).notNull(), // true = solicitação prioritária
+  priorityOrder: int("priorityOrder"),                        // Posição no rank de prioridades (1 = mais urgente)
+  prioritySetBy: varchar("prioritySetBy", { length: 128 }),   // Nome de quem definiu a prioridade
+  prioritySetAt: timestamp("prioritySetAt"),                  // Quando a prioridade foi definida
+
   // Urgente/Emergencial: controle de retorno ao orçamento
   orcamentoFeitoUrgente: boolean("orcamentoFeitoUrgente").default(false).notNull(), // true após o orçamento ser feito pela primeira vez em pedidos urgentes/emergenciais
 

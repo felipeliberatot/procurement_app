@@ -290,6 +290,10 @@ export const appRouter = router({
         urgencyLevel: z.enum(["normal", "urgente", "emergencial"]),
         observations: z.string().optional(),
         osMyfarm: z.string().optional(),
+        farmId: z.number().optional(),
+        farmName: z.string().optional(),
+        harvestId: z.number().optional(),
+        harvestName: z.string().optional(),
         items: z.array(z.object({
           description: z.string().min(1),
           quantity: z.string(),
@@ -580,6 +584,35 @@ export const appRouter = router({
         const isAdmin = user.role === "admin" || user.approvalLevel === "master";
         return db.deletePurchaseRequest(input.requestId, user.id, isAdmin);
       }),
+
+    // ── Prioridades (apenas Willian Camilo e Rafael) ──
+    setPriority: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        isPriority: z.boolean(),
+      }))
+      .mutation(({ ctx, input }) => {
+        const user = ctx.user as any;
+        if (!db.canSetPriority(user.name ?? "")) {
+          throw new Error("Apenas Willian Camilo e Rafael podem definir prioridades.");
+        }
+        return db.setPriorityRequest(input.requestId, input.isPriority, user.name ?? "Usuário");
+      }),
+
+    reorderPriority: protectedProcedure
+      .input(z.object({
+        orderedIds: z.array(z.number()).min(1),
+      }))
+      .mutation(({ ctx, input }) => {
+        const user = ctx.user as any;
+        if (!db.canSetPriority(user.name ?? "")) {
+          throw new Error("Apenas Willian Camilo e Rafael podem reordenar prioridades.");
+        }
+        return db.reorderPriorityRequests(input.orderedIds);
+      }),
+
+    listPriority: protectedProcedure
+      .query(() => db.listPriorityRequests()),
   }),
 
   // ─── Approvals ─────────────────────────────────────────────────────────────
@@ -1166,9 +1199,10 @@ Retorne JSON:
         endDate: z.string().optional(),
       }))
       .mutation(({ ctx, input }) => {
-        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
-          throw new Error("Apenas o usuário Oscar pode criar safras.");
-        }
+        const callerRole = (ctx.user as any).procurementRole;
+        const callerLevel = (ctx.user as any).approvalLevel;
+        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master";
+        if (!canManage) throw new Error("Apenas administradores podem criar safras.");
         return db.createHarvest(input);
       }),
     update: protectedProcedure
@@ -1181,18 +1215,20 @@ Retorne JSON:
         active: z.boolean().optional(),
       }))
       .mutation(({ ctx, input }) => {
-        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
-          throw new Error("Apenas o usuário Oscar pode editar safras.");
-        }
+        const callerRole = (ctx.user as any).procurementRole;
+        const callerLevel = (ctx.user as any).approvalLevel;
+        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master";
+        if (!canManage) throw new Error("Apenas administradores podem editar safras.");
         const { id, ...data } = input;
         return db.updateHarvest(id, data);
       }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ ctx, input }) => {
-        if (ctx.user.name !== "Oscar" && (ctx.user as any).procurementRole !== "master") {
-          throw new Error("Apenas o usuário Oscar pode excluir safras.");
-        }
+        const callerRole = (ctx.user as any).procurementRole;
+        const callerLevel = (ctx.user as any).approvalLevel;
+        const canManage = callerRole === "master" || callerRole === "admin" || callerLevel === "master";
+        if (!canManage) throw new Error("Apenas administradores podem excluir safras.");
         return db.deleteHarvest(input.id);
       }),
   }),

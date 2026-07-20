@@ -29,7 +29,7 @@ import {
   View,
 } from "react-native";
 
-type Tab = "users" | "costcenters" | "assets" | "units" | "businessunits" | "departments" | "apikeys";
+type Tab = "users" | "costcenters" | "assets" | "units" | "businessunits" | "departments" | "harvests" | "apikeys";
 
 const ROLES: ProcurementRole[] = [
   "solicitante",
@@ -2026,6 +2026,84 @@ function DepartmentFormModal({
   );
 }
 
+// ─── Harvest Form Modal ─────────────────────────────────────────────────────
+function HarvestFormModal({
+  visible, harvest, onClose, onSave, isSaving,
+}: {
+  visible: boolean;
+  harvest: any | null;
+  onClose: () => void;
+  onSave: (data: { name: string; year: string; startDate?: string; endDate?: string }) => void;
+  isSaving: boolean;
+}) {
+  const colors = useColors();
+  const isEditing = !!harvest?.id;
+  const [name, setName] = React.useState(harvest?.name ?? "");
+  const [year, setYear] = React.useState(harvest?.year ?? String(new Date().getFullYear()));
+  const [startDate, setStartDate] = React.useState(harvest?.startDate ?? "");
+  const [endDate, setEndDate] = React.useState(harvest?.endDate ?? "");
+
+  React.useEffect(() => {
+    setName(harvest?.name ?? "");
+    setYear(harvest?.year ?? String(new Date().getFullYear()));
+    setStartDate(harvest?.startDate ?? "");
+    setEndDate(harvest?.endDate ?? "");
+  }, [harvest, visible]);
+
+  const handleSave = () => {
+    if (!name.trim() || !year.trim()) {
+      Alert.alert("Campos obrigatórios", "Nome e ano são obrigatórios.");
+      return;
+    }
+    onSave({
+      name: name.trim(),
+      year: year.trim(),
+      startDate: startDate.trim() || undefined,
+      endDate: endDate.trim() || undefined,
+    });
+  };
+
+  const inputStyle = {
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: colors.foreground,
+  };
+  const labelStyle = { color: colors.foreground, fontSize: 13, fontWeight: "600" as const, marginBottom: 6 };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+          <TouchableOpacity onPress={onClose} disabled={isSaving}>
+            <Text style={{ color: colors.primary, fontSize: 15 }}>Cancelar</Text>
+          </TouchableOpacity>
+          <Text style={{ color: colors.foreground, fontSize: 16, fontWeight: "700" }}>{isEditing ? "Editar Safra" : "Nova Safra"}</Text>
+          <TouchableOpacity onPress={handleSave} disabled={isSaving}>
+            {isSaving ? <ActivityIndicator size="small" color={colors.primary} /> : <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "700" }}>Salvar</Text>}
+          </TouchableOpacity>
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} showsVerticalScrollIndicator={false}>
+          <View>
+            <Text style={labelStyle}>Nome da Safra *</Text>
+            <TextInput value={name} onChangeText={setName} placeholder="Ex: Safra Soja 2025/26" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" />
+          </View>
+          <View>
+            <Text style={labelStyle}>Ano *</Text>
+            <TextInput value={year} onChangeText={setYear} placeholder="Ex: 2026" placeholderTextColor={colors.muted} keyboardType="numeric" style={inputStyle} returnKeyType="next" maxLength={9} />
+          </View>
+          <View>
+            <Text style={labelStyle}>Data de Início</Text>
+            <TextInput value={startDate} onChangeText={setStartDate} placeholder="Ex: 01/10/2025" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="next" />
+          </View>
+          <View>
+            <Text style={labelStyle}>Data de Fim</Text>
+            <TextInput value={endDate} onChangeText={setEndDate} placeholder="Ex: 31/03/2026" placeholderTextColor={colors.muted} style={inputStyle} returnKeyType="done" />
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 // ─── Main Screen ──────────────────────────────────────────────────────────────
 export default function RegistersScreen() {
   const { isAuthenticated, user } = useAuth();
@@ -2117,6 +2195,9 @@ export default function RegistersScreen() {
     enabled: isAuthenticated,
   });
   const { data: departmentsList, isLoading: deptLoading } = trpc.departments.list.useQuery(undefined, {
+    enabled: isAuthenticated,
+  });
+  const { data: harvestsList, isLoading: harvestsLoading } = trpc.harvests.list.useQuery(undefined, {
     enabled: isAuthenticated,
   });
   const { data: apiKeysList, isLoading: apiKeysLoading, refetch: refetchApiKeys } = trpc.apiKeys.list.useQuery(undefined, {
@@ -2450,6 +2531,35 @@ export default function RegistersScreen() {
     onError: (e) => Alert.alert("Erro", e.message),
   });
 
+  // ── Harvests (Safras) ──
+  const [showHarvestModal, setShowHarvestModal] = useState(false);
+  const [editingHarvest, setEditingHarvest] = useState<any>(null);
+  const createHarvestMutation = trpc.harvests.create.useMutation({
+    onSuccess: () => {
+      utils.harvests.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowHarvestModal(false);
+      setEditingHarvest(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+  const updateHarvestMutation = trpc.harvests.update.useMutation({
+    onSuccess: () => {
+      utils.harvests.list.invalidate();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowHarvestModal(false);
+      setEditingHarvest(null);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+  const deleteHarvestMutation = trpc.harvests.delete.useMutation({
+    onSuccess: () => {
+      utils.harvests.list.invalidate();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+
   const createBU = trpc.businessUnits.create.useMutation({
     onSuccess: () => {
       utils.businessUnits.list.invalidate();
@@ -2601,6 +2711,7 @@ export default function RegistersScreen() {
     { key: "units", label: "Fazendas", icon: "🌾", count: unitsList?.length },
     { key: "businessunits", label: "Unidades", icon: "🏗️", count: businessUnitsList?.length },
     { key: "departments", label: "Departamentos", icon: "🏛️", count: departmentsList?.length },
+    { key: "harvests", label: "Safras", icon: "🌱", count: harvestsList?.length },
     ...(isMaster ? [{ key: "apikeys" as Tab, label: "API Keys", icon: "🔑", count: (apiKeysList ?? []).length }] : []),
   ];
 
@@ -3859,6 +3970,83 @@ export default function RegistersScreen() {
         </View>
       )}
 
+      {/* ── Harvests (Safras) Tab ── */}
+      {activeTab === "harvests" && (
+        <View style={{ flex: 1 }}>
+          <View style={{ padding: 12 }}>
+            {(isAdmin || isMaster) && (
+              <TouchableOpacity
+                onPress={() => { setEditingHarvest(null); setShowHarvestModal(true); }}
+                style={{ backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+              >
+                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova Safra</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+          <FlatList
+            data={harvestsList ?? []}
+            keyExtractor={(item) => String((item as any).id)}
+            contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={
+              harvestsLoading ? (
+                <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
+              ) : (
+                <View style={{ alignItems: "center", marginTop: 60 }}>
+                  <Text style={{ fontSize: 40, marginBottom: 12 }}>🌱</Text>
+                  <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>Nenhuma safra cadastrada</Text>
+                  <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center" }}>Cadastre a primeira safra para vincular às solicitações.</Text>
+                </View>
+              )
+            }
+            renderItem={({ item }) => (
+              <View style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 14, marginBottom: 10, borderWidth: 1, borderColor: colors.border }}>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Text style={{ fontSize: 16, fontWeight: "800", color: colors.foreground }}>{(item as any).name}</Text>
+                    <View style={{ backgroundColor: (item as any).active ? "#22C55E20" : "#EF444420", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 11, fontWeight: "700", color: (item as any).active ? "#22C55E" : "#EF4444" }}>{(item as any).active ? "Ativa" : "Inativa"}</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: colors.primary }}>Ano: {(item as any).year}</Text>
+                </View>
+                {((item as any).startDate || (item as any).endDate) && (
+                  <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>
+                    📅 {(item as any).startDate ?? ""}{(item as any).startDate && (item as any).endDate ? " → " : ""}{(item as any).endDate ?? ""}
+                  </Text>
+                )}
+                {(isAdmin || isMaster) && (
+                  <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+                    <Pressable
+                      onPress={() => { setEditingHarvest(item); setShowHarvestModal(true); }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: `${colors.primary}15`, borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: `${colors.primary}30` })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>✏️ Editar</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        const msg = `Deseja excluir a safra "${(item as any).name}"?`;
+                        const doDelete = () => deleteHarvestMutation.mutate({ id: (item as any).id });
+                        if (Platform.OS === "web") {
+                          if (window.confirm(msg)) doDelete();
+                        } else {
+                          Alert.alert("Excluir Safra", msg, [
+                            { text: "Cancelar", style: "cancel" },
+                            { text: "Excluir", style: "destructive", onPress: doDelete },
+                          ]);
+                        }
+                      }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, flex: 1, backgroundColor: "#EF444415", borderRadius: 8, paddingVertical: 6, alignItems: "center", borderWidth: 1, borderColor: "#EF444430" })}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: "700", color: colors.error }}>🗑️ Excluir</Text>
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            )}
+          />
+        </View>
+      )}
       {/* ── API Keys Tab ── */}
       {activeTab === "apikeys" && isMaster && (
         <View style={{ flex: 1 }}>
@@ -4125,6 +4313,19 @@ export default function RegistersScreen() {
         }}
         isSaving={createDept.isPending || updateDept.isPending}
         existingCodes={(departmentsList ?? []).map((d: any) => d.code)}
+      />
+      <HarvestFormModal
+        visible={showHarvestModal}
+        harvest={editingHarvest}
+        onClose={() => { setShowHarvestModal(false); setEditingHarvest(null); }}
+        onSave={(data) => {
+          if (editingHarvest?.id) {
+            updateHarvestMutation.mutate({ id: editingHarvest.id, ...data });
+          } else {
+            createHarvestMutation.mutate(data);
+          }
+        }}
+        isSaving={createHarvestMutation.isPending || updateHarvestMutation.isPending}
       />
     </ScreenContainer>
   );

@@ -535,6 +535,10 @@ export async function createPurchaseRequest(
     urgencyLevel: "normal" | "urgente" | "emergencial";
     observations?: string;
     osMyfarm?: string;
+    farmId?: number;
+    farmName?: string;
+    harvestId?: number;
+    harvestName?: string;
     items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
   }
 ) {
@@ -564,6 +568,10 @@ export async function createPurchaseRequest(
     urgencyLevel: input.urgencyLevel,
     observations: input.observations ?? null,
     osMyfarm: input.osMyfarm ?? null,
+    farmId: input.farmId ?? null,
+    farmName: input.farmName ?? null,
+    harvestId: input.harvestId ?? null,
+    harvestName: input.harvestName ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
     // Todos os pedidos começam pelo Gerente (urgentes/emergenciais vão para Diretoria após o Gerente)
     status: "aguardando_gerente",
@@ -3690,4 +3698,105 @@ export async function getRequestsByAsset(application: string, year?: number, mon
       totalGasto: Math.round(totalGasto * 100) / 100,
     },
   };
+}
+
+// ─── Priority Management ───────────────────────────────────────────────────────
+
+/**
+ * Nomes autorizados a definir prioridade (case-insensitive partial match).
+ * Willian Camilo e Rafael (qualquer sobrenome).
+ */
+const PRIORITY_AUTHORIZED_NAMES = ["willian camilo", "rafael"];
+
+export function canSetPriority(userName: string): boolean {
+  const lower = (userName ?? "").toLowerCase();
+  return PRIORITY_AUTHORIZED_NAMES.some((n) => lower.includes(n));
+}
+
+/**
+ * Define ou remove a prioridade de uma solicitação.
+ * Ao marcar como prioritária, atribui o próximo priorityOrder disponível.
+ * Ao desmarcar, remove o priorityOrder e reordena as demais.
+ */
+export async function setPriorityRequest(
+  requestId: number,
+  isPriority: boolean,
+  setByName: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  if (isPriority) {
+    // Buscar o maior priorityOrder atual
+    const rows = await db
+      .select({ maxOrder: sql<number>`MAX(priorityOrder)` })
+      .from(purchaseRequests)
+      .where(eq(purchaseRequests.isPriority, true));
+    const maxOrder = rows[0]?.maxOrder ?? 0;
+    await db.update(purchaseRequests).set({
+      isPriority: true,
+      priorityOrder: (maxOrder ?? 0) + 1,
+      prioritySetBy: setByName,
+      prioritySetAt: new Date(),
+    }).where(eq(purchaseRequests.id, requestId));
+  } else {
+    // Remover prioridade e reordenar as demais
+    await db.update(purchaseRequests).set({
+      isPriority: false,
+      priorityOrder: null,
+      prioritySetBy: null,
+      prioritySetAt: null,
+    }).where(eq(purchaseRequests.id, requestId));
+    // Reordenar as restantes
+    const remaining = await db
+      .select({ id: purchaseRequests.id })
+      .from(purchaseRequests)
+      .where(eq(purchaseRequests.isPriority, true))
+      .orderBy(purchaseRequests.priorityOrder);
+    for (let i = 0; i < remaining.length; i++) {
+      await db.update(purchaseRequests)
+        .set({ priorityOrder: i + 1 })
+        .where(eq(purchaseRequests.id, remaining[i].id));
+    }
+  }
+}
+
+/**
+ * Reordena o rank de prioridades.
+ * Recebe um array de IDs na nova ordem desejada.
+ */
+export async function reorderPriorityRequests(orderedIds: number[]): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db.update(purchaseRequests)
+      .set({ priorityOrder: i + 1 })
+      .where(eq(purchaseRequests.id, orderedIds[i]));
+  }
+}
+
+/**
+ * Lista todas as solicitações prioritárias ordenadas pelo rank.
+ */
+export async function listPriorityRequests() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: purchaseRequests.id,
+      requestNumber: purchaseRequests.requestNumber,
+      application: purchaseRequests.application,
+      department: purchaseRequests.department,
+      requesterName: purchaseRequests.requesterName,
+      urgencyLevel: purchaseRequests.urgencyLevel,
+      status: purchaseRequests.status,
+      isPriority: purchaseRequests.isPriority,
+      priorityOrder: purchaseRequests.priorityOrder,
+      prioritySetBy: purchaseRequests.prioritySetBy,
+      prioritySetAt: purchaseRequests.prioritySetAt,
+      createdAt: purchaseRequests.createdAt,
+    })
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.isPriority, true))
+    .orderBy(purchaseRequests.priorityOrder);
 }

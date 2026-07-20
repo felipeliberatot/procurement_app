@@ -787,6 +787,14 @@ export default function RequestDetailScreen() {
   });
 
   // ─── Reenvio de notificação WhatsApp ───
+  const setPriorityMutation = trpc.requests.setPriority.useMutation({
+    onSuccess: () => {
+      utils.requests.getById.invalidate({ id: Number(id) });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
+
   const resendNotificationMutation = trpc.whatsapp.notifyApproversNow.useMutation({
     onSuccess: (data) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -968,6 +976,10 @@ export default function RequestDetailScreen() {
   // Comparar como Number para evitar mismatch entre string e number
   const isOwner = Number(request.requesterId) === Number((user as any)?.id);
   const canCancel = (isOwner || isMasterUser) && !isCancelled && !isDone;
+
+  // Permissão de definir prioridade: apenas Willian Camilo e Rafael
+  const userName = (user as any)?.name ?? "";
+  const canSetPriority = ["willian camilo", "rafael"].some((n) => userName.toLowerCase().includes(n));
 
   // Determina se deve mostrar botões fixos de aprovar/rejeitar
   // Na etapa aguardando_orcamento, o fluxo é controlado pelo bloco de Cotações (botão Salvar Cotações)
@@ -1380,6 +1392,15 @@ export default function RequestDetailScreen() {
             <StatusBadge status={currentStatus} />
             <UrgencyBadge level={request.urgencyLevel as any} />
             {request.deadlineAt && <DeadlineTimer deadline={request.deadlineAt} />}
+            {(request as any).isPriority && (
+              <View style={{ backgroundColor: "#EF444420", borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 }}>
+                <Text style={{ fontSize: 12 }}>🔴</Text>
+                <Text style={{ fontSize: 11, fontWeight: "800", color: "#EF4444" }}>PRIORITÁRIA</Text>
+                {(request as any).priorityOrder && (
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#EF4444" }}>#{(request as any).priorityOrder}</Text>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Banner de ação pendente */}
@@ -1434,6 +1455,12 @@ export default function RequestDetailScreen() {
               )}
               {request.osMyfarm && (
                 <Text className="text-sm text-muted">OS Manutenção: <Text className="text-foreground font-bold">{request.osMyfarm}</Text></Text>
+              )}
+              {(request as any).farmName && (
+                <Text className="text-sm text-muted">Fazenda: <Text className="text-foreground font-bold">{(request as any).farmName}</Text></Text>
+              )}
+              {(request as any).harvestName && (
+                <Text className="text-sm text-muted">Safra: <Text className="text-foreground font-bold">{(request as any).harvestName}</Text></Text>
               )}
             </View>
             {request.observations && (
@@ -3224,6 +3251,57 @@ export default function RequestDetailScreen() {
               >
                 <Text style={{ fontSize: 16 }}>✏️</Text>
                 <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 15 }}>Editar Dados (sem reiniciar fluxo)</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Botão Definir/Remover Prioridade — apenas Willian Camilo e Rafael */}
+          {canSetPriority && !isCancelled && (
+            <View style={{ marginTop: 16, marginBottom: 8 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  const isCurrentlyPriority = !!(request as any).isPriority;
+                  const msg = isCurrentlyPriority
+                    ? `Remover a prioridade da solicitação ${request.requestNumber}?`
+                    : `Marcar a solicitação ${request.requestNumber} como PRIORITÁRIA?`;
+                  const doSet = () => setPriorityMutation.mutate({ requestId: request.id, isPriority: !isCurrentlyPriority });
+                  if (Platform.OS === "web") {
+                    if (window.confirm(msg)) doSet();
+                  } else {
+                    Alert.alert(
+                      isCurrentlyPriority ? "Remover Prioridade" : "Definir como Prioritária",
+                      msg,
+                      [
+                        { text: "Cancelar", style: "cancel" },
+                        { text: isCurrentlyPriority ? "Remover" : "Confirmar", style: isCurrentlyPriority ? "destructive" : "default", onPress: doSet },
+                      ]
+                    );
+                  }
+                }}
+                disabled={setPriorityMutation.isPending}
+                style={{
+                  backgroundColor: (request as any).isPriority ? "#EF444415" : "#EF444415",
+                  borderWidth: 1.5,
+                  borderColor: (request as any).isPriority ? "#EF444440" : "#EF444440",
+                  borderRadius: 14,
+                  paddingVertical: 14,
+                  alignItems: "center",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  gap: 8,
+                  opacity: setPriorityMutation.isPending ? 0.7 : 1,
+                }}
+              >
+                {setPriorityMutation.isPending ? (
+                  <ActivityIndicator size="small" color="#EF4444" />
+                ) : (
+                  <>
+                    <Text style={{ fontSize: 16 }}>{(request as any).isPriority ? "⚪" : "🔴"}</Text>
+                    <Text style={{ color: "#EF4444", fontWeight: "700", fontSize: 15 }}>
+                      {(request as any).isPriority ? "Remover Prioridade" : "Definir como Prioritária"}
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           )}
