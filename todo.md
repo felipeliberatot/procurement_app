@@ -817,3 +817,6 @@
 - [ ] Seleção múltipla de bens na aba Por Bem do relatório (Selecionar Todos + seleção individual)
 - [ ] Endpoint requestsByAssets (plural) no backend para múltiplos bens
 - [ ] Cards individuais por bem selecionado no relatório
+- [ ] Estrelinha de prioridade em todos os cards (toggle, apenas Willian/Rafael)
+- [ ] Prioritárias no topo da lista de solicitações
+- [ ] Relatório diário WhatsApp para CEO com OCs prioritárias em aberto

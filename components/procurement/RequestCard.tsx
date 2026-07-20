@@ -86,6 +86,10 @@ interface RequestCardProps {
   approveOnly?: boolean;
   /** Callback para botão de edição (sem reiniciar fluxo) */
   onEdit?: () => void;
+  /** Callback para toggle de prioridade */
+  onTogglePriority?: () => void;
+  /** Se true, o usuário pode marcar/desmarcar prioridade */
+  canTogglePriority?: boolean;
 }
 
 function formatCurrency(value?: string | null): string {
@@ -104,6 +108,8 @@ export function RequestCard({
   isRejecting,
   approveOnly,
   onEdit,
+  onTogglePriority,
+  canTogglePriority,
 }: RequestCardProps) {
   const colors = useColors();
   const showActions = !!onApprove;
@@ -193,7 +199,19 @@ export function RequestCard({
                 </View>
               )}
             </View>
-            <StatusBadge status={request.status as RequestStatus} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              {/* Estrelinha de prioridade */}
+              {(canTogglePriority || request.isPriority) && (
+                <Pressable
+                  onPress={(e) => { e.stopPropagation?.(); if (canTogglePriority) onTogglePriority?.(); }}
+                  style={({ pressed }) => [{ opacity: pressed ? 0.6 : 1, padding: 4 }]}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={{ fontSize: 20 }}>{request.isPriority ? "\u2B50" : "\u2606"}</Text>
+                </Pressable>
+              )}
+              <StatusBadge status={request.status as RequestStatus} />
+            </View>
           </View>
 
           {/* Itens da solicitação */}

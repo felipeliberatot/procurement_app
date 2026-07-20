@@ -7,7 +7,7 @@
  */
 
 import cron from "node-cron";
-import { runDailyReport } from "./daily-report";
+import { runDailyReport, runPriorityReportForCEO } from "./daily-report";
 
 let initialized = false;
 
@@ -33,4 +33,22 @@ export function registerCronJobs(): void {
   );
 
   console.log("[Cron] Daily report scheduled for 19:00 BRT (America/Sao_Paulo)");
+
+  // ── Priority Report for CEO at 07:00 BRT (America/Sao_Paulo) ──────────────────────────────
+  cron.schedule(
+    "0 7 * * *",
+    async () => {
+      console.log("[Cron] Running priority report for CEO (07:00 BRT)...");
+      try {
+        await runPriorityReportForCEO();
+      } catch (err) {
+        console.error("[Cron] Priority report job failed:", err);
+      }
+    },
+    {
+      timezone: "America/Sao_Paulo",
+    },
+  );
+
+  console.log("[Cron] Priority report for CEO scheduled for 07:00 BRT (America/Sao_Paulo)");
 }

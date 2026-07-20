@@ -213,3 +213,88 @@ export async function runDailyReport(): Promise<void> {
 
   console.log("[DailyReport] Daily report completed.");
 }
+
+// ─── Priority Report for CEO ──────────────────────────────────────────────────
+// Runs every day at 07:00 BRT.
+// Sends a WhatsApp message to the CEO with all open priority requests.
+
+export async function runPriorityReportForCEO(): Promise<void> {
+  console.log("[PriorityReport] Starting priority report for CEO...");
+  const db = await getDb();
+  if (!db) {
+    console.warn("[PriorityReport] No database connection — skipping.");
+    return;
+  }
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  // Buscar todas as solicitações prioritárias em aberto
+  const allRequests = await db.select().from(purchaseRequests);
+  const openPriority = allRequests
+    .filter(r =>
+      r.isPriority === true &&
+      !["concluida", "rejeitada", "cancelada"].includes(r.status)
+    )
+    .sort((a, b) => ((a as any).priorityOrder ?? 999) - ((b as any).priorityOrder ?? 999));
+
+  // Buscar usuários CEO
+  const allUsers = await db.select().from(users);
+  const ceoUsers = allUsers.filter(u => u.active && u.procurementRole === "ceo" && u.phone);
+
+  if (ceoUsers.length === 0) {
+    console.warn("[PriorityReport] No active CEO users with phone found — skipping.");
+    return;
+  }
+
+  const statusLabel = (status: string) => {
+    const map: Record<string, string> = {
+      aguardando_gerente: "Aguard. Gerente",
+      aguardando_orcamento: "Aguard. Orçamento",
+      aguardando_controladoria: "Aguard. Controladoria",
+      aguardando_diretoria: "Aguard. Diretoria",
+      aguardando_ordem_compra: "Aguard. Emissão OC",
+      aguardando_aprovacao_compra: "Aguard. Aprov. Financeiro",
+      aguardando_comprovante_pagamento: "Aguard. Comprovante",
+      aguardando_verificacao_compras: "Aguard. Verif. Compras",
+    };
+    return map[status] ?? status;
+  };
+
+  const urgencyLabel = (level: string) =>
+    level === "emergencial" ? "🔴" : level === "urgente" ? "🟡" : "🟢";
+
+  let msg = `⭐ *Relatório de Prioridades — ${dateStr}*\n\n`;
+
+  if (openPriority.length === 0) {
+    msg += `✅ Nenhuma solicitação prioritária em aberto no momento.\n`;
+  } else {
+    msg += `📌 *${openPriority.length} solicitação(ões) prioritária(s) em aberto:*\n\n`;
+    for (const r of openPriority) {
+      const rank = (r as any).priorityOrder ? `#${(r as any).priorityOrder} ` : "";
+      msg += `${rank}${urgencyLabel(r.urgencyLevel)} *${r.requestNumber}*\n`;
+      msg += `   📦 ${r.application}\n`;
+      msg += `   👤 ${r.requesterName} | ${r.department}\n`;
+      msg += `   📍 ${statusLabel(r.status)}\n`;
+      if ((r as any).prioritySetBy) {
+        msg += `   ⭐ Definida por: ${(r as any).prioritySetBy}\n`;
+      }
+      msg += `\n`;
+    }
+  }
+
+  msg += `_CGS Agrícola — Sistema de Compras_`;
+
+  console.log(`[PriorityReport] Sending to ${ceoUsers.length} CEO(s) | Priority open: ${openPriority.length}`);
+
+  const promises = ceoUsers.map(u =>
+    sendSimpleWhatsApp(u.phone!, msg)
+  );
+  await Promise.allSettled(promises);
+
+  console.log("[PriorityReport] Priority report for CEO completed.");
+}

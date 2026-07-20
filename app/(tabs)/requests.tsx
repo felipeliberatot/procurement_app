@@ -182,6 +182,16 @@ export default function RequestsScreen() {
     enabled: isAuthenticated,
   });
 
+  // Verifica se o usuário pode definir prioridade (Willian Camilo ou Rafael)
+  const canSetPriority = React.useMemo(() => {
+    const name = ((user as any)?.name ?? "").toLowerCase();
+    return name.includes("willian") || name.includes("rafael");
+  }, [user]);
+
+  const setPriorityMutation = trpc.requests.setPriority.useMutation({
+    onSuccess: () => refetch(),
+  });
+
   const filtered = (requests ?? []).filter((r) => {
     // "pending" é um filtro especial que agrupa todos os status "aguardando_*"
     const statusMatch =
@@ -207,6 +217,13 @@ export default function RequestsScreen() {
 
     return statusMatch && urgencyMatch && deptMatch && myActionMatch && searchMatch;
   });
+
+  // Ordenar: prioritárias no topo (por priorityOrder), depois as demais por data
+  const sortedFiltered = React.useMemo(() => {
+    const priority = filtered.filter(r => r.isPriority).sort((a, b) => ((a as any).priorityOrder ?? 999) - ((b as any).priorityOrder ?? 999));
+    const rest = filtered.filter(r => !r.isPriority);
+    return [...priority, ...rest];
+  }, [filtered]);
 
   // Callback estável para limpar a busca
   const handleClearSearch = React.useCallback(() => {
@@ -342,7 +359,7 @@ export default function RequestsScreen() {
               </View>
             ) : (
               <FlatList
-                data={filtered}
+                data={sortedFiltered}
                 keyExtractor={(item) => String(item.id)}
                 contentContainerStyle={{ padding: 20, paddingBottom: 32, flexGrow: 1, maxWidth: 900, alignSelf: "center" as any, width: "100%" }}
                 onRefresh={refetch}
@@ -364,7 +381,12 @@ export default function RequestsScreen() {
                 }
                 renderItem={({ item }) => (
                   <View style={{ flex: 1 }}>
-                    <RequestCard request={item} onPress={() => router.push(`/request/${item.id}` as any)} />
+                    <RequestCard
+                      request={item}
+                      onPress={() => router.push(`/request/${item.id}` as any)}
+                      canTogglePriority={canSetPriority}
+                      onTogglePriority={() => setPriorityMutation.mutate({ requestId: item.id, isPriority: !item.isPriority })}
+                    />
                   </View>
                 )}
               />
@@ -485,7 +507,7 @@ export default function RequestsScreen() {
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={sortedFiltered}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={{ padding: 16, paddingBottom: Math.max(insets.bottom + 16, 32), flexGrow: 1 }}
           onRefresh={refetch}
@@ -509,6 +531,8 @@ export default function RequestsScreen() {
             <RequestCard
               request={item}
               onPress={() => router.push(`/request/${item.id}` as any)}
+              canTogglePriority={canSetPriority}
+              onTogglePriority={() => setPriorityMutation.mutate({ requestId: item.id, isPriority: !item.isPriority })}
             />
           )}
         />
