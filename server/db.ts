@@ -1,5 +1,5 @@
 import {
-  and, desc, eq, gt, gte, inArray, lt, lte, or, sql
+  and, desc, eq, gt, gte, inArray, like, lt, lte, or, sql
 } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { createPool as createPromisePool } from "mysql2/promise";
@@ -535,6 +535,10 @@ export async function createPurchaseRequest(
     urgencyLevel: "normal" | "urgente" | "emergencial";
     observations?: string;
     osMyfarm?: string;
+    farmId?: number;
+    farmName?: string;
+    harvestId?: number;
+    harvestName?: string;
     items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
   }
 ) {
@@ -564,6 +568,10 @@ export async function createPurchaseRequest(
     urgencyLevel: input.urgencyLevel,
     observations: input.observations ?? null,
     osMyfarm: input.osMyfarm ?? null,
+    farmId: input.farmId ?? null,
+    farmName: input.farmName ?? null,
+    harvestId: input.harvestId ?? null,
+    harvestName: input.harvestName ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
     // Todos os pedidos começam pelo Gerente (urgentes/emergenciais vão para Diretoria após o Gerente)
     status: "aguardando_gerente",
@@ -874,12 +882,15 @@ export async function getMonthlyReport(year: number, month: number) {
   }));
 
   // Ranking de bens por valor gasto (usa orderValue das concluídas, com fallback para totalEstimatedValue)
+  // Agrupa por código do bem (parte antes do ' — ') para tolerar variações de descrição
   const assetMap = new Map<string, { application: string; totalGasto: number; count: number }>();
   for (const r of concluidas) {
     if (!r.application) continue;
     const valor = parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0");
-    if (!assetMap.has(r.application)) assetMap.set(r.application, { application: r.application, totalGasto: 0, count: 0 });
-    const entry = assetMap.get(r.application)!;
+    // Normalizar chave: usar código do bem se disponível, senão usar application completo
+    const mapKey = r.application.includes(' — ') ? r.application.split(' — ')[0].trim() : r.application;
+    if (!assetMap.has(mapKey)) assetMap.set(mapKey, { application: r.application, totalGasto: 0, count: 0 });
+    const entry = assetMap.get(mapKey)!;
     entry.totalGasto += valor;
     entry.count++;
   }
@@ -1296,6 +1307,14 @@ export async function approveRequest(
     }
   }
 
+  // ── Validação obrigatória do Valor da OC ──────────────────────────────────────
+  // Na etapa de Emissão de OC, o valor da ordem de compra é obrigatório.
+  if (request.status === "aguardando_ordem_compra") {
+    if (data.orderValue == null || isNaN(data.orderValue) || data.orderValue <= 0) {
+      throw new Error("O Valor da OC é obrigatório para emitir a Ordem de Compra. Informe o valor antes de avançar.");
+    }
+  }
+
   // ── Aprovação simples da Diretoria ───────────────────────────────────────────
   // Uma aprovação de qualquer diretor é suficiente para avançar o status
   if (request.status === "aguardando_diretoria") {
@@ -1577,9 +1596,14 @@ export async function attachOCSiagri(requestId: number, fileUrl: string): Promis
   await db.update(purchaseRequests).set({ ocSiagriUrl: fileUrl }).where(eq(purchaseRequests.id, requestId));
 }
 
-export async function finalizeOC(requestId: number, user: User, orderValue?: number): Promise<void> {
+export async function finalizeOC(requestId: number, user: User, orderValue: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+
+  // Valor da OC é obrigatório
+  if (!orderValue || isNaN(orderValue) || orderValue <= 0) {
+    throw new Error("O Valor da OC é obrigatório para finalizar a Ordem de Compra. Informe o valor antes de avançar.");
+  }
 
   const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
   if (!request) throw new Error("Solicitação não encontrada");
@@ -1955,6 +1979,63 @@ export async function sendMalote(opts: {
   }
 }
 
+export async function sendMalotePartial(opts: {
+  maloteId: number;
+  itemIds: number[];  // IDs dos maloteItems a enviar
+  sentById: number;
+  sentByName: string;
+}): Promise<{ sentCount: number; remainingCount: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // Marcar os itens selecionados como enviados
+  for (const itemId of opts.itemIds) {
+    await db.update(maloteItems)
+      .set({ sentStatus: "enviado" })
+      .where(eq(maloteItems.id, itemId));
+  }
+
+  // Verificar quantos itens ainda estão pendentes
+  const allItems = await db.select().from(maloteItems).where(eq(maloteItems.maloteId, opts.maloteId));
+  const pendingItems = allItems.filter(i => i.sentStatus === "pendente");
+  const sentItems = allItems.filter(i => i.sentStatus === "enviado");
+
+  // Se todos os itens foram enviados, marcar o malote como enviado
+  if (pendingItems.length === 0) {
+    const [malote] = await db.select().from(malotes).where(eq(malotes.id, opts.maloteId)).limit(1);
+    await db.update(malotes).set({
+      status: "enviado",
+      sentAt: new Date(),
+      sentById: opts.sentById,
+      sentByName: opts.sentByName,
+    }).where(eq(malotes.id, opts.maloteId));
+    // Notificar via WhatsApp
+    if (malote) {
+      try {
+        const [destUnit] = await db.select().from(units).where(eq(units.name, malote.destinationUnit)).limit(1);
+        if (destUnit?.responsiblePhone) {
+          const msg = `📦 *Malote ${malote.maloteCode} enviado completamente!*\n\nOrigem: ${malote.originUnit}\nDestino: ${malote.destinationUnit}\nEnviado por: ${opts.sentByName}\n\nTodos os itens foram enviados. Confirme o recebimento no app CGS.`;
+          await WA.sendSimpleWhatsApp(destUnit.responsiblePhone, msg);
+        }
+      } catch (_) { /* silently ignore */ }
+    }
+  } else {
+    // Envio parcial: notificar que parte foi enviada
+    const [malote] = await db.select().from(malotes).where(eq(malotes.id, opts.maloteId)).limit(1);
+    if (malote) {
+      try {
+        const [destUnit] = await db.select().from(units).where(eq(units.name, malote.destinationUnit)).limit(1);
+        if (destUnit?.responsiblePhone) {
+          const msg = `📦 *Envio parcial — Malote ${malote.maloteCode}*\n\nOrigem: ${malote.originUnit}\nDestino: ${malote.destinationUnit}\nEnviado por: ${opts.sentByName}\n\n✅ ${sentItems.length} item(s) enviado(s)\n⏳ ${pendingItems.length} item(s) ainda pendente(s)\n\nO malote permanece aberto para os demais itens.`;
+          await WA.sendSimpleWhatsApp(destUnit.responsiblePhone, msg);
+        }
+      } catch (_) { /* silently ignore */ }
+    }
+  }
+
+  return { sentCount: sentItems.length, remainingCount: pendingItems.length };
+}
+
 export async function receiveMalote(opts: {
   maloteId: number;
   receivedById: number;
@@ -2061,7 +2142,7 @@ export async function getMaloteStats(): Promise<{ abertos: number; enviados: num
   };
 }
 
-export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; requestNumber: string; requesterName: string; application: string; department: string }>> {
+export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; requestNumber: string; requesterName: string; application: string; department: string; status: string }>> {
   const db = await getDb();
   if (!db) return [];
   const inMalote = await db.select({ requestId: maloteItems.requestId }).from(maloteItems);
@@ -2073,9 +2154,12 @@ export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; r
       requesterName: purchaseRequests.requesterName,
       application: purchaseRequests.application,
       department: purchaseRequests.department,
+      status: purchaseRequests.status,
     })
     .from(purchaseRequests)
-    .where(eq(purchaseRequests.status, "concluida"));
+    .where(
+      sql`${purchaseRequests.status} IN ('concluida', 'parcialmente_concluida')`
+    );
   return concluded.filter(r => !inMaloteIds.has(r.id));
 }
 
@@ -3618,6 +3702,16 @@ export async function getRequestsByAsset(application: string, year?: number, mon
   const db = await getDb();
   if (!db) return { requests: [], summary: { totalSolicitacoes: 0, totalGasto: 0 } };
 
+  // Extrair o código do bem (parte antes do ' — ') para usar como filtro tolerante a variações de descrição
+  // Ex: "MQ-56 — TRATOR VALTRA BT 230" → código = "MQ-56"
+  const assetCode = application.includes(' — ') ? application.split(' — ')[0].trim() : null;
+
+  // Filtro: se temos código, busca por LIKE 'CÓDIGO — %' (tolerante a variações de descrição)
+  // Caso contrário, usa correspondência exata (para bens genéricos sem código)
+  const applicationFilter = assetCode
+    ? like(purchaseRequests.application, `${assetCode} — %`)
+    : eq(purchaseRequests.application, application);
+
   const rows = await db
     .select({
       id: purchaseRequests.id,
@@ -3638,7 +3732,7 @@ export async function getRequestsByAsset(application: string, year?: number, mon
     .from(purchaseRequests)
     .where(
       and(
-        eq(purchaseRequests.application, application),
+        applicationFilter,
         or(
           eq(purchaseRequests.status, "concluida"),
           eq(purchaseRequests.status, "parcialmente_concluida"),
@@ -3664,4 +3758,105 @@ export async function getRequestsByAsset(application: string, year?: number, mon
       totalGasto: Math.round(totalGasto * 100) / 100,
     },
   };
+}
+
+// ─── Priority Management ───────────────────────────────────────────────────────
+
+/**
+ * Nomes autorizados a definir prioridade (case-insensitive partial match).
+ * Willian Camilo e Rafael (qualquer sobrenome).
+ */
+const PRIORITY_AUTHORIZED_NAMES = ["willian camilo", "rafael"];
+
+export function canSetPriority(userName: string): boolean {
+  const lower = (userName ?? "").toLowerCase();
+  return PRIORITY_AUTHORIZED_NAMES.some((n) => lower.includes(n));
+}
+
+/**
+ * Define ou remove a prioridade de uma solicitação.
+ * Ao marcar como prioritária, atribui o próximo priorityOrder disponível.
+ * Ao desmarcar, remove o priorityOrder e reordena as demais.
+ */
+export async function setPriorityRequest(
+  requestId: number,
+  isPriority: boolean,
+  setByName: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  if (isPriority) {
+    // Buscar o maior priorityOrder atual
+    const rows = await db
+      .select({ maxOrder: sql<number>`MAX(priorityOrder)` })
+      .from(purchaseRequests)
+      .where(eq(purchaseRequests.isPriority, true));
+    const maxOrder = rows[0]?.maxOrder ?? 0;
+    await db.update(purchaseRequests).set({
+      isPriority: true,
+      priorityOrder: (maxOrder ?? 0) + 1,
+      prioritySetBy: setByName,
+      prioritySetAt: new Date(),
+    }).where(eq(purchaseRequests.id, requestId));
+  } else {
+    // Remover prioridade e reordenar as demais
+    await db.update(purchaseRequests).set({
+      isPriority: false,
+      priorityOrder: null,
+      prioritySetBy: null,
+      prioritySetAt: null,
+    }).where(eq(purchaseRequests.id, requestId));
+    // Reordenar as restantes
+    const remaining = await db
+      .select({ id: purchaseRequests.id })
+      .from(purchaseRequests)
+      .where(eq(purchaseRequests.isPriority, true))
+      .orderBy(purchaseRequests.priorityOrder);
+    for (let i = 0; i < remaining.length; i++) {
+      await db.update(purchaseRequests)
+        .set({ priorityOrder: i + 1 })
+        .where(eq(purchaseRequests.id, remaining[i].id));
+    }
+  }
+}
+
+/**
+ * Reordena o rank de prioridades.
+ * Recebe um array de IDs na nova ordem desejada.
+ */
+export async function reorderPriorityRequests(orderedIds: number[]): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  for (let i = 0; i < orderedIds.length; i++) {
+    await db.update(purchaseRequests)
+      .set({ priorityOrder: i + 1 })
+      .where(eq(purchaseRequests.id, orderedIds[i]));
+  }
+}
+
+/**
+ * Lista todas as solicitações prioritárias ordenadas pelo rank.
+ */
+export async function listPriorityRequests() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: purchaseRequests.id,
+      requestNumber: purchaseRequests.requestNumber,
+      application: purchaseRequests.application,
+      department: purchaseRequests.department,
+      requesterName: purchaseRequests.requesterName,
+      urgencyLevel: purchaseRequests.urgencyLevel,
+      status: purchaseRequests.status,
+      isPriority: purchaseRequests.isPriority,
+      priorityOrder: purchaseRequests.priorityOrder,
+      prioritySetBy: purchaseRequests.prioritySetBy,
+      prioritySetAt: purchaseRequests.prioritySetAt,
+      createdAt: purchaseRequests.createdAt,
+    })
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.isPriority, true))
+    .orderBy(purchaseRequests.priorityOrder);
 }

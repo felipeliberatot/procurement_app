@@ -73,6 +73,8 @@ interface RequestCardProps {
     deadlineAt?: Date | string | null;
     createdAt: Date | string;
     items?: RequestItem[];
+    isPriority?: boolean | null;
+    priorityOrder?: number | null;
   };
   onPress: () => void;
   /** Se fornecido, exibe botões de ação rápida Aprovar/Rejeitar no card */
@@ -124,20 +126,33 @@ export function RequestCard({
     >
       <View
         style={{
-          backgroundColor: colors.surface,
-          borderWidth: showActions ? 1.5 : 1,
-          borderColor: showActions ? `${colors.warning}50` : colors.border,
+          backgroundColor: request.isPriority ? "#FFFBEB" : colors.surface,
+          borderWidth: request.isPriority ? 2 : showActions ? 1.5 : 1,
+          borderColor: request.isPriority ? "#F59E0B" : showActions ? `${colors.warning}50` : colors.border,
           borderRadius: 16,
           marginBottom: 12,
           overflow: "hidden",
           flexDirection: "row",
+          shadowColor: request.isPriority ? "#F59E0B" : "transparent",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: request.isPriority ? 0.25 : 0,
+          shadowRadius: 6,
+          elevation: request.isPriority ? 4 : 0,
         }}
       >
         {/* Barra colorida lateral indicando status */}
-        <View style={{ width: 5, backgroundColor: barColor, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }} />
+        <View style={{ width: 5, backgroundColor: request.isPriority ? "#F59E0B" : barColor, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }} />
 
         <View style={{ flex: 1 }}>
         {/* Faixa de destaque para cards com ação pendente */}
+        {/* Faixa de prioridade — aparece acima de tudo */}
+        {request.isPriority && (
+          <View style={{ backgroundColor: "#F59E0B", paddingHorizontal: 14, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Text style={{ fontSize: 12 }}>⭐</Text>
+            <Text style={{ fontSize: 11, color: "#fff", fontWeight: "800", flex: 1 }}>PRIORITÁRIA{request.priorityOrder ? ` — #${request.priorityOrder}` : ""}</Text>
+            <Text style={{ fontSize: 12 }}>⭐</Text>
+          </View>
+        )}
         {showActions && (
           <View style={{ backgroundColor: `${colors.warning}15`, paddingHorizontal: 14, paddingVertical: 6, flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Text style={{ fontSize: 12 }}>⏳</Text>
@@ -162,7 +177,10 @@ export function RequestCard({
           {/* Cabeçalho */}
           <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={{ fontSize: 11, color: colors.muted, fontFamily: "monospace" }}>{request.requestNumber}</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontSize: 11, color: colors.muted, fontFamily: "monospace" }}>{request.requestNumber}</Text>
+
+              </View>
               <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginTop: 2 }} numberOfLines={2}>
                 {request.application}
               </Text>
@@ -254,21 +272,31 @@ export function RequestCard({
               {request.deadlineAt && <DeadlineTimer deadline={request.deadlineAt} />}
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              {request.totalEstimatedValue ? (
-                <>
-                  {(() => {
+              {(() => {
                     const afterOC = ["aguardando_aprovacao_ceo", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "parcialmente_concluida", "concluida"].includes(request.status ?? "");
-                    return (
-                      <>
-                        <Text style={{ fontSize: 11, color: afterOC ? colors.success : colors.warning, fontWeight: "600" }}>{afterOC ? "Valor da OC" : "Valor Estimado"}</Text>
-                        <Text style={{ fontSize: 13, fontWeight: "700", color: afterOC ? colors.success : colors.foreground }}>
-                          {formatCurrency(request.totalEstimatedValue)}
-                        </Text>
-                      </>
-                    );
+                    const displayValue = afterOC
+                      ? (request.orderValue ?? request.totalEstimatedValue)
+                      : request.totalEstimatedValue;
+                    if (displayValue) {
+                      return (
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text style={{ fontSize: 11, color: afterOC ? colors.success : colors.warning, fontWeight: "600" }}>{afterOC ? "Valor da OC" : "Valor Estimado"}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: "700", color: afterOC ? colors.success : colors.foreground }}>
+                            {formatCurrency(displayValue)}
+                          </Text>
+                        </View>
+                      );
+                    }
+                    if (afterOC) {
+                      return (
+                        <View style={{ alignItems: "flex-end" }}>
+                          <Text style={{ fontSize: 11, color: colors.muted, fontWeight: "600" }}>Valor da OC</Text>
+                          <Text style={{ fontSize: 12, color: colors.muted }}>Sem valor</Text>
+                        </View>
+                      );
+                    }
+                    return null;
                   })()}
-                </>
-              ) : null}
             </View>
           </View>
 

@@ -55,10 +55,19 @@ export default function NewRequestScreen() {
   const [observations, setObservations] = useState("");
   const [osMyfarm, setOsMyfarm] = useState("");
   const [items, setItems] = useState<Item[]>([newItem()]);
+  // Fazenda e Safra (opcionais)
+  const [selectedFarmId, setSelectedFarmId] = useState<number | null>(null);
+  const [selectedFarmName, setSelectedFarmName] = useState("");
+  const [selectedHarvestId, setSelectedHarvestId] = useState<number | null>(null);
+  const [selectedHarvestName, setSelectedHarvestName] = useState("");
+  const [showFarmPicker, setShowFarmPicker] = useState(false);
+  const [showHarvestPicker, setShowHarvestPicker] = useState(false);
 
   const { data: costCenters } = trpc.costCenters.list.useQuery(undefined, { enabled: isAuthenticated });
   const { data: departments } = trpc.departments.list.useQuery(undefined, { enabled: isAuthenticated });
   const { data: assets } = trpc.assets.list.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: farms } = trpc.units.list.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: harvests } = trpc.harvests.list.useQuery(undefined, { enabled: isAuthenticated });
 
   const [showDeptPicker, setShowDeptPicker] = useState(false);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
@@ -163,6 +172,10 @@ export default function NewRequestScreen() {
       urgencyLevel: urgency,
       observations: observations.trim() || undefined,
       osMyfarm: osMyfarm.trim() || undefined,
+      farmId: selectedFarmId ?? undefined,
+      farmName: selectedFarmName || undefined,
+      harvestId: selectedHarvestId ?? undefined,
+      harvestName: selectedHarvestName || undefined,
       items: validItems.map((i) => ({
         description: i.description.trim(),
         quantity: i.quantity || "1",
@@ -191,6 +204,70 @@ export default function NewRequestScreen() {
             <Text className="text-xs text-muted mb-1">Solicitante</Text>
             <Text className="text-sm font-semibold text-foreground">{user?.name ?? "—"}</Text>
             <Text className="text-xs text-muted">{user?.email ?? "—"}</Text>
+          </View>
+
+          {/* Fazenda (opcional) */}
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-foreground mb-2">Fazenda <Text className="text-muted font-normal">(opcional)</Text></Text>
+            <Pressable
+              onPress={() => setShowFarmPicker(true)}
+              style={({ pressed }) => ({
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: selectedFarmId ? colors.primary : colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 13, color: selectedFarmId ? colors.foreground : colors.muted, flex: 1 }}>
+                {selectedFarmName || "Selecionar fazenda..."}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {selectedFarmId && (
+                  <Pressable onPress={(e) => { e.stopPropagation?.(); setSelectedFarmId(null); setSelectedFarmName(""); }} style={{ padding: 4 }}>
+                    <Text style={{ fontSize: 16, color: colors.muted }}>✕</Text>
+                  </Pressable>
+                )}
+                <Text style={{ fontSize: 16, color: colors.muted }}>🌾</Text>
+              </View>
+            </Pressable>
+          </View>
+
+          {/* Safra (opcional) */}
+          <View className="mb-4">
+            <Text className="text-sm font-semibold text-foreground mb-2">Safra <Text className="text-muted font-normal">(opcional)</Text></Text>
+            <Pressable
+              onPress={() => setShowHarvestPicker(true)}
+              style={({ pressed }) => ({
+                backgroundColor: colors.surface,
+                borderWidth: 1,
+                borderColor: selectedHarvestId ? colors.primary : colors.border,
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "space-between",
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 13, color: selectedHarvestId ? colors.foreground : colors.muted, flex: 1 }}>
+                {selectedHarvestName || "Selecionar safra..."}
+              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                {selectedHarvestId && (
+                  <Pressable onPress={(e) => { e.stopPropagation?.(); setSelectedHarvestId(null); setSelectedHarvestName(""); }} style={{ padding: 4 }}>
+                    <Text style={{ fontSize: 16, color: colors.muted }}>✕</Text>
+                  </Pressable>
+                )}
+                <Text style={{ fontSize: 16, color: colors.muted }}>🌱</Text>
+              </View>
+            </Pressable>
           </View>
 
           {/* Departamento */}
@@ -847,6 +924,91 @@ export default function NewRequestScreen() {
                 }}
               />
             )}
+          </View>
+        </View>
+      )}
+      {/* Modal: Selecionar Fazenda */}
+      {showFarmPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", zIndex: 9999 }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "70%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 17, fontWeight: "700", color: colors.foreground }}>🌾 Selecionar Fazenda</Text>
+              <Pressable onPress={() => setShowFarmPicker(false)} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 4 })}>
+                <Text style={{ fontSize: 22, color: colors.muted }}>✕</Text>
+              </Pressable>
+            </View>
+            <FlatList
+              data={farms ?? []}
+              keyExtractor={(item) => String(item.id)}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🌾</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhuma fazenda cadastrada</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>Cadastre fazendas em Cadastros → Fazendas</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => { setSelectedFarmId(item.id); setSelectedFarmName(item.name); setShowFarmPicker(false); }}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : 1,
+                    backgroundColor: selectedFarmId === item.id ? `${colors.primary}15` : colors.surface,
+                    borderWidth: 1,
+                    borderColor: selectedFarmId === item.id ? colors.primary : colors.border,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                  })}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
+                  {item.code && <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{item.code}</Text>}
+                </Pressable>
+              )}
+            />
+          </View>
+        </View>
+      )}
+
+      {/* Modal: Selecionar Safra */}
+      {showHarvestPicker && (
+        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end", zIndex: 9999 }}>
+          <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "70%" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+              <Text style={{ fontSize: 17, fontWeight: "700", color: colors.foreground }}>🌱 Selecionar Safra</Text>
+              <Pressable onPress={() => setShowHarvestPicker(false)} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 4 })}>
+                <Text style={{ fontSize: 22, color: colors.muted }}>✕</Text>
+              </Pressable>
+            </View>
+            <FlatList
+              data={harvests ?? []}
+              keyExtractor={(item) => String(item.id)}
+              contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32, paddingTop: 8 }}
+              ListEmptyComponent={
+                <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                  <Text style={{ fontSize: 32, marginBottom: 8 }}>🌱</Text>
+                  <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhuma safra cadastrada</Text>
+                  <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>Cadastre safras em Cadastros → Safras</Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <Pressable
+                  onPress={() => { setSelectedHarvestId(item.id); setSelectedHarvestName(item.name); setShowHarvestPicker(false); }}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : 1,
+                    backgroundColor: selectedHarvestId === item.id ? `${colors.primary}15` : colors.surface,
+                    borderWidth: 1,
+                    borderColor: selectedHarvestId === item.id ? colors.primary : colors.border,
+                    borderRadius: 12,
+                    padding: 14,
+                    marginBottom: 8,
+                  })}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
+                  {item.year && <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>Ano: {item.year}</Text>}
+                </Pressable>
+              )}
+            />
           </View>
         </View>
       )}

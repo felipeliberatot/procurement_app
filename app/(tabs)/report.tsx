@@ -104,7 +104,7 @@ export default function ReportScreen() {
             `"${r.department ?? ""}"`,
             `"${r.costCenterCode ?? ""}"`,
             r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal",
-            parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ","),
+            (r.orderValue || r.totalEstimatedValue) ? parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ",") : "",
             r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
             r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : "",
           ].join(";")
@@ -1017,9 +1017,13 @@ function PorBemTab({
               {item.costCenterCode && <Text style={styles.detailMeta}>CC: {item.costCenterCode}</Text>}
               {item.observations && <Text style={[styles.detailMeta, { marginTop: 4 }]} numberOfLines={2}>{item.observations}</Text>}
               <View style={styles.detailFooter}>
-                <Text style={[styles.detailValue, { color: colors.success }]}>
-                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(item.orderValue ?? item.totalEstimatedValue ?? "0"))}
-                </Text>
+                {(item.orderValue || item.totalEstimatedValue) ? (
+                  <Text style={[styles.detailValue, { color: item.orderValue ? colors.success : colors.warning }]}>
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(parseFloat(item.orderValue ?? item.totalEstimatedValue ?? "0"))}
+                  </Text>
+                ) : (
+                  <Text style={[styles.detailValue, { color: colors.muted, fontStyle: "italic" }]}>Sem valor</Text>
+                )}
                 <View style={{ alignItems: "flex-end" }}>
                   <Text style={styles.detailMeta}>
                     {item.completedAt
@@ -1279,7 +1283,7 @@ function generateAssetPDFHtml(assetReport: any, assetApplication: string): strin
       <td>${r.department ?? "-"}</td>
       <td>${r.costCenterCode ?? "-"}</td>
       <td>${r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal"}</td>
-      <td style="text-align:right">${fmt(parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"))}</td>
+      <td style="text-align:right">${(r.orderValue || r.totalEstimatedValue) ? fmt(parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0")) : "—"}</td>
       <td>${fmtDate(r.createdAt)}</td>
       <td>${r.completedAt ? fmtDate(r.completedAt) : "-"}</td>
     </tr>
