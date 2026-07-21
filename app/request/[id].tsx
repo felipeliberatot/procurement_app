@@ -1492,24 +1492,26 @@ export default function RequestDetailScreen() {
                       <Text className="text-sm font-semibold text-foreground">{formatCurrency(item.totalPrice)}</Text>
                     )}
                     {/* Badge de status do item: só aparece após Emissão de OC */}
-                    {item.itemStatus && (
-                      <View style={{
-                        paddingHorizontal: 8,
-                        paddingVertical: 3,
-                        borderRadius: 20,
-                        backgroundColor: item.itemStatus === "comprado" ? "#22C55E20" : "#F59E0B20",
-                        borderWidth: 1,
-                        borderColor: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
-                      }}>
-                        <Text style={{
-                          fontSize: 11,
-                          fontWeight: "700",
-                          color: item.itemStatus === "comprado" ? "#22C55E" : "#F59E0B",
+                    {item.itemStatus && (() => {
+                      const st = item.itemStatus;
+                      const isActive = st === "comprado" || st === "aprovado" || st === "autorizado";
+                      const label = st === "comprado" ? "Comprado" : st === "aprovado" ? "Aprovado" : st === "autorizado" ? "Autorizado" : st === "parcial" ? "Parcial" : "Pendente";
+                      const color = isActive ? "#22C55E" : "#F59E0B";
+                      return (
+                        <View style={{
+                          paddingHorizontal: 8,
+                          paddingVertical: 3,
+                          borderRadius: 20,
+                          backgroundColor: color + "20",
+                          borderWidth: 1,
+                          borderColor: color,
                         }}>
-                          {item.itemStatus === "comprado" ? "Comprado" : "Pendente"}
-                        </Text>
-                      </View>
-                    )}
+                          <Text style={{ fontSize: 11, fontWeight: "700", color }}>
+                            {label}
+                          </Text>
+                        </View>
+                      );
+                    })()}
                   </View>
                 </View>
               ))}
