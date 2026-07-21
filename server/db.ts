@@ -1623,19 +1623,23 @@ export async function finalizeOC(requestId: number, user: User, orderValue: numb
   if (request.status !== "aguardando_verificacao_compras") throw new Error("Status inválido para finalizar OC");
 
   // Determinar status final com base nos itens:
-  // parcialmente_concluida SOMENTE quando há ≥1 comprado E ≥1 pendente/parcial
-  // Se nenhum item foi marcado (todos pendentes) → concluida normalmente
+  // Na Verificação Final, apenas itens EXPLICITAMENTE marcados como "comprado" pelo usuário contam.
+  // Itens "aprovado" que NÃO foram marcados como comprados são convertidos para "pendente".
+  // parcialmente_concluida: ≥1 comprado E ≥1 ainda não comprado
+  // concluida: todos os itens foram marcados como comprado
   const allItemsForRequest = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
-  // Na verificação final, itens "aprovado" que foram marcados como comprados na etapa de OC
-  // precisam ser convertidos para "comprado" definitivamente
-  const hasComprado = allItemsForRequest.some(i => i.itemStatus === "comprado" || i.itemStatus === "aprovado");
-  const hasPendingItems = allItemsForRequest.some(i => i.itemStatus === "pendente" || i.itemStatus === "parcial");
-  const finalStatus = (hasComprado && hasPendingItems) ? "parcialmente_concluida" : "concluida";
+  const hasComprado = allItemsForRequest.some(i => i.itemStatus === "comprado");
+  const hasPendingItems = allItemsForRequest.some(i => i.itemStatus !== "comprado");
+  const finalStatus = (hasComprado && hasPendingItems) ? "parcialmente_concluida" : (hasComprado ? "concluida" : "concluida");
 
-  // Converter itens "aprovado" para "comprado" na verificação final
+  // Converter itens não comprados (aprovado/autorizado/parcial) para "pendente"
+  // Itens já marcados como "comprado" permanecem como estão
   await db.update(requestItems)
-    .set({ itemStatus: "comprado" })
-    .where(eq(requestItems.requestId, requestId));
+    .set({ itemStatus: "pendente" })
+    .where(and(
+      eq(requestItems.requestId, requestId),
+      sql`${requestItems.itemStatus} IN ('aprovado', 'autorizado', 'parcial')`,
+    ));
 
   // Marcar como concluída/parcialmente concluída e habilitar nos Malotes
   const now = new Date();

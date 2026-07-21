@@ -2337,10 +2337,13 @@ async function finalizeOC(requestId, user, orderValue) {
   if (!request) throw new Error("Solicita\xE7\xE3o n\xE3o encontrada");
   if (request.status !== "aguardando_verificacao_compras") throw new Error("Status inv\xE1lido para finalizar OC");
   const allItemsForRequest = await db.select().from(requestItems).where(eq2(requestItems.requestId, requestId));
-  const hasComprado = allItemsForRequest.some((i) => i.itemStatus === "comprado" || i.itemStatus === "aprovado");
-  const hasPendingItems = allItemsForRequest.some((i) => i.itemStatus === "pendente" || i.itemStatus === "parcial");
-  const finalStatus = hasComprado && hasPendingItems ? "parcialmente_concluida" : "concluida";
-  await db.update(requestItems).set({ itemStatus: "comprado" }).where(eq2(requestItems.requestId, requestId));
+  const hasComprado = allItemsForRequest.some((i) => i.itemStatus === "comprado");
+  const hasPendingItems = allItemsForRequest.some((i) => i.itemStatus !== "comprado");
+  const finalStatus = hasComprado && hasPendingItems ? "parcialmente_concluida" : hasComprado ? "concluida" : "concluida";
+  await db.update(requestItems).set({ itemStatus: "pendente" }).where(and2(
+    eq2(requestItems.requestId, requestId),
+    sql`${requestItems.itemStatus} IN ('aprovado', 'autorizado', 'parcial')`
+  ));
   const now = /* @__PURE__ */ new Date();
   await db.update(purchaseRequests).set({
     status: finalStatus,
