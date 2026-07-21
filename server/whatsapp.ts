@@ -354,7 +354,9 @@ export async function notifyRejection(opts: {
   rejectorName: string;
   stepLabel: string;
   comment: string;
+  totalValue?: string;
 }) {
+  const valueLine = opts.totalValue ? `*Valor:* R$ ${opts.totalValue}\n` : "";
   const message = [
     `❌ *Solicitação Rejeitada — CGS Agrícola*`,
     ``,
@@ -362,6 +364,7 @@ export async function notifyRejection(opts: {
     ``,
     `Sua solicitação *${opts.requestNumber}* foi rejeitada na etapa de *${opts.stepLabel}*.`,
     ``,
+    valueLine,
     `*Motivo:* ${opts.comment}`,
     `*Rejeitado por:* ${opts.rejectorName}`,
     ``,
@@ -369,7 +372,7 @@ export async function notifyRejection(opts: {
     ``,
     `🔗 Corrigir no app:`,
     `${getAppBaseUrl()}/request/${opts.requestId}`,
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 
   return sendWhatsAppMessage(opts.requesterPhone, message);
 }
@@ -382,7 +385,9 @@ export async function notifyApproval(opts: {
   approverName: string;
   stepLabel: string;
   nextStepLabel?: string;
+  totalValue?: string;
 }) {
+  const valueLine = opts.totalValue ? `*Valor:* R$ ${opts.totalValue}` : "";
   const message = opts.nextStepLabel
     ? [
         `✅ *Etapa Aprovada — CGS Agrícola*`,
@@ -391,12 +396,13 @@ export async function notifyApproval(opts: {
         ``,
         `Sua solicitação *${opts.requestNumber}* foi aprovada na etapa *${opts.stepLabel}*.`,
         ``,
+        valueLine,
         `*Aprovado por:* ${opts.approverName}`,
         `*Próxima etapa:* ${opts.nextStepLabel}`,
         ``,
         `🔗 Acompanhar no app:`,
         `${getAppBaseUrl()}/request/${opts.requestId}`,
-      ].join("\n")
+      ].filter(Boolean).join("\n")
     : [
         `🎉 *Solicitação Concluída! — CGS Agrícola*`,
         ``,
@@ -404,9 +410,10 @@ export async function notifyApproval(opts: {
         ``,
         `Sua solicitação *${opts.requestNumber}* foi *concluída com sucesso*! O pagamento foi confirmado pelo financeiro.`,
         ``,
+        valueLine,
         `🔗 Ver detalhes no app:`,
         `${getAppBaseUrl()}/request/${opts.requestId}`,
-      ].join("\n");
+      ].filter(Boolean).join("\n");
 
   return sendWhatsAppMessage(opts.requesterPhone, message);
 }

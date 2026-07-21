@@ -1202,7 +1202,7 @@ export async function submitBudget(
             stepLabel: STEP_LABELS[nextStatus] ?? nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? undefined,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
           });
         } else {
           console.warn(`[submitBudget] Aprovador ${approver.name} (id=${approver.id}) não tem telefone cadastrado.`);
@@ -1393,6 +1393,7 @@ export async function approveRequest(
           requestId,
           approverName: user.name ?? "Aprovador",
           stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
         });
       }
     } else {
@@ -1406,6 +1407,7 @@ export async function approveRequest(
           approverName: user.name ?? "Aprovador",
           stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
           nextStepLabel: STEP_LABELS_SERVER[flow.nextStatus],
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
         });
       }
     }
@@ -1444,7 +1446,7 @@ export async function approveRequest(
             stepLabel: STEP_LABELS_SERVER[flow.nextStatus] ?? flow.nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? undefined,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
           });
         } else {
           console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) não tem telefone cadastrado.`);
@@ -1507,6 +1509,7 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
             rejectorName: user.name ?? "Financeiro",
             stepLabel: "Comprovante de Pagamento",
             comment,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
           });
         }
       } else {
@@ -1520,6 +1523,7 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
             rejectorName: user.name ?? "Aprovador",
             stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
             comment,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
           });
         }
 
@@ -1562,7 +1566,7 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
                 stepLabel: STEP_LABELS_SERVER[prevStatus] ?? prevStatus,
                 step: prevRole,
                 items: itemsForMsg,
-                totalValue: req.totalEstimatedValue ?? undefined,
+                totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
               });
             } else {
               console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) não tem telefone cadastrado.`);
@@ -1651,6 +1655,7 @@ export async function finalizeOC(requestId: number, user: User, orderValue: numb
           requestId,
           approverName: user.name ?? "Compras",
           stepLabel: "Verificação Final",
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
         });
       }
     }
@@ -1705,6 +1710,7 @@ export async function refinalizeOC(requestId: number, user: User): Promise<void>
           requestId,
           approverName: user.name ?? "Compras",
           stepLabel: finalStatus === "concluida" ? "Recompra Concluída" : "Recompra Parcial",
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
         });
       }
     }
@@ -1773,10 +1779,11 @@ export async function cancelRequest(
           requesterName: requester.name ?? "Solicitante",
           requestNumber: request.requestNumber,
           requestId,
-          rejectorName: user.name ?? "Master",
-          stepLabel: "Cancelamento",
-          comment: reason ?? "Solicitação cancelada pelo administrador.",
-        });
+        rejectorName: user.name ?? "Master",
+            stepLabel: "Cancelamento",
+            comment: reason ?? "Solicitação cancelada pelo administrador.",
+            totalValue: request.orderValue ?? request.totalEstimatedValue ?? undefined,
+          });
       }
     } catch (e) {
       console.warn("[WhatsApp] Failed to send cancellation notification:", e);
@@ -3465,7 +3472,7 @@ export async function approveQuotationAndAdvance(
             stepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? undefined,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
           });
         }
       }
@@ -3480,6 +3487,7 @@ export async function approveQuotationAndAdvance(
         approverName: user.name ?? "Aprovador",
         stepLabel: "Orçamento",
         nextStepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
+        totalValue: req.orderValue ?? req.totalEstimatedValue ?? undefined,
       });
     }
   } catch (e) {

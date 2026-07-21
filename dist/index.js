@@ -723,6 +723,8 @@ async function notifyNewRequest(opts) {
   });
 }
 async function notifyRejection(opts) {
+  const valueLine = opts.totalValue ? `*Valor:* R$ ${opts.totalValue}
+` : "";
   const message = [
     `\u274C *Solicita\xE7\xE3o Rejeitada \u2014 CGS Agr\xEDcola*`,
     ``,
@@ -730,6 +732,7 @@ async function notifyRejection(opts) {
     ``,
     `Sua solicita\xE7\xE3o *${opts.requestNumber}* foi rejeitada na etapa de *${opts.stepLabel}*.`,
     ``,
+    valueLine,
     `*Motivo:* ${opts.comment}`,
     `*Rejeitado por:* ${opts.rejectorName}`,
     ``,
@@ -737,10 +740,11 @@ async function notifyRejection(opts) {
     ``,
     `\u{1F517} Corrigir no app:`,
     `${getAppBaseUrl()}/request/${opts.requestId}`
-  ].join("\n");
+  ].filter(Boolean).join("\n");
   return sendWhatsAppMessage(opts.requesterPhone, message);
 }
 async function notifyApproval(opts) {
+  const valueLine = opts.totalValue ? `*Valor:* R$ ${opts.totalValue}` : "";
   const message = opts.nextStepLabel ? [
     `\u2705 *Etapa Aprovada \u2014 CGS Agr\xEDcola*`,
     ``,
@@ -748,21 +752,23 @@ async function notifyApproval(opts) {
     ``,
     `Sua solicita\xE7\xE3o *${opts.requestNumber}* foi aprovada na etapa *${opts.stepLabel}*.`,
     ``,
+    valueLine,
     `*Aprovado por:* ${opts.approverName}`,
     `*Pr\xF3xima etapa:* ${opts.nextStepLabel}`,
     ``,
     `\u{1F517} Acompanhar no app:`,
     `${getAppBaseUrl()}/request/${opts.requestId}`
-  ].join("\n") : [
+  ].filter(Boolean).join("\n") : [
     `\u{1F389} *Solicita\xE7\xE3o Conclu\xEDda! \u2014 CGS Agr\xEDcola*`,
     ``,
     `Ol\xE1, *${opts.requesterName}*!`,
     ``,
     `Sua solicita\xE7\xE3o *${opts.requestNumber}* foi *conclu\xEDda com sucesso*! O pagamento foi confirmado pelo financeiro.`,
     ``,
+    valueLine,
     `\u{1F517} Ver detalhes no app:`,
     `${getAppBaseUrl()}/request/${opts.requestId}`
-  ].join("\n");
+  ].filter(Boolean).join("\n");
   return sendWhatsAppMessage(opts.requesterPhone, message);
 }
 async function notifyBudgetRequired(opts) {
@@ -1987,7 +1993,7 @@ async function submitBudget(requestId, user, estimatedValue) {
             stepLabel: STEP_LABELS[nextStatus] ?? nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? void 0
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         } else {
           console.warn(`[submitBudget] Aprovador ${approver.name} (id=${approver.id}) n\xE3o tem telefone cadastrado.`);
@@ -2141,7 +2147,8 @@ async function approveRequest(requestId, user, data) {
           requestNumber: req.requestNumber,
           requestId,
           approverName: user.name ?? "Aprovador",
-          stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status
+          stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
         });
       }
     } else {
@@ -2153,7 +2160,8 @@ async function approveRequest(requestId, user, data) {
           requestId,
           approverName: user.name ?? "Aprovador",
           stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
-          nextStepLabel: STEP_LABELS_SERVER[flow.nextStatus]
+          nextStepLabel: STEP_LABELS_SERVER[flow.nextStatus],
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
         });
       }
     }
@@ -2186,7 +2194,7 @@ async function approveRequest(requestId, user, data) {
             stepLabel: STEP_LABELS_SERVER[flow.nextStatus] ?? flow.nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? void 0
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         } else {
           console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) n\xE3o tem telefone cadastrado.`);
@@ -2237,7 +2245,8 @@ async function rejectRequest(requestId, user, comment) {
             requestId,
             rejectorName: user.name ?? "Financeiro",
             stepLabel: "Comprovante de Pagamento",
-            comment
+            comment,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         }
       } else {
@@ -2249,7 +2258,8 @@ async function rejectRequest(requestId, user, comment) {
             requestId,
             rejectorName: user.name ?? "Aprovador",
             stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
-            comment
+            comment,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         }
         const prevRoleMap = {
@@ -2285,7 +2295,7 @@ async function rejectRequest(requestId, user, comment) {
                 stepLabel: STEP_LABELS_SERVER[prevStatus] ?? prevStatus,
                 step: prevRole,
                 items: itemsForMsg,
-                totalValue: req.totalEstimatedValue ?? void 0
+                totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
               });
             } else {
               console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) n\xE3o tem telefone cadastrado.`);
@@ -2353,7 +2363,8 @@ async function finalizeOC(requestId, user, orderValue) {
           requestNumber: req.requestNumber,
           requestId,
           approverName: user.name ?? "Compras",
-          stepLabel: "Verifica\xE7\xE3o Final"
+          stepLabel: "Verifica\xE7\xE3o Final",
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
         });
       }
     }
@@ -2396,7 +2407,8 @@ async function refinalizeOC(requestId, user) {
           requestNumber: req.requestNumber,
           requestId,
           approverName: user.name ?? "Compras",
-          stepLabel: finalStatus === "concluida" ? "Recompra Conclu\xEDda" : "Recompra Parcial"
+          stepLabel: finalStatus === "concluida" ? "Recompra Conclu\xEDda" : "Recompra Parcial",
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
         });
       }
     }
@@ -2446,7 +2458,8 @@ async function cancelRequest(requestId, user, reason) {
           requestId,
           rejectorName: user.name ?? "Master",
           stepLabel: "Cancelamento",
-          comment: reason ?? "Solicita\xE7\xE3o cancelada pelo administrador."
+          comment: reason ?? "Solicita\xE7\xE3o cancelada pelo administrador.",
+          totalValue: request.orderValue ?? request.totalEstimatedValue ?? void 0
         });
       }
     } catch (e) {
@@ -3639,7 +3652,7 @@ async function approveQuotationAndAdvance(requestId, supplierId, user, estimated
             stepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? void 0
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         }
       }
@@ -3652,7 +3665,8 @@ async function approveQuotationAndAdvance(requestId, supplierId, user, estimated
         requestId,
         approverName: user.name ?? "Aprovador",
         stepLabel: "Or\xE7amento",
-        nextStepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus
+        nextStepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
+        totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
       });
     }
   } catch (e) {
