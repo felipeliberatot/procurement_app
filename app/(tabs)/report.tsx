@@ -288,31 +288,35 @@ export default function ReportScreen() {
         ))}
       </ScrollView>
 
-      {/* Seletor de Mês/Ano */}
-      <View style={styles.selectorRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
-          {years.map(y => (
-            <Pressable
-              key={y}
-              style={[styles.chip, selectedYear === y && { backgroundColor: colors.primary }]}
-              onPress={() => setSelectedYear(y)}
-            >
-              <Text style={[styles.chipText, selectedYear === y && { color: "#fff" }]}>{y}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
-        {MONTHS.map((m, i) => (
-          <Pressable
-            key={i}
-            style={[styles.chip, selectedMonth === i + 1 && { backgroundColor: colors.primary }]}
-            onPress={() => setSelectedMonth(i + 1)}
-          >
-            <Text style={[styles.chipText, selectedMonth === i + 1 && { color: "#fff" }]}>{m.slice(0, 3)}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {/* Seletor de Mês/Ano — oculto na aba Por Bem (ela tem seus próprios filtros) */}
+      {activeTab !== "porbem" && (
+        <>
+          <View style={styles.selectorRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
+              {years.map(y => (
+                <Pressable
+                  key={y}
+                  style={[styles.chip, selectedYear === y && { backgroundColor: colors.primary }]}
+                  onPress={() => setSelectedYear(y)}
+                >
+                  <Text style={[styles.chipText, selectedYear === y && { color: "#fff" }]}>{y}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
+            {MONTHS.map((m, i) => (
+              <Pressable
+                key={i}
+                style={[styles.chip, selectedMonth === i + 1 && { backgroundColor: colors.primary }]}
+                onPress={() => setSelectedMonth(i + 1)}
+              >
+                <Text style={[styles.chipText, selectedMonth === i + 1 && { color: "#fff" }]}>{m.slice(0, 3)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
       {/* Conteúdo */}
       {activeTab === "porbem" ? (
