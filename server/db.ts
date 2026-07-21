@@ -3745,11 +3745,21 @@ export async function getRequestsByAsset(application: string, year?: number, mon
           eq(purchaseRequests.status, "concluida"),
           eq(purchaseRequests.status, "parcialmente_concluida"),
         ),
-        // Filtrar por mês/ano de conclusão (competência) quando fornecido
+        // Filtrar por mês/ano de conclusão (competência) conforme combinação selecionada
         ...(year && month ? [
+          // Ano + mês específicos
           gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
           lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0)),
-        ] : [])
+        ] : year && !month ? [
+          // Só ano (todos os meses do ano)
+          gte(purchaseRequests.completedAt, new Date(year, 0, 1, 0, 0, 0, 0)),
+          lt(purchaseRequests.completedAt, new Date(year + 1, 0, 1, 0, 0, 0, 0)),
+        ] : !year && month ? [
+          // Só mês (todos os anos, apenas o mês específico)
+          sql`MONTH(${purchaseRequests.completedAt}) = ${month}`,
+        ] : []
+        // Sem filtro: histórico completo
+        )
       )
     )
     // Ordenar por data de finalização (competência do gasto), mais recente primeiro

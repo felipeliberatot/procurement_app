@@ -832,3 +832,11 @@
 - [x] Adicionar mensagem clara quando não há movimentação no período selecionado
 - [x] Investigar itens zerados: solicitações antigas sem orderValue nem totalEstimatedValue (dados históricos sem valor preenchido — não recuperável)
 - [x] Script de correção: bens vinculados com totalEstimatedValue disponível já foram corrigidos pelo script anterior
+
+## Filtros Todos os Anos / Todos os Meses na Aba Por Bem
+- [x] Adicionar chips "Todos" nos seletores de ano e mês exclusivos da aba Por Bem
+- [x] Estado porBemYear e porBemMonth separados (não afeta outras abas)
+- [x] Backend getRequestsByAsset: suporte a só-ano, só-mês, ou histórico completo
+- [x] periodoLabel dinâmico: "Ano 2026 (todos os meses)", "Março (todos os anos)", "Histórico completo"
+- [x] PDF e CSV com nomes de arquivo e labels refletindo o período selecionado
+- [x] Bundle web reconstruído com as novas funcionalidades

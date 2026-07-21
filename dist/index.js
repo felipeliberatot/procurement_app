@@ -3827,8 +3827,16 @@ async function getRequestsByAsset(application, year, month) {
         eq2(purchaseRequests.status, "parcialmente_concluida")
       ),
       ...year && month ? [
+        // Ano + mês específicos
         gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
         lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0))
+      ] : year && !month ? [
+        // Só ano (todos os meses do ano)
+        gte(purchaseRequests.completedAt, new Date(year, 0, 1, 0, 0, 0, 0)),
+        lt(purchaseRequests.completedAt, new Date(year + 1, 0, 1, 0, 0, 0, 0))
+      ] : !year && month ? [
+        // Só mês (todos os anos, apenas o mês específico)
+        sql`MONTH(${purchaseRequests.completedAt}) = ${month}`
       ] : []
     )
   ).orderBy(desc(purchaseRequests.completedAt));
