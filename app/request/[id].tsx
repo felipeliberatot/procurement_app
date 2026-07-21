@@ -1148,15 +1148,19 @@ export default function RequestDetailScreen() {
   };
 
   const handleIssueOrder = () => {
-    // O valor da OC é o totalEstimatedValue definido na etapa de Orçamento
-    const valorExibido = request.totalEstimatedValue ? formatCurrency(request.totalEstimatedValue) : "(valor não informado)";
-    // Ao emitir a OC, salvar o totalEstimatedValue como orderValue para que apareça nos cards subsequentes
-    const ocValue = request.totalEstimatedValue ? parseFloat(request.totalEstimatedValue) : undefined;
+    // Usar o valor digitado pelo usuário no campo orderValueInput
+    const raw = orderValueInput.trim().replace(/\./g, "").replace(",", ".");
+    const ocValue = parseFloat(raw);
+    if (!orderValueInput.trim() || isNaN(ocValue) || ocValue <= 0) {
+      Alert.alert("Campo obrigatório", "Informe o Valor da OC antes de emitir.");
+      return;
+    }
+    const valorExibido = ocValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     showConfirm({
       title: "Confirmar Emissão de OC",
       message: `Confirmar a emissão da OC (${valorExibido}) e encaminhar para Aprovação Financeiro?`,
       confirmText: "Confirmar",
-      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", ...(ocValue && !isNaN(ocValue) ? { orderValue: ocValue } : {}) }),
+      onConfirm: () => approveMutation.mutate({ requestId: request.id, purchaseOrderNumber: "", orderValue: ocValue }),
     });
   };
 
@@ -2487,6 +2491,27 @@ export default function RequestDetailScreen() {
                     </View>
                   )}
 
+                  {/* Campo obrigatório: Valor da OC */}
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+                      Valor da OC <Text style={{ color: colors.error }}>*</Text>
+                    </Text>
+                    <View style={{ flexDirection: "row", alignItems: "center", borderWidth: 1.5, borderColor: orderValueInput.trim() ? colors.success : colors.border, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: colors.background }}>
+                      <Text style={{ fontSize: 14, color: colors.muted, marginRight: 4 }}>R$</Text>
+                      <TextInput
+                        value={orderValueInput}
+                        onChangeText={(t) => setOrderValueInput(t.replace(/[^0-9.,]/g, ""))}
+                        placeholder={request.totalEstimatedValue ? parseFloat(request.totalEstimatedValue).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "0,00"}
+                        placeholderTextColor={colors.muted}
+                        keyboardType="decimal-pad"
+                        returnKeyType="done"
+                        style={{ flex: 1, fontSize: 16, fontWeight: "600", color: colors.foreground }}
+                      />
+                    </View>
+                    <Text style={{ fontSize: 11, color: colors.muted, marginTop: 4 }}>
+                      {request.totalEstimatedValue ? `Valor estimado: R$ ${parseFloat(request.totalEstimatedValue).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Informe o valor da Ordem de Compra"}
+                    </Text>
+                  </View>
                   {/* Upload OC Siagri */}
                   <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 6 }}>OC Siagri <Text style={{ color: colors.muted, fontWeight: "400" }}>(opcional)</Text></Text>
                   <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o PDF da Ordem de Compra gerada no Siagri</Text>
@@ -2511,9 +2536,9 @@ export default function RequestDetailScreen() {
                   {/* Botão Emitir OC */}
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending}
+                    disabled={approveMutation.isPending || !orderValueInput.trim()}
                     style={{
-                      backgroundColor: colors.primary,
+                      backgroundColor: orderValueInput.trim() ? colors.primary : colors.border,
                       borderRadius: 12,
                       paddingVertical: 14,
                       alignItems: "center",
