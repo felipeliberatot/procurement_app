@@ -435,16 +435,26 @@ function ApproveModal({
 }
 
 // ─── Componente: Situação dos Itens (Cumprimento Parcial) ───────────────────────
+function getItemStatusInfo(status: string, colors: any) {
+  switch (status) {
+    case "autorizado": return { label: "Autorizado", icon: "✓", bgColor: `${colors.primary}20`, textColor: colors.primary };
+    case "aprovado":   return { label: "Aprovado",   icon: "✓", bgColor: `${colors.success}20`, textColor: colors.success };
+    case "comprado":   return { label: "Comprado",   icon: "✓", bgColor: `${colors.success}20`, textColor: colors.success };
+    case "parcial":    return { label: "Parcial",    icon: "~", bgColor: `${colors.warning}20`, textColor: colors.warning };
+    default:           return { label: "Pendente",   icon: "!", bgColor: `${colors.warning}20`, textColor: colors.warning };
+  }
+}
+
 function ItemFulfillmentCard({ items }: { items: any[] }) {
   const colors = useColors();
   if (!items || items.length === 0) return null;
-  const comprados = items.filter(i => i.itemStatus === "comprado");
-  const pendentes = items.filter(i => i.itemStatus !== "comprado");
+  const ativos = items.filter(i => i.itemStatus === "comprado" || i.itemStatus === "autorizado" || i.itemStatus === "aprovado");
+  const pendentes = items.filter(i => i.itemStatus === "pendente" || i.itemStatus === "parcial");
   return (
     <View style={{ marginBottom: 16, backgroundColor: colors.background, borderRadius: 12, padding: 12, borderWidth: 1, borderColor: colors.border }}>
       <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginBottom: 8 }}>📊 Situação dos Itens</Text>
       {items.map((item: any, idx: number) => {
-        const st = item.itemStatus === "comprado" ? "comprado" : "pendente";
+        const info = getItemStatusInfo(item.itemStatus ?? "pendente", colors);
         return (
           <View key={item.id} style={{
             flexDirection: "row", alignItems: "center", gap: 10,
@@ -454,30 +464,23 @@ function ItemFulfillmentCard({ items }: { items: any[] }) {
           }}>
             <View style={{
               width: 20, height: 20, borderRadius: 10,
-              backgroundColor: st === "comprado" ? colors.success : `${colors.warning}30`,
+              backgroundColor: info.bgColor,
               alignItems: "center", justifyContent: "center",
             }}>
-              <Text style={{ fontSize: 11, color: st === "comprado" ? "white" : colors.warning, fontWeight: "700" }}>
-                {st === "comprado" ? "✓" : "!"}
-              </Text>
+              <Text style={{ fontSize: 11, color: info.textColor, fontWeight: "700" }}>{info.icon}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 12, fontWeight: "600", color: colors.foreground }} numberOfLines={1}>{item.description ?? item.name}</Text>
               <Text style={{ fontSize: 11, color: colors.muted }}>{item.quantity} {item.unit}</Text>
             </View>
-            <View style={{
-              paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6,
-              backgroundColor: st === "comprado" ? `${colors.success}20` : `${colors.warning}20`,
-            }}>
-              <Text style={{ fontSize: 11, fontWeight: "700", color: st === "comprado" ? colors.success : colors.warning }}>
-                {st === "comprado" ? "Comprado" : "Pendente"}
-              </Text>
+            <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: info.bgColor }}>
+              <Text style={{ fontSize: 11, fontWeight: "700", color: info.textColor }}>{info.label}</Text>
             </View>
           </View>
         );
       })}
       <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: colors.border }}>
-        <Text style={{ fontSize: 11, color: colors.success, fontWeight: "600" }}>✓ {comprados.length} comprado(s)</Text>
+        <Text style={{ fontSize: 11, color: colors.success, fontWeight: "600" }}>✓ {ativos.length} ativo(s)</Text>
         <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "600" }}>⏳ {pendentes.length} pendente(s)</Text>
       </View>
     </View>
@@ -511,7 +514,7 @@ export default function RequestDetailScreen() {
   const [ocSiagriFileName, setOcSiagriFileName] = useState<string | null>(null);
   const [showOCViewer, setShowOCViewer] = useState(false);
   // Estado para controle de itens comprados/pendentes na etapa de Emissão de OC
-  const [itemFulfillment, setItemFulfillment] = useState<Record<number, "comprado" | "pendente">>({})
+  const [itemFulfillment, setItemFulfillment] = useState<Record<number, "autorizado" | "aprovado" | "comprado" | "pendente">>({})
   const [itemFulfillmentInitialized, setItemFulfillmentInitialized] = useState(false);
   const [showBudgetViewer, setShowBudgetViewer] = useState(false);
   const [showPaymentProofViewer, setShowPaymentProofViewer] = useState(false);
@@ -599,10 +602,11 @@ export default function RequestDetailScreen() {
       const hash = (request as any).items.map((i: any) => `${i.id}:${i.itemStatus}`).join(",");
       if (hash !== lastItemsHashRef.current) {
         lastItemsHashRef.current = hash;
-        const updated: Record<number, "comprado" | "pendente"> = {};
+        const updated: Record<number, "autorizado" | "aprovado" | "comprado" | "pendente"> = {};
         for (const item of (request as any).items) {
           if (item.id) {
-            updated[item.id] = (item.itemStatus === "comprado") ? "comprado" : "pendente";
+            const st = item.itemStatus;
+            updated[item.id] = (st === "autorizado" || st === "aprovado" || st === "comprado") ? st : "pendente";
           }
         }
         setItemFulfillment(updated);
@@ -1872,10 +1876,10 @@ export default function RequestDetailScreen() {
                   })}
                   <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 4, paddingHorizontal: 4, marginBottom: 12 }}>
                     <Text style={{ fontSize: 12, color: colors.success, fontWeight: "600" }}>
-                      ✓ {Object.values(itemFulfillment).filter(s => s === "comprado").length} comprado(s)
+                      ✓ {Object.values(itemFulfillment).filter(s => s === "comprado" || s === "aprovado" || s === "autorizado").length} comprado(s)
                     </Text>
                     <Text style={{ fontSize: 12, color: colors.warning, fontWeight: "600" }}>
-                      ⏳ {(request as any).items.length - Object.values(itemFulfillment).filter(s => s === "comprado").length} pendente(s)
+                      ⏳ {(request as any).items.length - Object.values(itemFulfillment).filter(s => s === "comprado" || s === "aprovado" || s === "autorizado").length} pendente(s)
                     </Text>
                   </View>
                   <TouchableOpacity
@@ -2416,21 +2420,21 @@ export default function RequestDetailScreen() {
                   <Text className="text-sm font-bold text-foreground mb-1">📋 Emissão de Ordem de Compra</Text>
                   <Text className="text-xs text-muted mb-4">Preencha os campos abaixo para emitir a OC e encaminhar ao Financeiro</Text>
 
-                  {/* Seleção de Itens Comprados/Pendentes */}
+                  {/* Seleção de Itens Autorizados/Pendentes */}
                   {(request as any).items && (request as any).items.length > 0 && (
                     <View style={{ marginBottom: 20 }}>
                       <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "700", marginBottom: 4 }}>Itens da Solicitação</Text>
-                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 12 }}>Marque quais itens foram efetivamente comprados. Itens não marcados ficarão como pendentes.</Text>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 12 }}>Marque quais itens foram autorizados para compra. Itens não marcados ficarão como pendentes.</Text>
                       {(request as any).items.map((item: any) => {
                         const status = itemFulfillment[item.id] ?? "pendente";
-                        const isComprado = status === "comprado";
+                        const isAutorizado = status === "autorizado";
                         return (
                           <TouchableOpacity
                             key={item.id}
                             onPress={() => {
-                              const newStatus = isComprado ? "pendente" : "comprado";
+                              const newStatus = isAutorizado ? "pendente" : "autorizado";
                               setItemFulfillment(prev => ({ ...prev, [item.id]: newStatus }));
-                              updateItemFulfillmentMutation.mutate({ itemId: item.id, fulfilledQty: newStatus === "comprado" ? Number(item.quantity ?? 1) : 0 });
+                              updateItemFulfillmentMutation.mutate({ itemId: item.id, fulfilledQty: newStatus === "autorizado" ? Number(item.quantity ?? 1) : 0 });
                             }}
                             style={{
                               flexDirection: "row",
@@ -2439,8 +2443,8 @@ export default function RequestDetailScreen() {
                               paddingHorizontal: 14,
                               borderRadius: 12,
                               borderWidth: 2,
-                              borderColor: isComprado ? colors.success : colors.border,
-                              backgroundColor: isComprado ? `${colors.success}12` : colors.background,
+                              borderColor: isAutorizado ? colors.success : colors.border,
+                              backgroundColor: isAutorizado ? `${colors.success}12` : colors.background,
                               marginBottom: 8,
                               gap: 12,
                             }}
@@ -2448,11 +2452,11 @@ export default function RequestDetailScreen() {
                             <View style={{
                               width: 24, height: 24, borderRadius: 12,
                               borderWidth: 2,
-                              borderColor: isComprado ? colors.success : colors.muted,
-                              backgroundColor: isComprado ? colors.success : "transparent",
+                              borderColor: isAutorizado ? colors.success : colors.muted,
+                              backgroundColor: isAutorizado ? colors.success : "transparent",
                               alignItems: "center", justifyContent: "center",
                             }}>
-                              {isComprado && <Text style={{ color: "white", fontSize: 13, fontWeight: "700" }}>✓</Text>}
+                              {isAutorizado && <Text style={{ color: "white", fontSize: 13, fontWeight: "700" }}>✓</Text>}
                             </View>
                             <View style={{ flex: 1 }}>
                               <Text style={{ fontSize: 13, fontWeight: "600", color: colors.foreground }} numberOfLines={2}>{item.description ?? item.name}</Text>
@@ -2460,10 +2464,10 @@ export default function RequestDetailScreen() {
                             </View>
                             <View style={{
                               paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8,
-                              backgroundColor: isComprado ? colors.success : `${colors.warning}20`,
+                              backgroundColor: isAutorizado ? colors.success : `${colors.warning}20`,
                             }}>
-                              <Text style={{ fontSize: 11, fontWeight: "700", color: isComprado ? "white" : colors.warning }}>
-                                {isComprado ? "Comprado" : "Pendente"}
+                              <Text style={{ fontSize: 11, fontWeight: "700", color: isAutorizado ? "white" : colors.warning }}>
+                                {isAutorizado ? "Autorizado" : "Pendente"}
                               </Text>
                             </View>
                           </TouchableOpacity>
@@ -2472,10 +2476,10 @@ export default function RequestDetailScreen() {
                       {/* Resumo */}
                       <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: 8, paddingHorizontal: 4 }}>
                         <Text style={{ fontSize: 12, color: colors.success, fontWeight: "600" }}>
-                          ✓ {Object.values(itemFulfillment).filter(s => s === "comprado").length} comprado(s)
+                          ✓ {Object.values(itemFulfillment).filter(s => s === "autorizado").length} autorizado(s)
                         </Text>
                         <Text style={{ fontSize: 12, color: colors.warning, fontWeight: "600" }}>
-                          ⏳ {(request as any).items.length - Object.values(itemFulfillment).filter(s => s === "comprado").length} pendente(s)
+                          ⏳ {(request as any).items.length - Object.values(itemFulfillment).filter(s => s === "autorizado").length} pendente(s)
                         </Text>
                       </View>
                     </View>
@@ -2970,7 +2974,7 @@ export default function RequestDetailScreen() {
                   {(request as any).items && (request as any).items.length > 0 && (
                     <View style={{ marginBottom: 14 }}>
                       <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 4 }}>📦 Itens da Solicitação</Text>
-                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 10 }}>Marque os itens que foram efetivamente comprados antes de finalizar.</Text>
+                      <Text style={{ fontSize: 11, color: colors.muted, marginBottom: 10 }}>Confirme os itens que foram efetivamente comprados para finalizar a OC.</Text>
                       {(request as any).items.map((item: any) => {
                         const status = itemFulfillment[item.id] ?? "pendente";
                         const isComprado = status === "comprado";

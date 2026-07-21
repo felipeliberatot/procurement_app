@@ -240,7 +240,7 @@ var init_schema = __esm({
       totalPrice: decimal("totalPrice", { precision: 14, scale: 2 }),
       // Cumprimento parcial
       fulfilledQty: decimal("fulfilledQty", { precision: 10, scale: 2 }).default("0").notNull(),
-      itemStatus: mysqlEnum("itemStatus", ["pendente", "parcial", "comprado"]).default("pendente").notNull(),
+      itemStatus: mysqlEnum("itemStatus", ["pendente", "parcial", "autorizado", "aprovado", "comprado"]).default("pendente").notNull(),
       createdAt: timestamp("createdAt").defaultNow().notNull()
     });
     approvalHistory = mysqlTable("approvalHistory", {
@@ -2108,6 +2108,9 @@ async function approveRequest(requestId, user, data) {
     action: flow.action,
     comment: data.comment ?? null
   });
+  if (request.status === "aguardando_aprovacao_compra") {
+    await db.update(requestItems).set({ itemStatus: "aprovado" }).where(eq2(requestItems.requestId, requestId));
+  }
   try {
     const [req] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
     const [requester] = req ? await db.select().from(users).where(eq2(users.id, req.requesterId)).limit(1) : [];
@@ -2333,9 +2336,10 @@ async function finalizeOC(requestId, user, orderValue) {
   if (!request) throw new Error("Solicita\xE7\xE3o n\xE3o encontrada");
   if (request.status !== "aguardando_verificacao_compras") throw new Error("Status inv\xE1lido para finalizar OC");
   const allItemsForRequest = await db.select().from(requestItems).where(eq2(requestItems.requestId, requestId));
-  const hasComprado = allItemsForRequest.some((i) => i.itemStatus === "comprado");
+  const hasComprado = allItemsForRequest.some((i) => i.itemStatus === "comprado" || i.itemStatus === "aprovado");
   const hasPendingItems = allItemsForRequest.some((i) => i.itemStatus === "pendente" || i.itemStatus === "parcial");
   const finalStatus = hasComprado && hasPendingItems ? "parcialmente_concluida" : "concluida";
+  await db.update(requestItems).set({ itemStatus: "comprado" }).where(eq2(requestItems.requestId, requestId));
   const now = /* @__PURE__ */ new Date();
   await db.update(purchaseRequests).set({
     status: finalStatus,
@@ -3690,15 +3694,20 @@ async function updateItemFulfillment(itemId, fulfilledQty, userId) {
   if (!item) throw new Error("Item n\xE3o encontrado");
   const totalQty = parseFloat(item.quantity);
   const clampedQty = Math.min(Math.max(fulfilledQty, 0), totalQty);
+  const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, item.requestId)).limit(1);
+  if (!request) return { itemStatus: "pendente", requestStatus: "concluida" };
   let itemStatus = "pendente";
-  if (clampedQty >= totalQty) itemStatus = "comprado";
-  else if (clampedQty > 0) itemStatus = "parcial";
+  if (request.status === "aguardando_ordem_compra") {
+    if (clampedQty >= totalQty) itemStatus = "autorizado";
+    else if (clampedQty > 0) itemStatus = "parcial";
+  } else {
+    if (clampedQty >= totalQty) itemStatus = "comprado";
+    else if (clampedQty > 0) itemStatus = "parcial";
+  }
   await db.update(requestItems).set({ fulfilledQty: String(clampedQty), itemStatus }).where(eq2(requestItems.id, itemId));
   const allItems = await db.select().from(requestItems).where(eq2(requestItems.requestId, item.requestId));
-  const allFulfilled = allItems.every((i) => i.id === itemId ? itemStatus === "comprado" : i.itemStatus === "comprado");
+  const allFulfilled = allItems.every((i) => i.id === itemId ? itemStatus === "autorizado" || itemStatus === "comprado" : i.itemStatus === "autorizado" || i.itemStatus === "aprovado" || i.itemStatus === "comprado");
   const anyFulfilled = allItems.some((i) => i.id === itemId ? clampedQty > 0 : parseFloat(i.fulfilledQty) > 0);
-  const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, item.requestId)).limit(1);
-  if (!request) return { itemStatus, requestStatus: "concluida" };
   if (request.status === "aguardando_ordem_compra") {
     let newStatus;
     if (allFulfilled || anyFulfilled) {

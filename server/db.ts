@@ -1348,6 +1348,15 @@ export async function approveRequest(
     comment: data.comment ?? null,
   });
 
+  // ── Conversão de status dos itens conforme etapa aprovada ─────────────────────────────────────────
+  // Quando o financeiro aprova (aguardando_aprovacao_compra → aguardando_comprovante_pagamento),
+  // os itens "autorizado" passam para "aprovado"
+  if (request.status === "aguardando_aprovacao_compra") {
+    await db.update(requestItems)
+      .set({ itemStatus: "aprovado" })
+      .where(eq(requestItems.requestId, requestId));
+  }
+
   // WhatsApp notifications
   try {
     const [req] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
@@ -1617,9 +1626,16 @@ export async function finalizeOC(requestId: number, user: User, orderValue: numb
   // parcialmente_concluida SOMENTE quando há ≥1 comprado E ≥1 pendente/parcial
   // Se nenhum item foi marcado (todos pendentes) → concluida normalmente
   const allItemsForRequest = await db.select().from(requestItems).where(eq(requestItems.requestId, requestId));
-  const hasComprado = allItemsForRequest.some(i => i.itemStatus === "comprado");
+  // Na verificação final, itens "aprovado" que foram marcados como comprados na etapa de OC
+  // precisam ser convertidos para "comprado" definitivamente
+  const hasComprado = allItemsForRequest.some(i => i.itemStatus === "comprado" || i.itemStatus === "aprovado");
   const hasPendingItems = allItemsForRequest.some(i => i.itemStatus === "pendente" || i.itemStatus === "parcial");
   const finalStatus = (hasComprado && hasPendingItems) ? "parcialmente_concluida" : "concluida";
+
+  // Converter itens "aprovado" para "comprado" na verificação final
+  await db.update(requestItems)
+    .set({ itemStatus: "comprado" })
+    .where(eq(requestItems.requestId, requestId));
 
   // Marcar como concluída/parcialmente concluída e habilitar nos Malotes
   const now = new Date();
@@ -3529,10 +3545,23 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
   const totalQty = parseFloat(item.quantity);
   const clampedQty = Math.min(Math.max(fulfilledQty, 0), totalQty);
   
-  // Determinar status do item
-  let itemStatus: "pendente" | "parcial" | "comprado" = "pendente";
-  if (clampedQty >= totalQty) itemStatus = "comprado";
-  else if (clampedQty > 0) itemStatus = "parcial";
+  // Buscar solicitação para determinar o status correto do item
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, item.requestId)).limit(1);
+  if (!request) return { itemStatus: "pendente" as const, requestStatus: "concluida" };
+
+  // Determinar status do item conforme a etapa:
+  // - aguardando_ordem_compra: item marcado = "autorizado"
+  // - aguardando_verificacao_compras: item marcado = "comprado" (verificação final)
+  // - parcialmente_concluida: item marcado = "comprado"
+  let itemStatus: "pendente" | "parcial" | "autorizado" | "aprovado" | "comprado" = "pendente";
+  if (request.status === "aguardando_ordem_compra") {
+    if (clampedQty >= totalQty) itemStatus = "autorizado";
+    else if (clampedQty > 0) itemStatus = "parcial";
+  } else {
+    // Verificação Final e demais etapas: usa "comprado"
+    if (clampedQty >= totalQty) itemStatus = "comprado";
+    else if (clampedQty > 0) itemStatus = "parcial";
+  }
 
   // Atualizar item
   await db.update(requestItems)
@@ -3541,22 +3570,18 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
 
   // Recalcular status da solicitação
   const allItems = await db.select().from(requestItems).where(eq(requestItems.requestId, item.requestId));
-  const allFulfilled = allItems.every(i => i.id === itemId ? itemStatus === "comprado" : i.itemStatus === "comprado");
+  const allFulfilled = allItems.every(i => i.id === itemId ? (itemStatus === "autorizado" || itemStatus === "comprado") : (i.itemStatus === "autorizado" || i.itemStatus === "aprovado" || i.itemStatus === "comprado"));
   const anyFulfilled = allItems.some(i => i.id === itemId ? clampedQty > 0 : parseFloat(i.fulfilledQty) > 0);
 
-  // Buscar solicitação
-  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, item.requestId)).limit(1);
-  if (!request) return { itemStatus, requestStatus: "concluida" };
-
-    // OPÇÃO A: qualquer item comprado avança para Financeiro.
+  // OPÇÃO A: qualquer item autorizado avança para Financeiro.
   // parcialmente_concluida é definido apenas em finalizeOC (Verificação Final).
   if (request.status === "aguardando_ordem_compra") {
     let newStatus: string;
     if (allFulfilled || anyFulfilled) {
-      // ≥1 item comprado → avança para Financeiro
+      // ≥1 item autorizado → avança para Financeiro
       newStatus = "aguardando_aprovacao_compra";
     } else {
-      // Nenhum item comprado ainda — manter em aguardando_ordem_compra
+      // Nenhum item autorizado ainda — manter em aguardando_ordem_compra
       newStatus = "aguardando_ordem_compra";
     }
     if (newStatus !== request.status) {
