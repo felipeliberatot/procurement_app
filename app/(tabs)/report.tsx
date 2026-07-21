@@ -49,6 +49,9 @@ export default function ReportScreen() {
   const [assetSearch, setAssetSearch] = useState("");
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [exporting, setExporting] = useState(false);
+  // Filtros exclusivos da aba Por Bem (null = todos — padrão: histórico completo)
+  const [porBemYear, setPorBemYear] = useState<number | null>(null);
+  const [porBemMonth, setPorBemMonth] = useState<number | null>(null);
   const { isDesktop } = useBreakpoint();
 
   const { data, isLoading, isFetching } = trpc.requests.monthlyReport.useQuery(
@@ -79,11 +82,11 @@ export default function ReportScreen() {
   const { data: partialStats } = trpc.requests.partialFulfillmentStats.useQuery();
   const { data: assetsList } = trpc.assets.list.useQuery();
   const { data: assetReport, isLoading: loadingAssetReport } = trpc.requests.requestsByAsset.useQuery(
-    { application: selectedAsset ?? "", year: selectedYear, month: selectedMonth },
+    { application: selectedAsset ?? "", year: porBemYear ?? undefined, month: porBemMonth ?? undefined },
     { enabled: !!selectedAsset && selectedAssets.length <= 1, placeholderData: (prev: any) => prev }
   );
   const { data: assetsReports, isLoading: loadingAssetsReports } = trpc.requests.requestsByAssets.useQuery(
-    { applications: selectedAssets, year: selectedYear, month: selectedMonth },
+    { applications: selectedAssets, year: porBemYear ?? undefined, month: porBemMonth ?? undefined },
     { enabled: selectedAssets.length > 0, placeholderData: (prev: any) => prev }
   );
   const filteredAssets = (assetsList ?? []).filter((a: any) =>
@@ -121,10 +124,14 @@ export default function ReportScreen() {
           }
         }
         csvContent = header + allRows.join("\n");
-        const monthStr = String(selectedMonth).padStart(2, "0");
+        const periodStr = porBemYear && porBemMonth
+          ? `${porBemYear}_${String(porBemMonth).padStart(2, "0")}`
+          : porBemYear ? `${porBemYear}_todos_meses`
+          : porBemMonth ? `todos_anos_${String(porBemMonth).padStart(2, "0")}`
+          : "historico_completo";
         fileName = selectedAssets.length === 1
-          ? `bem_${(selectedAssets[0] ?? "").split(" — ")[0].replace(/[^a-zA-Z0-9]/g, "_")}_${selectedYear}_${monthStr}.csv`
-          : `bens_${selectedYear}_${monthStr}.csv`;
+          ? `bem_${(selectedAssets[0] ?? "").split(" — ")[0].replace(/[^a-zA-Z0-9]/g, "_")}_${periodStr}.csv`
+          : `bens_${periodStr}.csv`;
       } else {
         // CSV das demais abas: relatório mensal
         if (!data) { setExporting(false); return; }
@@ -177,9 +184,9 @@ export default function ReportScreen() {
       if (activeTab === "porbem") {
         // Multi-asset: use assetsReports when multiple bens selected
         if (selectedAssets.length > 1 && assetsReports && assetsReports.length > 0) {
-          html = generateMultiAssetPDFHtml(assetsReports, selectedYear, selectedMonth);
+          html = generateMultiAssetPDFHtml(assetsReports, porBemYear ?? undefined, porBemMonth ?? undefined);
         } else if (selectedAssets.length === 1 && selectedAsset && assetReport) {
-          html = generateAssetPDFHtml(assetReport, selectedAsset);
+          html = generateAssetPDFHtml(assetReport, selectedAsset, porBemYear ?? undefined, porBemMonth ?? undefined);
         } else {
           setExporting(false); return;
         }
@@ -281,31 +288,35 @@ export default function ReportScreen() {
         ))}
       </ScrollView>
 
-      {/* Seletor de Mês/Ano */}
-      <View style={styles.selectorRow}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
-          {years.map(y => (
-            <Pressable
-              key={y}
-              style={[styles.chip, selectedYear === y && { backgroundColor: colors.primary }]}
-              onPress={() => setSelectedYear(y)}
-            >
-              <Text style={[styles.chipText, selectedYear === y && { color: "#fff" }]}>{y}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
-        {MONTHS.map((m, i) => (
-          <Pressable
-            key={i}
-            style={[styles.chip, selectedMonth === i + 1 && { backgroundColor: colors.primary }]}
-            onPress={() => setSelectedMonth(i + 1)}
-          >
-            <Text style={[styles.chipText, selectedMonth === i + 1 && { color: "#fff" }]}>{m.slice(0, 3)}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {/* Seletor de Mês/Ano — oculto na aba Por Bem (ela tem seus próprios filtros) */}
+      {activeTab !== "porbem" && (
+        <>
+          <View style={styles.selectorRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
+              {years.map(y => (
+                <Pressable
+                  key={y}
+                  style={[styles.chip, selectedYear === y && { backgroundColor: colors.primary }]}
+                  onPress={() => setSelectedYear(y)}
+                >
+                  <Text style={[styles.chipText, selectedYear === y && { color: "#fff" }]}>{y}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
+            {MONTHS.map((m, i) => (
+              <Pressable
+                key={i}
+                style={[styles.chip, selectedMonth === i + 1 && { backgroundColor: colors.primary }]}
+                onPress={() => setSelectedMonth(i + 1)}
+              >
+                <Text style={[styles.chipText, selectedMonth === i + 1 && { color: "#fff" }]}>{m.slice(0, 3)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </>
+      )}
 
       {/* Conteúdo */}
       {activeTab === "porbem" ? (
@@ -323,10 +334,13 @@ export default function ReportScreen() {
           assetReport={assetReport}
           assetsReports={assetsReports}
           loading={loadingAssetReport || loadingAssetsReports}
-          selectedYear={selectedYear}
-          selectedMonth={selectedMonth}
+          selectedYear={porBemYear}
+          setSelectedYear={setPorBemYear}
+          selectedMonth={porBemMonth}
+          setSelectedMonth={setPorBemMonth}
           colors={colors}
           styles={styles}
+          years={years}
         />
       ) : isLoading ? (
         <View style={styles.centered}>
@@ -967,10 +981,15 @@ function PorBemTab({
   assetSearch, setAssetSearch,
   showAssetPicker, setShowAssetPicker,
   filteredAssets, assetReport, assetsReports, loading, colors, styles,
-  selectedYear, selectedMonth,
+  selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, years,
 }: any) {
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const periodoLabel = selectedYear && selectedMonth ? `${MONTH_NAMES[selectedMonth - 1]} de ${selectedYear}` : "Todo o histórico";
+  const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const periodoLabel = selectedYear && selectedMonth
+    ? `${MONTH_NAMES[selectedMonth - 1]} de ${selectedYear}`
+    : selectedYear ? `Ano ${selectedYear} (todos os meses)`
+    : selectedMonth ? `${MONTH_NAMES[selectedMonth - 1]} (todos os anos)`
+    : "Histórico completo";
   const fmtCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   function toggleAsset(assetKey: string) {
@@ -1001,6 +1020,71 @@ function PorBemTab({
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+
+      {/* Seletor de Ano — exclusivo da aba Por Bem */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 4 }}>
+        <View style={{ flexDirection: "row", gap: 6, paddingBottom: 4 }}>
+          {/* Chip Todos os Anos */}
+          <TouchableOpacity
+            style={[
+              { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1.5 },
+              !selectedYear
+                ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                : { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+            onPress={() => setSelectedYear(null)}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "700", color: !selectedYear ? "#fff" : colors.muted }}>Todos</Text>
+          </TouchableOpacity>
+          {(years ?? []).map((y: number) => (
+            <TouchableOpacity
+              key={y}
+              style={[
+                { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1.5 },
+                selectedYear === y
+                  ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                  : { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+              onPress={() => setSelectedYear(y)}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: selectedYear === y ? "#fff" : colors.foreground }}>{y}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* Seletor de Mês — exclusivo da aba Por Bem */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+        <View style={{ flexDirection: "row", gap: 6, paddingBottom: 4 }}>
+          {/* Chip Todos os Meses */}
+          <TouchableOpacity
+            style={[
+              { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1.5 },
+              !selectedMonth
+                ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                : { backgroundColor: colors.surface, borderColor: colors.border },
+            ]}
+            onPress={() => setSelectedMonth(null)}
+          >
+            <Text style={{ fontSize: 13, fontWeight: "700", color: !selectedMonth ? "#fff" : colors.muted }}>Todos</Text>
+          </TouchableOpacity>
+          {MONTH_SHORT.map((m, i) => (
+            <TouchableOpacity
+              key={i}
+              style={[
+                { borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1.5 },
+                selectedMonth === i + 1
+                  ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                  : { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+              onPress={() => setSelectedMonth(i + 1)}
+            >
+              <Text style={{ fontSize: 13, fontWeight: "700", color: selectedMonth === i + 1 ? "#fff" : colors.foreground }}>{m}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+
       {/* Cabeçalho do seletor */}
       <View style={{ marginBottom: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
@@ -1419,7 +1503,9 @@ function createStyles(colors: any) {
   });
 }
 
-function generateAssetPDFHtml(assetReport: any, assetApplication: string): string {
+function generateAssetPDFHtml(assetReport: any, assetApplication: string, year?: number, month?: number): string {
+  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const periodoLabel = year && month ? `${MONTH_NAMES[month - 1]} de ${year}` : year ? `Ano ${year}` : month ? `${MONTH_NAMES[month - 1]} (todos os anos)` : "Histórico completo";
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v ?? 0);
   const fmtDate = (d: string | Date) => d ? new Date(d).toLocaleDateString("pt-BR") : "-";
 
@@ -1458,7 +1544,7 @@ function generateAssetPDFHtml(assetReport: any, assetApplication: string): strin
 </head>
 <body>
 <h1>Relatório por Bem</h1>
-<div class="subtitle">Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+<div class="subtitle">Período: ${periodoLabel} &nbsp;|&nbsp; Gerado em ${new Date().toLocaleString("pt-BR")}</div>
 <div style="margin-bottom:16px">
   <span class="asset-code">${assetReport.asset?.code ?? assetApplication}</span>
   <strong>${assetReport.asset?.description ?? assetApplication}</strong>
@@ -1496,9 +1582,9 @@ function generateAssetPDFHtml(assetReport: any, assetApplication: string): strin
 }
 
 // ── HTML para PDF multi-bens ─────────────────────────────────────────────────
-function generateMultiAssetPDFHtml(reports: any[], year: number, month: number): string {
+function generateMultiAssetPDFHtml(reports: any[], year?: number, month?: number): string {
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const periodoLabel = year && month ? `${MONTH_NAMES[month - 1]} de ${year}` : "Todo o histórico";
+  const periodoLabel = year && month ? `${MONTH_NAMES[month - 1]} de ${year}` : year ? `Ano ${year}` : month ? `${MONTH_NAMES[month - 1]} (todos os anos)` : "Histórico completo";
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v ?? 0);
   const fmtDate = (d: string | Date) => d ? new Date(d).toLocaleDateString("pt-BR") : "-";
 

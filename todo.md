@@ -832,3 +832,28 @@
 - [x] Adicionar mensagem clara quando não há movimentação no período selecionado
 - [x] Investigar itens zerados: solicitações antigas sem orderValue nem totalEstimatedValue (dados históricos sem valor preenchido — não recuperável)
 - [x] Script de correção: bens vinculados com totalEstimatedValue disponível já foram corrigidos pelo script anterior
+
+## Filtros Todos os Anos / Todos os Meses na Aba Por Bem
+- [x] Adicionar chips "Todos" nos seletores de ano e mês exclusivos da aba Por Bem
+- [x] Estado porBemYear e porBemMonth separados (não afeta outras abas)
+- [x] Backend getRequestsByAsset: suporte a só-ano, só-mês, ou histórico completo
+- [x] periodoLabel dinâmico: "Ano 2026 (todos os meses)", "Março (todos os anos)", "Histórico completo"
+- [x] PDF e CSV com nomes de arquivo e labels refletindo o período selecionado
+- [x] Bundle web reconstruído com as novas funcionalidades
+
+## Correção Aprovação CEO e Blocos de Ação Especial
+- [x] Corrigir blocos de aprovação especial (OC, CEO, Financeiro, Comprovante, Verificação) para verificar canAct antes de exibir botões — qualquer usuário conseguia aprovar etapas sem ter o papel correto
+
+## Nomenclatura de Status de Itens (Autorizado/Aprovado/Comprado)
+- [x] Adicionar 'autorizado' e 'aprovado' ao enum itemStatus no schema Drizzle
+- [x] Atualizar enum no banco de dados via SQL
+- [x] updateItemFulfillment: usar 'autorizado' (em vez de 'comprado') na etapa aguardando_ordem_compra
+- [x] approveRequest: converter 'autorizado' → 'aprovado' quando financeiro aprova
+- [x] finalizeOC: converter 'aprovado' → 'comprado' na verificação final
+- [x] ItemFulfillmentCard: suporte visual a todos os 5 status (pendente, parcial, autorizado, aprovado, comprado)
+- [x] itemFulfillment state: tipo atualizado para incluir 'autorizado' | 'aprovado' | 'comprado' | 'pendente'
+- [x] Sincronização do estado local: preserva 'autorizado'/'aprovado'/'comprado' do banco
+- [x] Bloco toggle aguardando_ordem_compra: usa 'autorizado' em vez de 'comprado', label "Autorizado"/"Pendente"
+- [x] Bloco toggle aguardando_verificacao_compras: mantém 'comprado', label "Comprado"/"Pendente"
+- [x] Bloco toggle parcialmente_concluida: mantém 'comprado', contador inclui autorizado/aprovado/comprado
+- [x] malotes.tsx: boughtItems inclui 'autorizado' e 'aprovado' além de 'comprado'

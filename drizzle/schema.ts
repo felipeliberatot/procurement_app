@@ -213,7 +213,7 @@ export const requestItems = mysqlTable("requestItems", {
   totalPrice: decimal("totalPrice", { precision: 14, scale: 2 }),
   // Cumprimento parcial
   fulfilledQty: decimal("fulfilledQty", { precision: 10, scale: 2 }).default("0").notNull(),
-  itemStatus: mysqlEnum("itemStatus", ["pendente", "parcial", "comprado"]).default("pendente").notNull(),
+  itemStatus: mysqlEnum("itemStatus", ["pendente", "parcial", "autorizado", "aprovado", "comprado"]).default("pendente").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

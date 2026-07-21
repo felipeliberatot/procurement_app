@@ -745,7 +745,7 @@ export default function MalotesScreen() {
                       </View>
                       {/* Itens da OC — apenas comprados visíveis, pendentes com aviso */}
                       {item.ocItems && item.ocItems.length > 0 && (() => {
-                        const boughtItems = item.ocItems.filter((oc: any) => oc.itemStatus === "comprado" || !oc.itemStatus);
+                        const boughtItems = item.ocItems.filter((oc: any) => oc.itemStatus === "comprado" || oc.itemStatus === "autorizado" || oc.itemStatus === "aprovado" || !oc.itemStatus);
                         const pendingItems = item.ocItems.filter((oc: any) => oc.itemStatus === "pendente" || oc.itemStatus === "parcial");
                         const hasPartial = pendingItems.length > 0;
                         if (boughtItems.length === 0 && !hasPartial) return null;
