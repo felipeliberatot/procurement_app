@@ -2411,7 +2411,7 @@ export default function RequestDetailScreen() {
               )}
 
               {/* Etapa 06: Emissão de OC + Dados de Pagamento */}
-              {currentStatus === "aguardando_ordem_compra" && (
+              {currentStatus === "aguardando_ordem_compra" && canAct && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">📋 Emissão de Ordem de Compra</Text>
                   <Text className="text-xs text-muted mb-4">Preencha os campos abaixo para emitir a OC e encaminhar ao Financeiro</Text>
@@ -2533,7 +2533,7 @@ export default function RequestDetailScreen() {
               )}
 
               {/* Fluxo 06b: Aprovação CEO */}
-              {currentStatus === "aguardando_aprovacao_ceo" && (
+              {currentStatus === "aguardando_aprovacao_ceo" && canAct && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">👔 Aprovação CEO</Text>
                   <Text className="text-xs text-muted mb-4">Revise a Ordem de Compra e aprove ou recuse (somente CEO)</Text>
@@ -2582,7 +2582,7 @@ export default function RequestDetailScreen() {
               )}
 
               {/* Fluxo 07: Aprovação Financeiro */}
-              {currentStatus === "aguardando_aprovacao_compra" && (
+              {currentStatus === "aguardando_aprovacao_compra" && canAct && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">💰 Aprovação Financeiro</Text>
                   <Text className="text-xs text-muted mb-4">Revise os dados da compra e aprove ou recuse (somente Financeiro)</Text>
@@ -2725,7 +2725,7 @@ export default function RequestDetailScreen() {
               )}
 
               {/* Fluxo 08: Comprovante de Pagamento (Financeiro) */}
-              {currentStatus === "aguardando_comprovante_pagamento" && (() => {
+              {currentStatus === "aguardando_comprovante_pagamento" && canAct && (() => {
                 const payMethod = (request as any).paymentMethod as PaymentMethod | undefined;
                 const isPix = payMethod === "pix";
                 const hasProof = !!(request as any).paymentProofUrl;
@@ -2961,7 +2961,7 @@ export default function RequestDetailScreen() {
               })()}
 
               {/* Fluxo 09: Verificação Final (Compras) */}
-              {currentStatus === "aguardando_verificacao_compras" && (
+              {currentStatus === "aguardando_verificacao_compras" && canAct && (
                 <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
                   <Text className="text-sm font-bold text-foreground mb-1">📝 Verificação Final — Compras</Text>
                   <Text className="text-xs text-muted mb-3">Verifique o comprovante, anexe a nota fiscal e finalize a OC</Text>

@@ -840,3 +840,6 @@
 - [x] periodoLabel dinâmico: "Ano 2026 (todos os meses)", "Março (todos os anos)", "Histórico completo"
 - [x] PDF e CSV com nomes de arquivo e labels refletindo o período selecionado
 - [x] Bundle web reconstruído com as novas funcionalidades
+
+## Correção Aprovação CEO e Blocos de Ação Especial
+- [x] Corrigir blocos de aprovação especial (OC, CEO, Financeiro, Comprovante, Verificação) para verificar canAct antes de exibir botões — qualquer usuário conseguia aprovar etapas sem ter o papel correto
