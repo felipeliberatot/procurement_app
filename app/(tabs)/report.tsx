@@ -49,9 +49,9 @@ export default function ReportScreen() {
   const [assetSearch, setAssetSearch] = useState("");
   const [showAssetPicker, setShowAssetPicker] = useState(false);
   const [exporting, setExporting] = useState(false);
-  // Filtros exclusivos da aba Por Bem (null = todos)
-  const [porBemYear, setPorBemYear] = useState<number | null>(now.getFullYear());
-  const [porBemMonth, setPorBemMonth] = useState<number | null>(now.getMonth() + 1);
+  // Filtros exclusivos da aba Por Bem (null = todos — padrão: histórico completo)
+  const [porBemYear, setPorBemYear] = useState<number | null>(null);
+  const [porBemMonth, setPorBemMonth] = useState<number | null>(null);
   const { isDesktop } = useBreakpoint();
 
   const { data, isLoading, isFetching } = trpc.requests.monthlyReport.useQuery(
