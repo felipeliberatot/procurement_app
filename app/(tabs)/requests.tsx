@@ -359,6 +359,20 @@ export default function RequestsScreen() {
                 colors={colors}
               />
             </View>
+            {/* Abas principais: Pendentes / Concluídas */}
+            <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.border, backgroundColor: colors.background }}>
+              {([{ key: "pendentes", label: "Pendentes" }, { key: "concluidas", label: "Concluídas" }] as const).map((tab) => (
+                <Pressable
+                  key={tab.key}
+                  onPress={() => { setActiveMainTab(tab.key); setActiveFilter("all"); }}
+                  style={{ paddingHorizontal: 24, paddingVertical: 14, borderBottomWidth: 2.5, borderBottomColor: activeMainTab === tab.key ? colors.primary : "transparent" }}
+                >
+                  <Text style={{ fontSize: 14, fontWeight: activeMainTab === tab.key ? "700" : "500", color: activeMainTab === tab.key ? colors.primary : colors.muted }}>
+                    {tab.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
 
             {isLoading ? (
               <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
