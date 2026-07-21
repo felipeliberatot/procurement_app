@@ -19,6 +19,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -506,6 +507,7 @@ export default function RequestDetailScreen() {
   const [pendingBudgetBase64, setPendingBudgetBase64] = useState<string | null>(null);
   const [pendingBudgetMime, setPendingBudgetMime] = useState<string>("application/pdf");
   const [orderValueInput, setOrderValueInput] = useState<string>("");
+  const [orderValueInitialized, setOrderValueInitialized] = useState(false);
   const [estimatedValueInput, setEstimatedValueInput] = useState<string>("");
   const [paymentProofFileName, setPaymentProofFileName] = useState<string | null>(null);
   const [paymentProofLocalUri, setPaymentProofLocalUri] = useState<string | null>(null); // URI local para pré-visualização antes do upload
@@ -592,6 +594,27 @@ export default function RequestDetailScreen() {
       setEstimatedValueInitialized(true);
     }
   }, [request, estimatedValueInitialized, estimatedValueInput]);
+
+  // Pré-carregar orderValueInput com o orderValue já salvo no banco
+  // Isso garante que o campo não apareça vazio quando a solicitação já tem OC emitida anteriormente
+  useEffect(() => {
+    if (!orderValueInitialized && request) {
+      const savedValue = (request as any).orderValue;
+      if (savedValue) {
+        const val = Number(savedValue);
+        if (!isNaN(val) && val > 0) {
+          setOrderValueInput(val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        }
+      } else if (request.totalEstimatedValue) {
+        // Pré-preencher com o valor estimado se não houver OC ainda
+        const val = Number(request.totalEstimatedValue);
+        if (!isNaN(val) && val > 0) {
+          setOrderValueInput(val.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+        }
+      }
+      setOrderValueInitialized(true);
+    }
+  }, [request, orderValueInitialized]);
 
   // Sincronizar itemFulfillment com dados do banco sempre que a query atualizar
   // Usa uma ref para rastrear o último timestamp de atualização e evitar loops
@@ -1168,6 +1191,8 @@ export default function RequestDetailScreen() {
   };
 
   const handleIssueOrder = () => {
+    // Fechar teclado para garantir que o modal apareça corretamente
+    Keyboard.dismiss();
     // Usar o valor digitado pelo usuário no campo orderValueInput
     const raw = orderValueInput.trim().replace(/\./g, "").replace(",", ".");
     const ocValue = parseFloat(raw);
@@ -1415,7 +1440,7 @@ export default function RequestDetailScreen() {
             padding: 20,
             paddingBottom: (showFixedButtons || showFixedApproveOnly || isDone) ? bottomBarHeight + 20 : 40,
           }}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps="always"
         >
           {/* Status badges */}
           <View className="flex-row items-center gap-2 mb-4 flex-wrap">
@@ -2556,7 +2581,7 @@ export default function RequestDetailScreen() {
                   {/* Botão Emitir OC */}
                   <TouchableOpacity
                     onPress={handleIssueOrder}
-                    disabled={approveMutation.isPending || !orderValueInput.trim()}
+                    disabled={approveMutation.isPending}
                     style={{
                       backgroundColor: orderValueInput.trim() ? colors.primary : colors.border,
                       borderRadius: 12,
