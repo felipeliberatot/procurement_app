@@ -39,6 +39,7 @@ const FILTER_TABS = [
 
 const URGENCY_FILTERS = [
   { key: "all", label: "Todas", color: "bg-surface border-border", textColor: "text-muted" },
+  { key: "priority", label: "⭐ Prioridades", color: "bg-warning border-warning", textColor: "text-white" },
   { key: "emergencial", label: "🔴 Emergencial", color: "bg-error border-error", textColor: "text-white" },
   { key: "urgente", label: "🟡 Urgente", color: "bg-warning border-warning", textColor: "text-white" },
   { key: "normal", label: "🟢 Normal", color: "bg-success border-success", textColor: "text-white" },
@@ -139,6 +140,7 @@ export default function RequestsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ filter?: string; urgency?: string }>();
+  const [activeMainTab, setActiveMainTab] = useState<"pendentes" | "concluidas">("pendentes");
   const [activeFilter, setActiveFilter] = useState(params.filter ?? "all");
   const [activeUrgency, setActiveUrgency] = useState(params.urgency ?? "all");
   const [activeDepartment, setActiveDepartment] = useState<string>("all");
@@ -194,11 +196,16 @@ export default function RequestsScreen() {
 
   const filtered = (requests ?? []).filter((r) => {
     // "pending" é um filtro especial que agrupa todos os status "aguardando_*"
+    // Filtro por aba principal: Pendentes vs Concluídas
+    const CONCLUDED_STATUSES = ["concluida", "parcialmente_concluida"];
+    const mainTabMatch = activeMainTab === "concluidas"
+      ? CONCLUDED_STATUSES.includes(r.status)
+      : !CONCLUDED_STATUSES.includes(r.status);
     const statusMatch =
       activeFilter === "all" ? true
       : activeFilter === "pending" ? r.status.startsWith("aguardando")
       : r.status === activeFilter;
-    const urgencyMatch = activeUrgency === "all" ? true : r.urgencyLevel === activeUrgency;
+    const urgencyMatch = activeUrgency === "all" ? true : activeUrgency === "priority" ? r.isPriority === true : r.urgencyLevel === activeUrgency;
     const deptMatch = activeDepartment === "all" ? true : r.department === activeDepartment;
     const myActionMatch = myActionOnly ? myPendingStatuses.includes(r.status) : true;
 
@@ -215,7 +222,7 @@ export default function RequestsScreen() {
       );
     })();
 
-    return statusMatch && urgencyMatch && deptMatch && myActionMatch && searchMatch;
+    return mainTabMatch && statusMatch && urgencyMatch && deptMatch && myActionMatch && searchMatch;
   });
 
   // Ordenar: prioritárias no topo (por priorityOrder), depois as demais por data
@@ -423,6 +430,20 @@ export default function RequestsScreen() {
         />
       </View>
 
+      {/* Abas principais: Pendentes / Concluídas */}
+      <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: colors.border }}>
+        {([{ key: "pendentes", label: "Pendentes" }, { key: "concluidas", label: "Concluídas" }] as const).map((tab) => (
+          <Pressable
+            key={tab.key}
+            onPress={() => { setActiveMainTab(tab.key); setActiveFilter("all"); }}
+            style={{ flex: 1, paddingVertical: 12, alignItems: "center", borderBottomWidth: 2.5, borderBottomColor: activeMainTab === tab.key ? colors.primary : "transparent" }}
+          >
+            <Text style={{ fontSize: 14, fontWeight: activeMainTab === tab.key ? "700" : "500", color: activeMainTab === tab.key ? colors.primary : colors.muted }}>
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
       {/* Filtro rápido: Aguardando Minha Ação */}
       {myPendingStatuses.length > 0 && (
         <View style={{ paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
@@ -453,7 +474,15 @@ export default function RequestsScreen() {
       {/* Filtro por status */}
       <View className="border-b border-border">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8, gap: 8 }}>
-          {FILTER_TABS.map((tab) => (
+          {FILTER_TABS.filter(tab => {
+            const concludedKeys = ["concluida", "parcialmente_concluida"];
+            if (activeMainTab === "concluidas") return tab.key === "all" || concludedKeys.includes(tab.key);
+            return tab.key === "all" || tab.key === "pending" || (!concludedKeys.includes(tab.key) && tab.key !== "all" && tab.key !== "pending") ? true : false;
+          }).filter(tab => {
+            const concludedKeys = ["concluida", "parcialmente_concluida"];
+            if (activeMainTab === "pendentes") return !concludedKeys.includes(tab.key);
+            return true;
+          }).map((tab) => (
             <Pressable key={tab.key} onPress={() => setActiveFilter(tab.key)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
               <View className={`px-3 py-1.5 rounded-full border ${activeFilter === tab.key ? "bg-primary border-primary" : "bg-surface border-border"}`}>
                 <Text className={`text-xs font-semibold ${activeFilter === tab.key ? "text-white" : "text-muted"}`}>{tab.label}</Text>
