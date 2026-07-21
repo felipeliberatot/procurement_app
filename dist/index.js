@@ -240,7 +240,7 @@ var init_schema = __esm({
       totalPrice: decimal("totalPrice", { precision: 14, scale: 2 }),
       // Cumprimento parcial
       fulfilledQty: decimal("fulfilledQty", { precision: 10, scale: 2 }).default("0").notNull(),
-      itemStatus: mysqlEnum("itemStatus", ["pendente", "parcial", "comprado"]).default("pendente").notNull(),
+      itemStatus: mysqlEnum("itemStatus", ["pendente", "parcial", "autorizado", "aprovado", "comprado"]).default("pendente").notNull(),
       createdAt: timestamp("createdAt").defaultNow().notNull()
     });
     approvalHistory = mysqlTable("approvalHistory", {
@@ -723,6 +723,8 @@ async function notifyNewRequest(opts) {
   });
 }
 async function notifyRejection(opts) {
+  const valueLine = opts.totalValue ? `*Valor:* R$ ${opts.totalValue}
+` : "";
   const message = [
     `\u274C *Solicita\xE7\xE3o Rejeitada \u2014 CGS Agr\xEDcola*`,
     ``,
@@ -730,6 +732,7 @@ async function notifyRejection(opts) {
     ``,
     `Sua solicita\xE7\xE3o *${opts.requestNumber}* foi rejeitada na etapa de *${opts.stepLabel}*.`,
     ``,
+    valueLine,
     `*Motivo:* ${opts.comment}`,
     `*Rejeitado por:* ${opts.rejectorName}`,
     ``,
@@ -737,10 +740,11 @@ async function notifyRejection(opts) {
     ``,
     `\u{1F517} Corrigir no app:`,
     `${getAppBaseUrl()}/request/${opts.requestId}`
-  ].join("\n");
+  ].filter(Boolean).join("\n");
   return sendWhatsAppMessage(opts.requesterPhone, message);
 }
 async function notifyApproval(opts) {
+  const valueLine = opts.totalValue ? `*Valor:* R$ ${opts.totalValue}` : "";
   const message = opts.nextStepLabel ? [
     `\u2705 *Etapa Aprovada \u2014 CGS Agr\xEDcola*`,
     ``,
@@ -748,21 +752,23 @@ async function notifyApproval(opts) {
     ``,
     `Sua solicita\xE7\xE3o *${opts.requestNumber}* foi aprovada na etapa *${opts.stepLabel}*.`,
     ``,
+    valueLine,
     `*Aprovado por:* ${opts.approverName}`,
     `*Pr\xF3xima etapa:* ${opts.nextStepLabel}`,
     ``,
     `\u{1F517} Acompanhar no app:`,
     `${getAppBaseUrl()}/request/${opts.requestId}`
-  ].join("\n") : [
+  ].filter(Boolean).join("\n") : [
     `\u{1F389} *Solicita\xE7\xE3o Conclu\xEDda! \u2014 CGS Agr\xEDcola*`,
     ``,
     `Ol\xE1, *${opts.requesterName}*!`,
     ``,
     `Sua solicita\xE7\xE3o *${opts.requestNumber}* foi *conclu\xEDda com sucesso*! O pagamento foi confirmado pelo financeiro.`,
     ``,
+    valueLine,
     `\u{1F517} Ver detalhes no app:`,
     `${getAppBaseUrl()}/request/${opts.requestId}`
-  ].join("\n");
+  ].filter(Boolean).join("\n");
   return sendWhatsAppMessage(opts.requesterPhone, message);
 }
 async function notifyBudgetRequired(opts) {
@@ -1098,6 +1104,7 @@ __export(db_exports, {
   getRankingByItem: () => getRankingByItem,
   getRankingByUser: () => getRankingByUser,
   getRequestsByAsset: () => getRequestsByAsset,
+  getRequestsByCostCenter: () => getRequestsByCostCenter,
   getRequestsByRequester: () => getRequestsByRequester,
   getRequestsReadyForMalote: () => getRequestsReadyForMalote,
   getUserByEmail: () => getUserByEmail,
@@ -1987,7 +1994,7 @@ async function submitBudget(requestId, user, estimatedValue) {
             stepLabel: STEP_LABELS[nextStatus] ?? nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? void 0
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         } else {
           console.warn(`[submitBudget] Aprovador ${approver.name} (id=${approver.id}) n\xE3o tem telefone cadastrado.`);
@@ -2102,6 +2109,9 @@ async function approveRequest(requestId, user, data) {
     action: flow.action,
     comment: data.comment ?? null
   });
+  if (request.status === "aguardando_aprovacao_compra") {
+    await db.update(requestItems).set({ itemStatus: "aprovado" }).where(eq2(requestItems.requestId, requestId));
+  }
   try {
     const [req] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
     const [requester] = req ? await db.select().from(users).where(eq2(users.id, req.requesterId)).limit(1) : [];
@@ -2141,7 +2151,8 @@ async function approveRequest(requestId, user, data) {
           requestNumber: req.requestNumber,
           requestId,
           approverName: user.name ?? "Aprovador",
-          stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status
+          stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
         });
       }
     } else {
@@ -2153,7 +2164,8 @@ async function approveRequest(requestId, user, data) {
           requestId,
           approverName: user.name ?? "Aprovador",
           stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
-          nextStepLabel: STEP_LABELS_SERVER[flow.nextStatus]
+          nextStepLabel: STEP_LABELS_SERVER[flow.nextStatus],
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
         });
       }
     }
@@ -2186,7 +2198,7 @@ async function approveRequest(requestId, user, data) {
             stepLabel: STEP_LABELS_SERVER[flow.nextStatus] ?? flow.nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? void 0
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         } else {
           console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) n\xE3o tem telefone cadastrado.`);
@@ -2237,7 +2249,8 @@ async function rejectRequest(requestId, user, comment) {
             requestId,
             rejectorName: user.name ?? "Financeiro",
             stepLabel: "Comprovante de Pagamento",
-            comment
+            comment,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         }
       } else {
@@ -2249,7 +2262,8 @@ async function rejectRequest(requestId, user, comment) {
             requestId,
             rejectorName: user.name ?? "Aprovador",
             stepLabel: STEP_LABELS_SERVER[request.status] ?? request.status,
-            comment
+            comment,
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         }
         const prevRoleMap = {
@@ -2285,7 +2299,7 @@ async function rejectRequest(requestId, user, comment) {
                 stepLabel: STEP_LABELS_SERVER[prevStatus] ?? prevStatus,
                 step: prevRole,
                 items: itemsForMsg,
-                totalValue: req.totalEstimatedValue ?? void 0
+                totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
               });
             } else {
               console.warn(`[WhatsApp] Aprovador ${approver.name} (id=${approver.id}) n\xE3o tem telefone cadastrado.`);
@@ -2323,9 +2337,10 @@ async function finalizeOC(requestId, user, orderValue) {
   if (!request) throw new Error("Solicita\xE7\xE3o n\xE3o encontrada");
   if (request.status !== "aguardando_verificacao_compras") throw new Error("Status inv\xE1lido para finalizar OC");
   const allItemsForRequest = await db.select().from(requestItems).where(eq2(requestItems.requestId, requestId));
-  const hasComprado = allItemsForRequest.some((i) => i.itemStatus === "comprado");
+  const hasComprado = allItemsForRequest.some((i) => i.itemStatus === "comprado" || i.itemStatus === "aprovado");
   const hasPendingItems = allItemsForRequest.some((i) => i.itemStatus === "pendente" || i.itemStatus === "parcial");
   const finalStatus = hasComprado && hasPendingItems ? "parcialmente_concluida" : "concluida";
+  await db.update(requestItems).set({ itemStatus: "comprado" }).where(eq2(requestItems.requestId, requestId));
   const now = /* @__PURE__ */ new Date();
   await db.update(purchaseRequests).set({
     status: finalStatus,
@@ -2353,7 +2368,8 @@ async function finalizeOC(requestId, user, orderValue) {
           requestNumber: req.requestNumber,
           requestId,
           approverName: user.name ?? "Compras",
-          stepLabel: "Verifica\xE7\xE3o Final"
+          stepLabel: "Verifica\xE7\xE3o Final",
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
         });
       }
     }
@@ -2396,7 +2412,8 @@ async function refinalizeOC(requestId, user) {
           requestNumber: req.requestNumber,
           requestId,
           approverName: user.name ?? "Compras",
-          stepLabel: finalStatus === "concluida" ? "Recompra Conclu\xEDda" : "Recompra Parcial"
+          stepLabel: finalStatus === "concluida" ? "Recompra Conclu\xEDda" : "Recompra Parcial",
+          totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
         });
       }
     }
@@ -2446,7 +2463,8 @@ async function cancelRequest(requestId, user, reason) {
           requestId,
           rejectorName: user.name ?? "Master",
           stepLabel: "Cancelamento",
-          comment: reason ?? "Solicita\xE7\xE3o cancelada pelo administrador."
+          comment: reason ?? "Solicita\xE7\xE3o cancelada pelo administrador.",
+          totalValue: request.orderValue ?? request.totalEstimatedValue ?? void 0
         });
       }
     } catch (e) {
@@ -3639,7 +3657,7 @@ async function approveQuotationAndAdvance(requestId, supplierId, user, estimated
             stepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
             step: nextRole,
             items: itemsForMsg,
-            totalValue: req.totalEstimatedValue ?? void 0
+            totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
           });
         }
       }
@@ -3652,7 +3670,8 @@ async function approveQuotationAndAdvance(requestId, supplierId, user, estimated
         requestId,
         approverName: user.name ?? "Aprovador",
         stepLabel: "Or\xE7amento",
-        nextStepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus
+        nextStepLabel: STEP_LABELS_LOCAL[nextStatus] ?? nextStatus,
+        totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
       });
     }
   } catch (e) {
@@ -3676,15 +3695,20 @@ async function updateItemFulfillment(itemId, fulfilledQty, userId) {
   if (!item) throw new Error("Item n\xE3o encontrado");
   const totalQty = parseFloat(item.quantity);
   const clampedQty = Math.min(Math.max(fulfilledQty, 0), totalQty);
+  const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, item.requestId)).limit(1);
+  if (!request) return { itemStatus: "pendente", requestStatus: "concluida" };
   let itemStatus = "pendente";
-  if (clampedQty >= totalQty) itemStatus = "comprado";
-  else if (clampedQty > 0) itemStatus = "parcial";
+  if (request.status === "aguardando_ordem_compra") {
+    if (clampedQty >= totalQty) itemStatus = "autorizado";
+    else if (clampedQty > 0) itemStatus = "parcial";
+  } else {
+    if (clampedQty >= totalQty) itemStatus = "comprado";
+    else if (clampedQty > 0) itemStatus = "parcial";
+  }
   await db.update(requestItems).set({ fulfilledQty: String(clampedQty), itemStatus }).where(eq2(requestItems.id, itemId));
   const allItems = await db.select().from(requestItems).where(eq2(requestItems.requestId, item.requestId));
-  const allFulfilled = allItems.every((i) => i.id === itemId ? itemStatus === "comprado" : i.itemStatus === "comprado");
+  const allFulfilled = allItems.every((i) => i.id === itemId ? itemStatus === "autorizado" || itemStatus === "comprado" : i.itemStatus === "autorizado" || i.itemStatus === "aprovado" || i.itemStatus === "comprado");
   const anyFulfilled = allItems.some((i) => i.id === itemId ? clampedQty > 0 : parseFloat(i.fulfilledQty) > 0);
-  const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, item.requestId)).limit(1);
-  if (!request) return { itemStatus, requestStatus: "concluida" };
   if (request.status === "aguardando_ordem_compra") {
     let newStatus;
     if (allFulfilled || anyFulfilled) {
@@ -3827,8 +3851,16 @@ async function getRequestsByAsset(application, year, month) {
         eq2(purchaseRequests.status, "parcialmente_concluida")
       ),
       ...year && month ? [
+        // Ano + mês específicos
         gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
         lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0))
+      ] : year && !month ? [
+        // Só ano (todos os meses do ano)
+        gte(purchaseRequests.completedAt, new Date(year, 0, 1, 0, 0, 0, 0)),
+        lt(purchaseRequests.completedAt, new Date(year + 1, 0, 1, 0, 0, 0, 0))
+      ] : !year && month ? [
+        // Só mês (todos os anos, apenas o mês específico)
+        sql`MONTH(${purchaseRequests.completedAt}) = ${month}`
       ] : []
     )
   ).orderBy(desc(purchaseRequests.completedAt));
@@ -3895,6 +3927,50 @@ async function listPriorityRequests() {
     prioritySetAt: purchaseRequests.prioritySetAt,
     createdAt: purchaseRequests.createdAt
   }).from(purchaseRequests).where(eq2(purchaseRequests.isPriority, true)).orderBy(purchaseRequests.priorityOrder);
+}
+async function getRequestsByCostCenter(costCenterCode, year, month) {
+  const db = await getDb();
+  if (!db) return { requests: [], summary: { totalSolicitacoes: 0, totalGasto: 0 } };
+  const rows = await db.select({
+    id: purchaseRequests.id,
+    requestNumber: purchaseRequests.requestNumber,
+    requesterName: purchaseRequests.requesterName,
+    department: purchaseRequests.department,
+    application: purchaseRequests.application,
+    costCenterCode: purchaseRequests.costCenterCode,
+    urgencyLevel: purchaseRequests.urgencyLevel,
+    status: purchaseRequests.status,
+    totalEstimatedValue: purchaseRequests.totalEstimatedValue,
+    orderValue: purchaseRequests.orderValue,
+    observations: purchaseRequests.observations,
+    createdAt: purchaseRequests.createdAt,
+    completedAt: purchaseRequests.completedAt
+  }).from(purchaseRequests).where(
+    and2(
+      eq2(purchaseRequests.costCenterCode, costCenterCode),
+      or(
+        eq2(purchaseRequests.status, "concluida"),
+        eq2(purchaseRequests.status, "parcialmente_concluida")
+      ),
+      ...year && month ? [
+        gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
+        lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0))
+      ] : year && !month ? [
+        gte(purchaseRequests.completedAt, new Date(year, 0, 1, 0, 0, 0, 0)),
+        lt(purchaseRequests.completedAt, new Date(year + 1, 0, 1, 0, 0, 0, 0))
+      ] : !year && month ? [
+        sql`MONTH(${purchaseRequests.completedAt}) = ${month}`
+      ] : []
+    )
+  ).orderBy(desc(purchaseRequests.completedAt));
+  const totalGasto = rows.reduce((sum, r) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
+  return {
+    requests: rows,
+    summary: {
+      totalSolicitacoes: rows.length,
+      totalGasto: Math.round(totalGasto * 100) / 100
+    }
+  };
 }
 var STEP_LABELS_SERVER, _db, STEP_FLOW_NORMAL, STEP_FLOW_URGENT, REJECT_FLOW_NORMAL, REJECT_FLOW_URGENT, EDITABLE_STATUSES, PRIORITY_AUTHORIZED_NAMES;
 var init_db = __esm({
@@ -5548,6 +5624,7 @@ var appRouter = router({
     partialFulfillmentStats: protectedProcedure.query(() => getPartialFulfillmentStats()),
     requestsByAsset: protectedProcedure.input(z2.object({ application: z2.string().min(1), year: z2.number().optional(), month: z2.number().optional() })).query(({ input }) => getRequestsByAsset(input.application, input.year, input.month)),
     requestsByAssets: protectedProcedure.input(z2.object({ applications: z2.array(z2.string()).min(1), year: z2.number().optional(), month: z2.number().optional() })).query(({ input }) => Promise.all(input.applications.map((app) => getRequestsByAsset(app, input.year, input.month).then((r) => ({ application: app, ...r }))))),
+    requestsByCostCenter: protectedProcedure.input(z2.object({ costCenterCode: z2.string().min(1), year: z2.number().optional(), month: z2.number().optional() })).query(({ input }) => getRequestsByCostCenter(input.costCenterCode, input.year, input.month)),
     updateItemFulfillment: protectedProcedure.input(z2.object({ itemId: z2.number(), fulfilledQty: z2.number().min(0) })).mutation(({ input, ctx }) => updateItemFulfillment(input.itemId, input.fulfilledQty, ctx.user.id)),
     history: protectedProcedure.input(z2.object({ requestId: z2.number() })).query(({ input }) => getApprovalHistory(input.requestId)),
     uploadBudget: protectedProcedure.input(z2.object({

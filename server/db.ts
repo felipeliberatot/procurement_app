@@ -3911,3 +3911,57 @@ export async function listPriorityRequests() {
     .where(eq(purchaseRequests.isPriority, true))
     .orderBy(purchaseRequests.priorityOrder);
 }
+
+// ─── Relatório Por Centro de Custo ────────────────────────────────────────────
+/**
+ * Retorna solicitações concluídas/parcialmente concluídas de um centro de custo,
+ * com filtros opcionais de ano e mês (competência = completedAt).
+ */
+export async function getRequestsByCostCenter(costCenterCode: string, year?: number, month?: number) {
+  const db = await getDb();
+  if (!db) return { requests: [], summary: { totalSolicitacoes: 0, totalGasto: 0 } };
+  const rows = await db
+    .select({
+      id: purchaseRequests.id,
+      requestNumber: purchaseRequests.requestNumber,
+      requesterName: purchaseRequests.requesterName,
+      department: purchaseRequests.department,
+      application: purchaseRequests.application,
+      costCenterCode: purchaseRequests.costCenterCode,
+      urgencyLevel: purchaseRequests.urgencyLevel,
+      status: purchaseRequests.status,
+      totalEstimatedValue: purchaseRequests.totalEstimatedValue,
+      orderValue: purchaseRequests.orderValue,
+      observations: purchaseRequests.observations,
+      createdAt: purchaseRequests.createdAt,
+      completedAt: purchaseRequests.completedAt,
+    })
+    .from(purchaseRequests)
+    .where(
+      and(
+        eq(purchaseRequests.costCenterCode, costCenterCode),
+        or(
+          eq(purchaseRequests.status, "concluida"),
+          eq(purchaseRequests.status, "parcialmente_concluida"),
+        ),
+        ...(year && month ? [
+          gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
+          lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0)),
+        ] : year && !month ? [
+          gte(purchaseRequests.completedAt, new Date(year, 0, 1, 0, 0, 0, 0)),
+          lt(purchaseRequests.completedAt, new Date(year + 1, 0, 1, 0, 0, 0, 0)),
+        ] : !year && month ? [
+          sql`MONTH(${purchaseRequests.completedAt}) = ${month}`,
+        ] : [])
+      )
+    )
+    .orderBy(desc(purchaseRequests.completedAt));
+  const totalGasto = rows.reduce((sum, r) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
+  return {
+    requests: rows,
+    summary: {
+      totalSolicitacoes: rows.length,
+      totalGasto: Math.round(totalGasto * 100) / 100,
+    },
+  };
+}

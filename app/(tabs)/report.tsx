@@ -43,7 +43,7 @@ export default function ReportScreen() {
   const now = new Date();
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
-  const [activeTab, setActiveTab] = useState<"resumo" | "tendencia" | "rankings" | "usuarios" | "detalhes" | "porbem">("resumo");
+  const [activeTab, setActiveTab] = useState<"resumo" | "tendencia" | "rankings" | "usuarios" | "detalhes" | "porbem" | "porcusto">("resumo");
   const [selectedAsset, setSelectedAsset] = useState<string | null>(null); // kept for CSV/PDF compat
   const [selectedAssets, setSelectedAssets] = useState<string[]>([]); // multi-select
   const [assetSearch, setAssetSearch] = useState("");
@@ -52,6 +52,12 @@ export default function ReportScreen() {
   // Filtros exclusivos da aba Por Bem (null = todos — padrão: histórico completo)
   const [porBemYear, setPorBemYear] = useState<number | null>(null);
   const [porBemMonth, setPorBemMonth] = useState<number | null>(null);
+  // Filtros exclusivos da aba Por Centro de Custo
+  const [selectedCostCenter, setSelectedCostCenter] = useState<string | null>(null);
+  const [ccSearch, setCcSearch] = useState("");
+  const [showCcPicker, setShowCcPicker] = useState(false);
+  const [porCustoYear, setPorCustoYear] = useState<number | null>(null);
+  const [porCustoMonth, setPorCustoMonth] = useState<number | null>(null);
   const { isDesktop } = useBreakpoint();
 
   const { data, isLoading, isFetching } = trpc.requests.monthlyReport.useQuery(
@@ -81,6 +87,14 @@ export default function ReportScreen() {
 
   const { data: partialStats } = trpc.requests.partialFulfillmentStats.useQuery();
   const { data: assetsList } = trpc.assets.list.useQuery();
+  const { data: costCentersList } = trpc.costCenters.list.useQuery();
+  const { data: ccReport, isLoading: loadingCcReport } = trpc.requests.requestsByCostCenter.useQuery(
+    { costCenterCode: selectedCostCenter ?? "", year: porCustoYear ?? undefined, month: porCustoMonth ?? undefined },
+    { enabled: !!selectedCostCenter, placeholderData: (prev: any) => prev }
+  );
+  const filteredCostCenters = (costCentersList ?? []).filter((c: any) =>
+    !ccSearch || c.code.toLowerCase().includes(ccSearch.toLowerCase()) || c.name.toLowerCase().includes(ccSearch.toLowerCase())
+  );
   const { data: assetReport, isLoading: loadingAssetReport } = trpc.requests.requestsByAsset.useQuery(
     { application: selectedAsset ?? "", year: porBemYear ?? undefined, month: porBemMonth ?? undefined },
     { enabled: !!selectedAsset && selectedAssets.length <= 1, placeholderData: (prev: any) => prev }
@@ -102,7 +116,27 @@ export default function ReportScreen() {
       let csvContent: string;
       let fileName: string;
 
-      if (activeTab === "porbem" && selectedAssets.length > 0) {
+      if (activeTab === "porcusto" && selectedCostCenter && ccReport) {
+        const header = "Centro de Custo;N\u00ba Solicita\u00e7\u00e3o;Solicitante;Departamento;Aplica\u00e7\u00e3o;Urg\u00eancia;Valor Total;Data Cria\u00e7\u00e3o;Data Conclus\u00e3o\n";
+        const allRows = (ccReport.requests ?? []).map((r: any) => [
+          `"${selectedCostCenter}"`,
+          r.requestNumber ?? r.id,
+          `"${r.requesterName ?? ""}"`,
+          `"${r.department ?? ""}"`,
+          `"${r.application ?? ""}"`,
+          r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal",
+          (r.orderValue || r.totalEstimatedValue) ? parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ",") : "",
+          r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
+          r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : "",
+        ].join(";"));
+        csvContent = header + allRows.join("\n");
+        const periodStr = porCustoYear && porCustoMonth
+          ? `${porCustoYear}_${String(porCustoMonth).padStart(2, "0")}`
+          : porCustoYear ? `${porCustoYear}_todos_meses`
+          : porCustoMonth ? `todos_anos_${String(porCustoMonth).padStart(2, "0")}`
+          : "historico_completo";
+        fileName = `cc_${selectedCostCenter.replace(/[^a-zA-Z0-9]/g, "_")}_${periodStr}.csv`;
+      } else if (activeTab === "porbem" && selectedAssets.length > 0) {
         // CSV da aba Por Bem: suporte a 1 ou múltiplos bens
         const header = "Bem;Nº Solicitação;Solicitante;Departamento;Centro de Custo;Urgência;Valor Total;Data Criação;Data Conclusão\n";
         const reportsSource = selectedAssets.length > 1 ? (assetsReports ?? []) : (assetReport ? [{ application: selectedAsset, ...assetReport }] : []);
@@ -181,7 +215,10 @@ export default function ReportScreen() {
     setExporting(true);
     try {
       let html: string;
-      if (activeTab === "porbem") {
+      if (activeTab === "porcusto") {
+        if (!selectedCostCenter || !ccReport) { setExporting(false); return; }
+        html = generateCostCenterPDFHtml(ccReport, selectedCostCenter, porCustoYear ?? undefined, porCustoMonth ?? undefined);
+      } else if (activeTab === "porbem") {
         // Multi-asset: use assetsReports when multiple bens selected
         if (selectedAssets.length > 1 && assetsReports && assetsReports.length > 0) {
           html = generateMultiAssetPDFHtml(assetsReports, porBemYear ?? undefined, porBemMonth ?? undefined);
@@ -224,13 +261,13 @@ export default function ReportScreen() {
         <Text style={styles.headerTitle}>Relatórios</Text>
         <View style={styles.exportRow}>
           <TouchableOpacity
-            style={[styles.exportBtn, { backgroundColor: colors.primary }, (exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
+            style={[styles.exportBtn, { backgroundColor: colors.primary }, (exporting || (activeTab === "porcusto" ? (!selectedCostCenter || loadingCcReport || !ccReport) : activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
               selectedAssets.length === 0 ||
               (selectedAssets.length === 1 && (loadingAssetReport || !assetReport)) ||
               (selectedAssets.length > 1 && (loadingAssetsReports || !assetsReports || assetsReports.length === 0))
             ))) && { opacity: 0.5 }]}
             onPress={exportPDF}
-            disabled={exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
+            disabled={exporting || (activeTab === "porcusto" ? (!selectedCostCenter || loadingCcReport || !ccReport) : activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
               selectedAssets.length === 0 ||
               (selectedAssets.length === 1 && (loadingAssetReport || !assetReport)) ||
               (selectedAssets.length > 1 && (loadingAssetsReports || !assetsReports || assetsReports.length === 0))
@@ -245,13 +282,13 @@ export default function ReportScreen() {
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.exportBtn, { backgroundColor: colors.success }, (exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
+            style={[styles.exportBtn, { backgroundColor: colors.success }, (exporting || (activeTab === "porcusto" ? (!selectedCostCenter || loadingCcReport || !ccReport) : activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
               selectedAssets.length === 0 ||
               (selectedAssets.length === 1 && (loadingAssetReport || !assetReport)) ||
               (selectedAssets.length > 1 && (loadingAssetsReports || !assetsReports || assetsReports.length === 0))
             ))) && { opacity: 0.5 }]}
             onPress={exportCSV}
-            disabled={exporting || (activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
+            disabled={exporting || (activeTab === "porcusto" ? (!selectedCostCenter || loadingCcReport || !ccReport) : activeTab !== "porbem" ? (isLoading || isFetching || !data) : (
               selectedAssets.length === 0 ||
               (selectedAssets.length === 1 && (loadingAssetReport || !assetReport)) ||
               (selectedAssets.length > 1 && (loadingAssetsReports || !assetsReports || assetsReports.length === 0))
@@ -275,6 +312,7 @@ export default function ReportScreen() {
           { key: "usuarios", label: "Usuários" },
           { key: "detalhes", label: "Detalhes" },
           { key: "porbem", label: "Por Bem" },
+          { key: "porcusto", label: "Por C. Custo" },
         ] as const).map(tab => (
           <Pressable
             key={tab.key}
@@ -288,8 +326,8 @@ export default function ReportScreen() {
         ))}
       </ScrollView>
 
-      {/* Seletor de Mês/Ano — oculto na aba Por Bem (ela tem seus próprios filtros) */}
-      {activeTab !== "porbem" && (
+      {/* Seletor de Mês/Ano — oculto nas abas com filtros próprios */}
+      {activeTab !== "porbem" && activeTab !== "porcusto" && (
         <>
           <View style={styles.selectorRow}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.yearScroll}>
@@ -319,7 +357,27 @@ export default function ReportScreen() {
       )}
 
       {/* Conteúdo */}
-      {activeTab === "porbem" ? (
+      {activeTab === "porcusto" ? (
+        <PorCustoCenterTab
+          costCentersList={costCentersList ?? []}
+          selectedCostCenter={selectedCostCenter}
+          setSelectedCostCenter={setSelectedCostCenter}
+          ccSearch={ccSearch}
+          setCcSearch={setCcSearch}
+          showCcPicker={showCcPicker}
+          setShowCcPicker={setShowCcPicker}
+          filteredCostCenters={filteredCostCenters}
+          ccReport={ccReport}
+          loading={loadingCcReport}
+          selectedYear={porCustoYear}
+          setSelectedYear={setPorCustoYear}
+          selectedMonth={porCustoMonth}
+          setSelectedMonth={setPorCustoMonth}
+          colors={colors}
+          styles={styles}
+          years={years}
+        />
+      ) : activeTab === "porbem" ? (
         <PorBemTab
           assetsList={assetsList ?? []}
           selectedAsset={selectedAsset}
@@ -1673,6 +1731,291 @@ function generateMultiAssetPDFHtml(reports: any[], year?: number, month?: number
   </div>
 </div>
 ${sections || '<p style="color:#999;text-align:center">Nenhum bem com movimentação no período selecionado.</p>'}
+</body>
+</html>`;
+}
+
+// ── Aba Por Centro de Custo ───────────────────────────────────────────────────
+function PorCustoCenterTab({
+  costCentersList, selectedCostCenter, setSelectedCostCenter,
+  ccSearch, setCcSearch, showCcPicker, setShowCcPicker,
+  filteredCostCenters, ccReport, loading, colors, styles,
+  selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, years,
+}: any) {
+  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+  const periodoLabel = selectedYear && selectedMonth
+    ? `${MONTH_NAMES[selectedMonth - 1]} de ${selectedYear}`
+    : selectedYear ? `Ano ${selectedYear} (todos os meses)`
+    : selectedMonth ? `${MONTH_NAMES[selectedMonth - 1]} (todos os anos)`
+    : "Histórico completo";
+  const fmtCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  const selectedCC = (costCentersList ?? []).find((c: any) => c.code === selectedCostCenter);
+
+  return (
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+      {/* Filtros de Ano/Mês */}
+      <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8 }}>PERÍODO</Text>
+        {/* Ano */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            <TouchableOpacity
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: !selectedYear ? colors.primary : colors.surface, borderWidth: 1, borderColor: !selectedYear ? colors.primary : colors.border }}
+              onPress={() => setSelectedYear(null)}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "700", color: !selectedYear ? "#fff" : colors.muted }}>Todos</Text>
+            </TouchableOpacity>
+            {years.map((y: number) => (
+              <TouchableOpacity
+                key={y}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: selectedYear === y ? colors.primary : colors.surface, borderWidth: 1, borderColor: selectedYear === y ? colors.primary : colors.border }}
+                onPress={() => setSelectedYear(y)}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: selectedYear === y ? "#fff" : colors.muted }}>{y}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+        {/* Mês */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            <TouchableOpacity
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: !selectedMonth ? colors.primary : colors.surface, borderWidth: 1, borderColor: !selectedMonth ? colors.primary : colors.border }}
+              onPress={() => setSelectedMonth(null)}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "700", color: !selectedMonth ? "#fff" : colors.muted }}>Todos</Text>
+            </TouchableOpacity>
+            {MONTH_SHORT.map((m, i) => (
+              <TouchableOpacity
+                key={i}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: selectedMonth === i + 1 ? colors.primary : colors.surface, borderWidth: 1, borderColor: selectedMonth === i + 1 ? colors.primary : colors.border }}
+                onPress={() => setSelectedMonth(i + 1)}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: selectedMonth === i + 1 ? "#fff" : colors.muted }}>{m}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+
+      {/* Seletor de Centro de Custo */}
+      <TouchableOpacity
+        style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: selectedCostCenter ? colors.primary : colors.border, flexDirection: "row", alignItems: "center", gap: 10 }}
+        onPress={() => setShowCcPicker(true)}
+      >
+        <Text style={{ fontSize: 22 }}>🏢</Text>
+        <View style={{ flex: 1 }}>
+          {!selectedCostCenter ? (
+            <Text style={{ fontSize: 15, color: colors.muted }}>Toque para selecionar um centro de custo...</Text>
+          ) : (
+            <>
+              <Text style={{ fontSize: 12, color: colors.muted }}>{selectedCC?.code ?? selectedCostCenter}</Text>
+              <Text style={{ fontSize: 15, fontWeight: "700", color: colors.foreground }} numberOfLines={1}>{selectedCC?.name ?? selectedCostCenter}</Text>
+            </>
+          )}
+        </View>
+        <Text style={{ fontSize: 18, color: colors.muted }}>›</Text>
+      </TouchableOpacity>
+
+      {/* Competência ativa */}
+      <View style={{ backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 14, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Text style={{ fontSize: 12, color: colors.muted }}>Competência:</Text>
+        <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>{periodoLabel}</Text>
+        {loading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 4 }} />}
+      </View>
+
+      {/* Conteúdo */}
+      {!selectedCostCenter ? (
+        <View style={styles.centered}>
+          <Text style={{ fontSize: 40, marginBottom: 8 }}>🔍</Text>
+          <Text style={[styles.emptyText, { textAlign: "center" }]}>Selecione um centro de custo para ver o histórico de compras.</Text>
+        </View>
+      ) : loading ? (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.emptyText, { marginTop: 12 }]}>Carregando...</Text>
+        </View>
+      ) : !ccReport || (ccReport.requests ?? []).length === 0 ? (
+        <View style={styles.centered}>
+          <Text style={{ fontSize: 40, marginBottom: 8 }}>📭</Text>
+          <Text style={[styles.emptyText, { textAlign: "center" }]}>
+            Nenhuma compra concluída para este centro de custo em {periodoLabel}.
+          </Text>
+        </View>
+      ) : (
+        <View>
+          {/* Cards de resumo */}
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+            <View style={{ flex: 1, backgroundColor: colors.primary + "18", borderRadius: 10, padding: 14, borderWidth: 1, borderColor: colors.primary + "44", alignItems: "center" }}>
+              <Text style={{ fontSize: 28, fontWeight: "800", color: colors.primary }}>{ccReport.summary?.totalSolicitacoes ?? 0}</Text>
+              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2, textAlign: "center" }}>Solicitações Concluídas</Text>
+            </View>
+            <View style={{ flex: 1, backgroundColor: colors.success + "18", borderRadius: 10, padding: 14, borderWidth: 1, borderColor: colors.success + "44", alignItems: "center" }}>
+              <Text style={{ fontSize: 18, fontWeight: "800", color: colors.success }}>{fmtCurrency(ccReport.summary?.totalGasto ?? 0)}</Text>
+              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2, textAlign: "center" }}>Total Gasto</Text>
+            </View>
+          </View>
+
+          {/* Tabela de solicitações */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
+            <View style={{ backgroundColor: colors.primary + "18", paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primary }}>🏢 {selectedCC?.name ?? selectedCostCenter}</Text>
+            </View>
+            {(ccReport.requests ?? []).map((r: any, idx: number) => (
+              <View key={r.id} style={{ paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: colors.border }}>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, flex: 1 }}>{r.requestNumber ?? `#${r.id}`}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.success }}>
+                    {(r.orderValue || r.totalEstimatedValue)
+                      ? fmtCurrency(parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"))
+                      : "—"}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>{r.requesterName ?? ""} · {r.department ?? ""}</Text>
+                {r.application ? <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>Bem: {r.application}</Text> : null}
+                <View style={{ flexDirection: "row", gap: 8, marginTop: 4, alignItems: "center" }}>
+                  <View style={{ backgroundColor: r.urgencyLevel === "emergencial" ? colors.error + "22" : r.urgencyLevel === "urgente" ? colors.warning + "22" : colors.border, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                    <Text style={{ fontSize: 10, fontWeight: "700", color: r.urgencyLevel === "emergencial" ? colors.error : r.urgencyLevel === "urgente" ? colors.warning : colors.muted }}>
+                      {r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal"}
+                    </Text>
+                  </View>
+                  {r.completedAt && (
+                    <Text style={{ fontSize: 11, color: colors.muted }}>Concluído: {new Date(r.completedAt).toLocaleDateString("pt-BR")}</Text>
+                  )}
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {/* Modal de seleção de Centro de Custo */}
+      <Modal visible={showCcPicker} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setShowCcPicker(false)}>
+        <View style={{ flex: 1, backgroundColor: colors.background }}>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: colors.foreground }}>🏢 Selecionar Centro de Custo</Text>
+            <TouchableOpacity onPress={() => { setShowCcPicker(false); setCcSearch(""); }}>
+              <Text style={{ fontSize: 16, color: colors.primary, fontWeight: "600" }}>Concluir</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ padding: 12 }}>
+            <TextInput
+              style={{ backgroundColor: colors.surface, borderRadius: 8, borderWidth: 1, borderColor: colors.border, padding: 10, fontSize: 14, color: colors.foreground }}
+              placeholder="Buscar por código ou nome..."
+              placeholderTextColor={colors.muted}
+              value={ccSearch}
+              onChangeText={setCcSearch}
+            />
+          </View>
+          <FlatList
+            data={filteredCostCenters}
+            keyExtractor={(item: any) => String(item.id)}
+            renderItem={({ item }: any) => {
+              const isSelected = selectedCostCenter === item.code;
+              return (
+                <TouchableOpacity
+                  style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border, flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: isSelected ? colors.primary + "0D" : "transparent" }}
+                  onPress={() => { setSelectedCostCenter(item.code); setShowCcPicker(false); setCcSearch(""); }}
+                >
+                  <View style={{ width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: isSelected ? colors.primary : colors.border, backgroundColor: isSelected ? colors.primary : "transparent", alignItems: "center", justifyContent: "center" }}>
+                    {isSelected && <Text style={{ color: "#fff", fontSize: 13, fontWeight: "800" }}>✓</Text>}
+                  </View>
+                  <View style={{ backgroundColor: colors.primary + "22", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 }}>
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>{item.code}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: "600", color: colors.foreground }}>{item.name}</Text>
+                    {item.responsible && <Text style={{ fontSize: 12, color: colors.muted }}>{item.responsible}</Text>}
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+            ListEmptyComponent={
+              <View style={{ padding: 32, alignItems: "center" }}>
+                <Text style={{ color: colors.muted }}>Nenhum centro de custo encontrado.</Text>
+              </View>
+            }
+          />
+        </View>
+      </Modal>
+    </ScrollView>
+  );
+}
+
+// ── HTML para PDF por Centro de Custo ─────────────────────────────────────────
+function generateCostCenterPDFHtml(ccReport: any, costCenterCode: string, year?: number, month?: number): string {
+  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const periodoLabel = year && month ? `${MONTH_NAMES[month - 1]} de ${year}` : year ? `Ano ${year}` : month ? `${MONTH_NAMES[month - 1]} (todos os anos)` : "Histórico completo";
+  const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v ?? 0);
+  const fmtDate = (d: string | Date) => d ? new Date(d).toLocaleDateString("pt-BR") : "-";
+  const rows = (ccReport.requests ?? []).map((r: any) => `
+    <tr>
+      <td>${r.requestNumber ?? "-"}</td>
+      <td>${r.requesterName ?? "-"}</td>
+      <td>${r.department ?? "-"}</td>
+      <td>${r.application ?? "-"}</td>
+      <td>${r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal"}</td>
+      <td style="text-align:right">${(r.orderValue || r.totalEstimatedValue) ? fmt(parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0")) : "—"}</td>
+      <td>${fmtDate(r.createdAt)}</td>
+      <td>${r.completedAt ? fmtDate(r.completedAt) : "-"}</td>
+    </tr>
+  `).join("");
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<title>Relatório por Centro de Custo</title>
+<style>
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #222; margin: 24px; }
+  h1 { font-size: 18px; color: #1a5c2a; margin-bottom: 4px; }
+  .subtitle { color: #555; font-size: 11px; margin-bottom: 16px; }
+  .summary { display: flex; gap: 16px; margin-bottom: 20px; }
+  .card { background: #f5f5f5; border-radius: 8px; padding: 12px 20px; min-width: 140px; }
+  .card-value { font-size: 22px; font-weight: 800; color: #1a5c2a; }
+  .card-label { font-size: 11px; color: #666; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { background: #1a5c2a; color: #fff; padding: 7px 8px; text-align: left; font-size: 11px; }
+  td { padding: 6px 8px; border-bottom: 1px solid #e5e7eb; font-size: 11px; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .cc-code { display: inline-block; background: #e6f4ea; color: #1a5c2a; border-radius: 4px; padding: 2px 8px; font-weight: 700; font-size: 12px; margin-right: 8px; }
+</style>
+</head>
+<body>
+<h1>Relatório por Centro de Custo</h1>
+<div class="subtitle">Período: ${periodoLabel} &nbsp;|&nbsp; Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+<div style="margin-bottom:16px">
+  <span class="cc-code">${costCenterCode}</span>
+  <strong>${ccReport.costCenter?.name ?? costCenterCode}</strong>
+  ${ccReport.costCenter?.responsible ? `<span style="color:#666; margin-left:8px">Responsável: ${ccReport.costCenter.responsible}</span>` : ""}
+</div>
+<div class="summary">
+  <div class="card">
+    <div class="card-value">${ccReport.summary?.totalSolicitacoes ?? 0}</div>
+    <div class="card-label">Solicitações Concluídas</div>
+  </div>
+  <div class="card">
+    <div class="card-value" style="font-size:16px">${fmt(ccReport.summary?.totalGasto ?? 0)}</div>
+    <div class="card-label">Total Gasto</div>
+  </div>
+</div>
+<table>
+  <thead>
+    <tr>
+      <th>Nº</th>
+      <th>Solicitante</th>
+      <th>Departamento</th>
+      <th>Aplicação/Bem</th>
+      <th>Urgência</th>
+      <th style="text-align:right">Valor</th>
+      <th>Criado em</th>
+      <th>Concluído em</th>
+    </tr>
+  </thead>
+  <tbody>
+    ${rows || '<tr><td colspan="8" style="text-align:center;color:#999">Nenhuma solicitação encontrada</td></tr>'}
+  </tbody>
+</table>
 </body>
 </html>`;
 }

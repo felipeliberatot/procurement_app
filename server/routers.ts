@@ -385,6 +385,9 @@ export const appRouter = router({
     requestsByAssets: protectedProcedure
       .input(z.object({ applications: z.array(z.string()).min(1), year: z.number().optional(), month: z.number().optional() }))
       .query(({ input }) => Promise.all(input.applications.map(app => db.getRequestsByAsset(app, input.year, input.month).then(r => ({ application: app, ...r }))))),
+    requestsByCostCenter: protectedProcedure
+      .input(z.object({ costCenterCode: z.string().min(1), year: z.number().optional(), month: z.number().optional() }))
+      .query(({ input }) => db.getRequestsByCostCenter(input.costCenterCode, input.year, input.month)),
     updateItemFulfillment: protectedProcedure
       .input(z.object({ itemId: z.number(), fulfilledQty: z.number().min(0) }))
       .mutation(({ input, ctx }) => db.updateItemFulfillment(input.itemId, input.fulfilledQty, ctx.user.id)),
