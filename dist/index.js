@@ -3710,16 +3710,7 @@ async function updateItemFulfillment(itemId, fulfilledQty, userId) {
   const allFulfilled = allItems.every((i) => i.id === itemId ? itemStatus === "autorizado" || itemStatus === "comprado" : i.itemStatus === "autorizado" || i.itemStatus === "aprovado" || i.itemStatus === "comprado");
   const anyFulfilled = allItems.some((i) => i.id === itemId ? clampedQty > 0 : parseFloat(i.fulfilledQty) > 0);
   if (request.status === "aguardando_ordem_compra") {
-    let newStatus;
-    if (allFulfilled || anyFulfilled) {
-      newStatus = "aguardando_aprovacao_compra";
-    } else {
-      newStatus = "aguardando_ordem_compra";
-    }
-    if (newStatus !== request.status) {
-      await db.update(purchaseRequests).set({ status: newStatus }).where(eq2(purchaseRequests.id, item.requestId));
-    }
-    return { itemStatus, requestStatus: newStatus };
+    return { itemStatus, requestStatus: request.status };
   }
   if (request.status === "aguardando_verificacao_compras") {
     return { itemStatus, requestStatus: request.status };

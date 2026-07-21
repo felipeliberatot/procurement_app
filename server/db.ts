@@ -3572,24 +3572,12 @@ export async function updateItemFulfillment(itemId: number, fulfilledQty: number
   const allItems = await db.select().from(requestItems).where(eq(requestItems.requestId, item.requestId));
   const allFulfilled = allItems.every(i => i.id === itemId ? (itemStatus === "autorizado" || itemStatus === "comprado") : (i.itemStatus === "autorizado" || i.itemStatus === "aprovado" || i.itemStatus === "comprado"));
   const anyFulfilled = allItems.some(i => i.id === itemId ? clampedQty > 0 : parseFloat(i.fulfilledQty) > 0);
-
-  // OPÇÃO A: qualquer item autorizado avança para Financeiro.
-  // parcialmente_concluida é definido apenas em finalizeOC (Verificação Final).
+  // O toggle de itens NAO deve avançar a etapa automaticamente.
+  // O avanço ocorre apenas quando o usuário clica em "Emitir OC" (finalizeOC).
   if (request.status === "aguardando_ordem_compra") {
-    let newStatus: string;
-    if (allFulfilled || anyFulfilled) {
-      // ≥1 item autorizado → avança para Financeiro
-      newStatus = "aguardando_aprovacao_compra";
-    } else {
-      // Nenhum item autorizado ainda — manter em aguardando_ordem_compra
-      newStatus = "aguardando_ordem_compra";
-    }
-    if (newStatus !== request.status) {
-      await db.update(purchaseRequests).set({ status: newStatus as any }).where(eq(purchaseRequests.id, item.requestId));
-    }
-    return { itemStatus, requestStatus: newStatus };
+    // Apenas salva o status do item — não altera o status da solicitação
+    return { itemStatus, requestStatus: request.status };
   }
-  // Verificação Final: permite remarcar itens sem alterar o status da solicitação
   if (request.status === "aguardando_verificacao_compras") {
     // Apenas atualiza os itens — o status da solicitação permanece inalterado
     // O status final (concluida / parcialmente_concluida) é decidido em finalizeOC
