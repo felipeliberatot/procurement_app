@@ -113,12 +113,12 @@ export default function NewRequestScreen() {
     cc.code.toLowerCase().includes(costCenterSearch.toLowerCase())
   );
 
-  // Nome exato do CC de Manutenção que aciona o campo extra
-  const MAINTENANCE_CC_NAME = "Manutenção - Grupo Operativo";
-  const FUEL_CC_NAME = "Combustíveis e Lubrificantes";
+  // Nome do CC que aciona campos extras — comparação normalizada (sem acento, case-insensitive)
+  const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
   const selectedCCName = (costCenters ?? []).find(c => c.code === costCenterCode)?.name ?? "";
-  const isMaintenanceCC = selectedCCName === MAINTENANCE_CC_NAME;
-  const isFuelCC = selectedCCName === FUEL_CC_NAME;
+  const selectedCCNorm = normalize(selectedCCName);
+  const isMaintenanceCC = selectedCCNorm.includes("manutencao") || selectedCCNorm.includes("grupo operativo");
+  const isFuelCC = selectedCCNorm.includes("combustiv") || selectedCCNorm.includes("lubri");
 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -375,6 +375,41 @@ export default function NewRequestScreen() {
                   >
                     <Text style={{ fontSize: 13, fontWeight: "700", color: maintenanceType === tipo ? "#fff" : colors.foreground }}>
                       {tipo === "preventiva" ? "🛡️ Preventiva" : "🔧 Corretiva"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Tipo de Combustível/Lubrificante (condicional: aparece apenas quando CC = Combustíveis e Lubrificantes) */}
+          {isFuelCC && (
+            <View className="mb-4">
+              <Text className="text-sm font-semibold text-foreground mb-2">Tipo de Combustível / Lubrificante <Text className="text-error">*</Text></Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {([
+                  { key: "diesel", label: "⛽ Diesel" },
+                  { key: "diesel_s10", label: "⛽ Diesel S-10" },
+                  { key: "alcool_gasolina_fazenda", label: "🌾 Álcool/Gasolina – Fazenda" },
+                  { key: "alcool_gasolina_administrativo", label: "🏢 Álcool/Gasolina – Adm." },
+                  { key: "lubrificantes", label: "🛢️ Lubrificantes" },
+                ] as const).map(({ key, label }) => (
+                  <TouchableOpacity
+                    key={key}
+                    onPress={() => setFuelType(key)}
+                    style={{
+                      backgroundColor: fuelType === key ? colors.primary : colors.surface,
+                      borderWidth: 1.5,
+                      borderColor: fuelType === key ? colors.primary : colors.border,
+                      borderRadius: 10,
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: "700", color: fuelType === key ? "#fff" : colors.foreground }}>
+                      {label}
                     </Text>
                   </TouchableOpacity>
                 ))}
