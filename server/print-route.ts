@@ -247,7 +247,7 @@ export function registerPrintRoute(app: Express) {
     body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10px; color: #1a1a1a; background: #fff; padding: 10mm; }
     @page { size: A4; margin: 10mm; }
     @media print {
-      body { padding: 0; }
+      body { padding: 0; zoom: 90%; }
       .no-print { display: none !important; }
     }
 
