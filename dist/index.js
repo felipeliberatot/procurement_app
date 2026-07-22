@@ -152,6 +152,7 @@ var init_schema = __esm({
         "aguardando_controladoria",
         "aguardando_diretoria",
         "aguardando_ordem_compra",
+        "aguardando_aprovacao_ceo",
         "aguardando_aprovacao_compra",
         "aguardando_comprovante_pagamento",
         "aguardando_verificacao_compras",
