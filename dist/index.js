@@ -868,7 +868,7 @@ async function sendDailyDeadlineReport(opts) {
     urgente: "\u{1F7E1}",
     normal: "\u{1F7E2}"
   };
-  const STATUS_LABELS = {
+  const STATUS_LABELS2 = {
     aguardando_gerente: "Aguard. Gerente",
     aguardando_orcamento: "Aguard. Or\xE7amento",
     aguardando_controladoria: "Aguard. Controladoria",
@@ -879,7 +879,7 @@ async function sendDailyDeadlineReport(opts) {
   const formatItem = (r) => {
     const emoji = URGENCY_EMOJI[r.urgencyLevel] ?? "\u26AA";
     const deadline = r.deadlineAt.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-    const step = STATUS_LABELS[r.status] ?? r.status;
+    const step = STATUS_LABELS2[r.status] ?? r.status;
     return `${emoji} *${r.requestNumber}* \u2014 ${r.application.substring(0, 30)}
    Solicitante: ${r.requesterName} | Etapa: ${step}
    \u23F1 Prazo: ${deadline}`;
@@ -1858,7 +1858,7 @@ async function getApprovalTimingStats() {
     if (!byRequest.has(h.requestId)) byRequest.set(h.requestId, []);
     byRequest.get(h.requestId).push(h);
   }
-  const STEP_LABELS = {
+  const STEP_LABELS2 = {
     gerente: "Gerente",
     orcamento: "Or\xE7amento",
     controladoria: "Controladoria",
@@ -1878,7 +1878,7 @@ async function getApprovalTimingStats() {
     const diffHours = diffMs / (1e3 * 60 * 60);
     if (diffHours <= 0 || diffHours > 720) continue;
     const step = decision.step;
-    if (!STEP_LABELS[step]) continue;
+    if (!STEP_LABELS2[step]) continue;
     if (!stepTimes.has(step)) stepTimes.set(step, { totalHours: 0, count: 0 });
     const entry = stepTimes.get(step);
     entry.totalHours += diffHours;
@@ -1886,7 +1886,7 @@ async function getApprovalTimingStats() {
   }
   const result = Array.from(stepTimes.entries()).map(([step, { totalHours, count }]) => ({
     step,
-    label: STEP_LABELS[step] ?? step,
+    label: STEP_LABELS2[step] ?? step,
     avgHours: Math.round(totalHours / count * 10) / 10,
     count
   })).sort((a, b) => b.avgHours - a.avgHours);
@@ -1983,7 +1983,7 @@ async function submitBudget(requestId, user, estimatedValue) {
       const [req] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
       const items = await db.select().from(requestItems).where(eq2(requestItems.requestId, requestId));
       const itemsForMsg = items.map((it) => ({ description: it.description, quantity: String(it.quantity), unit: it.unit }));
-      const STEP_LABELS = {
+      const STEP_LABELS2 = {
         aguardando_controladoria: "Aprova\xE7\xE3o Controladoria",
         aguardando_diretoria: "Aprova\xE7\xE3o Diretoria"
       };
@@ -1999,7 +1999,7 @@ async function submitBudget(requestId, user, estimatedValue) {
             application: req.application,
             urgencyLevel: req.urgencyLevel,
             department: req.department,
-            stepLabel: STEP_LABELS[nextStatus] ?? nextStatus,
+            stepLabel: STEP_LABELS2[nextStatus] ?? nextStatus,
             step: nextRole,
             items: itemsForMsg,
             totalValue: req.orderValue ?? req.totalEstimatedValue ?? void 0
@@ -5899,7 +5899,7 @@ _Sistema de Compras CGS Agr\xEDcola_`;
         aguardando_comprovante_pagamento: "financeiro",
         aguardando_verificacao_compras: "orcamento"
       };
-      const STEP_LABELS = {
+      const STEP_LABELS2 = {
         aguardando_gerente: "Aprova\xE7\xE3o Gerente",
         aguardando_controladoria: "Aprova\xE7\xE3o Controladoria",
         aguardando_diretoria: "Aprova\xE7\xE3o Diretoria",
@@ -5933,7 +5933,7 @@ _Sistema de Compras CGS Agr\xEDcola_`;
             application: req.application,
             urgencyLevel: req.urgencyLevel,
             department: req.department,
-            stepLabel: STEP_LABELS[req.status] ?? role,
+            stepLabel: STEP_LABELS2[req.status] ?? role,
             step: role,
             items: itemsForMsg,
             totalValue: req.totalEstimatedValue ?? void 0
@@ -7244,6 +7244,412 @@ function registerApiIntegration(app) {
   console.log("[Integration] Endpoints de integra\xE7\xE3o registrados em /api/integration/*");
 }
 
+// server/print-route.ts
+init_db();
+var STATUS_LABELS = {
+  pendente: "Pendente",
+  aguardando_gerente: "Aguard. Gerente",
+  aguardando_orcamento: "Aguard. Or\xE7amento",
+  aguardando_controladoria: "Aguard. Controladoria",
+  aguardando_diretoria: "Aguard. Diretoria",
+  aguardando_aprovacao_ceo: "Aguard. CEO",
+  aguardando_emissao_oc: "Aguard. Emiss\xE3o OC",
+  aguardando_aprovacao_compras: "Aguard. Aprova\xE7\xE3o Compras",
+  aguardando_verificacao_compras: "Aguard. Verifica\xE7\xE3o Compras",
+  concluida: "Conclu\xEDda",
+  rejeitada: "Rejeitada"
+};
+var URGENCY_LABELS = {
+  normal: "Normal",
+  urgente: "Urgente",
+  emergencial: "Emergencial"
+};
+var PAYMENT_LABELS = {
+  pix: "PIX",
+  boleto: "Boleto",
+  transferencia: "Transfer\xEAncia",
+  cartao_credito: "Cart\xE3o de Cr\xE9dito",
+  cartao_parcelado: "Cart\xE3o Parcelado",
+  dinheiro: "Dinheiro",
+  cheque: "Cheque"
+};
+var STEP_LABELS = {
+  criacao: "Cria\xE7\xE3o",
+  gerente: "Gerente",
+  orcamento: "Or\xE7amento",
+  controladoria: "Controladoria",
+  diretoria: "Diretoria",
+  ceo: "CEO",
+  emissao_oc: "Emiss\xE3o de OC",
+  aprovacao_compras: "Aprova\xE7\xE3o Compras",
+  verificacao_compras: "Verifica\xE7\xE3o Compras",
+  financeiro: "Financeiro"
+};
+var ACTION_LABELS = {
+  solicitado: "\u{1F4DD} Solicitado",
+  aprovado: "\u2705 Aprovado",
+  rejeitado: "\u274C Rejeitado",
+  orcamento_enviado: "\u{1F4C4} Or\xE7amento anexado",
+  oc_emitida: "\u{1F6D2} OC emitida",
+  compra_aprovada: "\u2705 Compra aprovada",
+  oc_finalizada: "\u2705 OC finalizada",
+  reaberto: "\u{1F504} Reaberto",
+  comentario: "\u{1F4AC} Coment\xE1rio"
+};
+function fmtDate(d) {
+  if (!d) return "\u2014";
+  const dt = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(dt.getTime())) return "\u2014";
+  return dt.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Cuiaba"
+  });
+}
+function fmt(v) {
+  if (v == null || v === "") return "\u2014";
+  const n = typeof v === "string" ? parseFloat(v.replace(",", ".")) : v;
+  if (isNaN(n)) return String(v);
+  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+function escHtml(s) {
+  if (!s) return "";
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function registerPrintRoute(app) {
+  app.get("/api/print/:id", async (req, res) => {
+    let user = null;
+    try {
+      user = await sdk.authenticateRequest(req);
+    } catch {
+      return res.status(401).send(`<html><body style="font-family:sans-serif;padding:40px">
+        <h2>Sess\xE3o expirada</h2><p>Fa\xE7a login novamente para imprimir.</p>
+        <a href="/api/app/login">Fazer login</a></body></html>`);
+    }
+    if (!user) {
+      return res.status(401).send(`<html><body style="font-family:sans-serif;padding:40px">
+        <h2>Acesso negado</h2><p>Fa\xE7a login para imprimir.</p>
+        <a href="/api/app/login">Fazer login</a></body></html>`);
+    }
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).send("ID inv\xE1lido");
+    let req_data = null;
+    let history = [];
+    let quotationData = null;
+    try {
+      req_data = await getPurchaseRequestWithDetails(id);
+      history = await getApprovalHistory(id) ?? [];
+      quotationData = await getQuotationGroupByRequestId(id);
+    } catch (err) {
+      console.error("[Print] Erro ao buscar dados:", err);
+      return res.status(500).send("Erro ao buscar dados da solicita\xE7\xE3o.");
+    }
+    if (!req_data) {
+      return res.status(404).send("Solicita\xE7\xE3o n\xE3o encontrada.");
+    }
+    const r = req_data;
+    const statusLabel2 = STATUS_LABELS[r.status] ?? r.status ?? "\u2014";
+    const urgLabel = URGENCY_LABELS[r.urgencyLevel] ?? r.urgencyLevel ?? "Normal";
+    const paymentMethodLabel = PAYMENT_LABELS[r.paymentMethod] ?? r.paymentMethod ?? "\u2014";
+    const statusColor = r.status === "concluida" ? "#166534" : r.status === "rejeitada" ? "#dc2626" : "#1d4ed8";
+    const statusBg = r.status === "concluida" ? "#dcfce7" : r.status === "rejeitada" ? "#fef2f2" : "#dbeafe";
+    const urgColor = r.urgencyLevel === "emergencial" ? "#dc2626" : r.urgencyLevel === "urgente" ? "#d97706" : "#166534";
+    const fuelTypeLabels = {
+      diesel_s10: "Diesel S-10",
+      diesel_s500: "Diesel S-500",
+      gasolina: "Gasolina",
+      etanol: "Etanol",
+      arla: "ARLA 32",
+      oleo_motor: "\xD3leo de Motor",
+      oleo_hidraulico: "\xD3leo Hidr\xE1ulico",
+      oleo_cambio: "\xD3leo de C\xE2mbio",
+      graxas: "Graxas / Lubrificantes",
+      outro: "Outro"
+    };
+    const maintenanceTypeLabels = {
+      preventiva: "Manuten\xE7\xE3o Preventiva",
+      corretiva: "Manuten\xE7\xE3o Corretiva"
+    };
+    const tipoClassificacao = r.fuelType ? fuelTypeLabels[r.fuelType] ?? r.fuelType : r.maintenanceType ? maintenanceTypeLabels[r.maintenanceType] ?? r.maintenanceType : null;
+    const items = r.items ?? [];
+    const itemStatusLabel = (s) => {
+      const m = {
+        comprado: "\u2705 Comprado",
+        autorizado: "\u2705 Autorizado",
+        parcial: "\u26A0\uFE0F Parcial",
+        pendente: "\u23F3 Pendente"
+      };
+      return m[s] ?? s ?? "\u2014";
+    };
+    const itemsRows = items.map((item) => {
+      const qty = item.quantity != null ? `${Number(item.quantity).toLocaleString("pt-BR")} ${item.unit ?? ""}`.trim() : "\u2014";
+      const unitPrice = item.unitPrice != null ? fmt(item.unitPrice) : "\u2014";
+      const total = item.totalPrice != null ? fmt(item.totalPrice) : item.unitPrice != null && item.quantity != null ? fmt(parseFloat(String(item.unitPrice).replace(",", ".")) * parseFloat(String(item.quantity).replace(",", "."))) : "\u2014";
+      const sit = itemStatusLabel(item.fulfillmentStatus ?? item.status ?? "pendente");
+      return `<tr style="background:#fff">
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:11px">${escHtml(item.description)}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:11px">${escHtml(qty)}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px">${unitPrice}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;font-weight:600">${total}</td>
+        <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:10px;color:#166534">${sit}</td>
+      </tr>`;
+    }).join("");
+    const suppliers = quotationData?.suppliers ?? [];
+    const selectedSupplierId = quotationData?.selectedSupplierId ?? null;
+    const selectedSupplier = suppliers.find((s) => s.id === selectedSupplierId) ?? null;
+    const suppliersHTML = suppliers.map((s, i) => {
+      const isSelected = s.id === selectedSupplierId;
+      const supplierItems = (() => {
+        try {
+          return typeof s.items === "string" ? JSON.parse(s.items) : s.items ?? [];
+        } catch {
+          return [];
+        }
+      })();
+      const itemTags = supplierItems.map(
+        (si) => `<span style="display:inline-block;background:#f1f5f9;border-radius:4px;padding:2px 7px;margin:2px 2px 0 0;font-size:10px;color:#374151">${escHtml(si.description)} \xB7 ${escHtml(si.quantity)} ${escHtml(si.unit)} \xB7 ${fmt(si.unitPrice)}</span>`
+      ).join("");
+      return `<div style="border:${isSelected ? "2px solid #16a34a" : "1px solid #e5e7eb"};border-radius:8px;padding:10px 12px;margin-bottom:8px;background:${isSelected ? "#f0fdf4" : "#fff"}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:6px">
+            ${isSelected ? `<span style="background:#16a34a;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px">\u2B50 SELECIONADO</span>` : `<span style="background:#f3f4f6;color:#6b7280;font-size:9px;font-weight:600;padding:2px 8px;border-radius:20px">${i + 1}\xBA Fornecedor</span>`}
+            <span style="font-size:12px;font-weight:700;color:${isSelected ? "#166534" : "#111827"}">${escHtml(s.supplierName)}</span>
+          </div>
+          <span style="font-size:14px;font-weight:800;color:${isSelected ? "#166534" : "#374151"}">${fmt(s.totalValue)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 12px;margin-bottom:${itemTags ? "6px" : "0"}">
+          ${s.paymentTerms ? `<div><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;font-weight:600">Cond. Pagamento</span><br><span style="font-size:10px;color:#374151;font-weight:600">${escHtml(s.paymentTerms)}</span></div>` : ""}
+          ${s.deliveryDays != null ? `<div><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;font-weight:600">Prazo Entrega</span><br><span style="font-size:10px;color:#374151;font-weight:600">${s.deliveryDays} dias</span></div>` : ""}
+          ${s.supplierContact ? `<div><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;font-weight:600">Contato</span><br><span style="font-size:10px;color:#374151;font-weight:600">${escHtml(s.supplierContact)}</span></div>` : ""}
+        </div>
+        ${itemTags ? `<div>${itemTags}</div>` : ""}
+        ${s.observations ? `<div style="margin-top:4px;font-size:10px;color:#6b7280;font-style:italic">${escHtml(s.observations)}</div>` : ""}
+      </div>`;
+    }).join("");
+    const historyRows = history.map((h, i) => {
+      const actionLabel = ACTION_LABELS[h.action] ?? h.action ?? "\u2014";
+      const stepLabel = STEP_LABELS[h.step] ?? h.step ?? "\u2014";
+      const actionColor = h.action === "aprovado" || h.action === "compra_aprovada" || h.action === "oc_finalizada" ? "#166534" : h.action === "rejeitado" ? "#dc2626" : "#1d4ed8";
+      return `<tr style="background:${i % 2 === 0 ? "#fff" : "#f9fafb"}">
+        <td>${fmtDate(h.createdAt)}</td>
+        <td style="font-weight:600">${escHtml(h.userName ?? h.userId ?? "\u2014")}</td>
+        <td style="color:#6b7280">${stepLabel}</td>
+        <td style="font-weight:700;color:${actionColor}">${actionLabel}</td>
+        <td style="font-style:italic;color:#374151">${h.comment ? `"${escHtml(h.comment)}"` : "\u2014"}</td>
+      </tr>`;
+    }).join("");
+    const valorPrincipal = r.orderValue ?? r.totalEstimatedValue ?? null;
+    const valorLabel = r.orderValue ? "Valor da Ordem de Compra" : "Valor Estimado Total";
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>${escHtml(r.requestNumber ?? `#${r.id}`)} \u2014 CGS Agr\xEDcola</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; color: #1a1a1a; background: #fff; padding: 14mm; }
+    @page { size: A4; margin: 14mm; }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none !important; }
+    }
+
+    .print-btn { position: fixed; top: 16px; right: 16px; background: #166534; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; z-index: 9999; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .print-btn:hover { background: #14532d; }
+
+    .header { background: linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%); color: #fff; padding: 12px 16px 10px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header-left .company { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; margin-bottom: 3px; }
+    .header-left .req-number { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+    .header-left .req-app { font-size: 11px; opacity: 0.9; margin-top: 3px; font-weight: 500; }
+    .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; background: ${statusBg}; color: ${statusColor}; border: 2px solid ${statusColor}44; }
+    .urgency-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 9px; font-weight: 700; background: ${r.urgencyLevel === "emergencial" ? "#fef2f2" : r.urgencyLevel === "urgente" ? "#fffbeb" : "#f0fdf4"}; color: ${urgColor}; border: 1.5px solid ${urgColor}44; }
+    .date-info { font-size: 8px; opacity: 0.75; }
+
+    .section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; page-break-inside: avoid; }
+    .section-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 6px 12px; display: flex; align-items: center; gap: 6px; }
+    .sec-icon { font-size: 11px; }
+    .sec-title { font-size: 9px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: 0.07em; }
+    .section-body { padding: 10px 12px; }
+
+    .fields-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 20px; }
+    .field { display: flex; flex-direction: column; gap: 2px; }
+    .field.full { grid-column: 1 / -1; }
+    .field-label { font-size: 8px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.07em; }
+    .field-value { font-size: 11px; font-weight: 600; color: #111827; line-height: 1.3; }
+
+    .items-table { width: 100%; border-collapse: collapse; }
+    .items-table thead tr { background: #f1f5f9; }
+    .items-table th { padding: 6px 10px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .items-table th.right { text-align: right; }
+    .items-table th.center { text-align: center; }
+    .items-table td { vertical-align: middle; padding: 7px 10px; border-bottom: 1px solid #e5e7eb; font-size: 11px; }
+
+    .history-table { width: 100%; border-collapse: collapse; }
+    .history-table thead tr { background: #f1f5f9; }
+    .history-table th { padding: 5px 8px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .history-table td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; font-size: 10px; vertical-align: middle; }
+
+    .valor-final-box { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #16a34a; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid; }
+    .vf-label { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.06em; }
+    .vf-sub { font-size: 9px; color: #4ade80; margin-top: 2px; }
+    .vf-value { font-size: 26px; font-weight: 900; color: #14532d; letter-spacing: -1px; }
+
+    .footer { margin-top: 12px; padding-top: 8px; border-top: 2px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid; }
+    .footer-brand { font-size: 10px; font-weight: 800; color: #166534; }
+    .footer-sub { font-size: 8px; color: #9ca3af; margin-top: 1px; }
+    .footer-right { font-size: 8px; color: #9ca3af; text-align: right; }
+  </style>
+</head>
+<body>
+
+  <button class="print-btn no-print" onclick="window.print()">\u{1F5A8}\uFE0F Imprimir / Salvar PDF</button>
+
+  <!-- CABE\xC7ALHO -->
+  <div class="header">
+    <div class="header-left">
+      <div class="company">CGS Agr\xEDcola \xB7 Sistema de Gest\xE3o de Compras</div>
+      <div class="req-number">${escHtml(r.requestNumber ?? `#${r.id}`)}</div>
+      <div class="req-app">${escHtml(r.application ?? "Solicita\xE7\xE3o de Compra")}</div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge">${escHtml(statusLabel2)}</div>
+      <div class="urgency-badge">${escHtml(urgLabel)}</div>
+      <div class="date-info">Emitido em ${fmtDate(/* @__PURE__ */ new Date())}</div>
+      ${r.completedAt ? `<div class="date-info">Conclu\xEDdo em ${fmtDate(r.completedAt)}</div>` : ""}
+    </div>
+  </div>
+
+  <!-- INFORMA\xC7\xD5ES GERAIS -->
+  <div class="section">
+    <div class="section-header"><span class="sec-icon">\u{1F4CB}</span><span class="sec-title">Informa\xE7\xF5es Gerais</span></div>
+    <div class="section-body">
+      <div class="fields-grid">
+        <div class="field"><span class="field-label">Solicitante</span><span class="field-value">${escHtml(r.requesterName ?? "\u2014")}</span></div>
+        <div class="field"><span class="field-label">Departamento</span><span class="field-value">${escHtml(r.department ?? "\u2014")}</span></div>
+        <div class="field"><span class="field-label">Centro de Custo</span><span class="field-value">${escHtml(r.costCenterCode ?? "\u2014")}${r.costCenterName ? ` \u2014 ${escHtml(r.costCenterName)}` : ""}</span></div>
+        <div class="field"><span class="field-label">Data da Solicita\xE7\xE3o</span><span class="field-value">${fmtDate(r.createdAt)}</span></div>
+        ${r.farmName ? `<div class="field"><span class="field-label">Fazenda / Unidade</span><span class="field-value">${escHtml(r.farmName)}</span></div>` : ""}
+        ${r.harvestName ? `<div class="field"><span class="field-label">Safra</span><span class="field-value">${escHtml(r.harvestName)}</span></div>` : ""}
+        ${tipoClassificacao ? `<div class="field"><span class="field-label">Tipo / Classifica\xE7\xE3o</span><span class="field-value">${escHtml(tipoClassificacao)}</span></div>` : ""}
+        ${r.purchaseOrderNumber ? `<div class="field"><span class="field-label">N\xBA Ordem de Compra</span><span class="field-value">${escHtml(r.purchaseOrderNumber)}</span></div>` : ""}
+        ${r.osMyfarm ? `<div class="field"><span class="field-label">OS MyFarm</span><span class="field-value">${escHtml(r.osMyfarm)}</span></div>` : ""}
+        ${r.completedAt ? `<div class="field"><span class="field-label">Data de Conclus\xE3o</span><span class="field-value">${fmtDate(r.completedAt)}</span></div>` : ""}
+        ${r.observations ? `<div class="field full"><span class="field-label">Observa\xE7\xF5es</span><span class="field-value" style="font-weight:400;color:#374151">${escHtml(r.observations)}</span></div>` : ""}
+      </div>
+    </div>
+  </div>
+
+  <!-- ITENS SOLICITADOS -->
+  ${items.length > 0 ? `
+  <div class="section">
+    <div class="section-header"><span class="sec-icon">\u{1F4E6}</span><span class="sec-title">Itens Solicitados (${items.length})</span></div>
+    <div style="padding:0">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width:42%">Descri\xE7\xE3o</th>
+            <th class="center" style="width:13%">Qtd</th>
+            <th class="right" style="width:14%">Vl. Unit.</th>
+            <th class="right" style="width:14%">Total</th>
+            <th class="center" style="width:17%">Situa\xE7\xE3o</th>
+          </tr>
+        </thead>
+        <tbody>${itemsRows}</tbody>
+      </table>
+    </div>
+  </div>` : ""}
+
+  <!-- COTA\xC7\xD5ES DE FORNECEDORES -->
+  ${suppliersHTML ? `
+  <div class="section">
+    <div class="section-header"><span class="sec-icon">\u{1F3EA}</span><span class="sec-title">Cota\xE7\xF5es de Fornecedores (${suppliers.length})</span></div>
+    <div class="section-body">${suppliersHTML}</div>
+  </div>` : ""}
+
+  <!-- PAGAMENTO -->
+  ${r.paymentMethod ? `
+  <div class="section">
+    <div class="section-header"><span class="sec-icon">\u{1F4B3}</span><span class="sec-title">Informa\xE7\xF5es de Pagamento</span></div>
+    <div class="section-body">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 20px">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.07em">Forma de Pagamento</span>
+          <span style="font-size:12px;font-weight:800;color:#1e3a8a">${escHtml(paymentMethodLabel)}</span>
+        </div>
+        ${r.paymentInstallments && r.paymentMethod === "cartao_parcelado" ? `
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <span style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.07em">Parcelas</span>
+          <span style="font-size:12px;font-weight:800;color:#1e3a8a">${r.paymentInstallments}x</span>
+        </div>` : ""}
+        ${r.paymentInfo ? `
+        <div style="display:flex;flex-direction:column;gap:2px;grid-column:1/-1">
+          <span style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.07em">Dados / Chave PIX / Banco</span>
+          <span style="font-size:11px;font-weight:600;color:#374151">${escHtml(r.paymentInfo)}</span>
+        </div>` : ""}
+        ${r.paymentObservations ? `
+        <div style="display:flex;flex-direction:column;gap:2px;grid-column:1/-1">
+          <span style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.07em">Observa\xE7\xF5es de Pagamento</span>
+          <span style="font-size:11px;font-weight:400;color:#374151">${escHtml(r.paymentObservations)}</span>
+        </div>` : ""}
+      </div>
+    </div>
+  </div>` : ""}
+
+  <!-- HIST\xD3RICO DE APROVA\xC7\xD5ES -->
+  ${historyRows ? `
+  <div class="section">
+    <div class="section-header"><span class="sec-icon">\u{1F4C5}</span><span class="sec-title">Hist\xF3rico de Aprova\xE7\xF5es</span></div>
+    <div style="padding:0">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th style="width:18%">Data / Hora</th>
+            <th style="width:22%">Usu\xE1rio</th>
+            <th style="width:18%">Etapa</th>
+            <th style="width:18%">A\xE7\xE3o</th>
+            <th style="width:24%">Coment\xE1rio</th>
+          </tr>
+        </thead>
+        <tbody>${historyRows}</tbody>
+      </table>
+    </div>
+  </div>` : ""}
+
+  <!-- VALOR FINAL EM DESTAQUE -->
+  ${valorPrincipal != null ? `
+  <div class="valor-final-box">
+    <div>
+      <div class="vf-label">${escHtml(valorLabel)}</div>
+      <div class="vf-sub">${selectedSupplier ? `Fornecedor: ${escHtml(selectedSupplier.supplierName)}` : r.paymentMethod ? `Pagamento: ${escHtml(paymentMethodLabel)}` : "Valor total confirmado"}</div>
+    </div>
+    <div class="vf-value">${fmt(valorPrincipal)}</div>
+  </div>` : ""}
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div>
+      <div class="footer-brand">CGS Agr\xEDcola</div>
+      <div class="footer-sub">Sistema de Gest\xE3o de Compras \xB7 Documento gerado em ${fmtDate(/* @__PURE__ */ new Date())}</div>
+    </div>
+    <div class="footer-right">
+      <div style="font-weight:700;color:#374151">${escHtml(r.requestNumber ?? `#${r.id}`)}</div>
+      <div>${escHtml(statusLabel2)}</div>
+    </div>
+  </div>
+
+</body>
+</html>`;
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.send(html);
+  });
+}
+
 // server/_core/index.ts
 var __filename = fileURLToPath(import.meta.url);
 var __currentDir = path.dirname(__filename);
@@ -7289,6 +7695,7 @@ async function startServer() {
   registerOAuthRoutes(app);
   registerWhatsAppWebhook(app);
   registerApiIntegration(app);
+  registerPrintRoute(app);
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
   });
