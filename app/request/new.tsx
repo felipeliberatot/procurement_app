@@ -113,12 +113,11 @@ export default function NewRequestScreen() {
     cc.code.toLowerCase().includes(costCenterSearch.toLowerCase())
   );
 
-  // Nome do CC que aciona campos extras — comparação normalizada (sem acento, case-insensitive)
-  const normalize = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  const selectedCCName = (costCenters ?? []).find(c => c.code === costCenterCode)?.name ?? "";
-  const selectedCCNorm = normalize(selectedCCName);
-  const isMaintenanceCC = selectedCCNorm.includes("manutencao") || selectedCCNorm.includes("grupo operativo");
-  const isFuelCC = selectedCCNorm.includes("combustiv") || selectedCCNorm.includes("lubri");
+  // Detecta CC especiais pelo código (mais confiável que o nome)
+  const MAINTENANCE_CC_CODE = "CC-013"; // Manutenção – Grupo Operativo
+  const FUEL_CC_CODE = "OP-001";        // Combustíveis e Lubrificantes
+  const isMaintenanceCC = costCenterCode === MAINTENANCE_CC_CODE;
+  const isFuelCC = costCenterCode === FUEL_CC_CODE;
 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
