@@ -488,6 +488,53 @@ function ItemFulfillmentCard({ items }: { items: any[] }) {
   );
 }
 
+// ─── Componente: Lembrete de Validação ──────────────────────────────────────
+function ValidationReminderModal({
+  visible,
+  errors,
+  onClose,
+}: {
+  visible: boolean;
+  errors: string[];
+  onClose: () => void;
+}) {
+  const colors = useColors();
+  if (!visible || errors.length === 0) return null;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center", padding: 24 }}>
+        <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 24, width: "100%", maxWidth: 400, shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: `${colors.warning}20`, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 20 }}>⚠️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>Ação necessária</Text>
+              <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>Preencha os itens abaixo antes de avançar</Text>
+            </View>
+          </View>
+          <View style={{ backgroundColor: `${colors.warning}10`, borderWidth: 1, borderColor: `${colors.warning}30`, borderRadius: 12, padding: 14, marginBottom: 20 }}>
+            {errors.map((err, i) => (
+              <View key={i} style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, marginBottom: i < errors.length - 1 ? 10 : 0 }}>
+                <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: `${colors.warning}30`, alignItems: "center", justifyContent: "center", marginTop: 1 }}>
+                  <Text style={{ fontSize: 11, color: colors.warning, fontWeight: "700" }}>{i + 1}</Text>
+                </View>
+                <Text style={{ flex: 1, fontSize: 13, color: colors.foreground, lineHeight: 20 }}>{err}</Text>
+              </View>
+            ))}
+          </View>
+          <TouchableOpacity
+            onPress={onClose}
+            style={{ backgroundColor: colors.warning, borderRadius: 12, paddingVertical: 14, alignItems: "center" }}
+          >
+            <Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Entendido, vou corrigir</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Tela Principal ───────────────────────────────────────────────────────────
 export default function RequestDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -495,6 +542,14 @@ export default function RequestDetailScreen() {
   const colors = useColors();
   const utils = trpc.useUtils();
   const insets = useSafeAreaInsets();
+
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+
+  const showValidationReminder = (errors: string[]) => {
+    setValidationErrors(errors);
+    setShowValidationModal(true);
+  };
 
   const [orderNumber, setOrderNumber] = useState("");
   const [paymentInfo, setPaymentInfo] = useState("");
@@ -1614,8 +1669,21 @@ export default function RequestDetailScreen() {
         return parseFloat(raw);
       }
     })();
+
+    // Validar campos obrigatórios antes de finalizar
+    const finalErrors: string[] = [];
+    const req = request as any;
     if (!orderValueInput.trim() || isNaN(parsedOCValue) || parsedOCValue <= 0) {
-      Alert.alert("Valor obrigatório", "Informe o valor da Ordem de Compra antes de finalizar.");
+      finalErrors.push("Informe o valor da Ordem de Compra (campo obrigatório).");
+    }
+    if (!req.paymentProofUrl && !paymentProofLocalUri) {
+      finalErrors.push("Comprovante de pagamento não anexado. Faça o upload do comprovante antes de finalizar.");
+    }
+    if (!req.invoiceUrl && !invoiceLocalUri) {
+      finalErrors.push("Nota fiscal não anexada. Faça o upload da NF antes de finalizar.");
+    }
+    if (finalErrors.length > 0) {
+      showValidationReminder(finalErrors);
       return;
     }
     showConfirm({
@@ -3844,6 +3912,47 @@ export default function RequestDetailScreen() {
               return (
                 <TouchableOpacity
                   onPress={() => {
+                    // Validar campos obrigatórios antes de abrir modal de aprovação
+                    const req = request as any;
+                    const errors: string[] = [];
+
+                    if (currentStatus === "aguardando_gerente") {
+                      if (!req.items || req.items.length === 0) {
+                        errors.push("A solicitação não possui itens cadastrados.");
+                      }
+                      if (!req.application?.trim()) {
+                        errors.push("O campo 'Aplicação / Finalidade' não foi preenchido.");
+                      }
+                    }
+
+                    if (currentStatus === "aguardando_controladoria") {
+                      if (!req.budgetFileUrl && (!quotationData?.suppliers || quotationData.suppliers.length === 0)) {
+                        errors.push("Nenhum orçamento ou cotação foi anexado. O setor de Orçamento precisa enviar o PDF do orçamento ou as cotações de fornecedores antes da aprovação da Controladoria.");
+                      }
+                      if ((quotationData?.suppliers?.length ?? 0) > 0 && !quotationData?.selectedSupplierId) {
+                        errors.push("O fornecedor preferencial ainda não foi selecionado nas cotações. Acesse a seção de Cotações e selecione o fornecedor antes de aprovar.");
+                      }
+                    }
+
+                    if (currentStatus === "aguardando_diretoria") {
+                      if (!req.budgetFileUrl && (!quotationData?.suppliers || quotationData.suppliers.length === 0)) {
+                        errors.push("Nenhum orçamento ou cotação foi anexado. O setor de Orçamento precisa enviar o PDF do orçamento ou as cotações de fornecedores antes da aprovação da Diretoria.");
+                      }
+                      if ((quotationData?.suppliers?.length ?? 0) > 0 && !quotationData?.selectedSupplierId) {
+                        errors.push("O fornecedor preferencial ainda não foi selecionado nas cotações. Acesse a seção de Cotações e selecione o fornecedor antes de aprovar.");
+                      }
+                    }
+
+                    if (currentStatus === "aguardando_aprovacao_ceo") {
+                      if (!req.totalEstimatedValue && !req.orderValue) {
+                        errors.push("O valor estimado ou da OC não foi informado. O setor de Compras precisa preencher o valor antes da aprovação do CEO.");
+                      }
+                    }
+
+                    if (errors.length > 0) {
+                      showValidationReminder(errors);
+                      return;
+                    }
                     setShowApproveModal(true);
                   }}
                   disabled={approveMutation.isPending || rejectMutation.isPending || submitBudgetMutation.isPending}
@@ -4134,6 +4243,13 @@ export default function RequestDetailScreen() {
           })()}
         </View>
       </Modal>
+
+      {/* Modal de Lembrete de Validação */}
+      <ValidationReminderModal
+        visible={showValidationModal}
+        errors={validationErrors}
+        onClose={() => setShowValidationModal(false)}
+      />
 
       {/* Modal de confirmação cross-platform */}
       <ConfirmModal
