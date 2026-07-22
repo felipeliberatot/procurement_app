@@ -28,6 +28,7 @@ const FILTER_TABS = [
   { key: "aguardando_controladoria", label: "Controladoria" },
   { key: "aguardando_diretoria", label: "Diretoria" },
   { key: "aguardando_ordem_compra", label: "Emissão OC" },
+  { key: "aguardando_aprovacao_ceo", label: "Aprov. CEO" },
   { key: "aguardando_aprovacao_compra", label: "Aprov. Financeiro" },
   { key: "aguardando_comprovante_pagamento", label: "Comprovante" },
   { key: "aguardando_verificacao_compras", label: "Verif. Compras" },
@@ -51,7 +52,9 @@ const ROLE_PENDING_STATUSES: Record<string, string[]> = {
   orcamento: ["aguardando_orcamento", "aguardando_ordem_compra", "aguardando_verificacao_compras"],
   controladoria: ["aguardando_controladoria"],
   diretoria: ["aguardando_diretoria"],
+  ceo: ["aguardando_aprovacao_ceo"],
   financeiro: ["aguardando_comprovante_pagamento", "aguardando_aprovacao_compra"],
+  compras: ["aguardando_aprovacao_compra"],
   admin: [],
   solicitante: [],
 };
