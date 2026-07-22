@@ -1752,6 +1752,37 @@ function PorCustoCenterTab({
   const fmtCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
   const selectedCC = (costCentersList ?? []).find((c: any) => c.code === selectedCostCenter);
 
+  // ── Filtros de sub-tipo ──────────────────────────────────────────────────────
+  const [activeMaintenanceFilters, setActiveMaintenanceFilters] = React.useState<string[]>([]);
+  const [activeFuelFilters, setActiveFuelFilters] = React.useState<string[]>([]);
+
+  // Reset filtros ao trocar de CC ou período
+  React.useEffect(() => { setActiveMaintenanceFilters([]); setActiveFuelFilters([]); }, [selectedCostCenter, selectedYear, selectedMonth]);
+
+  const toggleMaintenanceFilter = (type: string) => {
+    setActiveMaintenanceFilters(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+  const toggleFuelFilter = (type: string) => {
+    setActiveFuelFilters(prev =>
+      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+    );
+  };
+
+  // Solicitações filtradas para a lista
+  const filteredRequests = React.useMemo(() => {
+    const reqs: any[] = ccReport?.requests ?? [];
+    let result = reqs;
+    if (activeMaintenanceFilters.length > 0) {
+      result = result.filter((r: any) => activeMaintenanceFilters.includes(r.maintenanceType));
+    }
+    if (activeFuelFilters.length > 0) {
+      result = result.filter((r: any) => activeFuelFilters.includes(r.fuelType));
+    }
+    return result;
+  }, [ccReport, activeMaintenanceFilters, activeFuelFilters]);
+
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
       {/* Filtros de Ano/Mês */}
@@ -1857,7 +1888,7 @@ function PorCustoCenterTab({
             </View>
           </View>
 
-          {/* Cards Preventiva / Corretiva (apenas quando há solicitações com maintenanceType) */}
+          {/* Cards Preventiva / Corretiva clicáveis para filtrar */}
           {(() => {
             const reqs = ccReport.requests ?? [];
             const preventiva = reqs.filter((r: any) => r.maintenanceType === "preventiva");
@@ -1865,25 +1896,43 @@ function PorCustoCenterTab({
             if (preventiva.length === 0 && corretiva.length === 0) return null;
             const totalPrev = preventiva.reduce((s: number, r: any) => s + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
             const totalCorr = corretiva.reduce((s: number, r: any) => s + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
+            const hasPrevFilter = activeMaintenanceFilters.includes("preventiva");
+            const hasCorrFilter = activeMaintenanceFilters.includes("corretiva");
             return (
-              <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
-                <View style={{ flex: 1, backgroundColor: "#3DB84B18", borderRadius: 10, padding: 12, borderWidth: 1, borderColor: "#3DB84B44", alignItems: "center" }}>
-                  <Text style={{ fontSize: 18, marginBottom: 2 }}>🛡️</Text>
-                  <Text style={{ fontSize: 20, fontWeight: "800", color: "#3DB84B" }}>{preventiva.length}</Text>
-                  <Text style={{ fontSize: 10, color: colors.muted, textAlign: "center" }}>Preventiva</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#3DB84B", marginTop: 2 }}>{fmtCurrency(totalPrev)}</Text>
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6 }}>FILTRAR POR TIPO DE MANUTENÇÃO</Text>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: hasPrevFilter ? "#3DB84B" : "#3DB84B18", borderRadius: 10, padding: 12, borderWidth: hasPrevFilter ? 2 : 1, borderColor: "#3DB84B", alignItems: "center" }}
+                    onPress={() => toggleMaintenanceFilter("preventiva")}
+                  >
+                    <Text style={{ fontSize: 18, marginBottom: 2 }}>🛡️</Text>
+                    <Text style={{ fontSize: 20, fontWeight: "800", color: hasPrevFilter ? "#fff" : "#3DB84B" }}>{preventiva.length}</Text>
+                    <Text style={{ fontSize: 10, color: hasPrevFilter ? "#e0ffe8" : colors.muted, textAlign: "center" }}>Preventiva</Text>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: hasPrevFilter ? "#e0ffe8" : "#3DB84B", marginTop: 2 }}>{fmtCurrency(totalPrev)}</Text>
+                    {hasPrevFilter && <Text style={{ fontSize: 9, color: "#e0ffe8", marginTop: 3 }}>✓ Filtrado</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: hasCorrFilter ? "#F59E0B" : "#F59E0B18", borderRadius: 10, padding: 12, borderWidth: hasCorrFilter ? 2 : 1, borderColor: "#F59E0B", alignItems: "center" }}
+                    onPress={() => toggleMaintenanceFilter("corretiva")}
+                  >
+                    <Text style={{ fontSize: 18, marginBottom: 2 }}>🔧</Text>
+                    <Text style={{ fontSize: 20, fontWeight: "800", color: hasCorrFilter ? "#fff" : "#F59E0B" }}>{corretiva.length}</Text>
+                    <Text style={{ fontSize: 10, color: hasCorrFilter ? "#fff8e0" : colors.muted, textAlign: "center" }}>Corretiva</Text>
+                    <Text style={{ fontSize: 11, fontWeight: "700", color: hasCorrFilter ? "#fff8e0" : "#F59E0B", marginTop: 2 }}>{fmtCurrency(totalCorr)}</Text>
+                    {hasCorrFilter && <Text style={{ fontSize: 9, color: "#fff8e0", marginTop: 3 }}>✓ Filtrado</Text>}
+                  </TouchableOpacity>
                 </View>
-                <View style={{ flex: 1, backgroundColor: "#F59E0B18", borderRadius: 10, padding: 12, borderWidth: 1, borderColor: "#F59E0B44", alignItems: "center" }}>
-                  <Text style={{ fontSize: 18, marginBottom: 2 }}>🔧</Text>
-                  <Text style={{ fontSize: 20, fontWeight: "800", color: "#F59E0B" }}>{corretiva.length}</Text>
-                  <Text style={{ fontSize: 10, color: colors.muted, textAlign: "center" }}>Corretiva</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#F59E0B", marginTop: 2 }}>{fmtCurrency(totalCorr)}</Text>
-                </View>
+                {activeMaintenanceFilters.length > 0 && (
+                  <TouchableOpacity onPress={() => setActiveMaintenanceFilters([])} style={{ marginTop: 6, alignSelf: "flex-end" }}>
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" }}>✕ Limpar filtro</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })()}
 
-          {/* Cards por Tipo de Combustível (apenas quando há solicitações com fuelType) */}
+          {/* Cards por Tipo de Combustível clicáveis para filtrar */}
           {(() => {
             const reqs = ccReport.requests ?? [];
             const fuelLabels: Record<string, { label: string; icon: string; color: string }> = {
@@ -1901,28 +1950,53 @@ function PorCustoCenterTab({
               total: reqs.filter((r: any) => r.fuelType === key).reduce((s: number, r: any) => s + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0),
             })).filter(g => g.items.length > 0);
             return (
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8 }}>POR TIPO</Text>
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontSize: 11, fontWeight: "700", color: colors.muted, marginBottom: 6 }}>FILTRAR POR TIPO DE COMBUSTÍVEL</Text>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                  {byType.map(g => (
-                    <View key={g.key} style={{ backgroundColor: g.meta.color + "18", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: g.meta.color + "44", alignItems: "center", minWidth: 90 }}>
-                      <Text style={{ fontSize: 16, marginBottom: 2 }}>{g.meta.icon}</Text>
-                      <Text style={{ fontSize: 18, fontWeight: "800", color: g.meta.color }}>{g.items.length}</Text>
-                      <Text style={{ fontSize: 9, color: colors.muted, textAlign: "center" }}>{g.meta.label}</Text>
-                      <Text style={{ fontSize: 10, fontWeight: "700", color: g.meta.color, marginTop: 2 }}>{fmtCurrency(g.total)}</Text>
-                    </View>
-                  ))}
+                  {byType.map(g => {
+                    const isActive = activeFuelFilters.includes(g.key);
+                    return (
+                      <TouchableOpacity
+                        key={g.key}
+                        style={{ backgroundColor: isActive ? g.meta.color : g.meta.color + "18", borderRadius: 10, padding: 10, borderWidth: isActive ? 2 : 1, borderColor: g.meta.color, alignItems: "center", minWidth: 90 }}
+                        onPress={() => toggleFuelFilter(g.key)}
+                      >
+                        <Text style={{ fontSize: 16, marginBottom: 2 }}>{g.meta.icon}</Text>
+                        <Text style={{ fontSize: 18, fontWeight: "800", color: isActive ? "#fff" : g.meta.color }}>{g.items.length}</Text>
+                        <Text style={{ fontSize: 9, color: isActive ? "#ffffffcc" : colors.muted, textAlign: "center" }}>{g.meta.label}</Text>
+                        <Text style={{ fontSize: 10, fontWeight: "700", color: isActive ? "#ffffffdd" : g.meta.color, marginTop: 2 }}>{fmtCurrency(g.total)}</Text>
+                        {isActive && <Text style={{ fontSize: 9, color: "#ffffffcc", marginTop: 3 }}>✓ Filtrado</Text>}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
+                {activeFuelFilters.length > 0 && (
+                  <TouchableOpacity onPress={() => setActiveFuelFilters([])} style={{ marginTop: 6, alignSelf: "flex-end" }}>
+                    <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" }}>✕ Limpar filtro</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })()}
 
-          {/* Tabela de solicitações */}
+          {/* Tabela de solicitações filtradas */}
           <View style={{ backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
-            <View style={{ backgroundColor: colors.primary + "18", paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={{ backgroundColor: colors.primary + "18", paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
               <Text style={{ fontSize: 14, fontWeight: "700", color: colors.primary }}>🏢 {selectedCC?.name ?? selectedCostCenter}</Text>
+              {(activeMaintenanceFilters.length > 0 || activeFuelFilters.length > 0) && (
+                <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" }}>{filteredRequests.length} resultado{filteredRequests.length !== 1 ? "s" : ""}</Text>
+              )}
             </View>
-            {(ccReport.requests ?? []).map((r: any, idx: number) => (
+            {filteredRequests.length === 0 ? (
+              <View style={{ padding: 24, alignItems: "center" }}>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
+                <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center" }}>Nenhuma solicitação para o filtro selecionado.</Text>
+                <TouchableOpacity onPress={() => { setActiveMaintenanceFilters([]); setActiveFuelFilters([]); }} style={{ marginTop: 10 }}>
+                  <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>Limpar filtros</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+            {filteredRequests.map((r: any, idx: number) => (
               <View key={r.id} style={{ paddingHorizontal: 14, paddingVertical: 12, borderTopWidth: idx > 0 ? 1 : 0, borderTopColor: colors.border }}>
                 <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
                   <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, flex: 1 }}>{r.requestNumber ?? `#${r.id}`}</Text>
