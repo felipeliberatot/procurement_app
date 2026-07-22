@@ -1018,127 +1018,279 @@ export default function RequestDetailScreen() {
     if (!request) return;
     setIsPrinting(true);
     try {
-      const itemsRows = (request.items ?? []).map((item: any) => `
-        <tr>
-          <td>${item.description ?? "—"}</td>
-          <td style="text-align:center">${item.quantity ?? "—"} ${item.unit ?? ""}</td>
-          <td style="text-align:right">${item.unitPrice ? Number(item.unitPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}</td>
-          <td style="text-align:right">${item.totalPrice ? Number(item.totalPrice).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}</td>
+      // ── Helpers de formatação ──────────────────────────────────────────────
+      const fmt = (v: any) => v != null ? Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
+      const fmtDate = (d: any) => d ? new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
+      const fmtDateShort = (d: any) => d ? new Date(d).toLocaleDateString("pt-BR") : "—";
+
+      // ── Valores ────────────────────────────────────────────────────────────
+      const req = request as any;
+      const valorOC = req.orderValue ? Number(req.orderValue) : null;
+      const valorEstimado = req.totalEstimatedValue ? Number(req.totalEstimatedValue) : null;
+      const valorPrincipal = valorOC ?? valorEstimado;
+      const valorLabel = valorOC ? "Valor da Ordem de Compra" : "Valor Estimado";
+
+      // ── Pagamento ──────────────────────────────────────────────────────────
+      const pmLabels: Record<string, string> = { pix: "PIX", boleto: "Boleto Bancário", cartao_avista: "Cartão à Vista", cartao_parcelado: "Cartão Parcelado" };
+      const paymentMethodLabel = pmLabels[req.paymentMethod ?? ""] ?? req.paymentMethod ?? "";
+
+      // ── Urgência ───────────────────────────────────────────────────────────
+      const urgLabels: Record<string, string> = { normal: "Normal", urgente: "Urgente", emergencial: "Emergencial" };
+      const urgLabel = urgLabels[req.urgencyLevel ?? ""] ?? req.urgencyLevel ?? "Normal";
+      const urgColor = req.urgencyLevel === "emergencial" ? "#dc2626" : req.urgencyLevel === "urgente" ? "#d97706" : "#166534";
+
+      // ── Tipo de Manutenção / Combustível ───────────────────────────────────
+      const mtLabels: Record<string, string> = { preventiva: "Manutenção Preventiva", corretiva: "Manutenção Corretiva" };
+      const ftLabels: Record<string, string> = { diesel: "Diesel", diesel_s10: "Diesel S-10", alcool_gasolina_fazenda: "Álcool/Gasolina – Fazenda", alcool_gasolina_administrativo: "Álcool/Gasolina – Administrativo", lubrificantes: "Lubrificantes" };
+      const tipoClassificacao = req.maintenanceType ? mtLabels[req.maintenanceType] : req.fuelType ? ftLabels[req.fuelType] : null;
+
+      // ── Status ─────────────────────────────────────────────────────────────
+      const statusLabel = req.status === "parcialmente_concluida" ? "PARCIALMENTE CONCLUÍDA" : req.status === "concluida" ? "CONCLUÍDA" : (req.status ?? "").toUpperCase().replace(/_/g, " ");
+      const statusBg = req.status === "concluida" ? "#dcfce7" : req.status === "parcialmente_concluida" ? "#fef9c3" : "#f3f4f6";
+      const statusColor = req.status === "concluida" ? "#166534" : req.status === "parcialmente_concluida" ? "#854d0e" : "#374151";
+
+      // ── Itens ──────────────────────────────────────────────────────────────
+      const itemsRows = (req.items ?? []).map((item: any, idx: number) => `
+        <tr style="background:${idx % 2 === 0 ? "#ffffff" : "#f9fafb"}">
+          <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:11px">${item.description ?? "—"}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:11px;white-space:nowrap">${item.quantity ?? "—"} ${item.unit ?? "un"}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;white-space:nowrap">${item.unitPrice ? fmt(item.unitPrice) : "—"}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;font-weight:600;white-space:nowrap">${item.totalPrice ? fmt(item.totalPrice) : "—"}</td>
         </tr>`).join("");
 
-      const historyRows = (history ?? []).map((h: any) => `
-        <tr>
-          <td>${new Date(h.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
-          <td>${h.userName ?? "—"}</td>
-          <td>${h.action ?? "—"}</td>
-          <td>${h.comment ?? ""}</td>
-        </tr>`).join("");
-
-      const paymentMethodLabel = (({ pix: "PIX", boleto: "Boleto", cartao_avista: "Cartão à Vista", cartao_parcelado: "Cartão Parcelado" } as Record<string, string>)[(request as any).paymentMethod ?? ""] ?? (request as any).paymentMethod ?? "");
-      const isAfterOCStatus = ["aguardando_ordem_compra", "aguardando_aprovacao_ceo", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "concluida", "parcialmente_concluida"].includes(request.status ?? "");
-      const valorLabel = isAfterOCStatus ? "Valor da OC" : "Valor Estimado";
-      // Histórico resumido: apenas aprovações-chave (sem duplicatas de etapa)
-      const keyActions = ["aprovado", "aprovado pelo gerente", "aprovado pelo orçamento", "aprovado pela controladoria", "aprovado pela diretoria", "oc emitida", "aprovado pelo financeiro", "comprovante enviado", "verificação concluída", "concluída"];
-      const historyFiltered = (history ?? []).filter((h: any) => keyActions.some(k => (h.action ?? "").toLowerCase().includes(k.split(" ")[0])));
-      const historyToShow = historyFiltered.length > 0 ? historyFiltered : (history ?? []).slice(0, 6);
-      const historyRowsCompact = historyToShow.map((h: any) => `
-        <tr>
-          <td style="white-space:nowrap">${new Date(h.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</td>
-          <td>${h.userName ?? "—"}</td>
-          <td>${h.action ?? "—"}</td>
-          <td style="color:#6b7280;font-size:10px">${h.comment ?? ""}</td>
-        </tr>`).join("");
       const html = `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solicitação ${(request as any).requestNumber ?? ("#" + request.id)}</title>
+  <title>Solicitação ${req.requestNumber ?? ("#" + req.id)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1a1a; padding: 16px 20px; }
-    .header { background: #166534; color: white; padding: 10px 16px; border-radius: 6px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-    .header h1 { font-size: 16px; font-weight: 700; }
-    .header .sub { font-size: 10px; opacity: 0.85; margin-top: 1px; }
-    .badge { display: inline-block; background: #dcfce7; color: #166534; border: 1px solid #86efac; border-radius: 20px; padding: 2px 10px; font-size: 10px; font-weight: 700; white-space: nowrap; }
-    .section { border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 14px; margin-bottom: 10px; }
-    .section-title { font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 16px; }
-    .row { display: flex; gap: 6px; margin-bottom: 3px; align-items: baseline; }
-    .label { color: #6b7280; min-width: 110px; font-size: 10px; }
-    .value { font-weight: 600; color: #1a1a1a; font-size: 11px; }
-    .valor-box { background: #dcfce7; border-radius: 5px; padding: 5px 10px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
-    .valor-box .lbl { font-weight: 700; color: #166534; font-size: 10px; }
-    .valor-box .val { font-weight: 800; color: #166534; font-size: 15px; }
-    .payment-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 5px; padding: 5px 10px; margin-top: 6px; display: flex; gap: 16px; align-items: center; }
-    .payment-box .pm-label { font-size: 10px; color: #1d4ed8; font-weight: 700; }
-    .payment-box .pm-value { font-size: 12px; color: #1e3a8a; font-weight: 800; }
-    table { width: 100%; border-collapse: collapse; font-size: 10px; }
-    th { background: #f3f4f6; text-align: left; padding: 5px 7px; font-size: 9px; text-transform: uppercase; color: #6b7280; border-bottom: 1.5px solid #e5e7eb; }
-    td { padding: 5px 7px; border-bottom: 1px solid #f3f4f6; vertical-align: top; }
-    tr:last-child td { border-bottom: none; }
-    .total-row td { font-weight: 700; background: #f9fafb; font-size: 11px; }
-    .footer { margin-top: 10px; text-align: center; font-size: 9px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 8px; }
-    @page { size: A4; margin: 12mm; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
+    @page { size: A4; margin: 14mm 14mm 14mm 14mm; }
+
+    /* ── Header ── */
+    .header { background: linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%); color: #fff; padding: 18px 22px 14px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
+    .header-left .company { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; margin-bottom: 4px; }
+    .header-left .title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+    .header-left .subtitle { font-size: 10px; opacity: 0.8; margin-top: 3px; }
+    .header-right { text-align: right; }
+    .status-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; background: ${statusBg}; color: ${statusColor}; border: 1.5px solid ${statusColor}44; }
+    .header-right .date-info { font-size: 9px; opacity: 0.7; margin-top: 6px; }
+
+    /* ── Seções ── */
+    .section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+    .section-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 7px 14px; display: flex; align-items: center; gap: 6px; }
+    .section-header .icon { font-size: 12px; }
+    .section-header .title { font-size: 10px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.06em; }
+    .section-body { padding: 12px 14px; }
+
+    /* ── Grid de campos ── */
+    .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
+    .field { display: flex; flex-direction: column; gap: 2px; }
+    .field.full { grid-column: 1 / -1; }
+    .field-label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+    .field-value { font-size: 11px; font-weight: 600; color: #111827; line-height: 1.4; }
+    .field-value.highlight { color: #166534; font-size: 13px; font-weight: 800; }
+    .field-value.urgency { font-weight: 700; color: ${urgColor}; }
+
+    /* ── Caixas de destaque ── */
+    .highlight-box { border-radius: 8px; padding: 12px 16px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .highlight-box.green { background: #f0fdf4; border: 1.5px solid #86efac; }
+    .highlight-box.blue { background: #eff6ff; border: 1.5px solid #bfdbfe; }
+    .highlight-box .hb-label { font-size: 10px; font-weight: 700; }
+    .highlight-box.green .hb-label { color: #166534; }
+    .highlight-box.blue .hb-label { color: #1d4ed8; }
+    .highlight-box .hb-value { font-size: 16px; font-weight: 800; }
+    .highlight-box.green .hb-value { color: #166534; }
+    .highlight-box.blue .hb-value { color: #1e3a8a; }
+    .highlight-box .hb-sub { font-size: 9px; opacity: 0.7; margin-top: 2px; }
+
+    /* ── Tabela de itens ── */
+    .items-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .items-table thead tr { background: #f1f5f9; }
+    .items-table th { padding: 7px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .items-table th.right { text-align: right; }
+    .items-table td { vertical-align: top; }
+    .items-table tfoot tr { background: #f8fafc; border-top: 2px solid #e2e8f0; }
+    .items-table tfoot td { padding: 8px 10px; font-weight: 700; font-size: 12px; }
+
+    /* ── Pagamento ── */
+    .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
+    .payment-item { display: flex; flex-direction: column; gap: 2px; }
+    .payment-item .p-label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+    .payment-item .p-value { font-size: 12px; font-weight: 700; color: #1e3a8a; }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 10px 0; }
+
+    /* ── Footer ── */
+    .footer { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .footer .footer-left { font-size: 9px; color: #9ca3af; }
+    .footer .footer-right { font-size: 9px; color: #9ca3af; text-align: right; }
+    .footer .footer-brand { font-size: 10px; font-weight: 700; color: #166534; }
   </style>
 </head>
 <body>
+
+  <!-- ══ CABEÇALHO ══ -->
   <div class="header">
+    <div class="header-left">
+      <div class="company">CGS Agrícola · Sistema de Gestão de Compras</div>
+      <div class="title">${req.requestNumber ?? ("#" + req.id)}</div>
+      <div class="subtitle">${req.application ?? "Solicitação de Compra"}</div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge">${statusLabel}</div>
+      <div class="date-info">Emitido em ${fmtDate(new Date())}</div>
+      ${req.completedAt ? `<div class="date-info">Concluído em ${fmtDateShort(req.completedAt)}</div>` : ""}
+    </div>
+  </div>
+
+  <!-- ══ INFORMAÇÕES GERAIS ══ -->
+  <div class="section">
+    <div class="section-header"><span class="icon">📋</span><span class="title">Informações Gerais</span></div>
+    <div class="section-body">
+      <div class="fields-grid">
+        <div class="field">
+          <span class="field-label">Solicitante</span>
+          <span class="field-value">${req.requesterName ?? "—"}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Departamento</span>
+          <span class="field-value">${req.department ?? "—"}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Centro de Custo</span>
+          <span class="field-value">${req.costCenterCode ?? "—"}</span>
+        </div>
+        <div class="field">
+          <span class="field-label">Urgência</span>
+          <span class="field-value urgency">${urgLabel}</span>
+        </div>
+        ${req.farmName ? `
+        <div class="field">
+          <span class="field-label">Fazenda / Unidade</span>
+          <span class="field-value">${req.farmName}</span>
+        </div>` : ""}
+        ${req.harvestName ? `
+        <div class="field">
+          <span class="field-label">Safra</span>
+          <span class="field-value">${req.harvestName}</span>
+        </div>` : ""}
+        ${tipoClassificacao ? `
+        <div class="field">
+          <span class="field-label">Tipo / Classificação</span>
+          <span class="field-value">${tipoClassificacao}</span>
+        </div>` : ""}
+        ${req.purchaseOrderNumber ? `
+        <div class="field">
+          <span class="field-label">Nº Ordem de Compra</span>
+          <span class="field-value">${req.purchaseOrderNumber}</span>
+        </div>` : ""}
+        ${req.osMyfarm ? `
+        <div class="field">
+          <span class="field-label">OS MyFarm</span>
+          <span class="field-value">${req.osMyfarm}</span>
+        </div>` : ""}
+        <div class="field">
+          <span class="field-label">Data da Solicitação</span>
+          <span class="field-value">${fmtDate(req.createdAt)}</span>
+        </div>
+        ${req.observations ? `
+        <div class="field full">
+          <span class="field-label">Observações</span>
+          <span class="field-value">${req.observations}</span>
+        </div>` : ""}
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ITENS SOLICITADOS ══ -->
+  ${(req.items ?? []).length > 0 ? `
+  <div class="section">
+    <div class="section-header"><span class="icon">📦</span><span class="title">Itens Solicitados (${(req.items ?? []).length})</span></div>
+    <div style="padding:0">
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width:50%">Descrição</th>
+            <th style="text-align:center;width:15%">Quantidade</th>
+            <th class="right" style="width:17%">Valor Unit.</th>
+            <th class="right" style="width:18%">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemsRows}</tbody>
+        ${valorPrincipal != null ? `
+        <tfoot>
+          <tr>
+            <td colspan="3" style="text-align:right;color:#374151;font-size:11px">${valorLabel}</td>
+            <td style="text-align:right;color:#166534;font-size:14px;font-weight:800">${fmt(valorPrincipal)}</td>
+          </tr>
+        </tfoot>` : ""}
+      </table>
+    </div>
+  </div>` : ""}
+
+  <!-- ══ VALOR PRINCIPAL ══ -->
+  ${valorPrincipal != null && (req.items ?? []).length === 0 ? `
+  <div class="highlight-box green" style="margin-bottom:12px">
     <div>
-      <div class="sub">CGS Agrícola — Sistema de Gestão de Compras</div>
-      <h1>Solicitação ${(request as any).requestNumber ?? ("#" + request.id)}</h1>
+      <div class="hb-label">${valorLabel}</div>
+      <div class="hb-sub">Valor total da solicitação</div>
     </div>
-    <div class="badge">${request.status === "parcialmente_concluida" ? "⚠ PARCIAL" : "✓ CONCLUÍDA"}</div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Informações Gerais</div>
-    <div class="grid2">
-      <div class="row"><span class="label">Aplicação/Finalidade:</span><span class="value">${request.application ?? "—"}</span></div>
-      <div class="row"><span class="label">Solicitante:</span><span class="value">${request.requesterName ?? "—"}</span></div>
-      <div class="row"><span class="label">Departamento:</span><span class="value">${request.department ?? "—"}</span></div>
-      ${request.costCenterCode ? `<div class="row"><span class="label">Centro de Custo:</span><span class="value">${request.costCenterCode}</span></div>` : "<div></div>"}
-      <div class="row"><span class="label">Urgência:</span><span class="value">${request.urgencyLevel ?? "—"}</span></div>
-      <div class="row"><span class="label">Criado em:</span><span class="value">${new Date(request.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span></div>
-      ${request.purchaseOrderNumber ? `<div class="row"><span class="label">Nº Ordem de Compra:</span><span class="value">${request.purchaseOrderNumber}</span></div>` : ""}
-      ${request.observations ? `<div class="row" style="grid-column:1/-1"><span class="label">Observações:</span><span class="value">${request.observations}</span></div>` : ""}
-    </div>
-    ${(request as any).paymentMethod ? `
-    <div class="payment-box">
-      <div><span class="pm-label">Forma de Pagamento: </span><span class="pm-value">${paymentMethodLabel}</span></div>
-      ${(request as any).paymentInfo ? `<div><span class="pm-label">Dados: </span><span class="pm-value" style="font-size:11px">${(request as any).paymentInfo}</span></div>` : ""}
-      ${(request as any).paymentObservations ? `<div style="grid-column:1/-1"><span class="pm-label">Obs.: </span><span style="font-size:10px;color:#374151">${(request as any).paymentObservations}</span></div>` : ""}
-    </div>` : ""}
-    ${request.totalEstimatedValue ? `
-    <div class="valor-box">
-      <span class="lbl">${valorLabel}</span>
-      <span class="val">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
-    </div>` : ""}
-  </div>
-
-  ${(request.items ?? []).length > 0 ? `
-  <div class="section">
-    <div class="section-title">Itens Solicitados (${(request.items ?? []).length})</div>
-    <table>
-      <thead><tr><th>Descrição</th><th style="text-align:center">Qtd/Un</th><th style="text-align:right">Valor Unit.</th><th style="text-align:right">Total</th></tr></thead>
-      <tbody>${itemsRows}</tbody>
-      ${request.totalEstimatedValue ? `<tfoot><tr class="total-row"><td colspan="3">${valorLabel}</td><td style="text-align:right">${Number(request.totalEstimatedValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td></tr></tfoot>` : ""}
-    </table>
+    <div class="hb-value">${fmt(valorPrincipal)}</div>
   </div>` : ""}
 
-  ${historyToShow.length > 0 ? `
+  <!-- ══ PAGAMENTO ══ -->
+  ${req.paymentMethod ? `
   <div class="section">
-    <div class="section-title">Histórico de Aprovações</div>
-    <table>
-      <thead><tr><th style="width:120px">Data/Hora</th><th style="width:140px">Usuário</th><th style="width:160px">Ação</th><th>Comentário</th></tr></thead>
-      <tbody>${historyRowsCompact}</tbody>
-    </table>
+    <div class="section-header"><span class="icon">💳</span><span class="title">Informações de Pagamento</span></div>
+    <div class="section-body">
+      <div class="payment-grid">
+        <div class="payment-item">
+          <span class="p-label">Forma de Pagamento</span>
+          <span class="p-value">${paymentMethodLabel}</span>
+        </div>
+        ${req.paymentInstallments && req.paymentMethod === "cartao_parcelado" ? `
+        <div class="payment-item">
+          <span class="p-label">Parcelas</span>
+          <span class="p-value">${req.paymentInstallments}x</span>
+        </div>` : "<div></div>"}
+        ${req.paymentInfo ? `
+        <div class="payment-item full" style="grid-column:1/-1">
+          <span class="p-label">Dados / Chave</span>
+          <span class="p-value" style="font-size:11px;color:#374151">${req.paymentInfo}</span>
+        </div>` : ""}
+        ${req.paymentObservations ? `
+        <div class="payment-item full" style="grid-column:1/-1">
+          <span class="p-label">Observações de Pagamento</span>
+          <span class="p-value" style="font-size:11px;color:#374151;font-weight:400">${req.paymentObservations}</span>
+        </div>` : ""}
+      </div>
+      ${valorPrincipal != null ? `
+      <div class="highlight-box blue" style="margin-top:12px">
+        <div>
+          <div class="hb-label">${valorLabel}</div>
+          <div class="hb-sub">Valor confirmado na Ordem de Compra</div>
+        </div>
+        <div class="hb-value">${fmt(valorPrincipal)}</div>
+      </div>` : ""}
+    </div>
   </div>` : ""}
 
+  <!-- ══ FOOTER ══ -->
   <div class="footer">
-    Documento gerado em ${new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })} — CGS Agrícola
+    <div class="footer-left">
+      <div class="footer-brand">CGS Agrícola</div>
+      <div>Sistema de Gestão de Compras</div>
+    </div>
+    <div class="footer-right">
+      <div>Documento gerado em ${fmtDate(new Date())}</div>
+      <div>${req.requestNumber ?? ("#" + req.id)} · ${statusLabel}</div>
+    </div>
   </div>
+
 </body>
 </html>`;
 
