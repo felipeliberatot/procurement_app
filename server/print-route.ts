@@ -179,10 +179,22 @@ export function registerPrintRoute(app: Express) {
 
     const suppliersHTML = suppliers.map((s: any, i: number) => {
       const isSelected = s.id === selectedSupplierId;
-      const supplierItems: any[] = (() => { try { return typeof s.items === "string" ? JSON.parse(s.items) : (s.items ?? []); } catch { return []; } })();
-      const itemTags = supplierItems.map((si: any) =>
-        `<span style="display:inline-block;background:#f1f5f9;border-radius:4px;padding:2px 7px;margin:2px 2px 0 0;font-size:10px;color:#374151">${escHtml(si.description)} · ${escHtml(si.quantity)} ${escHtml(si.unit)} · ${fmt(si.unitPrice)}</span>`
-      ).join("");
+      let supplierItems: any[] = [];
+      try {
+        const raw = s.items;
+        if (typeof raw === "string" && raw.trim().startsWith("[")) {
+          supplierItems = JSON.parse(raw);
+        } else if (Array.isArray(raw)) {
+          supplierItems = raw;
+        }
+      } catch { supplierItems = []; }
+      const itemTags = supplierItems.map((si: any) => {
+        const desc = typeof si === "object" && si !== null ? (si.description ?? "") : "";
+        const qty = typeof si === "object" && si !== null ? `${si.quantity ?? ""} ${si.unit ?? ""}`.trim() : "";
+        const price = typeof si === "object" && si !== null ? fmt(si.unitPrice) : "";
+        if (!desc) return "";
+        return `<span style="display:inline-block;background:#f1f5f9;border-radius:4px;padding:2px 7px;margin:2px 2px 0 0;font-size:10px;color:#374151">${escHtml(desc)}${qty ? ` · ${escHtml(qty)}` : ""}${price && price !== "—" ? ` · ${price}` : ""}</span>`;
+      }).filter(Boolean).join("");
       return `<div style="border:${isSelected ? "2px solid #16a34a" : "1px solid #e5e7eb"};border-radius:8px;padding:10px 12px;margin-bottom:8px;background:${isSelected ? "#f0fdf4" : "#fff"}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
           <div style="display:flex;align-items:center;gap:6px">
@@ -232,8 +244,8 @@ export function registerPrintRoute(app: Express) {
   <title>${escHtml(r.requestNumber ?? `#${r.id}`)} — CGS Agrícola</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; color: #1a1a1a; background: #fff; padding: 14mm; }
-    @page { size: A4; margin: 14mm; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10px; color: #1a1a1a; background: #fff; padding: 10mm; }
+    @page { size: A4; margin: 10mm; }
     @media print {
       body { padding: 0; }
       .no-print { display: none !important; }
@@ -251,7 +263,8 @@ export function registerPrintRoute(app: Express) {
     .urgency-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 9px; font-weight: 700; background: ${r.urgencyLevel === "emergencial" ? "#fef2f2" : r.urgencyLevel === "urgente" ? "#fffbeb" : "#f0fdf4"}; color: ${urgColor}; border: 1.5px solid ${urgColor}44; }
     .date-info { font-size: 8px; opacity: 0.75; }
 
-    .section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; page-break-inside: avoid; }
+    .section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+    .section.no-break { page-break-inside: avoid; }
     .section-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 6px 12px; display: flex; align-items: center; gap: 6px; }
     .sec-icon { font-size: 11px; }
     .sec-title { font-size: 9px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: 0.07em; }
@@ -272,8 +285,8 @@ export function registerPrintRoute(app: Express) {
 
     .history-table { width: 100%; border-collapse: collapse; }
     .history-table thead tr { background: #f1f5f9; }
-    .history-table th { padding: 5px 8px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
-    .history-table td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; font-size: 10px; vertical-align: middle; }
+    .history-table th { padding: 4px 6px; font-size: 7.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .history-table td { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; font-size: 9px; vertical-align: middle; line-height: 1.3; }
 
     .valor-final-box { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #16a34a; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid; }
     .vf-label { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -306,7 +319,7 @@ export function registerPrintRoute(app: Express) {
   </div>
 
   <!-- INFORMAÇÕES GERAIS -->
-  <div class="section">
+  <div class="section no-break">
     <div class="section-header"><span class="sec-icon">📋</span><span class="sec-title">Informações Gerais</span></div>
     <div class="section-body">
       <div class="fields-grid">
@@ -327,7 +340,7 @@ export function registerPrintRoute(app: Express) {
 
   <!-- ITENS SOLICITADOS -->
   ${items.length > 0 ? `
-  <div class="section">
+  <div class="section no-break">
     <div class="section-header"><span class="sec-icon">📦</span><span class="sec-title">Itens Solicitados (${items.length})</span></div>
     <div style="padding:0">
       <table class="items-table">
@@ -347,14 +360,14 @@ export function registerPrintRoute(app: Express) {
 
   <!-- COTAÇÕES DE FORNECEDORES -->
   ${suppliersHTML ? `
-  <div class="section">
+  <div class="section no-break">
     <div class="section-header"><span class="sec-icon">🏪</span><span class="sec-title">Cotações de Fornecedores (${suppliers.length})</span></div>
     <div class="section-body">${suppliersHTML}</div>
   </div>` : ""}
 
   <!-- PAGAMENTO -->
   ${r.paymentMethod ? `
-  <div class="section">
+  <div class="section no-break">
     <div class="section-header"><span class="sec-icon">💳</span><span class="sec-title">Informações de Pagamento</span></div>
     <div class="section-body">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 20px">

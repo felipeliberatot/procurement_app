@@ -7402,16 +7402,24 @@ function registerPrintRoute(app) {
     const selectedSupplier = suppliers.find((s) => s.id === selectedSupplierId) ?? null;
     const suppliersHTML = suppliers.map((s, i) => {
       const isSelected = s.id === selectedSupplierId;
-      const supplierItems = (() => {
-        try {
-          return typeof s.items === "string" ? JSON.parse(s.items) : s.items ?? [];
-        } catch {
-          return [];
+      let supplierItems = [];
+      try {
+        const raw = s.items;
+        if (typeof raw === "string" && raw.trim().startsWith("[")) {
+          supplierItems = JSON.parse(raw);
+        } else if (Array.isArray(raw)) {
+          supplierItems = raw;
         }
-      })();
-      const itemTags = supplierItems.map(
-        (si) => `<span style="display:inline-block;background:#f1f5f9;border-radius:4px;padding:2px 7px;margin:2px 2px 0 0;font-size:10px;color:#374151">${escHtml(si.description)} \xB7 ${escHtml(si.quantity)} ${escHtml(si.unit)} \xB7 ${fmt(si.unitPrice)}</span>`
-      ).join("");
+      } catch {
+        supplierItems = [];
+      }
+      const itemTags = supplierItems.map((si) => {
+        const desc2 = typeof si === "object" && si !== null ? si.description ?? "" : "";
+        const qty = typeof si === "object" && si !== null ? `${si.quantity ?? ""} ${si.unit ?? ""}`.trim() : "";
+        const price = typeof si === "object" && si !== null ? fmt(si.unitPrice) : "";
+        if (!desc2) return "";
+        return `<span style="display:inline-block;background:#f1f5f9;border-radius:4px;padding:2px 7px;margin:2px 2px 0 0;font-size:10px;color:#374151">${escHtml(desc2)}${qty ? ` \xB7 ${escHtml(qty)}` : ""}${price && price !== "\u2014" ? ` \xB7 ${price}` : ""}</span>`;
+      }).filter(Boolean).join("");
       return `<div style="border:${isSelected ? "2px solid #16a34a" : "1px solid #e5e7eb"};border-radius:8px;padding:10px 12px;margin-bottom:8px;background:${isSelected ? "#f0fdf4" : "#fff"}">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
           <div style="display:flex;align-items:center;gap:6px">
@@ -7451,8 +7459,8 @@ function registerPrintRoute(app) {
   <title>${escHtml(r.requestNumber ?? `#${r.id}`)} \u2014 CGS Agr\xEDcola</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; color: #1a1a1a; background: #fff; padding: 14mm; }
-    @page { size: A4; margin: 14mm; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10px; color: #1a1a1a; background: #fff; padding: 10mm; }
+    @page { size: A4; margin: 10mm; }
     @media print {
       body { padding: 0; }
       .no-print { display: none !important; }
@@ -7470,7 +7478,8 @@ function registerPrintRoute(app) {
     .urgency-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 9px; font-weight: 700; background: ${r.urgencyLevel === "emergencial" ? "#fef2f2" : r.urgencyLevel === "urgente" ? "#fffbeb" : "#f0fdf4"}; color: ${urgColor}; border: 1.5px solid ${urgColor}44; }
     .date-info { font-size: 8px; opacity: 0.75; }
 
-    .section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; page-break-inside: avoid; }
+    .section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+    .section.no-break { page-break-inside: avoid; }
     .section-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 6px 12px; display: flex; align-items: center; gap: 6px; }
     .sec-icon { font-size: 11px; }
     .sec-title { font-size: 9px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: 0.07em; }
@@ -7491,8 +7500,8 @@ function registerPrintRoute(app) {
 
     .history-table { width: 100%; border-collapse: collapse; }
     .history-table thead tr { background: #f1f5f9; }
-    .history-table th { padding: 5px 8px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
-    .history-table td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; font-size: 10px; vertical-align: middle; }
+    .history-table th { padding: 4px 6px; font-size: 7.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .history-table td { padding: 4px 6px; border-bottom: 1px solid #f3f4f6; font-size: 9px; vertical-align: middle; line-height: 1.3; }
 
     .valor-final-box { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #16a34a; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid; }
     .vf-label { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -7525,7 +7534,7 @@ function registerPrintRoute(app) {
   </div>
 
   <!-- INFORMA\xC7\xD5ES GERAIS -->
-  <div class="section">
+  <div class="section no-break">
     <div class="section-header"><span class="sec-icon">\u{1F4CB}</span><span class="sec-title">Informa\xE7\xF5es Gerais</span></div>
     <div class="section-body">
       <div class="fields-grid">
@@ -7546,7 +7555,7 @@ function registerPrintRoute(app) {
 
   <!-- ITENS SOLICITADOS -->
   ${items.length > 0 ? `
-  <div class="section">
+  <div class="section no-break">
     <div class="section-header"><span class="sec-icon">\u{1F4E6}</span><span class="sec-title">Itens Solicitados (${items.length})</span></div>
     <div style="padding:0">
       <table class="items-table">
@@ -7566,14 +7575,14 @@ function registerPrintRoute(app) {
 
   <!-- COTA\xC7\xD5ES DE FORNECEDORES -->
   ${suppliersHTML ? `
-  <div class="section">
+  <div class="section no-break">
     <div class="section-header"><span class="sec-icon">\u{1F3EA}</span><span class="sec-title">Cota\xE7\xF5es de Fornecedores (${suppliers.length})</span></div>
     <div class="section-body">${suppliersHTML}</div>
   </div>` : ""}
 
   <!-- PAGAMENTO -->
   ${r.paymentMethod ? `
-  <div class="section">
+  <div class="section no-break">
     <div class="section-header"><span class="sec-icon">\u{1F4B3}</span><span class="sec-title">Informa\xE7\xF5es de Pagamento</span></div>
     <div class="section-body">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 20px">
