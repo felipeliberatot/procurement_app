@@ -1066,69 +1066,75 @@ export default function RequestDetailScreen() {
   <title>Solicitação ${req.requestNumber ?? ("#" + req.id)}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 11px; color: #1a1a1a; background: #fff; }
-    @page { size: A4; margin: 14mm 14mm 14mm 14mm; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; color: #1a1a1a; background: #fff; }
+    @page { size: A4; margin: 12mm 12mm 12mm 12mm; }
+
+    /* ── Quebras de página ── */
+    .section { page-break-inside: avoid; break-inside: avoid; }
+    .items-table tbody tr { page-break-inside: avoid; break-inside: avoid; }
+    .footer { page-break-inside: avoid; break-inside: avoid; }
 
     /* ── Header ── */
-    .header { background: linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%); color: #fff; padding: 18px 22px 14px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: flex-start; }
-    .header-left .company { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; margin-bottom: 4px; }
-    .header-left .title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
-    .header-left .subtitle { font-size: 10px; opacity: 0.8; margin-top: 3px; }
+    .header { background: linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%); color: #fff; padding: 10px 14px 8px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; page-break-inside: avoid; }
+    .header-left .company { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; margin-bottom: 2px; }
+    .header-left .title { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; }
+    .header-left .subtitle { font-size: 9px; opacity: 0.8; margin-top: 2px; }
     .header-right { text-align: right; }
-    .status-badge { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; background: ${statusBg}; color: ${statusColor}; border: 1.5px solid ${statusColor}44; }
-    .header-right .date-info { font-size: 9px; opacity: 0.7; margin-top: 6px; }
+    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; background: ${statusBg}; color: ${statusColor}; border: 1.5px solid ${statusColor}44; }
+    .header-right .date-info { font-size: 8px; opacity: 0.7; margin-top: 4px; }
 
     /* ── Seções ── */
-    .section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
-    .section-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 7px 14px; display: flex; align-items: center; gap: 6px; }
-    .section-header .icon { font-size: 12px; }
-    .section-header .title { font-size: 10px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.06em; }
-    .section-body { padding: 12px 14px; }
+    .section { border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
+    .section-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 5px 10px; display: flex; align-items: center; gap: 5px; }
+    .section-header .icon { font-size: 10px; }
+    .section-header .title { font-size: 9px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.06em; }
+    .section-body { padding: 8px 10px; }
 
     /* ── Grid de campos ── */
-    .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; }
-    .field { display: flex; flex-direction: column; gap: 2px; }
+    .fields-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px 16px; }
+    .field { display: flex; flex-direction: column; gap: 1px; }
     .field.full { grid-column: 1 / -1; }
-    .field-label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
-    .field-value { font-size: 11px; font-weight: 600; color: #111827; line-height: 1.4; }
-    .field-value.highlight { color: #166534; font-size: 13px; font-weight: 800; }
+    .field.half { grid-column: span 1; }
+    .field-label { font-size: 8px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+    .field-value { font-size: 10px; font-weight: 600; color: #111827; line-height: 1.3; }
+    .field-value.highlight { color: #166534; font-size: 12px; font-weight: 800; }
     .field-value.urgency { font-weight: 700; color: ${urgColor}; }
 
     /* ── Caixas de destaque ── */
-    .highlight-box { border-radius: 8px; padding: 12px 16px; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .highlight-box { border-radius: 6px; padding: 8px 12px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
     .highlight-box.green { background: #f0fdf4; border: 1.5px solid #86efac; }
     .highlight-box.blue { background: #eff6ff; border: 1.5px solid #bfdbfe; }
-    .highlight-box .hb-label { font-size: 10px; font-weight: 700; }
+    .highlight-box .hb-label { font-size: 9px; font-weight: 700; }
     .highlight-box.green .hb-label { color: #166534; }
     .highlight-box.blue .hb-label { color: #1d4ed8; }
-    .highlight-box .hb-value { font-size: 16px; font-weight: 800; }
+    .highlight-box .hb-value { font-size: 14px; font-weight: 800; }
     .highlight-box.green .hb-value { color: #166534; }
     .highlight-box.blue .hb-value { color: #1e3a8a; }
-    .highlight-box .hb-sub { font-size: 9px; opacity: 0.7; margin-top: 2px; }
+    .highlight-box .hb-sub { font-size: 8px; opacity: 0.7; margin-top: 1px; }
 
     /* ── Tabela de itens ── */
-    .items-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .items-table { width: 100%; border-collapse: collapse; font-size: 10px; }
     .items-table thead tr { background: #f1f5f9; }
-    .items-table th { padding: 7px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .items-table th { padding: 5px 8px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
     .items-table th.right { text-align: right; }
-    .items-table td { vertical-align: top; }
+    .items-table td { vertical-align: top; padding: 5px 8px; border-bottom: 1px solid #e5e7eb; font-size: 10px; }
     .items-table tfoot tr { background: #f8fafc; border-top: 2px solid #e2e8f0; }
-    .items-table tfoot td { padding: 8px 10px; font-weight: 700; font-size: 12px; }
+    .items-table tfoot td { padding: 6px 8px; font-weight: 700; font-size: 11px; }
 
     /* ── Pagamento ── */
-    .payment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
-    .payment-item { display: flex; flex-direction: column; gap: 2px; }
-    .payment-item .p-label { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
-    .payment-item .p-value { font-size: 12px; font-weight: 700; color: #1e3a8a; }
+    .payment-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 0; }
+    .payment-item { display: flex; flex-direction: column; gap: 1px; }
+    .payment-item .p-label { font-size: 8px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
+    .payment-item .p-value { font-size: 11px; font-weight: 700; color: #1e3a8a; }
 
     /* ── Divider ── */
-    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 10px 0; }
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 6px 0; }
 
     /* ── Footer ── */
-    .footer { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-    .footer .footer-left { font-size: 9px; color: #9ca3af; }
-    .footer .footer-right { font-size: 9px; color: #9ca3af; text-align: right; }
-    .footer .footer-brand { font-size: 10px; font-weight: 700; color: #166534; }
+    .footer { margin-top: 10px; padding-top: 7px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
+    .footer .footer-left { font-size: 8px; color: #9ca3af; }
+    .footer .footer-right { font-size: 8px; color: #9ca3af; text-align: right; }
+    .footer .footer-brand { font-size: 9px; font-weight: 700; color: #166534; }
   </style>
 </head>
 <body>
