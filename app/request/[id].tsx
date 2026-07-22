@@ -1056,7 +1056,77 @@ export default function RequestDetailScreen() {
           <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:11px;white-space:nowrap">${item.quantity ?? "—"} ${item.unit ?? "un"}</td>
           <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;white-space:nowrap">${item.unitPrice ? fmt(item.unitPrice) : "—"}</td>
           <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:right;font-size:11px;font-weight:600;white-space:nowrap">${item.totalPrice ? fmt(item.totalPrice) : "—"}</td>
+          <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;text-align:center;font-size:10px;white-space:nowrap;color:${
+            item.itemStatus === 'comprado' ? '#166534' : item.itemStatus === 'aprovado' ? '#1d4ed8' : item.itemStatus === 'parcial' ? '#d97706' : '#6b7280'
+          }">${
+            item.itemStatus === 'comprado' ? '✅ Comprado' : item.itemStatus === 'aprovado' ? '✔ Autorizado' : item.itemStatus === 'parcial' ? '⚠ Parcial' : '⏳ Pendente'
+          }</td>
         </tr>`).join("");
+
+      // ── Cotações de Fornecedores ────────────────────────────────────────────
+      const suppliers: any[] = quotationData?.suppliers ?? [];
+      const selectedSupplierId = quotationData?.selectedSupplierId ?? null;
+      const selectedSupplier = suppliers.find((s: any) => s.id === selectedSupplierId) ?? null;
+
+      const suppliersHTML = suppliers.length > 0 ? suppliers.map((s: any, i: number) => {
+        const isSelected = s.id === selectedSupplierId;
+        let itemsArr: any[] = [];
+        try { itemsArr = JSON.parse(s.observations ?? "[]"); } catch { itemsArr = []; }
+        const itemsDetail = Array.isArray(itemsArr) && itemsArr.length > 0
+          ? itemsArr.map((it: any) => `<span style="display:inline-block;background:#f1f5f9;border-radius:4px;padding:2px 7px;margin:2px;font-size:10px;color:#374151">${it.description ?? it} ${it.quantity ? `· ${it.quantity} ${it.unit ?? 'un'}` : ''} ${it.unitPrice ? `· ${fmt(it.unitPrice)}` : ''}</span>`).join("")
+          : "";
+        return `
+        <div style="border:${isSelected ? '2px solid #16a34a' : '1px solid #e5e7eb'};border-radius:8px;padding:10px 12px;margin-bottom:8px;background:${isSelected ? '#f0fdf4' : '#fff'};page-break-inside:avoid">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+            <div style="display:flex;align-items:center;gap:6px">
+              ${isSelected ? '<span style="background:#16a34a;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:0.04em">⭐ SELECIONADO</span>' : `<span style="background:#f3f4f6;color:#6b7280;font-size:9px;font-weight:600;padding:2px 8px;border-radius:20px">${i + 1}º Fornecedor</span>`}
+              <span style="font-size:12px;font-weight:700;color:${isSelected ? '#166534' : '#111827'}">${s.supplierName || `Fornecedor ${i + 1}`}</span>
+            </div>
+            <span style="font-size:14px;font-weight:800;color:${isSelected ? '#166534' : '#374151'}">${fmt(s.totalValue)}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px 12px;margin-bottom:${itemsDetail ? '6px' : '0'}">
+            ${s.paymentTerms ? `<div><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;font-weight:600">Cond. Pagamento</span><br><span style="font-size:10px;color:#374151;font-weight:600">${s.paymentTerms}</span></div>` : ''}
+            ${s.deliveryDays ? `<div><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;font-weight:600">Prazo Entrega</span><br><span style="font-size:10px;color:#374151;font-weight:600">${s.deliveryDays} dias</span></div>` : ''}
+            ${s.supplierContact ? `<div><span style="font-size:8px;color:#9ca3af;text-transform:uppercase;font-weight:600">Contato</span><br><span style="font-size:10px;color:#374151;font-weight:600">${s.supplierContact}</span></div>` : ''}
+          </div>
+          ${itemsDetail ? `<div style="margin-top:4px">${itemsDetail}</div>` : ''}
+        </div>`;
+      }).join("") : "";
+
+      // ── Histórico de Aprovações ────────────────────────────────────────────
+      const historyRows: any[] = history ?? [];
+      const STEP_LABELS_PDF: Record<string, string> = {
+        criacao: "Criação", gerente: "Gerente", orcamento: "Orçamento", controladoria: "Controladoria",
+        diretoria: "Diretoria", ordem_compra: "Emissão de OC", aprovacao_compra: "Aprovação Compras",
+        financeiro: "Financeiro", verificacao_compras: "Verificação Compras", cancelamento: "Cancelamento",
+        reabertura: "Reabertura", edicao: "Edição",
+      };
+      const ACTION_LABELS_PDF: Record<string, string> = {
+        criada: "Solicitado", aprovada: "Aprovado", rejeitada: "Rejeitado",
+        orcamento_anexado: "Orçamento anexado", ordem_emitida: "OC emitida",
+        comprovante_anexado: "Comprovante anexado", comprovante_aprovado: "Comprovante aprovado",
+        comprovante_recusado: "Comprovante recusado", pagamento_recusado: "Pagamento recusado",
+        pagamento_verificado: "Pagamento verificado", nota_fiscal_anexada: "Nota fiscal anexada",
+        oc_finalizada: "OC finalizada", cancelada: "Cancelado", reaberta: "Reaberta",
+        compra_aprovada: "Compra aprovada", compra_cancelada: "Compra cancelada", editada: "Editado",
+      };
+      const historyHTML = historyRows.map((h: any, i: number) => {
+        const isLast = i === historyRows.length - 1;
+        const actionColor = h.action === 'aprovada' || h.action === 'compra_aprovada' || h.action === 'oc_finalizada' || h.action === 'comprovante_aprovado' || h.action === 'pagamento_verificado' ? '#166534'
+          : h.action === 'rejeitada' || h.action === 'cancelada' || h.action === 'comprovante_recusado' || h.action === 'pagamento_recusado' ? '#dc2626'
+          : '#1d4ed8';
+        const actionIcon = h.action === 'aprovada' || h.action === 'compra_aprovada' || h.action === 'oc_finalizada' || h.action === 'comprovante_aprovado' || h.action === 'pagamento_verificado' ? '✅'
+          : h.action === 'rejeitada' || h.action === 'cancelada' || h.action === 'comprovante_recusado' || h.action === 'pagamento_recusado' ? '❌'
+          : h.action === 'criada' ? '📝' : h.action === 'orcamento_anexado' ? '📄' : h.action === 'ordem_emitida' ? '🛒' : '🔄';
+        return `
+        <tr style="background:${i % 2 === 0 ? '#fff' : '#f9fafb'}">
+          <td style="padding:6px 8px;border-bottom:${isLast ? 'none' : '1px solid #e5e7eb'};font-size:10px;white-space:nowrap">${fmtDate(h.createdAt)}</td>
+          <td style="padding:6px 8px;border-bottom:${isLast ? 'none' : '1px solid #e5e7eb'};font-size:10px;font-weight:600">${h.userName ?? '—'}</td>
+          <td style="padding:6px 8px;border-bottom:${isLast ? 'none' : '1px solid #e5e7eb'};font-size:10px;color:#6b7280">${STEP_LABELS_PDF[h.step] ?? h.step}</td>
+          <td style="padding:6px 8px;border-bottom:${isLast ? 'none' : '1px solid #e5e7eb'};font-size:10px;font-weight:700;color:${actionColor}">${actionIcon} ${ACTION_LABELS_PDF[h.action] ?? h.action}</td>
+          <td style="padding:6px 8px;border-bottom:${isLast ? 'none' : '1px solid #e5e7eb'};font-size:10px;color:#374151;font-style:italic">${h.comment ? `"${h.comment}"` : '—'}</td>
+        </tr>`;
+      }).join("");
 
       const html = `
 <!DOCTYPE html>
@@ -1067,74 +1137,71 @@ export default function RequestDetailScreen() {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Helvetica Neue', Arial, sans-serif; font-size: 10.5px; color: #1a1a1a; background: #fff; }
-    @page { size: A4; margin: 12mm 12mm 12mm 12mm; }
-
-    /* ── Quebras de página ── */
-    .section { page-break-inside: avoid; break-inside: avoid; }
-    .items-table tbody tr { page-break-inside: avoid; break-inside: avoid; }
-    .footer { page-break-inside: avoid; break-inside: avoid; }
+    @page { size: A4; margin: 14mm 14mm 14mm 14mm; }
+    .page-break { page-break-before: always; break-before: always; }
+    .no-break { page-break-inside: avoid; break-inside: avoid; }
 
     /* ── Header ── */
-    .header { background: linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%); color: #fff; padding: 10px 14px 8px; border-radius: 6px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-start; page-break-inside: avoid; }
-    .header-left .company { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; margin-bottom: 2px; }
-    .header-left .title { font-size: 16px; font-weight: 800; letter-spacing: -0.5px; }
-    .header-left .subtitle { font-size: 9px; opacity: 0.8; margin-top: 2px; }
-    .header-right { text-align: right; }
-    .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 9px; font-weight: 700; letter-spacing: 0.04em; background: ${statusBg}; color: ${statusColor}; border: 1.5px solid ${statusColor}44; }
-    .header-right .date-info { font-size: 8px; opacity: 0.7; margin-top: 4px; }
+    .header { background: linear-gradient(135deg, #14532d 0%, #166534 60%, #15803d 100%); color: #fff; padding: 12px 16px 10px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-start; page-break-inside: avoid; }
+    .header-left .company { font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; margin-bottom: 3px; }
+    .header-left .req-number { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.1; }
+    .header-left .req-app { font-size: 11px; opacity: 0.9; margin-top: 3px; font-weight: 500; }
+    .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; background: ${statusBg}; color: ${statusColor}; border: 2px solid ${statusColor}44; }
+    .urgency-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 9px; font-weight: 700; background: ${req.urgencyLevel === 'emergencial' ? '#fef2f2' : req.urgencyLevel === 'urgente' ? '#fffbeb' : '#f0fdf4'}; color: ${urgColor}; border: 1.5px solid ${urgColor}44; }
+    .header-right .date-info { font-size: 8px; opacity: 0.75; }
 
     /* ── Seções ── */
-    .section { border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 8px; overflow: hidden; }
-    .section-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 5px 10px; display: flex; align-items: center; gap: 5px; }
-    .section-header .icon { font-size: 10px; }
-    .section-header .title { font-size: 9px; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.06em; }
-    .section-body { padding: 8px 10px; }
+    .section { border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 10px; overflow: hidden; page-break-inside: avoid; }
+    .section-header { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 6px 12px; display: flex; align-items: center; gap: 6px; }
+    .section-header .sec-icon { font-size: 11px; }
+    .section-header .sec-title { font-size: 9px; font-weight: 800; color: #374151; text-transform: uppercase; letter-spacing: 0.07em; }
+    .section-body { padding: 10px 12px; }
 
     /* ── Grid de campos ── */
-    .fields-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px 16px; }
-    .field { display: flex; flex-direction: column; gap: 1px; }
+    .fields-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 20px; }
+    .field { display: flex; flex-direction: column; gap: 2px; }
     .field.full { grid-column: 1 / -1; }
-    .field.half { grid-column: span 1; }
-    .field-label { font-size: 8px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
-    .field-value { font-size: 10px; font-weight: 600; color: #111827; line-height: 1.3; }
-    .field-value.highlight { color: #166534; font-size: 12px; font-weight: 800; }
-    .field-value.urgency { font-weight: 700; color: ${urgColor}; }
-
-    /* ── Caixas de destaque ── */
-    .highlight-box { border-radius: 6px; padding: 8px 12px; margin-top: 6px; display: flex; justify-content: space-between; align-items: center; }
-    .highlight-box.green { background: #f0fdf4; border: 1.5px solid #86efac; }
-    .highlight-box.blue { background: #eff6ff; border: 1.5px solid #bfdbfe; }
-    .highlight-box .hb-label { font-size: 9px; font-weight: 700; }
-    .highlight-box.green .hb-label { color: #166534; }
-    .highlight-box.blue .hb-label { color: #1d4ed8; }
-    .highlight-box .hb-value { font-size: 14px; font-weight: 800; }
-    .highlight-box.green .hb-value { color: #166534; }
-    .highlight-box.blue .hb-value { color: #1e3a8a; }
-    .highlight-box .hb-sub { font-size: 8px; opacity: 0.7; margin-top: 1px; }
+    .field-label { font-size: 8px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.07em; }
+    .field-value { font-size: 11px; font-weight: 600; color: #111827; line-height: 1.3; }
+    .field-value.urgency { font-weight: 800; color: ${urgColor}; }
 
     /* ── Tabela de itens ── */
-    .items-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+    .items-table { width: 100%; border-collapse: collapse; }
     .items-table thead tr { background: #f1f5f9; }
-    .items-table th { padding: 5px 8px; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .items-table th { padding: 6px 10px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
     .items-table th.right { text-align: right; }
-    .items-table td { vertical-align: top; padding: 5px 8px; border-bottom: 1px solid #e5e7eb; font-size: 10px; }
-    .items-table tfoot tr { background: #f8fafc; border-top: 2px solid #e2e8f0; }
-    .items-table tfoot td { padding: 6px 8px; font-weight: 700; font-size: 11px; }
+    .items-table th.center { text-align: center; }
+    .items-table td { vertical-align: middle; padding: 7px 10px; border-bottom: 1px solid #e5e7eb; font-size: 11px; }
+    .items-table tfoot tr { background: #f0fdf4; border-top: 2px solid #86efac; }
+    .items-table tfoot td { padding: 8px 10px; font-weight: 800; font-size: 13px; }
+
+    /* ── Tabela de histórico ── */
+    .history-table { width: 100%; border-collapse: collapse; }
+    .history-table thead tr { background: #f1f5f9; }
+    .history-table th { padding: 5px 8px; font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+    .history-table td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; font-size: 10px; vertical-align: middle; }
+
+    /* ── Caixa de valor final ── */
+    .valor-final-box { background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 2px solid #16a34a; border-radius: 10px; padding: 14px 18px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid; }
+    .valor-final-box .vf-left .vf-label { font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase; letter-spacing: 0.06em; }
+    .valor-final-box .vf-left .vf-sub { font-size: 9px; color: #4ade80; margin-top: 2px; }
+    .valor-final-box .vf-value { font-size: 26px; font-weight: 900; color: #14532d; letter-spacing: -1px; }
 
     /* ── Pagamento ── */
-    .payment-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 0; }
-    .payment-item { display: flex; flex-direction: column; gap: 1px; }
-    .payment-item .p-label { font-size: 8px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.06em; }
-    .payment-item .p-value { font-size: 11px; font-weight: 700; color: #1e3a8a; }
+    .payment-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 20px; }
+    .payment-item { display: flex; flex-direction: column; gap: 2px; }
+    .payment-item .p-label { font-size: 8px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.07em; }
+    .payment-item .p-value { font-size: 12px; font-weight: 800; color: #1e3a8a; }
 
-    /* ── Divider ── */
-    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 6px 0; }
+    /* ── Fornecedor selecionado destaque ── */
+    .selected-supplier-box { background: #f0fdf4; border: 2px solid #16a34a; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px; page-break-inside: avoid; }
 
     /* ── Footer ── */
-    .footer { margin-top: 10px; padding-top: 7px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; }
-    .footer .footer-left { font-size: 8px; color: #9ca3af; }
-    .footer .footer-right { font-size: 8px; color: #9ca3af; text-align: right; }
-    .footer .footer-brand { font-size: 9px; font-weight: 700; color: #166534; }
+    .footer { margin-top: 12px; padding-top: 8px; border-top: 2px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; page-break-inside: avoid; }
+    .footer-brand { font-size: 10px; font-weight: 800; color: #166534; }
+    .footer-sub { font-size: 8px; color: #9ca3af; margin-top: 1px; }
+    .footer-right { font-size: 8px; color: #9ca3af; text-align: right; }
   </style>
 </head>
 <body>
@@ -1143,19 +1210,20 @@ export default function RequestDetailScreen() {
   <div class="header">
     <div class="header-left">
       <div class="company">CGS Agrícola · Sistema de Gestão de Compras</div>
-      <div class="title">${req.requestNumber ?? ("#" + req.id)}</div>
-      <div class="subtitle">${req.application ?? "Solicitação de Compra"}</div>
+      <div class="req-number">${req.requestNumber ?? ("#" + req.id)}</div>
+      <div class="req-app">${req.application ?? "Solicitação de Compra"}</div>
     </div>
     <div class="header-right">
       <div class="status-badge">${statusLabel}</div>
+      <div class="urgency-badge">${urgLabel}</div>
       <div class="date-info">Emitido em ${fmtDate(new Date())}</div>
-      ${req.completedAt ? `<div class="date-info">Concluído em ${fmtDateShort(req.completedAt)}</div>` : ""}
+      ${req.completedAt ? `<div class="date-info">Concluído em ${fmtDate(req.completedAt)}</div>` : ""}
     </div>
   </div>
 
   <!-- ══ INFORMAÇÕES GERAIS ══ -->
   <div class="section">
-    <div class="section-header"><span class="icon">📋</span><span class="title">Informações Gerais</span></div>
+    <div class="section-header"><span class="sec-icon">📋</span><span class="sec-title">Informações Gerais</span></div>
     <div class="section-body">
       <div class="fields-grid">
         <div class="field">
@@ -1171,43 +1239,16 @@ export default function RequestDetailScreen() {
           <span class="field-value">${req.costCenterCode ?? "—"}</span>
         </div>
         <div class="field">
-          <span class="field-label">Urgência</span>
-          <span class="field-value urgency">${urgLabel}</span>
-        </div>
-        ${req.farmName ? `
-        <div class="field">
-          <span class="field-label">Fazenda / Unidade</span>
-          <span class="field-value">${req.farmName}</span>
-        </div>` : ""}
-        ${req.harvestName ? `
-        <div class="field">
-          <span class="field-label">Safra</span>
-          <span class="field-value">${req.harvestName}</span>
-        </div>` : ""}
-        ${tipoClassificacao ? `
-        <div class="field">
-          <span class="field-label">Tipo / Classificação</span>
-          <span class="field-value">${tipoClassificacao}</span>
-        </div>` : ""}
-        ${req.purchaseOrderNumber ? `
-        <div class="field">
-          <span class="field-label">Nº Ordem de Compra</span>
-          <span class="field-value">${req.purchaseOrderNumber}</span>
-        </div>` : ""}
-        ${req.osMyfarm ? `
-        <div class="field">
-          <span class="field-label">OS MyFarm</span>
-          <span class="field-value">${req.osMyfarm}</span>
-        </div>` : ""}
-        <div class="field">
           <span class="field-label">Data da Solicitação</span>
           <span class="field-value">${fmtDate(req.createdAt)}</span>
         </div>
-        ${req.observations ? `
-        <div class="field full">
-          <span class="field-label">Observações</span>
-          <span class="field-value">${req.observations}</span>
-        </div>` : ""}
+        ${req.farmName ? `<div class="field"><span class="field-label">Fazenda / Unidade</span><span class="field-value">${req.farmName}</span></div>` : ""}
+        ${req.harvestName ? `<div class="field"><span class="field-label">Safra</span><span class="field-value">${req.harvestName}</span></div>` : ""}
+        ${tipoClassificacao ? `<div class="field"><span class="field-label">Tipo / Classificação</span><span class="field-value">${tipoClassificacao}</span></div>` : ""}
+        ${req.purchaseOrderNumber ? `<div class="field"><span class="field-label">Nº Ordem de Compra</span><span class="field-value">${req.purchaseOrderNumber}</span></div>` : ""}
+        ${req.osMyfarm ? `<div class="field"><span class="field-label">OS MyFarm</span><span class="field-value">${req.osMyfarm}</span></div>` : ""}
+        ${req.completedAt ? `<div class="field"><span class="field-label">Data de Conclusão</span><span class="field-value">${fmtDate(req.completedAt)}</span></div>` : ""}
+        ${req.observations ? `<div class="field full"><span class="field-label">Observações</span><span class="field-value" style="font-weight:400;color:#374151">${req.observations}</span></div>` : ""}
       </div>
     </div>
   </div>
@@ -1215,43 +1256,36 @@ export default function RequestDetailScreen() {
   <!-- ══ ITENS SOLICITADOS ══ -->
   ${(req.items ?? []).length > 0 ? `
   <div class="section">
-    <div class="section-header"><span class="icon">📦</span><span class="title">Itens Solicitados (${(req.items ?? []).length})</span></div>
+    <div class="section-header"><span class="sec-icon">📦</span><span class="sec-title">Itens Solicitados (${(req.items ?? []).length})</span></div>
     <div style="padding:0">
       <table class="items-table">
         <thead>
           <tr>
-            <th style="width:50%">Descrição</th>
-            <th style="text-align:center;width:15%">Quantidade</th>
-            <th class="right" style="width:17%">Valor Unit.</th>
-            <th class="right" style="width:18%">Total</th>
+            <th style="width:42%">Descrição</th>
+            <th class="center" style="width:13%">Qtd</th>
+            <th class="right" style="width:14%">Vl. Unit.</th>
+            <th class="right" style="width:14%">Total</th>
+            <th class="center" style="width:17%">Situação</th>
           </tr>
         </thead>
         <tbody>${itemsRows}</tbody>
-        ${valorPrincipal != null ? `
-        <tfoot>
-          <tr>
-            <td colspan="3" style="text-align:right;color:#374151;font-size:11px">${valorLabel}</td>
-            <td style="text-align:right;color:#166534;font-size:14px;font-weight:800">${fmt(valorPrincipal)}</td>
-          </tr>
-        </tfoot>` : ""}
       </table>
     </div>
   </div>` : ""}
 
-  <!-- ══ VALOR PRINCIPAL ══ -->
-  ${valorPrincipal != null && (req.items ?? []).length === 0 ? `
-  <div class="highlight-box green" style="margin-bottom:12px">
-    <div>
-      <div class="hb-label">${valorLabel}</div>
-      <div class="hb-sub">Valor total da solicitação</div>
+  <!-- ══ COTAÇÕES DE FORNECEDORES ══ -->
+  ${suppliersHTML ? `
+  <div class="section">
+    <div class="section-header"><span class="sec-icon">🏪</span><span class="sec-title">Cotações de Fornecedores (${suppliers.length})</span></div>
+    <div class="section-body" style="padding:10px 12px">
+      ${suppliersHTML}
     </div>
-    <div class="hb-value">${fmt(valorPrincipal)}</div>
   </div>` : ""}
 
   <!-- ══ PAGAMENTO ══ -->
   ${req.paymentMethod ? `
   <div class="section">
-    <div class="section-header"><span class="icon">💳</span><span class="title">Informações de Pagamento</span></div>
+    <div class="section-header"><span class="sec-icon">💳</span><span class="sec-title">Informações de Pagamento</span></div>
     <div class="section-body">
       <div class="payment-grid">
         <div class="payment-item">
@@ -1262,38 +1296,60 @@ export default function RequestDetailScreen() {
         <div class="payment-item">
           <span class="p-label">Parcelas</span>
           <span class="p-value">${req.paymentInstallments}x</span>
-        </div>` : "<div></div>"}
+        </div>` : ""}
         ${req.paymentInfo ? `
-        <div class="payment-item full" style="grid-column:1/-1">
-          <span class="p-label">Dados / Chave</span>
-          <span class="p-value" style="font-size:11px;color:#374151">${req.paymentInfo}</span>
+        <div class="payment-item" style="grid-column:1/-1">
+          <span class="p-label">Dados / Chave PIX / Banco</span>
+          <span class="p-value" style="font-size:11px;color:#374151;font-weight:600">${req.paymentInfo}</span>
         </div>` : ""}
         ${req.paymentObservations ? `
-        <div class="payment-item full" style="grid-column:1/-1">
+        <div class="payment-item" style="grid-column:1/-1">
           <span class="p-label">Observações de Pagamento</span>
           <span class="p-value" style="font-size:11px;color:#374151;font-weight:400">${req.paymentObservations}</span>
         </div>` : ""}
       </div>
-      ${valorPrincipal != null ? `
-      <div class="highlight-box blue" style="margin-top:12px">
-        <div>
-          <div class="hb-label">${valorLabel}</div>
-          <div class="hb-sub">Valor confirmado na Ordem de Compra</div>
-        </div>
-        <div class="hb-value">${fmt(valorPrincipal)}</div>
-      </div>` : ""}
     </div>
+  </div>` : ""}
+
+  <!-- ══ HISTÓRICO DE APROVAÇÕES ══ -->
+  ${historyHTML ? `
+  <div class="section">
+    <div class="section-header"><span class="sec-icon">📅</span><span class="sec-title">Histórico de Aprovações</span></div>
+    <div style="padding:0">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th style="width:18%">Data / Hora</th>
+            <th style="width:22%">Usuário</th>
+            <th style="width:18%">Etapa</th>
+            <th style="width:18%">Ação</th>
+            <th style="width:24%">Comentário</th>
+          </tr>
+        </thead>
+        <tbody>${historyHTML}</tbody>
+      </table>
+    </div>
+  </div>` : ""}
+
+  <!-- ══ VALOR FINAL EM DESTAQUE ══ -->
+  ${valorPrincipal != null ? `
+  <div class="valor-final-box">
+    <div class="vf-left">
+      <div class="vf-label">${valorLabel}</div>
+      <div class="vf-sub">${selectedSupplier ? `Fornecedor: ${selectedSupplier.supplierName}` : req.paymentMethod ? `Pagamento: ${paymentMethodLabel}` : "Valor total confirmado"}</div>
+    </div>
+    <div class="vf-value">${fmt(valorPrincipal)}</div>
   </div>` : ""}
 
   <!-- ══ FOOTER ══ -->
   <div class="footer">
-    <div class="footer-left">
+    <div>
       <div class="footer-brand">CGS Agrícola</div>
-      <div>Sistema de Gestão de Compras</div>
+      <div class="footer-sub">Sistema de Gestão de Compras · Documento gerado em ${fmtDate(new Date())}</div>
     </div>
     <div class="footer-right">
-      <div>Documento gerado em ${fmtDate(new Date())}</div>
-      <div>${req.requestNumber ?? ("#" + req.id)} · ${statusLabel}</div>
+      <div style="font-weight:700;color:#374151">${req.requestNumber ?? ("#" + req.id)}</div>
+      <div>${statusLabel}</div>
     </div>
   </div>
 
