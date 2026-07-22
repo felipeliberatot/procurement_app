@@ -37,11 +37,12 @@ const ROLES: ProcurementRole[] = [
   "orcamento",
   "controladoria",
   "diretoria",
+  "ceo",
   "financeiro",
   "admin",
 ];
 
-type ApprovalLevel = "nenhum" | "gerente" | "controladoria" | "orcamento" | "diretoria" | "financeiro" | "master";
+type ApprovalLevel = "nenhum" | "gerente" | "controladoria" | "orcamento" | "diretoria" | "ceo" | "financeiro" | "master";
 
 const APPROVAL_LEVELS: Array<{ key: ApprovalLevel; label: string; description: string; color: string }> = [
   { key: "nenhum", label: "Nenhum", description: "Não participa do fluxo de aprovação", color: "#9CA3AF" },
@@ -49,6 +50,7 @@ const APPROVAL_LEVELS: Array<{ key: ApprovalLevel; label: string; description: s
   { key: "controladoria", label: "Controladoria", description: "Aprova na 3ª etapa (plano orçamentário)", color: "#F59E0B" },
   { key: "orcamento", label: "Orçamento", description: "Aprova orçamentos com upload de PDF", color: "#8B5CF6" },
   { key: "diretoria", label: "Diretoria", description: "Aprova na 4ª etapa do fluxo", color: "#EF4444" },
+  { key: "ceo", label: "CEO", description: "Aprova Ordem de Compra antes do Financeiro", color: "#DC2626" },
   { key: "financeiro", label: "Financeiro", description: "Confirma pagamento na etapa final", color: "#10B981" },
   { key: "master", label: "Master", description: "Acesso total: gerencia usuários e configurações do sistema", color: "#7C3AED" },
 ];
@@ -954,6 +956,7 @@ function UserFormModal({
                           {r === "orcamento" && "Anexa PDF de orçamento na 2ª etapa"}
                           {r === "controladoria" && "Aprova na 3ª etapa (plano orçamentário)"}
                           {r === "diretoria" && "Aprova na 4ª etapa do fluxo"}
+                          {r === "ceo" && "Aprova Ordem de Compra antes do Financeiro"}
                           {r === "financeiro" && "Confirma pagamento na etapa final"}
                           {r === "admin" && "Acesso total ao sistema"}
                         </Text>

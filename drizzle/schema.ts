@@ -43,6 +43,7 @@ export const users = mysqlTable("users", {
     "controladoria",
     "orcamento",
     "diretoria",
+    "ceo",
     "financeiro",
     "master",
   ]).default("nenhum").notNull(),

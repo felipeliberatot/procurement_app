@@ -30,7 +30,7 @@ export const appRouter = router({
         department: z.string().optional(),
         phone: z.string().optional(),
         jobTitle: z.string().optional(),
-        approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"]).optional(),
+        approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "ceo", "financeiro", "master"]).optional(),
       }))
       .mutation(({ ctx, input }) => db.updateUserProfile(ctx.user.id, input)),
     upsertByAdmin: protectedProcedure
@@ -43,8 +43,8 @@ export const appRouter = router({
         department: z.string().optional(),
         phone: z.string().optional(),
         jobTitle: z.string().optional(),
-        approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"]).optional(),
-        extraApprovalLevels: z.array(z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"])).optional(),
+        approvalLevel: z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "ceo", "financeiro", "master"]).optional(),
+        extraApprovalLevels: z.array(z.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "ceo", "financeiro", "master"])).optional(),
         active: z.boolean().optional(),
         password: z.string().min(6).optional(),
         registerPermissions: z.record(z.string(), z.object({

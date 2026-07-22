@@ -77,6 +77,7 @@ var init_schema = __esm({
         "controladoria",
         "orcamento",
         "diretoria",
+        "ceo",
         "financeiro",
         "master"
       ]).default("nenhum").notNull(),
@@ -5346,7 +5347,7 @@ var appRouter = router({
       department: z2.string().optional(),
       phone: z2.string().optional(),
       jobTitle: z2.string().optional(),
-      approvalLevel: z2.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"]).optional()
+      approvalLevel: z2.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "ceo", "financeiro", "master"]).optional()
     })).mutation(({ ctx, input }) => updateUserProfile(ctx.user.id, input)),
     upsertByAdmin: protectedProcedure.input(z2.object({
       id: z2.number().optional(),
@@ -5357,8 +5358,8 @@ var appRouter = router({
       department: z2.string().optional(),
       phone: z2.string().optional(),
       jobTitle: z2.string().optional(),
-      approvalLevel: z2.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"]).optional(),
-      extraApprovalLevels: z2.array(z2.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "financeiro", "master"])).optional(),
+      approvalLevel: z2.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "ceo", "financeiro", "master"]).optional(),
+      extraApprovalLevels: z2.array(z2.enum(["nenhum", "gerente", "controladoria", "orcamento", "diretoria", "ceo", "financeiro", "master"])).optional(),
       active: z2.boolean().optional(),
       password: z2.string().min(6).optional(),
       registerPermissions: z2.record(z2.string(), z2.object({
