@@ -196,6 +196,8 @@ var init_schema = __esm({
       // Nome da safra (desnormalizado)
       // Tipo de Manutenção (obrigatório quando Centro de Custo = Manutenção – Grupo Operativo)
       maintenanceType: mysqlEnum("maintenanceType", ["preventiva", "corretiva"]),
+      // Tipo de Combustível/Lubrificante (obrigatório quando CC = Combustíveis e Lubrificantes)
+      fuelType: mysqlEnum("fuelType", ["diesel", "diesel_s10", "alcool_gasolina_fazenda", "alcool_gasolina_administrativo", "lubrificantes"]),
       // Prioridade (definida por Willian Camilo ou Rafael)
       isPriority: boolean("isPriority").default(false).notNull(),
       // true = solicitação prioritária
@@ -1591,6 +1593,7 @@ async function createPurchaseRequest(user, input) {
     harvestId: input.harvestId ?? null,
     harvestName: input.harvestName ?? null,
     maintenanceType: input.maintenanceType ?? null,
+    fuelType: input.fuelType ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
     // Todos os pedidos começam pelo Gerente (urgentes/emergenciais vão para Diretoria após o Gerente)
     status: "aguardando_gerente",
@@ -3290,6 +3293,7 @@ async function updateByControladoria(requestId, editorId, editorName, input) {
     harvestId: input.harvestId ?? null,
     harvestName: input.harvestName ?? null,
     maintenanceType: input.maintenanceType ?? null,
+    fuelType: input.fuelType ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
     // status NÃO é alterado — permanece "aguardando_controladoria"
     updatedAt: /* @__PURE__ */ new Date()
@@ -3946,6 +3950,7 @@ async function getRequestsByCostCenter(costCenterCode, year, month) {
     createdAt: purchaseRequests.createdAt,
     completedAt: purchaseRequests.completedAt,
     maintenanceType: purchaseRequests.maintenanceType,
+    fuelType: purchaseRequests.fuelType,
     farmName: purchaseRequests.farmName,
     harvestName: purchaseRequests.harvestName
   }).from(purchaseRequests).where(
@@ -5562,6 +5567,7 @@ var appRouter = router({
       harvestId: z2.number().optional(),
       harvestName: z2.string().optional(),
       maintenanceType: z2.enum(["preventiva", "corretiva"]).optional(),
+      fuelType: z2.enum(["diesel", "diesel_s10", "alcool_gasolina_fazenda", "alcool_gasolina_administrativo", "lubrificantes"]).optional(),
       items: z2.array(z2.object({
         description: z2.string().min(1),
         quantity: z2.string(),
@@ -5764,6 +5770,7 @@ var appRouter = router({
       harvestId: z2.number().optional(),
       harvestName: z2.string().optional(),
       maintenanceType: z2.enum(["preventiva", "corretiva"]).optional(),
+      fuelType: z2.enum(["diesel", "diesel_s10", "alcool_gasolina_fazenda", "alcool_gasolina_administrativo", "lubrificantes"]).optional(),
       items: z2.array(z2.object({
         description: z2.string().min(1),
         quantity: z2.string(),

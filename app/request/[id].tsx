@@ -1520,6 +1520,15 @@ export default function RequestDetailScreen() {
               {(request as any).maintenanceType && (
                 <Text className="text-sm text-muted">Tipo de Manutenção: <Text className="text-foreground font-bold">{(request as any).maintenanceType === "preventiva" ? "🛡️ Preventiva" : "🔧 Corretiva"}</Text></Text>
               )}
+              {(request as any).fuelType && (
+                <Text className="text-sm text-muted">Tipo: <Text className="text-foreground font-bold">{
+                  (request as any).fuelType === "diesel" ? "⛽ Diesel" :
+                  (request as any).fuelType === "diesel_s10" ? "⛽ Diesel S-10" :
+                  (request as any).fuelType === "alcool_gasolina_fazenda" ? "🌾 Álcool/Gasolina – Fazenda" :
+                  (request as any).fuelType === "alcool_gasolina_administrativo" ? "🏢 Álcool/Gasolina – Administrativo" :
+                  "🛢️ Lubrificantes"
+                }</Text></Text>
+              )}
             </View>
             {request.observations && (
               <View className="mt-3 pt-3 border-t border-border">

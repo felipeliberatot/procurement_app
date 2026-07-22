@@ -169,6 +169,9 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   // Tipo de Manutenção (obrigatório quando Centro de Custo = Manutenção – Grupo Operativo)
   maintenanceType: mysqlEnum("maintenanceType", ["preventiva", "corretiva"]),
 
+  // Tipo de Combustível/Lubrificante (obrigatório quando CC = Combustíveis e Lubrificantes)
+  fuelType: mysqlEnum("fuelType", ["diesel", "diesel_s10", "alcool_gasolina_fazenda", "alcool_gasolina_administrativo", "lubrificantes"]),
+
   // Prioridade (definida por Willian Camilo ou Rafael)
   isPriority: boolean("isPriority").default(false).notNull(), // true = solicitação prioritária
   priorityOrder: int("priorityOrder"),                        // Posição no rank de prioridades (1 = mais urgente)

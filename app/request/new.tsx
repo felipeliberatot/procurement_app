@@ -64,6 +64,8 @@ export default function NewRequestScreen() {
   const [showHarvestPicker, setShowHarvestPicker] = useState(false);
   // Tipo de Manutenção (obrigatório quando CC = Manutenção – Grupo Operativo)
   const [maintenanceType, setMaintenanceType] = useState<"preventiva" | "corretiva" | null>(null);
+  // Tipo de Combustível/Lubrificante (obrigatório quando CC = Combustíveis e Lubrificantes)
+  const [fuelType, setFuelType] = useState<"diesel" | "diesel_s10" | "alcool_gasolina_fazenda" | "alcool_gasolina_administrativo" | "lubrificantes" | null>(null);
 
   const { data: costCenters } = trpc.costCenters.list.useQuery(undefined, { enabled: isAuthenticated });
   const { data: departments } = trpc.departments.list.useQuery(undefined, { enabled: isAuthenticated });
@@ -113,8 +115,10 @@ export default function NewRequestScreen() {
 
   // Nome exato do CC de Manutenção que aciona o campo extra
   const MAINTENANCE_CC_NAME = "Manutenção - Grupo Operativo";
+  const FUEL_CC_NAME = "Combustíveis e Lubrificantes";
   const selectedCCName = (costCenters ?? []).find(c => c.code === costCenterCode)?.name ?? "";
   const isMaintenanceCC = selectedCCName === MAINTENANCE_CC_NAME;
+  const isFuelCC = selectedCCName === FUEL_CC_NAME;
 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -173,6 +177,8 @@ export default function NewRequestScreen() {
     if (!selectedHarvestId) { Alert.alert("Campo obrigatório", "Selecione a Safra antes de continuar."); return; }
     // Tipo de Manutenção obrigatório quando CC = Manutenção – Grupo Operativo
     if (isMaintenanceCC && !maintenanceType) { Alert.alert("Campo obrigatório", "Selecione o Tipo de Manutenção (Preventiva ou Corretiva)."); return; }
+    // Tipo de Combustível obrigatório quando CC = Combustíveis e Lubrificantes
+    if (isFuelCC && !fuelType) { Alert.alert("Campo obrigatório", "Selecione o Tipo de Combustível/Lubrificante."); return; }
 
     const validItems = items.filter((i) => i.description.trim());
     if (validItems.length === 0) { Alert.alert("Campo obrigatório", "Adicione ao menos um item com descrição."); return; }
@@ -191,6 +197,7 @@ export default function NewRequestScreen() {
       harvestId: selectedHarvestId ?? undefined,
       harvestName: selectedHarvestName || undefined,
       maintenanceType: isMaintenanceCC ? (maintenanceType ?? undefined) : undefined,
+      fuelType: isFuelCC ? (fuelType ?? undefined) : undefined,
       items: validItems.map((i) => ({
         description: i.description.trim(),
         quantity: i.quantity || "1",

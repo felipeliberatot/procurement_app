@@ -540,6 +540,7 @@ export async function createPurchaseRequest(
     harvestId?: number;
     harvestName?: string;
     maintenanceType?: "preventiva" | "corretiva";
+    fuelType?: "diesel" | "diesel_s10" | "alcool_gasolina_fazenda" | "alcool_gasolina_administrativo" | "lubrificantes";
     items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
   }
 ) {
@@ -574,6 +575,7 @@ export async function createPurchaseRequest(
     harvestId: input.harvestId ?? null,
     harvestName: input.harvestName ?? null,
     maintenanceType: input.maintenanceType ?? null,
+    fuelType: (input as any).fuelType ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
     // Todos os pedidos começam pelo Gerente (urgentes/emergenciais vão para Diretoria após o Gerente)
     status: "aguardando_gerente",
@@ -2904,6 +2906,7 @@ export async function updateByControladoria(
     harvestId?: number;
     harvestName?: string;
     maintenanceType?: "preventiva" | "corretiva";
+    fuelType?: "diesel" | "diesel_s10" | "alcool_gasolina_fazenda" | "alcool_gasolina_administrativo" | "lubrificantes";
     items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
   }
 ): Promise<{ success: boolean; error?: string }> {
@@ -2944,6 +2947,7 @@ export async function updateByControladoria(
       harvestId: input.harvestId ?? null,
       harvestName: input.harvestName ?? null,
       maintenanceType: input.maintenanceType ?? null,
+      fuelType: input.fuelType ?? null,
       totalEstimatedValue: total > 0 ? String(total) : null,
       // status NÃO é alterado — permanece "aguardando_controladoria"
       updatedAt: new Date(),
@@ -3932,6 +3936,7 @@ export async function getRequestsByCostCenter(costCenterCode: string, year?: num
       createdAt: purchaseRequests.createdAt,
       completedAt: purchaseRequests.completedAt,
       maintenanceType: purchaseRequests.maintenanceType,
+      fuelType: purchaseRequests.fuelType,
       farmName: purchaseRequests.farmName,
       harvestName: purchaseRequests.harvestName,
     })

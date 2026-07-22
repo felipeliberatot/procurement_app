@@ -1883,6 +1883,40 @@ function PorCustoCenterTab({
             );
           })()}
 
+          {/* Cards por Tipo de Combustível (apenas quando há solicitações com fuelType) */}
+          {(() => {
+            const reqs = ccReport.requests ?? [];
+            const fuelLabels: Record<string, { label: string; icon: string; color: string }> = {
+              diesel: { label: "Diesel", icon: "⛽", color: "#1D4ED8" },
+              diesel_s10: { label: "Diesel S-10", icon: "⛽", color: "#2563EB" },
+              alcool_gasolina_fazenda: { label: "Álcool/Gasolina Fazenda", icon: "🌾", color: "#16A34A" },
+              alcool_gasolina_administrativo: { label: "Álcool/Gasolina Adm.", icon: "🏢", color: "#7C3AED" },
+              lubrificantes: { label: "Lubrificantes", icon: "🛢️", color: "#B45309" },
+            };
+            const fuelReqs = reqs.filter((r: any) => r.fuelType);
+            if (fuelReqs.length === 0) return null;
+            const byType = Object.entries(fuelLabels).map(([key, meta]) => ({
+              key, meta,
+              items: reqs.filter((r: any) => r.fuelType === key),
+              total: reqs.filter((r: any) => r.fuelType === key).reduce((s: number, r: any) => s + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0),
+            })).filter(g => g.items.length > 0);
+            return (
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8 }}>POR TIPO</Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {byType.map(g => (
+                    <View key={g.key} style={{ backgroundColor: g.meta.color + "18", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: g.meta.color + "44", alignItems: "center", minWidth: 90 }}>
+                      <Text style={{ fontSize: 16, marginBottom: 2 }}>{g.meta.icon}</Text>
+                      <Text style={{ fontSize: 18, fontWeight: "800", color: g.meta.color }}>{g.items.length}</Text>
+                      <Text style={{ fontSize: 9, color: colors.muted, textAlign: "center" }}>{g.meta.label}</Text>
+                      <Text style={{ fontSize: 10, fontWeight: "700", color: g.meta.color, marginTop: 2 }}>{fmtCurrency(g.total)}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            );
+          })()}
+
           {/* Tabela de solicitações */}
           <View style={{ backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
             <View style={{ backgroundColor: colors.primary + "18", paddingHorizontal: 14, paddingVertical: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -1906,6 +1940,21 @@ function PorCustoCenterTab({
                     <View style={{ backgroundColor: r.maintenanceType === "preventiva" ? "#3DB84B22" : "#F59E0B22", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
                       <Text style={{ fontSize: 10, fontWeight: "700", color: r.maintenanceType === "preventiva" ? "#3DB84B" : "#F59E0B" }}>
                         {r.maintenanceType === "preventiva" ? "🛡️ Preventiva" : "🔧 Corretiva"}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
+                {r.fuelType ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                    <View style={{ backgroundColor: "#1D4ED822", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "700", color: "#1D4ED8" }}>
+                        {
+                          r.fuelType === "diesel" ? "⛽ Diesel" :
+                          r.fuelType === "diesel_s10" ? "⛽ Diesel S-10" :
+                          r.fuelType === "alcool_gasolina_fazenda" ? "🌾 Álcool/Gasolina – Fazenda" :
+                          r.fuelType === "alcool_gasolina_administrativo" ? "🏢 Álcool/Gasolina – Adm." :
+                          "🛢️ Lubrificantes"
+                        }
                       </Text>
                     </View>
                   </View>

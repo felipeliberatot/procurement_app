@@ -295,6 +295,7 @@ export const appRouter = router({
         harvestId: z.number().optional(),
         harvestName: z.string().optional(),
         maintenanceType: z.enum(["preventiva", "corretiva"]).optional(),
+        fuelType: z.enum(["diesel", "diesel_s10", "alcool_gasolina_fazenda", "alcool_gasolina_administrativo", "lubrificantes"]).optional(),
         items: z.array(z.object({
           description: z.string().min(1),
           quantity: z.string(),
@@ -565,6 +566,7 @@ export const appRouter = router({
         harvestId: z.number().optional(),
         harvestName: z.string().optional(),
         maintenanceType: z.enum(["preventiva", "corretiva"]).optional(),
+        fuelType: z.enum(["diesel", "diesel_s10", "alcool_gasolina_fazenda", "alcool_gasolina_administrativo", "lubrificantes"]).optional(),
         items: z.array(z.object({
           description: z.string().min(1),
           quantity: z.string(),
