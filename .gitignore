@@ -5,10 +5,11 @@ node_modules/
 
 # Expo
 .expo/
-dist/
-!dist/web
-!dist/web/**
-!dist/index.js
+# Ignorar dist/ mas incluir dist/web (bundle web) e dist/index.js (servidor)
+# Nota: em Git, para exceções funcionarem dentro de um diretório ignorado,
+# o diretório pai não pode ser ignorado com trailing slash.
+# Por isso ignoramos apenas os subdiretórios não desejados:
+dist/web-build/
 web-build/
 expo-env.d.ts
 
