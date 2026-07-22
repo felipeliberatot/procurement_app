@@ -453,6 +453,15 @@ export default function DashboardScreen() {
                   </View>
                   <View className="flex-row gap-3">
                     <MetricCard label="Emergenciais" value={stats?.emergency ?? 0} icon="🔴" color="error" onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { urgency: "emergencial" } })} />
+                    {(userRole === "ceo" || userRole === "master" || (user as any)?.approvalLevel === "master") && (
+                      <MetricCard
+                        label="Aprov. CEO"
+                        value={(allRequests ?? []).filter((r: any) => r.status === "aguardando_aprovacao_ceo").length}
+                        icon="👔"
+                        color="warning"
+                        onPress={() => router.push({ pathname: "/(tabs)/requests" as any, params: { filter: "aguardando_aprovacao_ceo" } })}
+                      />
+                    )}
                   </View>
                 </>
               )}
