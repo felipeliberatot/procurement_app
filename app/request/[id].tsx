@@ -1517,6 +1517,9 @@ export default function RequestDetailScreen() {
               {(request as any).harvestName && (
                 <Text className="text-sm text-muted">Safra: <Text className="text-foreground font-bold">{(request as any).harvestName}</Text></Text>
               )}
+              {(request as any).maintenanceType && (
+                <Text className="text-sm text-muted">Tipo de Manutenção: <Text className="text-foreground font-bold">{(request as any).maintenanceType === "preventiva" ? "🛡️ Preventiva" : "🔧 Corretiva"}</Text></Text>
+              )}
             </View>
             {request.observations && (
               <View className="mt-3 pt-3 border-t border-border">

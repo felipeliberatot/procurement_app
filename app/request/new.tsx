@@ -55,13 +55,15 @@ export default function NewRequestScreen() {
   const [observations, setObservations] = useState("");
   const [osMyfarm, setOsMyfarm] = useState("");
   const [items, setItems] = useState<Item[]>([newItem()]);
-  // Fazenda e Safra (opcionais)
+  // Fazenda e Safra (obrigatórios)
   const [selectedFarmId, setSelectedFarmId] = useState<number | null>(null);
   const [selectedFarmName, setSelectedFarmName] = useState("");
   const [selectedHarvestId, setSelectedHarvestId] = useState<number | null>(null);
   const [selectedHarvestName, setSelectedHarvestName] = useState("");
   const [showFarmPicker, setShowFarmPicker] = useState(false);
   const [showHarvestPicker, setShowHarvestPicker] = useState(false);
+  // Tipo de Manutenção (obrigatório quando CC = Manutenção – Grupo Operativo)
+  const [maintenanceType, setMaintenanceType] = useState<"preventiva" | "corretiva" | null>(null);
 
   const { data: costCenters } = trpc.costCenters.list.useQuery(undefined, { enabled: isAuthenticated });
   const { data: departments } = trpc.departments.list.useQuery(undefined, { enabled: isAuthenticated });
@@ -108,6 +110,11 @@ export default function NewRequestScreen() {
     cc.name.toLowerCase().includes(costCenterSearch.toLowerCase()) ||
     cc.code.toLowerCase().includes(costCenterSearch.toLowerCase())
   );
+
+  // Nome exato do CC de Manutenção que aciona o campo extra
+  const MAINTENANCE_CC_NAME = "Manutenção - Grupo Operativo";
+  const selectedCCName = (costCenters ?? []).find(c => c.code === costCenterCode)?.name ?? "";
+  const isMaintenanceCC = selectedCCName === MAINTENANCE_CC_NAME;
 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -160,6 +167,13 @@ export default function NewRequestScreen() {
       );
       return;
     }
+    // Fazenda obrigatória
+    if (!selectedFarmId) { Alert.alert("Campo obrigatório", "Selecione a Fazenda/Unidade antes de continuar."); return; }
+    // Safra obrigatória
+    if (!selectedHarvestId) { Alert.alert("Campo obrigatório", "Selecione a Safra antes de continuar."); return; }
+    // Tipo de Manutenção obrigatório quando CC = Manutenção – Grupo Operativo
+    if (isMaintenanceCC && !maintenanceType) { Alert.alert("Campo obrigatório", "Selecione o Tipo de Manutenção (Preventiva ou Corretiva)."); return; }
+
     const validItems = items.filter((i) => i.description.trim());
     if (validItems.length === 0) { Alert.alert("Campo obrigatório", "Adicione ao menos um item com descrição."); return; }
     const itemSemUnidade = validItems.find((i) => !i.unit.trim());
@@ -176,6 +190,7 @@ export default function NewRequestScreen() {
       farmName: selectedFarmName || undefined,
       harvestId: selectedHarvestId ?? undefined,
       harvestName: selectedHarvestName || undefined,
+      maintenanceType: isMaintenanceCC ? (maintenanceType ?? undefined) : undefined,
       items: validItems.map((i) => ({
         description: i.description.trim(),
         quantity: i.quantity || "1",
@@ -206,9 +221,9 @@ export default function NewRequestScreen() {
             <Text className="text-xs text-muted">{user?.email ?? "—"}</Text>
           </View>
 
-          {/* Fazenda (opcional) */}
+          {/* Fazenda (obrigatório) */}
           <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-2">Fazenda <Text className="text-muted font-normal">(opcional)</Text></Text>
+            <Text className="text-sm font-semibold text-foreground mb-2">Fazenda/Unidade <Text className="text-error">*</Text></Text>
             <Pressable
               onPress={() => setShowFarmPicker(true)}
               style={({ pressed }) => ({
@@ -238,9 +253,9 @@ export default function NewRequestScreen() {
             </Pressable>
           </View>
 
-          {/* Safra (opcional) */}
+          {/* Safra (obrigatório) */}
           <View className="mb-4">
-            <Text className="text-sm font-semibold text-foreground mb-2">Safra <Text className="text-muted font-normal">(opcional)</Text></Text>
+            <Text className="text-sm font-semibold text-foreground mb-2">Safra <Text className="text-error">*</Text></Text>
             <Pressable
               onPress={() => setShowHarvestPicker(true)}
               style={({ pressed }) => ({
@@ -330,6 +345,35 @@ export default function NewRequestScreen() {
               </View>
             </TouchableOpacity>
           </View>
+
+          {/* Tipo de Manutenção (condicional: aparece apenas quando CC = Manutenção – Grupo Operativo) */}
+          {isMaintenanceCC && (
+            <View className="mb-4">
+              <Text className="text-sm font-semibold text-foreground mb-2">Tipo de Manutenção <Text className="text-error">*</Text></Text>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                {(["preventiva", "corretiva"] as const).map((tipo) => (
+                  <TouchableOpacity
+                    key={tipo}
+                    onPress={() => setMaintenanceType(tipo)}
+                    style={{
+                      flex: 1,
+                      backgroundColor: maintenanceType === tipo ? colors.primary : colors.surface,
+                      borderWidth: 1.5,
+                      borderColor: maintenanceType === tipo ? colors.primary : colors.border,
+                      borderRadius: 12,
+                      paddingVertical: 13,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: maintenanceType === tipo ? "#fff" : colors.foreground }}>
+                      {tipo === "preventiva" ? "🛡️ Preventiva" : "🔧 Corretiva"}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Aplicação / Bem */}
           <View className="mb-4">

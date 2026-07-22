@@ -539,6 +539,7 @@ export async function createPurchaseRequest(
     farmName?: string;
     harvestId?: number;
     harvestName?: string;
+    maintenanceType?: "preventiva" | "corretiva";
     items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
   }
 ) {
@@ -572,6 +573,7 @@ export async function createPurchaseRequest(
     farmName: input.farmName ?? null,
     harvestId: input.harvestId ?? null,
     harvestName: input.harvestName ?? null,
+    maintenanceType: input.maintenanceType ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
     // Todos os pedidos começam pelo Gerente (urgentes/emergenciais vão para Diretoria após o Gerente)
     status: "aguardando_gerente",
@@ -2901,6 +2903,7 @@ export async function updateByControladoria(
     farmName?: string;
     harvestId?: number;
     harvestName?: string;
+    maintenanceType?: "preventiva" | "corretiva";
     items: Array<{ description: string; quantity: string; unit: string; unitPrice?: string }>;
   }
 ): Promise<{ success: boolean; error?: string }> {
@@ -2940,6 +2943,7 @@ export async function updateByControladoria(
       farmName: input.farmName ?? null,
       harvestId: input.harvestId ?? null,
       harvestName: input.harvestName ?? null,
+      maintenanceType: input.maintenanceType ?? null,
       totalEstimatedValue: total > 0 ? String(total) : null,
       // status NÃO é alterado — permanece "aguardando_controladoria"
       updatedAt: new Date(),
@@ -3927,6 +3931,9 @@ export async function getRequestsByCostCenter(costCenterCode: string, year?: num
       observations: purchaseRequests.observations,
       createdAt: purchaseRequests.createdAt,
       completedAt: purchaseRequests.completedAt,
+      maintenanceType: purchaseRequests.maintenanceType,
+      farmName: purchaseRequests.farmName,
+      harvestName: purchaseRequests.harvestName,
     })
     .from(purchaseRequests)
     .where(

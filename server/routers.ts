@@ -294,6 +294,7 @@ export const appRouter = router({
         farmName: z.string().optional(),
         harvestId: z.number().optional(),
         harvestName: z.string().optional(),
+        maintenanceType: z.enum(["preventiva", "corretiva"]).optional(),
         items: z.array(z.object({
           description: z.string().min(1),
           quantity: z.string(),
@@ -563,6 +564,7 @@ export const appRouter = router({
         farmName: z.string().optional(),
         harvestId: z.number().optional(),
         harvestName: z.string().optional(),
+        maintenanceType: z.enum(["preventiva", "corretiva"]).optional(),
         items: z.array(z.object({
           description: z.string().min(1),
           quantity: z.string(),

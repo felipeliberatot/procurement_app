@@ -857,3 +857,10 @@
 - [x] Bloco toggle aguardando_verificacao_compras: mantém 'comprado', label "Comprado"/"Pendente"
 - [x] Bloco toggle parcialmente_concluida: mantém 'comprado', contador inclui autorizado/aprovado/comprado
 - [x] malotes.tsx: boughtItems inclui 'autorizado' e 'aprovado' além de 'comprado'
+
+## Tipo de Manutenção e Fazenda/Safra Obrigatórios
+- [x] Fazenda e Safra obrigatórios na nova solicitação
+- [x] Campo maintenanceType no banco (enum: preventiva, corretiva)
+- [x] Campo Tipo de Manutenção condicional no formulário (aparece quando CC = Manutenção – Grupo Operativo)
+- [x] Exibir Tipo de Manutenção nos detalhes da solicitação
+- [x] Filtro por Tipo de Manutenção nos relatórios/dashboard

@@ -159,11 +159,14 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   // OS Myfarm
   osMyfarm: varchar("osMyfarm", { length: 64 }), // Número da OS Myfarm vinculada
 
-  // Fazenda e Safra (opcionais — selecionados na criação da solicitação)
+  // Fazenda e Safra (obrigatórios — selecionados na criação da solicitação)
   farmId: int("farmId"),                                // FK para units (fazendas)
   farmName: varchar("farmName", { length: 128 }),       // Nome da fazenda (desnormalizado)
   harvestId: int("harvestId"),                          // FK para harvests (safras)
   harvestName: varchar("harvestName", { length: 128 }), // Nome da safra (desnormalizado)
+
+  // Tipo de Manutenção (obrigatório quando Centro de Custo = Manutenção – Grupo Operativo)
+  maintenanceType: mysqlEnum("maintenanceType", ["preventiva", "corretiva"]),
 
   // Prioridade (definida por Willian Camilo ou Rafael)
   isPriority: boolean("isPriority").default(false).notNull(), // true = solicitação prioritária

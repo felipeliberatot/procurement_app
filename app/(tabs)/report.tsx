@@ -1846,7 +1846,7 @@ function PorCustoCenterTab({
       ) : (
         <View>
           {/* Cards de resumo */}
-          <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+          <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
             <View style={{ flex: 1, backgroundColor: colors.primary + "18", borderRadius: 10, padding: 14, borderWidth: 1, borderColor: colors.primary + "44", alignItems: "center" }}>
               <Text style={{ fontSize: 28, fontWeight: "800", color: colors.primary }}>{ccReport.summary?.totalSolicitacoes ?? 0}</Text>
               <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2, textAlign: "center" }}>Solicitações Concluídas</Text>
@@ -1856,6 +1856,32 @@ function PorCustoCenterTab({
               <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2, textAlign: "center" }}>Total Gasto</Text>
             </View>
           </View>
+
+          {/* Cards Preventiva / Corretiva (apenas quando há solicitações com maintenanceType) */}
+          {(() => {
+            const reqs = ccReport.requests ?? [];
+            const preventiva = reqs.filter((r: any) => r.maintenanceType === "preventiva");
+            const corretiva = reqs.filter((r: any) => r.maintenanceType === "corretiva");
+            if (preventiva.length === 0 && corretiva.length === 0) return null;
+            const totalPrev = preventiva.reduce((s: number, r: any) => s + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
+            const totalCorr = corretiva.reduce((s: number, r: any) => s + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
+            return (
+              <View style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}>
+                <View style={{ flex: 1, backgroundColor: "#3DB84B18", borderRadius: 10, padding: 12, borderWidth: 1, borderColor: "#3DB84B44", alignItems: "center" }}>
+                  <Text style={{ fontSize: 18, marginBottom: 2 }}>🛡️</Text>
+                  <Text style={{ fontSize: 20, fontWeight: "800", color: "#3DB84B" }}>{preventiva.length}</Text>
+                  <Text style={{ fontSize: 10, color: colors.muted, textAlign: "center" }}>Preventiva</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#3DB84B", marginTop: 2 }}>{fmtCurrency(totalPrev)}</Text>
+                </View>
+                <View style={{ flex: 1, backgroundColor: "#F59E0B18", borderRadius: 10, padding: 12, borderWidth: 1, borderColor: "#F59E0B44", alignItems: "center" }}>
+                  <Text style={{ fontSize: 18, marginBottom: 2 }}>🔧</Text>
+                  <Text style={{ fontSize: 20, fontWeight: "800", color: "#F59E0B" }}>{corretiva.length}</Text>
+                  <Text style={{ fontSize: 10, color: colors.muted, textAlign: "center" }}>Corretiva</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "700", color: "#F59E0B", marginTop: 2 }}>{fmtCurrency(totalCorr)}</Text>
+                </View>
+              </View>
+            );
+          })()}
 
           {/* Tabela de solicitações */}
           <View style={{ backgroundColor: colors.surface, borderRadius: 10, borderWidth: 1, borderColor: colors.border, overflow: "hidden" }}>
@@ -1874,6 +1900,16 @@ function PorCustoCenterTab({
                 </View>
                 <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>{r.requesterName ?? ""} · {r.department ?? ""}</Text>
                 {r.application ? <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>Bem: {r.application}</Text> : null}
+                {r.farmName ? <Text style={{ fontSize: 12, color: colors.muted }} numberOfLines={1}>🌾 Fazenda: {r.farmName}{r.harvestName ? ` · Safra: ${r.harvestName}` : ""}</Text> : null}
+                {r.maintenanceType ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 }}>
+                    <View style={{ backgroundColor: r.maintenanceType === "preventiva" ? "#3DB84B22" : "#F59E0B22", borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                      <Text style={{ fontSize: 10, fontWeight: "700", color: r.maintenanceType === "preventiva" ? "#3DB84B" : "#F59E0B" }}>
+                        {r.maintenanceType === "preventiva" ? "🛡️ Preventiva" : "🔧 Corretiva"}
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
                 <View style={{ flexDirection: "row", gap: 8, marginTop: 4, alignItems: "center" }}>
                   <View style={{ backgroundColor: r.urgencyLevel === "emergencial" ? colors.error + "22" : r.urgencyLevel === "urgente" ? colors.warning + "22" : colors.border, borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
                     <Text style={{ fontSize: 10, fontWeight: "700", color: r.urgencyLevel === "emergencial" ? colors.error : r.urgencyLevel === "urgente" ? colors.warning : colors.muted }}>

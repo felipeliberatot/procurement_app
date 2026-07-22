@@ -184,7 +184,7 @@ var init_schema = __esm({
       // OS Myfarm
       osMyfarm: varchar("osMyfarm", { length: 64 }),
       // Número da OS Myfarm vinculada
-      // Fazenda e Safra (opcionais — selecionados na criação da solicitação)
+      // Fazenda e Safra (obrigatórios — selecionados na criação da solicitação)
       farmId: int("farmId"),
       // FK para units (fazendas)
       farmName: varchar("farmName", { length: 128 }),
@@ -193,6 +193,8 @@ var init_schema = __esm({
       // FK para harvests (safras)
       harvestName: varchar("harvestName", { length: 128 }),
       // Nome da safra (desnormalizado)
+      // Tipo de Manutenção (obrigatório quando Centro de Custo = Manutenção – Grupo Operativo)
+      maintenanceType: mysqlEnum("maintenanceType", ["preventiva", "corretiva"]),
       // Prioridade (definida por Willian Camilo ou Rafael)
       isPriority: boolean("isPriority").default(false).notNull(),
       // true = solicitação prioritária
@@ -1587,6 +1589,7 @@ async function createPurchaseRequest(user, input) {
     farmName: input.farmName ?? null,
     harvestId: input.harvestId ?? null,
     harvestName: input.harvestName ?? null,
+    maintenanceType: input.maintenanceType ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
     // Todos os pedidos começam pelo Gerente (urgentes/emergenciais vão para Diretoria após o Gerente)
     status: "aguardando_gerente",
@@ -3285,6 +3288,7 @@ async function updateByControladoria(requestId, editorId, editorName, input) {
     farmName: input.farmName ?? null,
     harvestId: input.harvestId ?? null,
     harvestName: input.harvestName ?? null,
+    maintenanceType: input.maintenanceType ?? null,
     totalEstimatedValue: total > 0 ? String(total) : null,
     // status NÃO é alterado — permanece "aguardando_controladoria"
     updatedAt: /* @__PURE__ */ new Date()
@@ -3939,7 +3943,10 @@ async function getRequestsByCostCenter(costCenterCode, year, month) {
     orderValue: purchaseRequests.orderValue,
     observations: purchaseRequests.observations,
     createdAt: purchaseRequests.createdAt,
-    completedAt: purchaseRequests.completedAt
+    completedAt: purchaseRequests.completedAt,
+    maintenanceType: purchaseRequests.maintenanceType,
+    farmName: purchaseRequests.farmName,
+    harvestName: purchaseRequests.harvestName
   }).from(purchaseRequests).where(
     and2(
       eq2(purchaseRequests.costCenterCode, costCenterCode),
@@ -5553,6 +5560,7 @@ var appRouter = router({
       farmName: z2.string().optional(),
       harvestId: z2.number().optional(),
       harvestName: z2.string().optional(),
+      maintenanceType: z2.enum(["preventiva", "corretiva"]).optional(),
       items: z2.array(z2.object({
         description: z2.string().min(1),
         quantity: z2.string(),
@@ -5754,6 +5762,7 @@ var appRouter = router({
       farmName: z2.string().optional(),
       harvestId: z2.number().optional(),
       harvestName: z2.string().optional(),
+      maintenanceType: z2.enum(["preventiva", "corretiva"]).optional(),
       items: z2.array(z2.object({
         description: z2.string().min(1),
         quantity: z2.string(),
