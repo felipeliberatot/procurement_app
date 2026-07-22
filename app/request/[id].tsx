@@ -1411,19 +1411,33 @@ export default function RequestDetailScreen() {
 </body>
 </html>`;
 
-      // Gerar PDF como arquivo temporário e compartilhar (evita bug do printAsync no iOS na segunda chamada)
+      // Gerar PDF
       if (Platform.OS === "web") {
-        // Web: usar base64 para evitar problemas com file:// URIs
-        const { uri: base64Uri } = await Print.printToFileAsync({ html, base64: true });
-        const base64Data = base64Uri.includes(",") ? base64Uri.split(",")[1] : base64Uri;
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+        // Web: abrir nova janela com o HTML e chamar window.print()
+        const printWindow = window.open("", "_blank", "width=900,height=700");
+        if (!printWindow) {
+          // Fallback: abrir como data URI se popup bloqueado
+          const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          window.open(url, "_blank");
+          return;
         }
-        const blob = new Blob([bytes], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        window.open(url, "_blank");
+        printWindow.document.write(html);
+        printWindow.document.close();
+        // Aguardar carregamento completo antes de imprimir
+        printWindow.onload = () => {
+          setTimeout(() => {
+            printWindow.focus();
+            printWindow.print();
+          }, 500);
+        };
+        // Fallback se onload não disparar
+        setTimeout(() => {
+          if (printWindow && !printWindow.closed) {
+            printWindow.focus();
+            printWindow.print();
+          }
+        }, 1500);
       } else {
         // Mobile: usar arquivo temporário
         const { uri } = await Print.printToFileAsync({ html, base64: false });
