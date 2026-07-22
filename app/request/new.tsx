@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trpc } from "@/lib/trpc";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -116,8 +116,16 @@ export default function NewRequestScreen() {
   // Detecta CC especiais pelo código (mais confiável que o nome)
   const MAINTENANCE_CC_CODE = "CC-013"; // Manutenção – Grupo Operativo
   const FUEL_CC_CODE = "OP-001";        // Combustíveis e Lubrificantes
-  const isMaintenanceCC = costCenterCode === MAINTENANCE_CC_CODE;
-  const isFuelCC = costCenterCode === FUEL_CC_CODE;
+  const [isMaintenanceCC, setIsMaintenanceCC] = useState(false);
+  const [isFuelCC, setIsFuelCC] = useState(false);
+
+  // Atualiza os flags quando o CC muda
+  useEffect(() => {
+    const trimmed = costCenterCode.trim();
+    setIsMaintenanceCC(trimmed === MAINTENANCE_CC_CODE);
+    setIsFuelCC(trimmed === FUEL_CC_CODE);
+    console.log('[NewRequest] costCenterCode:', JSON.stringify(trimmed), 'isFuelCC:', trimmed === FUEL_CC_CODE, 'isMaintenanceCC:', trimmed === MAINTENANCE_CC_CODE);
+  }, [costCenterCode]);
 
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
@@ -757,7 +765,7 @@ export default function NewRequestScreen() {
               }
               renderItem={({ item }) => (
                 <Pressable
-                  onPress={() => { setCostCenterCode(item.code); setShowCostCenterPicker(false); setCostCenterSearch(""); }}
+                  onPress={() => { setCostCenterCode(item.code); setFuelType(null); setMaintenanceType(null); setShowCostCenterPicker(false); setCostCenterSearch(""); }}
                   style={({ pressed }) => ({
                     opacity: pressed ? 0.7 : 1,
                     backgroundColor: costCenterCode === item.code ? `${colors.primary}15` : colors.surface,
