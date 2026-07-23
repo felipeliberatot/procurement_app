@@ -3102,8 +3102,8 @@ export default function RequestDetailScreen() {
                     </Pressable>
                   ) : (
                     <View style={{ marginBottom: 12 }}>
-                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 4 }}>Comprovante de Pagamento *</Text>
-                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o comprovante antes de finalizar a OC</Text>
+                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 4 }}>💳 Comprovante de Pagamento *</Text>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o comprovante de pagamento antes de finalizar a OC</Text>
                       <TouchableOpacity
                         onPress={handlePickPaymentProof}
                         disabled={uploadPaymentProofMutation.isPending}
