@@ -77,6 +77,7 @@ export default function EditByControladoriaScreen() {
   const [harvestId, setHarvestId] = useState<number | undefined>(undefined);
   const [harvestName, setHarvestName] = useState("");
   const [items, setItems] = useState<Item[]>([newItem()]);
+  const [maintenanceType, setMaintenanceType] = useState<"preventiva" | "corretiva" | null>(null);
 
   const [showDeptPicker, setShowDeptPicker] = useState(false);
   const [showCostCenterPicker, setShowCostCenterPicker] = useState(false);
@@ -100,6 +101,7 @@ export default function EditByControladoriaScreen() {
       setOsMyfarm(request.osMyfarm ?? "");
       if ((request as any).farmId) { setFarmId((request as any).farmId); setFarmName((request as any).farmName ?? ""); }
       if ((request as any).harvestId) { setHarvestId((request as any).harvestId); setHarvestName((request as any).harvestName ?? ""); }
+      if ((request as any).maintenanceType) setMaintenanceType((request as any).maintenanceType as "preventiva" | "corretiva");
       if (request.items && request.items.length > 0) {
         setItems(request.items.map((item: any) => ({
           id: String(item.id ?? Date.now() + Math.random()),
@@ -192,6 +194,7 @@ export default function EditByControladoriaScreen() {
       farmName: farmName || undefined,
       harvestId: harvestId || undefined,
       harvestName: harvestName || undefined,
+      maintenanceType: ["CC-013", "CC-015"].includes(costCenterCode) ? (maintenanceType ?? undefined) : undefined,
       items: validItems.map((i) => ({
         description: i.description.trim(),
         quantity: i.quantity || "1",
@@ -336,6 +339,29 @@ export default function EditByControladoriaScreen() {
               </View>
             </TouchableOpacity>
           </View>
+
+          {/* Tipo de Manutenção — aparece para CCs de manutenção */}
+          {(costCenterCode === "CC-013" || costCenterCode === "CC-015") && (
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground, marginBottom: 10 }}>Tipo de Manutenção</Text>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setMaintenanceType("preventiva")}
+                  style={{ flex: 1, borderWidth: 2, borderColor: maintenanceType === "preventiva" ? "#3DB84B" : colors.border, borderRadius: 12, padding: 12, alignItems: "center", backgroundColor: maintenanceType === "preventiva" ? "#3DB84B15" : colors.surface }}
+                >
+                  <Text style={{ fontSize: 20, marginBottom: 4 }}>🛡️</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: maintenanceType === "preventiva" ? "#3DB84B" : colors.foreground }}>Preventiva</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setMaintenanceType("corretiva")}
+                  style={{ flex: 1, borderWidth: 2, borderColor: maintenanceType === "corretiva" ? "#F59E0B" : colors.border, borderRadius: 12, padding: 12, alignItems: "center", backgroundColor: maintenanceType === "corretiva" ? "#F59E0B15" : colors.surface }}
+                >
+                  <Text style={{ fontSize: 20, marginBottom: 4 }}>🔧</Text>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: maintenanceType === "corretiva" ? "#F59E0B" : colors.foreground }}>Corretiva</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
 
           {/* Aplicação / Finalidade */}
           <View style={{ marginBottom: 16 }}>
