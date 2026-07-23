@@ -1849,43 +1849,34 @@ function PorCustoCenterTab({
         <Text style={{ fontSize: 18, color: colors.muted }}>›</Text>
       </TouchableOpacity>
 
-      {/* Filtro de Tipo de Manutenção — aparece quando CC é de manutenção */}
-      {selectedCostCenter && (() => {
-        const reqs: any[] = ccReport?.requests ?? [];
-        const hasMaintenance = reqs.some((r: any) => r.maintenanceType);
-        // Mostrar imediatamente para CCs de manutenção conhecidos, ou se dados já carregados têm manutenção
-        const MAINTENANCE_CCS = ["CC-013", "CC-015"];
-        // Verificar tanto pelo objeto selectedCC quanto pelo string selectedCostCenter (caso a lista ainda não carregou)
-        const isMaintenanceCC = MAINTENANCE_CCS.includes(selectedCC?.code ?? "") || MAINTENANCE_CCS.includes(selectedCostCenter ?? "") || hasMaintenance;
-        if (!isMaintenanceCC) return null;
-        return (
-          <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border }}>
-            <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8 }}>TIPO DE MANUTENÇÃO</Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 8, borderWidth: activeMaintenanceFilters.length === 0 ? 2 : 1, borderColor: activeMaintenanceFilters.length === 0 ? colors.primary : colors.border, backgroundColor: activeMaintenanceFilters.length === 0 ? colors.primary + "18" : colors.surface, alignItems: "center" }}
-                onPress={() => setActiveMaintenanceFilters([])}
-              >
-                <Text style={{ fontSize: 12, fontWeight: "700", color: activeMaintenanceFilters.length === 0 ? colors.primary : colors.muted }}>Todos</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 8, borderWidth: activeMaintenanceFilters.includes("preventiva") ? 2 : 1, borderColor: "#3DB84B", backgroundColor: activeMaintenanceFilters.includes("preventiva") ? "#3DB84B" : colors.surface, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
-                onPress={() => setActiveMaintenanceFilters(["preventiva"])}
-              >
-                <Text style={{ fontSize: 13 }}>🛡️</Text>
-                <Text style={{ fontSize: 12, fontWeight: "700", color: activeMaintenanceFilters.includes("preventiva") ? "#fff" : "#3DB84B" }}>Preventiva</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 8, borderWidth: activeMaintenanceFilters.includes("corretiva") ? 2 : 1, borderColor: "#F59E0B", backgroundColor: activeMaintenanceFilters.includes("corretiva") ? "#F59E0B" : colors.surface, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
-                onPress={() => setActiveMaintenanceFilters(["corretiva"])}
-              >
-                <Text style={{ fontSize: 13 }}>🔧</Text>
-                <Text style={{ fontSize: 12, fontWeight: "700", color: activeMaintenanceFilters.includes("corretiva") ? "#fff" : "#F59E0B" }}>Corretiva</Text>
-              </TouchableOpacity>
-            </View>
+      {/* Filtro de Tipo de Manutenção — aparece para CCs de manutenção */}
+      {(selectedCostCenter === "CC-013" || selectedCostCenter === "CC-015") && (
+        <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border }}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8 }}>TIPO DE MANUTENÇÃO</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <TouchableOpacity
+              style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 8, borderWidth: activeMaintenanceFilters.length === 0 ? 2 : 1, borderColor: activeMaintenanceFilters.length === 0 ? colors.primary : colors.border, backgroundColor: activeMaintenanceFilters.length === 0 ? colors.primary + "18" : colors.surface, alignItems: "center" }}
+              onPress={() => setActiveMaintenanceFilters([])}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "700", color: activeMaintenanceFilters.length === 0 ? colors.primary : colors.muted }}>Todos</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 8, borderWidth: activeMaintenanceFilters.includes("preventiva") ? 2 : 1, borderColor: "#3DB84B", backgroundColor: activeMaintenanceFilters.includes("preventiva") ? "#3DB84B" : colors.surface, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
+              onPress={() => setActiveMaintenanceFilters(["preventiva"])}
+            >
+              <Text style={{ fontSize: 13 }}>🛡️</Text>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: activeMaintenanceFilters.includes("preventiva") ? "#fff" : "#3DB84B" }}>Preventiva</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 6, borderRadius: 8, borderWidth: activeMaintenanceFilters.includes("corretiva") ? 2 : 1, borderColor: "#F59E0B", backgroundColor: activeMaintenanceFilters.includes("corretiva") ? "#F59E0B" : colors.surface, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 4 }}
+              onPress={() => setActiveMaintenanceFilters(["corretiva"])}
+            >
+              <Text style={{ fontSize: 13 }}>🔧</Text>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: activeMaintenanceFilters.includes("corretiva") ? "#fff" : "#F59E0B" }}>Corretiva</Text>
+            </TouchableOpacity>
           </View>
-        );
-      })()}
+        </View>
+      )}
 
       {/* Competência ativa */}
       <View style={{ backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 14, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 6 }}>
