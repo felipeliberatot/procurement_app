@@ -2570,7 +2570,7 @@ export default function RequestDetailScreen() {
 
                   {/* Botão de Aprovação */}
                   <TouchableOpacity
-                    onPress={() => approveMutation.mutate({ requestId: request.id })}
+                    onPress={() => setShowApproveModal(true)}
                     disabled={approveMutation.isPending}
                     style={{
                       backgroundColor: colors.success,
