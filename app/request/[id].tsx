@@ -619,12 +619,12 @@ export default function RequestDetailScreen() {
 
   const requestId = parseInt(id ?? "0");
 
-  const { data: request, isLoading } = trpc.requests.getById.useQuery(
+  const { data: request, isLoading, refetch: refetchRequest } = trpc.requests.getById.useQuery(
     { id: requestId },
     { enabled: isAuthenticated && !!id }
   );
 
-  const { data: history } = trpc.requests.history.useQuery(
+  const { data: history, refetch: refetchHistory } = trpc.requests.history.useQuery(
     { requestId },
     { enabled: isAuthenticated && !!id }
   );
@@ -694,8 +694,9 @@ export default function RequestDetailScreen() {
   }, [request]);
 
   const invalidateAll = () => {
-    utils.requests.getById.invalidate({ id: requestId });
-    utils.requests.history.invalidate({ requestId });
+    // Invalidar + refetch imediato para atualizar a tela sem precisar sair e entrar
+    utils.requests.getById.invalidate({ id: requestId }).then(() => refetchRequest());
+    utils.requests.history.invalidate({ requestId }).then(() => refetchHistory());
     utils.requests.all.invalidate();
     utils.requests.myRequests.invalidate();
     utils.requests.dashboardStats.invalidate();
