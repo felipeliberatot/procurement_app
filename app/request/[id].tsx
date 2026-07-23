@@ -3078,8 +3078,8 @@ export default function RequestDetailScreen() {
                     </View>
                   )}
 
-                  {/* Comprovante para visualização */}
-                  {(request as any).paymentProofUrl && (
+                  {/* Comprovante para visualização ou upload */}
+                  {(request as any).paymentProofUrl ? (
                     <Pressable onPress={() => setShowPaymentProofViewer(true)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
                       {(request as any).paymentProofUrl?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
                         <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 12, borderWidth: 2, borderColor: colors.success }}>
@@ -3100,6 +3100,45 @@ export default function RequestDetailScreen() {
                         </View>
                       )}
                     </Pressable>
+                  ) : (
+                    <View style={{ marginBottom: 12 }}>
+                      <Text style={{ color: colors.foreground, fontSize: 13, fontWeight: "600", marginBottom: 4 }}>Comprovante de Pagamento *</Text>
+                      <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 8 }}>Anexe o comprovante antes de finalizar a OC</Text>
+                      <TouchableOpacity
+                        onPress={handlePickPaymentProof}
+                        disabled={uploadPaymentProofMutation.isPending}
+                        style={{ borderWidth: 2, borderStyle: "dashed", borderColor: `${colors.error}60`, borderRadius: 12, overflow: "hidden", opacity: uploadPaymentProofMutation.isPending ? 0.6 : 1 }}
+                      >
+                        {uploadPaymentProofMutation.isPending ? (
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20 }}>
+                            <ActivityIndicator size="small" />
+                            <Text style={{ color: colors.primary, fontSize: 14 }}>Enviando...</Text>
+                          </View>
+                        ) : paymentProofLocalUri ? (
+                          <View>
+                            <Image source={{ uri: paymentProofLocalUri }} style={{ width: "100%", height: 160, resizeMode: "cover" }} />
+                            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 10, backgroundColor: `${colors.warning}15` }}>
+                              <Text style={{ fontSize: 16 }}>⏳</Text>
+                              <Text style={{ color: colors.warning, fontSize: 12, fontWeight: "600" }}>{paymentProofFileName} — Enviando...</Text>
+                            </View>
+                          </View>
+                        ) : (
+                          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 20 }}>
+                            <Text style={{ fontSize: 24 }}>📎</Text>
+                            <Text style={{ color: colors.error, fontWeight: "600", fontSize: 14 }}>{paymentProofFileName ?? "Selecionar Comprovante (PDF/Imagem)"}</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                      {Platform.OS !== "web" && !uploadPaymentProofMutation.isPending && (
+                        <TouchableOpacity
+                          onPress={handleCameraPaymentProof}
+                          style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, marginTop: 8, borderRadius: 10, backgroundColor: `${colors.primary}15`, borderWidth: 1, borderColor: `${colors.primary}40` }}
+                        >
+                          <Text style={{ fontSize: 18 }}>📷</Text>
+                          <Text style={{ color: colors.primary, fontWeight: "600", fontSize: 13 }}>Fotografar Comprovante</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   )}
 
                   {/* Nota Fiscal */}
