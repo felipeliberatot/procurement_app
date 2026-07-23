@@ -2570,7 +2570,12 @@ export default function RequestDetailScreen() {
 
                   {/* Botão de Aprovação */}
                   <TouchableOpacity
-                    onPress={() => setShowApproveModal(true)}
+                    onPress={() => showConfirm({
+                      title: "👔 Confirmar Aprovação CEO",
+                      message: "Confirmar a aprovação desta Ordem de Compra e avançar para Aprovação Financeiro?",
+                      confirmText: "Aprovar",
+                      onConfirm: () => approveMutation.mutate({ requestId: request.id }),
+                    })}
                     disabled={approveMutation.isPending}
                     style={{
                       backgroundColor: colors.success,
