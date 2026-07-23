@@ -87,19 +87,27 @@ function escHtml(s: string | null | undefined): string {
 
 export function registerPrintRoute(app: Express) {
   app.get("/api/print/:id", async (req, res) => {
-    // 1. Autenticar
+    // 1. Autenticar — aceita token via query param (para nova aba na web onde localStorage não é enviado)
     let user: any = null;
     try {
+      // Se vier token como query param, injetar no header Authorization
+      const queryToken = req.query.token as string | undefined;
+      if (queryToken) {
+        (req as any).headers = {
+          ...(req as any).headers,
+          authorization: `Bearer ${queryToken}`,
+        };
+      }
       user = await sdk.authenticateRequest(req as any);
     } catch {
       return res.status(401).send(`<html><body style="font-family:sans-serif;padding:40px">
         <h2>Sessão expirada</h2><p>Faça login novamente para imprimir.</p>
-        <a href="/api/app/login">Fazer login</a></body></html>`);
+        <a href="/api/app/">Fazer login</a></body></html>`);
     }
     if (!user) {
       return res.status(401).send(`<html><body style="font-family:sans-serif;padding:40px">
         <h2>Acesso negado</h2><p>Faça login para imprimir.</p>
-        <a href="/api/app/login">Fazer login</a></body></html>`);
+        <a href="/api/app/">Fazer login</a></body></html>`);
     }
 
     // 2. Buscar dados

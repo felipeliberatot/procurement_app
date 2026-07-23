@@ -1074,20 +1074,20 @@ export default function RequestDetailScreen() {
     if (!request) return;
     const req = request as any;
     const rid = req.id;
+    // Obter token de sessão para autenticar na nova aba (localStorage não é enviado automaticamente)
+    const { getApiBaseUrl } = await import("@/constants/oauth");
+    const { getSessionToken } = await import("@/lib/_core/auth");
+    const base = getApiBaseUrl();
+    const token = await getSessionToken();
+    const tokenParam = token ? `?token=${encodeURIComponent(token)}` : "";
+    const printUrl = `${base}/api/print/${rid}${tokenParam}`;
     if (Platform.OS === "web") {
       // Web: navegar diretamente para a rota de impressão do servidor
-      // O servidor renderiza o HTML completo com todos os dados
-      const { getApiBaseUrl } = await import("@/constants/oauth");
-      const base = getApiBaseUrl();
-      const printUrl = `${base}/api/print/${rid}`;
       window.open(printUrl, "_blank");
     } else {
       // Mobile: usar Print nativo
       setIsPrinting(true);
       try {
-        const { getApiBaseUrl } = await import("@/constants/oauth");
-        const base = getApiBaseUrl();
-        const printUrl = `${base}/api/print/${rid}`;
         await Linking.openURL(printUrl);
       } catch (err: any) {
         Alert.alert("Erro ao imprimir", "Não foi possível abrir a página de impressão.");

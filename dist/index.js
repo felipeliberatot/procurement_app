@@ -7323,16 +7323,23 @@ function registerPrintRoute(app) {
   app.get("/api/print/:id", async (req, res) => {
     let user = null;
     try {
+      const queryToken = req.query.token;
+      if (queryToken) {
+        req.headers = {
+          ...req.headers,
+          authorization: `Bearer ${queryToken}`
+        };
+      }
       user = await sdk.authenticateRequest(req);
     } catch {
       return res.status(401).send(`<html><body style="font-family:sans-serif;padding:40px">
         <h2>Sess\xE3o expirada</h2><p>Fa\xE7a login novamente para imprimir.</p>
-        <a href="/api/app/login">Fazer login</a></body></html>`);
+        <a href="/api/app/">Fazer login</a></body></html>`);
     }
     if (!user) {
       return res.status(401).send(`<html><body style="font-family:sans-serif;padding:40px">
         <h2>Acesso negado</h2><p>Fa\xE7a login para imprimir.</p>
-        <a href="/api/app/login">Fazer login</a></body></html>`);
+        <a href="/api/app/">Fazer login</a></body></html>`);
     }
     const id = parseInt(req.params.id, 10);
     if (isNaN(id)) return res.status(400).send("ID inv\xE1lido");
