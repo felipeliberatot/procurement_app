@@ -1853,7 +1853,10 @@ function PorCustoCenterTab({
       {selectedCostCenter && (() => {
         const reqs: any[] = ccReport?.requests ?? [];
         const hasMaintenance = reqs.some((r: any) => r.maintenanceType);
-        const isMaintenanceCC = (selectedCC?.code === "CC-013") || hasMaintenance;
+        // Mostrar imediatamente para CCs de manutenção conhecidos, ou se dados já carregados têm manutenção
+        const MAINTENANCE_CCS = ["CC-013", "CC-015"];
+        // Verificar tanto pelo objeto selectedCC quanto pelo string selectedCostCenter (caso a lista ainda não carregou)
+        const isMaintenanceCC = MAINTENANCE_CCS.includes(selectedCC?.code ?? "") || MAINTENANCE_CCS.includes(selectedCostCenter ?? "") || hasMaintenance;
         if (!isMaintenanceCC) return null;
         return (
           <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border }}>
