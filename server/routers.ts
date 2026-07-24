@@ -590,6 +590,27 @@ export const appRouter = router({
         return result;
       }),
 
+    // Editar campo Bem (application) em solicitações concluídas — apenas Controladoria
+    updateApplicationConcluida: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        application: z.string().min(1, "O campo Bem é obrigatório"),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = ctx.user as any;
+        const allRoles = [user.procurementRole, ...(user.extraRoles ? JSON.parse(user.extraRoles) : [])];
+        const isControladoria = allRoles.includes("controladoria") || user.approvalLevel === "controladoria" || user.approvalLevel === "master";
+        if (!isControladoria) throw new Error("Apenas usuários da Controladoria podem editar o Bem em solicitações concluídas.");
+        const result = await db.updateApplicationConcluida(
+          input.requestId,
+          ctx.user.id,
+          ctx.user.name ?? "Usuário",
+          input.application,
+        );
+        if (!result.success) throw new Error(result.error ?? "Erro ao atualizar o Bem");
+        return result;
+      }),
+
     // Excluir solicitação cancelada (somente solicitante ou admin/master)
     delete: protectedProcedure
       .input(z.object({ requestId: z.number() }))

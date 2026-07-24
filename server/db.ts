@@ -2982,6 +2982,43 @@ export async function updateByControladoria(
   return { success: true };
 }
 
+// ─── Editar campo Bem (application) em solicitações concluídas ───────────────
+export async function updateApplicationConcluida(
+  requestId: number,
+  editorId: number,
+  editorName: string,
+  application: string,
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indisponível" };
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+  if (!request) return { success: false, error: "Solicitação não encontrada" };
+
+  // Só permite em solicitações concluídas ou parcialmente concluídas
+  if (request.status !== "concluida" && request.status !== "parcialmente_concluida") {
+    return {
+      success: false,
+      error: `Esta edição só pode ser feita em solicitações concluídas. Status atual: "${request.status}"`,
+    };
+  }
+
+  await db.update(purchaseRequests)
+    .set({ application: application.trim(), updatedAt: new Date() })
+    .where(eq(purchaseRequests.id, requestId));
+
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: editorId,
+    userName: editorName,
+    step: "edicao",
+    action: "editada",
+    comment: `Campo "Bem" atualizado pela Controladoria (${editorName}): "${application.trim()}"`,
+  });
+
+  return { success: true };
+}
+
 // ─── Safras (Harvests) ────────────────────────────────────────────────────────
 export async function listHarvests() {
   const db = await getDb();

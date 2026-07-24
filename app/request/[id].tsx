@@ -18,6 +18,7 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -831,6 +832,30 @@ export default function RequestDetailScreen() {
     },
   });
   const [showReopenModal, setShowReopenModal] = useState(false);
+
+  // ─── Edição do campo Bem em solicitações concluídas (Controladoria) ───
+  const [showBemPicker, setShowBemPicker] = useState(false);
+  const [bemSearch, setBemSearch] = useState("");
+  const { data: assetsForBem } = trpc.assets.list.useQuery(undefined, { enabled: isAuthenticated });
+  const filteredBemAssets = (assetsForBem ?? []).filter((a: any) =>
+    !bemSearch ||
+    a.description.toLowerCase().includes(bemSearch.toLowerCase()) ||
+    a.code.toLowerCase().includes(bemSearch.toLowerCase())
+  );
+  const updateBemMutation = trpc.requests.updateApplicationConcluida.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowBemPicker(false);
+      setBemSearch("");
+      Alert.alert("✅ Bem atualizado", "O campo Bem foi atualizado com sucesso.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao atualizar Bem", e.message);
+    },
+  });
+
   const reopenMutation = trpc.requests.reopen.useMutation({
     onSuccess: () => {
       invalidateAll();
@@ -1430,7 +1455,29 @@ export default function RequestDetailScreen() {
 
           {/* Informações principais */}
           <View className="bg-surface border border-border rounded-2xl p-4 mb-4">
-            <Text className="text-lg font-bold text-foreground mb-2">{request.application}</Text>
+            <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
+              <Text style={{ fontSize: 17, fontWeight: "700", color: colors.foreground, flex: 1, marginRight: 8 }}>{request.application}</Text>
+              {(isDone || currentStatus === "parcialmente_concluida") && (allUserRoles.some(r => ["controladoria"].includes(r)) || isMasterUser) && (
+                <Pressable
+                  onPress={() => { setShowBemPicker(true); setBemSearch(""); }}
+                  style={({ pressed }) => ({
+                    opacity: pressed ? 0.7 : 1,
+                    backgroundColor: `${colors.primary}15`,
+                    borderWidth: 1,
+                    borderColor: `${colors.primary}40`,
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 4,
+                  })}
+                >
+                  <Text style={{ fontSize: 12 }}>✏️</Text>
+                  <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>Trocar Bem</Text>
+                </Pressable>
+              )}
+            </View>
             <View className="gap-1.5">
               <Text className="text-sm text-muted">Solicitante: <Text className="text-foreground font-medium">{request.requesterName}</Text></Text>
               <Text className="text-sm text-muted">Departamento: <Text className="text-foreground font-medium">{request.department}</Text></Text>
@@ -3963,6 +4010,71 @@ export default function RequestDetailScreen() {
         }}
         onCancel={hideConfirm}
       />
+
+      {/* Modal: Selecionar Bem (Controladoria em concluídas) */}
+      {showBemPicker && (
+        <Modal visible={showBemPicker} animationType="slide" transparent onRequestClose={() => setShowBemPicker(false)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+            <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "80%" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>📦 Selecionar Bem</Text>
+                <Pressable onPress={() => { setShowBemPicker(false); setBemSearch(""); }} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                  <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+                </Pressable>
+              </View>
+              <View style={{ paddingHorizontal: 16, paddingVertical: 10 }}>
+                <TextInput
+                  value={bemSearch}
+                  onChangeText={setBemSearch}
+                  placeholder="Buscar bem por código ou descrição..."
+                  placeholderTextColor={colors.muted}
+                  autoFocus
+                  style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: colors.foreground }}
+                />
+              </View>
+              <FlatList
+                data={filteredBemAssets}
+                keyExtractor={(item: any) => String(item.id)}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
+                ListEmptyComponent={
+                  <View style={{ alignItems: "center", paddingVertical: 40 }}>
+                    <Text style={{ fontSize: 32, marginBottom: 8 }}>📦</Text>
+                    <Text style={{ color: colors.muted, fontSize: 14 }}>Nenhum bem encontrado</Text>
+                  </View>
+                }
+                renderItem={({ item }: any) => (
+                  <Pressable
+                    onPress={() => {
+                      updateBemMutation.mutate({ requestId: request.id, application: `${item.code} — ${item.description}` });
+                    }}
+                    style={({ pressed }) => ({
+                      opacity: pressed ? 0.7 : 1,
+                      backgroundColor: colors.surface,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      borderRadius: 12,
+                      padding: 14,
+                      marginBottom: 8,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                    })}
+                  >
+                    <View style={{ backgroundColor: `${colors.primary}20`, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 }}>
+                      <Text style={{ fontSize: 11, fontFamily: "monospace", color: colors.primary, fontWeight: "700" }}>{item.code}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: "600", color: colors.foreground }}>{item.description}</Text>
+                      {item.category && <Text style={{ fontSize: 12, color: colors.muted, marginTop: 2 }}>{item.category}</Text>}
+                    </View>
+                    {updateBemMutation.isPending && <ActivityIndicator size="small" color={colors.primary} />}
+                  </Pressable>
+                )}
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
     </ScreenContainer>
   );
 }

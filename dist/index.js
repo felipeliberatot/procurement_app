@@ -1156,6 +1156,7 @@ __export(db_exports, {
   submitBudget: () => submitBudget,
   toggleCostCenterActive: () => toggleCostCenterActive,
   toggleUserActive: () => toggleUserActive,
+  updateApplicationConcluida: () => updateApplicationConcluida,
   updateAsset: () => updateAsset,
   updateBudget: () => updateBudget,
   updateBusinessUnit: () => updateBusinessUnit,
@@ -3318,6 +3319,28 @@ async function updateByControladoria(requestId, editorId, editorName, input) {
     step: "edicao",
     action: "editada",
     comment: `Dados editados pela Controladoria (${editorName}). O fluxo de aprova\xE7\xE3o n\xE3o foi reiniciado.`
+  });
+  return { success: true };
+}
+async function updateApplicationConcluida(requestId, editorId, editorName, application) {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indispon\xEDvel" };
+  const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
+  if (!request) return { success: false, error: "Solicita\xE7\xE3o n\xE3o encontrada" };
+  if (request.status !== "concluida" && request.status !== "parcialmente_concluida") {
+    return {
+      success: false,
+      error: `Esta edi\xE7\xE3o s\xF3 pode ser feita em solicita\xE7\xF5es conclu\xEDdas. Status atual: "${request.status}"`
+    };
+  }
+  await db.update(purchaseRequests).set({ application: application.trim(), updatedAt: /* @__PURE__ */ new Date() }).where(eq2(purchaseRequests.id, requestId));
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: editorId,
+    userName: editorName,
+    step: "edicao",
+    action: "editada",
+    comment: `Campo "Bem" atualizado pela Controladoria (${editorName}): "${application.trim()}"`
   });
   return { success: true };
 }
@@ -5790,6 +5813,24 @@ var appRouter = router({
         data
       );
       if (!result.success) throw new Error(result.error ?? "Erro ao editar solicita\xE7\xE3o");
+      return result;
+    }),
+    // Editar campo Bem (application) em solicitações concluídas — apenas Controladoria
+    updateApplicationConcluida: protectedProcedure.input(z2.object({
+      requestId: z2.number(),
+      application: z2.string().min(1, "O campo Bem \xE9 obrigat\xF3rio")
+    })).mutation(async ({ ctx, input }) => {
+      const user = ctx.user;
+      const allRoles = [user.procurementRole, ...user.extraRoles ? JSON.parse(user.extraRoles) : []];
+      const isControladoria = allRoles.includes("controladoria") || user.approvalLevel === "controladoria" || user.approvalLevel === "master";
+      if (!isControladoria) throw new Error("Apenas usu\xE1rios da Controladoria podem editar o Bem em solicita\xE7\xF5es conclu\xEDdas.");
+      const result = await updateApplicationConcluida(
+        input.requestId,
+        ctx.user.id,
+        ctx.user.name ?? "Usu\xE1rio",
+        input.application
+      );
+      if (!result.success) throw new Error(result.error ?? "Erro ao atualizar o Bem");
       return result;
     }),
     // Excluir solicitação cancelada (somente solicitante ou admin/master)
