@@ -141,10 +141,10 @@ async function startServer() {
     try {
       const { sql } = req.body;
       if (!sql) return res.status(400).json({ ok: false, error: "sql required" });
-      const { getDb } = await import("../db.js");
-      const db = await getDb();
-      const result = await (db as any).execute(sql);
-      res.json({ ok: true, result: result[0] });
+      const { getPool } = await import("../db.js");
+      const pool = await getPool();
+      const [result] = await (pool as any).execute(sql);
+      return res.json({ ok: true, result });
     } catch (err) {
       res.status(500).json({ ok: false, error: String(err) });
     }

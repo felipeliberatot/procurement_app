@@ -856,6 +856,30 @@ export default function RequestDetailScreen() {
     },
   });
 
+  // ─── Edição de metadados em solicitações concluídas (Controladoria) ───
+  const [showEditMetadata, setShowEditMetadata] = useState(false);
+  const [editCostCenterCode, setEditCostCenterCode] = useState("");
+  const [editCostCenterName, setEditCostCenterName] = useState("");
+  const [editFarmId, setEditFarmId] = useState<number | null>(null);
+  const [editFarmName, setEditFarmName] = useState("");
+  const [editHarvestId, setEditHarvestId] = useState<number | null>(null);
+  const [editHarvestName, setEditHarvestName] = useState("");
+  const { data: costCentersForEdit } = trpc.costCenters.list.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: unitsForEdit } = trpc.units.list.useQuery(undefined, { enabled: isAuthenticated });
+  const { data: harvestsForEdit } = trpc.harvests.list.useQuery(undefined, { enabled: isAuthenticated });
+  const updateMetadataMutation = trpc.requests.updateMetadataConcluida.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowEditMetadata(false);
+      Alert.alert("✅ Atualizado", "Metadados atualizados com sucesso.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao atualizar", e.message);
+    },
+  });
+
   const reopenMutation = trpc.requests.reopen.useMutation({
     onSuccess: () => {
       invalidateAll();
@@ -1482,7 +1506,25 @@ export default function RequestDetailScreen() {
               <Text className="text-sm text-muted">Solicitante: <Text className="text-foreground font-medium">{request.requesterName}</Text></Text>
               <Text className="text-sm text-muted">Departamento: <Text className="text-foreground font-medium">{request.department}</Text></Text>
               {request.costCenterCode && (
-                <Text className="text-sm text-muted">Centro de Custo: <Text className="text-foreground font-medium">{request.costCenterCode}</Text></Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Text className="text-sm text-muted" style={{ flex: 1 }}>Centro de Custo: <Text className="text-foreground font-medium">{request.costCenterCode}</Text></Text>
+                  {(isDone || currentStatus === "parcialmente_concluida") && (allUserRoles.some(r => ["controladoria"].includes(r)) || isMasterUser) && (
+                    <Pressable
+                      onPress={() => {
+                        setEditCostCenterCode(request.costCenterCode ?? "");
+                        setEditCostCenterName("");
+                        setEditFarmId((request as any).farmId ?? null);
+                        setEditFarmName((request as any).farmName ?? "");
+                        setEditHarvestId((request as any).harvestId ?? null);
+                        setEditHarvestName((request as any).harvestName ?? "");
+                        setShowEditMetadata(true);
+                      }}
+                      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                    >
+                      <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" }}>✏️ Editar</Text>
+                    </Pressable>
+                  )}
+                </View>
               )}
               <Text className="text-sm text-muted">Criado em: <Text className="text-foreground font-medium">{formatDate(request.createdAt)}</Text></Text>
               {request.totalEstimatedValue ? (
@@ -4071,6 +4113,127 @@ export default function RequestDetailScreen() {
                   </Pressable>
                 )}
               />
+            </View>
+          </View>
+        </Modal>
+      )}
+      {/* Modal: Editar Metadados (Centro de Custo, Fazenda, Safra) — Controladoria em concluídas */}
+      {showEditMetadata && (
+        <Modal visible={showEditMetadata} animationType="slide" transparent onRequestClose={() => setShowEditMetadata(false)}>
+          <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" }}>
+            <View style={{ backgroundColor: colors.background, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: "85%" }}>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 0.5, borderBottomColor: colors.border }}>
+                <Text style={{ fontSize: 16, fontWeight: "700", color: colors.foreground }}>✏️ Editar Metadados</Text>
+                <Pressable onPress={() => setShowEditMetadata(false)} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
+                  <Text style={{ fontSize: 14, color: colors.primary, fontWeight: "600" }}>Fechar</Text>
+                </Pressable>
+              </View>
+              <ScrollView style={{ padding: 20 }} contentContainerStyle={{ gap: 16, paddingBottom: 40 }}>
+                {/* Centro de Custo */}
+                <View>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, marginBottom: 8 }}>Centro de Custo</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: "row" }}>
+                    <View style={{ flexDirection: "row", gap: 8, paddingBottom: 4 }}>
+                      {(costCentersForEdit ?? []).map((cc: any) => (
+                        <Pressable
+                          key={cc.id}
+                          onPress={() => { setEditCostCenterCode(cc.code); setEditCostCenterName(cc.name ?? cc.code); }}
+                          style={({ pressed }) => ({
+                            opacity: pressed ? 0.7 : 1,
+                            backgroundColor: editCostCenterCode === cc.code ? colors.primary : colors.surface,
+                            borderWidth: 1,
+                            borderColor: editCostCenterCode === cc.code ? colors.primary : colors.border,
+                            borderRadius: 20,
+                            paddingHorizontal: 14,
+                            paddingVertical: 8,
+                          })}
+                        >
+                          <Text style={{ fontSize: 13, color: editCostCenterCode === cc.code ? "#fff" : colors.foreground, fontWeight: "600" }}>{cc.code}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </ScrollView>
+                  {editCostCenterCode ? (
+                    <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>Selecionado: {editCostCenterCode}</Text>
+                  ) : null}
+                </View>
+
+                {/* Fazenda */}
+                <View>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, marginBottom: 8 }}>Fazenda / Unidade</Text>
+                  <View style={{ gap: 8 }}>
+                    {(unitsForEdit ?? []).map((u: any) => (
+                      <Pressable
+                        key={u.id}
+                        onPress={() => { setEditFarmId(u.id); setEditFarmName(u.name); }}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.7 : 1,
+                          backgroundColor: editFarmId === u.id ? colors.primary : colors.surface,
+                          borderWidth: 1,
+                          borderColor: editFarmId === u.id ? colors.primary : colors.border,
+                          borderRadius: 12,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        })}
+                      >
+                        <Text style={{ fontSize: 14, color: editFarmId === u.id ? "#fff" : colors.foreground, fontWeight: editFarmId === u.id ? "700" : "400" }}>{u.name}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Safra */}
+                <View>
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, marginBottom: 8 }}>Safra</Text>
+                  <View style={{ gap: 8 }}>
+                    {(harvestsForEdit ?? []).map((h: any) => (
+                      <Pressable
+                        key={h.id}
+                        onPress={() => { setEditHarvestId(h.id); setEditHarvestName(h.name); }}
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.7 : 1,
+                          backgroundColor: editHarvestId === h.id ? colors.primary : colors.surface,
+                          borderWidth: 1,
+                          borderColor: editHarvestId === h.id ? colors.primary : colors.border,
+                          borderRadius: 12,
+                          paddingHorizontal: 16,
+                          paddingVertical: 12,
+                        })}
+                      >
+                        <Text style={{ fontSize: 14, color: editHarvestId === h.id ? "#fff" : colors.foreground, fontWeight: editHarvestId === h.id ? "700" : "400" }}>{h.name}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                {/* Botão Salvar */}
+                <Pressable
+                  onPress={() => {
+                    if (!editCostCenterCode && !editFarmId && !editHarvestId) {
+                      Alert.alert("Selecione ao menos um campo", "Selecione Centro de Custo, Fazenda ou Safra para atualizar.");
+                      return;
+                    }
+                    const payload: any = { requestId: request.id };
+                    if (editCostCenterCode) { payload.costCenterCode = editCostCenterCode; payload.costCenterName = editCostCenterName; }
+                    if (editFarmId) { payload.farmId = editFarmId; payload.farmName = editFarmName; }
+                    if (editHarvestId) { payload.harvestId = editHarvestId; payload.harvestName = editHarvestName; }
+                    updateMetadataMutation.mutate(payload);
+                  }}
+                  disabled={updateMetadataMutation.isPending}
+                  style={({ pressed }) => ({
+                    opacity: pressed || updateMetadataMutation.isPending ? 0.7 : 1,
+                    backgroundColor: colors.primary,
+                    borderRadius: 14,
+                    paddingVertical: 16,
+                    alignItems: "center",
+                    marginTop: 8,
+                  })}
+                >
+                  <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+                    {updateMetadataMutation.isPending ? "Salvando..." : "✅ Salvar Alterações"}
+                  </Text>
+                </Pressable>
+              </ScrollView>
             </View>
           </View>
         </Modal>

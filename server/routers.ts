@@ -388,8 +388,8 @@ export const appRouter = router({
       .input(z.object({ applications: z.array(z.string()).min(1), year: z.number().optional(), month: z.number().optional() }))
       .query(({ input }) => Promise.all(input.applications.map(app => db.getRequestsByAsset(app, input.year, input.month).then(r => ({ application: app, ...r }))))),
     requestsByCostCenter: protectedProcedure
-      .input(z.object({ costCenterCode: z.string().min(1), year: z.number().optional(), month: z.number().optional() }))
-      .query(({ input }) => db.getRequestsByCostCenter(input.costCenterCode, input.year, input.month)),
+      .input(z.object({ costCenterCode: z.string().min(1), year: z.number().optional(), month: z.number().optional(), farmId: z.number().optional() }))
+      .query(({ input }) => db.getRequestsByCostCenter(input.costCenterCode, input.year, input.month, input.farmId)),
     updateItemFulfillment: protectedProcedure
       .input(z.object({ itemId: z.number(), fulfilledQty: z.number().min(0) }))
       .mutation(({ input, ctx }) => db.updateItemFulfillment(input.itemId, input.fulfilledQty, ctx.user.id)),
@@ -608,6 +608,27 @@ export const appRouter = router({
           input.application,
         );
         if (!result.success) throw new Error(result.error ?? "Erro ao atualizar o Bem");
+        return result;
+      }),
+
+    updateMetadataConcluida: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        costCenterCode: z.string().optional(),
+        costCenterName: z.string().optional(),
+        farmId: z.number().optional(),
+        farmName: z.string().optional(),
+        harvestId: z.number().optional(),
+        harvestName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = ctx.user as any;
+        const allRoles = [user.procurementRole, ...(user.extraRoles ? JSON.parse(user.extraRoles) : [])];
+        const isControladoria = allRoles.includes("controladoria") || user.approvalLevel === "controladoria" || user.approvalLevel === "master";
+        if (!isControladoria) throw new Error("Apenas usuários da Controladoria podem editar metadados em solicitações concluídas.");
+        const { requestId, ...data } = input;
+        const result = await db.updateMetadataConcluida(requestId, ctx.user.id, ctx.user.name ?? "Usuário", data);
+        if (!result.success) throw new Error(result.error ?? "Erro ao atualizar metadados");
         return result;
       }),
 

@@ -1102,6 +1102,7 @@ __export(db_exports, {
   getNextDepartmentCode: () => getNextDepartmentCode,
   getPartialFulfillmentStats: () => getPartialFulfillmentStats,
   getPendingRequestsForUser: () => getPendingRequestsForUser,
+  getPool: () => getPool,
   getPurchaseRequestWithDetails: () => getPurchaseRequestWithDetails,
   getPurchaseTrend: () => getPurchaseTrend,
   getQuotationGroupByRequestId: () => getQuotationGroupByRequestId,
@@ -1168,6 +1169,7 @@ __export(db_exports, {
   updateMalote: () => updateMalote,
   updateMaloteTag: () => updateMaloteTag,
   updateMasterPin: () => updateMasterPin,
+  updateMetadataConcluida: () => updateMetadataConcluida,
   updatePurchaseRequest: () => updatePurchaseRequest,
   updateUnit: () => updateUnit,
   updateUserPassword: () => updateUserPassword,
@@ -1204,6 +1206,7 @@ async function getDb() {
         enableKeepAlive: true,
         keepAliveInitialDelay: 1e4
       });
+      _pool = pool;
       _db = drizzle(pool);
       console.log("[Database] Connection pool created successfully");
     } catch (error) {
@@ -1212,6 +1215,10 @@ async function getDb() {
     }
   }
   return _db;
+}
+async function getPool() {
+  await getDb();
+  return _pool;
 }
 async function upsertUser(user) {
   if (!user.openId) throw new Error("User openId is required for upsert");
@@ -3344,6 +3351,36 @@ async function updateApplicationConcluida(requestId, editorId, editorName, appli
   });
   return { success: true };
 }
+async function updateMetadataConcluida(requestId, editorId, editorName, data) {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indispon\xEDvel" };
+  const [request] = await db.select().from(purchaseRequests).where(eq2(purchaseRequests.id, requestId)).limit(1);
+  if (!request) return { success: false, error: "Solicita\xE7\xE3o n\xE3o encontrada" };
+  if (request.status !== "concluida" && request.status !== "parcialmente_concluida") {
+    return { success: false, error: `Esta edi\xE7\xE3o s\xF3 pode ser feita em solicita\xE7\xF5es conclu\xEDdas. Status atual: "${request.status}"` };
+  }
+  const updateSet = { updatedAt: /* @__PURE__ */ new Date() };
+  if (data.costCenterCode !== void 0) updateSet.costCenterCode = data.costCenterCode;
+  if (data.costCenterName !== void 0) updateSet.costCenterName = data.costCenterName;
+  if (data.farmId !== void 0) updateSet.farmId = data.farmId;
+  if (data.farmName !== void 0) updateSet.farmName = data.farmName;
+  if (data.harvestId !== void 0) updateSet.harvestId = data.harvestId;
+  if (data.harvestName !== void 0) updateSet.harvestName = data.harvestName;
+  await db.update(purchaseRequests).set(updateSet).where(eq2(purchaseRequests.id, requestId));
+  const changes = [];
+  if (data.costCenterCode) changes.push(`Centro de Custo: "${data.costCenterCode}"`);
+  if (data.farmName) changes.push(`Fazenda: "${data.farmName}"`);
+  if (data.harvestName) changes.push(`Safra: "${data.harvestName}"`);
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: editorId,
+    userName: editorName,
+    step: "edicao",
+    action: "editada",
+    comment: `Metadados atualizados pela Controladoria (${editorName}): ${changes.join(", ")}`
+  });
+  return { success: true };
+}
 async function listHarvests() {
   const db = await getDb();
   if (!db) return [];
@@ -3955,7 +3992,7 @@ async function listPriorityRequests() {
     createdAt: purchaseRequests.createdAt
   }).from(purchaseRequests).where(eq2(purchaseRequests.isPriority, true)).orderBy(purchaseRequests.priorityOrder);
 }
-async function getRequestsByCostCenter(costCenterCode, year, month) {
+async function getRequestsByCostCenter(costCenterCode, year, month, farmId) {
   const db = await getDb();
   if (!db) return { requests: [], summary: { totalSolicitacoes: 0, totalGasto: 0 } };
   const rows = await db.select({
@@ -3983,6 +4020,7 @@ async function getRequestsByCostCenter(costCenterCode, year, month) {
         eq2(purchaseRequests.status, "concluida"),
         eq2(purchaseRequests.status, "parcialmente_concluida")
       ),
+      ...farmId ? [eq2(purchaseRequests.farmId, farmId)] : [],
       ...year && month ? [
         gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
         lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0))
@@ -4003,7 +4041,7 @@ async function getRequestsByCostCenter(costCenterCode, year, month) {
     }
   };
 }
-var STEP_LABELS_SERVER, _db, STEP_FLOW_NORMAL, STEP_FLOW_URGENT, REJECT_FLOW_NORMAL, REJECT_FLOW_URGENT, EDITABLE_STATUSES, PRIORITY_AUTHORIZED_NAMES;
+var STEP_LABELS_SERVER, _db, _pool, STEP_FLOW_NORMAL, STEP_FLOW_URGENT, REJECT_FLOW_NORMAL, REJECT_FLOW_URGENT, EDITABLE_STATUSES, PRIORITY_AUTHORIZED_NAMES;
 var init_db = __esm({
   "server/db.ts"() {
     "use strict";
@@ -4024,6 +4062,7 @@ var init_db = __esm({
       parcialmente_concluida: "Parcialmente Conclu\xEDda"
     };
     _db = null;
+    _pool = null;
     STEP_FLOW_NORMAL = {
       aguardando_gerente: { step: "gerente", nextStatus: "aguardando_orcamento", action: "aprovada" },
       aguardando_orcamento: { step: "orcamento", nextStatus: "aguardando_controladoria", action: "aprovada" },
@@ -5657,7 +5696,7 @@ var appRouter = router({
     partialFulfillmentStats: protectedProcedure.query(() => getPartialFulfillmentStats()),
     requestsByAsset: protectedProcedure.input(z2.object({ application: z2.string().min(1), year: z2.number().optional(), month: z2.number().optional() })).query(({ input }) => getRequestsByAsset(input.application, input.year, input.month)),
     requestsByAssets: protectedProcedure.input(z2.object({ applications: z2.array(z2.string()).min(1), year: z2.number().optional(), month: z2.number().optional() })).query(({ input }) => Promise.all(input.applications.map((app) => getRequestsByAsset(app, input.year, input.month).then((r) => ({ application: app, ...r }))))),
-    requestsByCostCenter: protectedProcedure.input(z2.object({ costCenterCode: z2.string().min(1), year: z2.number().optional(), month: z2.number().optional() })).query(({ input }) => getRequestsByCostCenter(input.costCenterCode, input.year, input.month)),
+    requestsByCostCenter: protectedProcedure.input(z2.object({ costCenterCode: z2.string().min(1), year: z2.number().optional(), month: z2.number().optional(), farmId: z2.number().optional() })).query(({ input }) => getRequestsByCostCenter(input.costCenterCode, input.year, input.month, input.farmId)),
     updateItemFulfillment: protectedProcedure.input(z2.object({ itemId: z2.number(), fulfilledQty: z2.number().min(0) })).mutation(({ input, ctx }) => updateItemFulfillment(input.itemId, input.fulfilledQty, ctx.user.id)),
     history: protectedProcedure.input(z2.object({ requestId: z2.number() })).query(({ input }) => getApprovalHistory(input.requestId)),
     uploadBudget: protectedProcedure.input(z2.object({
@@ -5831,6 +5870,24 @@ var appRouter = router({
         input.application
       );
       if (!result.success) throw new Error(result.error ?? "Erro ao atualizar o Bem");
+      return result;
+    }),
+    updateMetadataConcluida: protectedProcedure.input(z2.object({
+      requestId: z2.number(),
+      costCenterCode: z2.string().optional(),
+      costCenterName: z2.string().optional(),
+      farmId: z2.number().optional(),
+      farmName: z2.string().optional(),
+      harvestId: z2.number().optional(),
+      harvestName: z2.string().optional()
+    })).mutation(async ({ ctx, input }) => {
+      const user = ctx.user;
+      const allRoles = [user.procurementRole, ...user.extraRoles ? JSON.parse(user.extraRoles) : []];
+      const isControladoria = allRoles.includes("controladoria") || user.approvalLevel === "controladoria" || user.approvalLevel === "master";
+      if (!isControladoria) throw new Error("Apenas usu\xE1rios da Controladoria podem editar metadados em solicita\xE7\xF5es conclu\xEDdas.");
+      const { requestId, ...data } = input;
+      const result = await updateMetadataConcluida(requestId, ctx.user.id, ctx.user.name ?? "Usu\xE1rio", data);
+      if (!result.success) throw new Error(result.error ?? "Erro ao atualizar metadados");
       return result;
     }),
     // Excluir solicitação cancelada (somente solicitante ou admin/master)
@@ -7811,10 +7868,10 @@ async function startServer() {
     try {
       const { sql: sql2 } = req.body;
       if (!sql2) return res.status(400).json({ ok: false, error: "sql required" });
-      const { getDb: getDb2 } = await Promise.resolve().then(() => (init_db(), db_exports));
-      const db = await getDb2();
-      const result = await db.execute(sql2);
-      res.json({ ok: true, result: result[0] });
+      const { getPool: getPool2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const pool = await getPool2();
+      const [result] = await pool.execute(sql2);
+      return res.json({ ok: true, result });
     } catch (err) {
       res.status(500).json({ ok: false, error: String(err) });
     }

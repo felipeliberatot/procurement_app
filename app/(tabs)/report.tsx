@@ -58,6 +58,7 @@ export default function ReportScreen() {
   const [showCcPicker, setShowCcPicker] = useState(false);
   const [porCustoYear, setPorCustoYear] = useState<number | null>(null);
   const [porCustoMonth, setPorCustoMonth] = useState<number | null>(null);
+  const [porCustoFarmId, setPorCustoFarmId] = useState<number | null>(null);
   const { isDesktop } = useBreakpoint();
 
   const { data, isLoading, isFetching } = trpc.requests.monthlyReport.useQuery(
@@ -88,8 +89,9 @@ export default function ReportScreen() {
   const { data: partialStats } = trpc.requests.partialFulfillmentStats.useQuery();
   const { data: assetsList } = trpc.assets.list.useQuery();
   const { data: costCentersList } = trpc.costCenters.list.useQuery();
+  const { data: unitsList } = trpc.units.list.useQuery();
   const { data: ccReport, isLoading: loadingCcReport } = trpc.requests.requestsByCostCenter.useQuery(
-    { costCenterCode: selectedCostCenter ?? "", year: porCustoYear ?? undefined, month: porCustoMonth ?? undefined },
+    { costCenterCode: selectedCostCenter ?? "", year: porCustoYear ?? undefined, month: porCustoMonth ?? undefined, farmId: porCustoFarmId ?? undefined },
     { enabled: !!selectedCostCenter, placeholderData: (prev: any) => prev }
   );
   const filteredCostCenters = (costCentersList ?? []).filter((c: any) =>
@@ -373,6 +375,9 @@ export default function ReportScreen() {
           setSelectedYear={setPorCustoYear}
           selectedMonth={porCustoMonth}
           setSelectedMonth={setPorCustoMonth}
+          selectedFarmId={porCustoFarmId}
+          setSelectedFarmId={setPorCustoFarmId}
+          unitsList={unitsList ?? []}
           colors={colors}
           styles={styles}
           years={years}
@@ -1741,6 +1746,7 @@ function PorCustoCenterTab({
   ccSearch, setCcSearch, showCcPicker, setShowCcPicker,
   filteredCostCenters, ccReport, loading, colors, styles,
   selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, years,
+  selectedFarmId, setSelectedFarmId, unitsList,
 }: any) {
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -1788,6 +1794,26 @@ function PorCustoCenterTab({
       {/* Filtros de Ano/Mês */}
       <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}>
         <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8 }}>PERÍODO</Text>
+        {/* Fazenda */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+          <View style={{ flexDirection: "row", gap: 6 }}>
+            <TouchableOpacity
+              style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: !selectedFarmId ? colors.primary : colors.surface, borderWidth: 1, borderColor: !selectedFarmId ? colors.primary : colors.border }}
+              onPress={() => setSelectedFarmId(null)}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "700", color: !selectedFarmId ? "#fff" : colors.muted }}>Todas</Text>
+            </TouchableOpacity>
+            {(unitsList ?? []).map((f: any) => (
+              <TouchableOpacity
+                key={f.id}
+                style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: selectedFarmId === f.id ? colors.primary : colors.surface, borderWidth: 1, borderColor: selectedFarmId === f.id ? colors.primary : colors.border }}
+                onPress={() => setSelectedFarmId(selectedFarmId === f.id ? null : f.id)}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "700", color: selectedFarmId === f.id ? "#fff" : colors.muted }} numberOfLines={1}>{f.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
         {/* Ano */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
           <View style={{ flexDirection: "row", gap: 6 }}>

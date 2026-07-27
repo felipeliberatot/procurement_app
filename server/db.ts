@@ -53,6 +53,7 @@ const STEP_LABELS_SERVER: Record<string, string> = {
 };
 
 let _db: ReturnType<typeof drizzle> | null = null;
+let _pool: any = null;
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
@@ -67,6 +68,7 @@ export async function getDb() {
         enableKeepAlive: true,
         keepAliveInitialDelay: 10000,
       }) as unknown as CallbackPool;
+      _pool = pool;
       _db = drizzle(pool);
       console.log("[Database] Connection pool created successfully");
     } catch (error) {
@@ -75,6 +77,11 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+export async function getPool() {
+  await getDb();
+  return _pool;
 }
 
 // ─── Core Auth ────────────────────────────────────────────────────────────────
@@ -3019,6 +3026,57 @@ export async function updateApplicationConcluida(
   return { success: true };
 }
 
+// ─── Edição de metadados em solicitações concluídas (Controladoria) ─────────────
+export async function updateMetadataConcluida(
+  requestId: number,
+  editorId: number,
+  editorName: string,
+  data: {
+    costCenterCode?: string;
+    costCenterName?: string;
+    farmId?: number;
+    farmName?: string;
+    harvestId?: number;
+    harvestName?: string;
+  },
+): Promise<{ success: boolean; error?: string }> {
+  const db = await getDb();
+  if (!db) return { success: false, error: "Banco de dados indisponível" };
+
+  const [request] = await db.select().from(purchaseRequests).where(eq(purchaseRequests.id, requestId)).limit(1);
+  if (!request) return { success: false, error: "Solicitação não encontrada" };
+
+  if (request.status !== "concluida" && request.status !== "parcialmente_concluida") {
+    return { success: false, error: `Esta edição só pode ser feita em solicitações concluídas. Status atual: "${request.status}"` };
+  }
+
+  const updateSet: any = { updatedAt: new Date() };
+  if (data.costCenterCode !== undefined) updateSet.costCenterCode = data.costCenterCode;
+  if (data.costCenterName !== undefined) updateSet.costCenterName = data.costCenterName;
+  if (data.farmId !== undefined) updateSet.farmId = data.farmId;
+  if (data.farmName !== undefined) updateSet.farmName = data.farmName;
+  if (data.harvestId !== undefined) updateSet.harvestId = data.harvestId;
+  if (data.harvestName !== undefined) updateSet.harvestName = data.harvestName;
+
+  await db.update(purchaseRequests).set(updateSet).where(eq(purchaseRequests.id, requestId));
+
+  const changes: string[] = [];
+  if (data.costCenterCode) changes.push(`Centro de Custo: "${data.costCenterCode}"`);
+  if (data.farmName) changes.push(`Fazenda: "${data.farmName}"`);
+  if (data.harvestName) changes.push(`Safra: "${data.harvestName}"`);
+
+  await db.insert(approvalHistory).values({
+    requestId,
+    userId: editorId,
+    userName: editorName,
+    step: "edicao",
+    action: "editada",
+    comment: `Metadados atualizados pela Controladoria (${editorName}): ${changes.join(", ")}`,
+  });
+
+  return { success: true };
+}
+
 // ─── Safras (Harvests) ────────────────────────────────────────────────────────
 export async function listHarvests() {
   const db = await getDb();
@@ -3954,7 +4012,7 @@ export async function listPriorityRequests() {
  * Retorna solicitações concluídas/parcialmente concluídas de um centro de custo,
  * com filtros opcionais de ano e mês (competência = completedAt).
  */
-export async function getRequestsByCostCenter(costCenterCode: string, year?: number, month?: number) {
+export async function getRequestsByCostCenter(costCenterCode: string, year?: number, month?: number, farmId?: number) {
   const db = await getDb();
   if (!db) return { requests: [], summary: { totalSolicitacoes: 0, totalGasto: 0 } };
   const rows = await db
@@ -3985,6 +4043,7 @@ export async function getRequestsByCostCenter(costCenterCode: string, year?: num
           eq(purchaseRequests.status, "concluida"),
           eq(purchaseRequests.status, "parcialmente_concluida"),
         ),
+        ...(farmId ? [eq(purchaseRequests.farmId, farmId)] : []),
         ...(year && month ? [
           gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
           lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0)),
