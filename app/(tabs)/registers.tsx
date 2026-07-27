@@ -2154,6 +2154,11 @@ export default function RegistersScreen() {
   const [assetMaxValue, setAssetMaxValue] = useState("");
   const [showAssetFilters, setShowAssetFilters] = useState(false);
   const [isExportingAssets, setIsExportingAssets] = useState(false);
+  const [isExportingCC, setIsExportingCC] = useState(false);
+  const [isExportingUnits, setIsExportingUnits] = useState(false);
+  const [isExportingBU, setIsExportingBU] = useState(false);
+  const [isExportingDepts, setIsExportingDepts] = useState(false);
+  const [isExportingHarvests, setIsExportingHarvests] = useState(false);
 
   const userRole = (user as any)?.procurementRole as ProcurementRole ?? "solicitante";
   const userExtraRoles: ProcurementRole[] = (() => { try { return JSON.parse((user as any)?.extraRoles ?? "[]") as ProcurementRole[]; } catch { return []; } })();
@@ -2380,6 +2385,121 @@ export default function RegistersScreen() {
       setIsExportingAssets(false);
     }
   };
+
+  // Exportação genérica para cadastros simples
+  const exportGeneric = async (
+    data: any[],
+    format: "csv" | "pdf",
+    setLoading: (v: boolean) => void,
+    config: {
+      title: string;
+      filename: string;
+      csvHeaders: string[];
+      csvRow: (item: any) => string[];
+      pdfHeaders: string[];
+      pdfRow: (item: any, idx: number) => string;
+    }
+  ) => {
+    if (data.length === 0) { Alert.alert("Sem dados", "Não há registros para exportar."); return; }
+    setLoading(true);
+    try {
+      const SEP = ";";
+      const escape = (v: any) => { const s = String(v ?? ""); return s.includes(";") || s.includes('"') || s.includes("\n") ? `"${s.replace(/"/g, '""')}"` : s; };
+      if (format === "csv") {
+        const csvRows = [config.csvHeaders.join(SEP), ...data.map((item) => config.csvRow(item).map(escape).join(SEP))].join("\n");
+        const filename = `${config.filename}_${new Date().toISOString().slice(0, 10)}.csv`;
+        if (Platform.OS === "web") {
+          const blob = new Blob(["\uFEFF" + csvRows], { type: "text/csv;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        } else {
+          const uri = `${FileSystem.cacheDirectory}${filename}`;
+          await FileSystem.writeAsStringAsync(uri, csvRows, { encoding: FileSystem.EncodingType.UTF8 });
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) { await Sharing.shareAsync(uri, { mimeType: "text/csv", dialogTitle: `Exportar ${config.title} CSV`, UTI: "public.comma-separated-values-text" }); }
+          else { Alert.alert("Arquivo salvo", `CSV salvo em: ${uri}`); }
+        }
+      } else {
+        const rows = data.map((item, idx) => config.pdfRow(item, idx)).join("");
+        const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/>
+          <style>@page{size:A4 landscape;margin:15mm}body{font-family:Arial,sans-serif;font-size:9px;margin:0}h1{font-size:14px;color:#0a7ea4;margin-bottom:2px}p{color:#666;font-size:8px;margin-bottom:10px}table{width:100%;border-collapse:collapse}th{background:#0a7ea4;color:white;padding:5px 6px;text-align:left;font-size:8px;white-space:nowrap}td{padding:4px 6px;border-bottom:1px solid #e5e7eb;font-size:8px}</style></head><body>
+          <h1>${config.title} — CGS Agrícola</h1>
+          <p>Gerado em: ${new Date().toLocaleString("pt-BR")} | Total: ${data.length} registros</p>
+          <table><thead><tr>${config.pdfHeaders.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table>
+        </body></html>`;
+        if (Platform.OS === "web") {
+          const win = window.open("", "_blank");
+          if (win) { win.document.write(html); win.document.close(); win.onload = () => win.print(); setTimeout(() => { try { win.print(); } catch (_) {} }, 800); }
+          else { Alert.alert("Bloqueado", "Permita pop-ups neste site para exportar o PDF."); }
+        } else {
+          const { uri } = await Print.printToFileAsync({ html, base64: false });
+          const canShare = await Sharing.isAvailableAsync();
+          if (canShare) { await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: `Exportar ${config.title} PDF`, UTI: "com.adobe.pdf" }); }
+          else { Alert.alert("Arquivo salvo", `PDF salvo em: ${uri}`); }
+        }
+      }
+    } catch (e: any) {
+      Alert.alert("Erro ao exportar", e.message ?? "Não foi possível exportar.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportCC = (format: "csv" | "pdf") => exportGeneric(
+    costCentersList ?? [], format, setIsExportingCC,
+    {
+      title: "Centros de Custo", filename: "centros_custo",
+      csvHeaders: ["Código", "Nome", "Responsável", "Ativo"],
+      csvRow: (a) => [a.code, a.name, a.responsible ?? "", a.active ? "Sim" : "Não"],
+      pdfHeaders: ["Código", "Nome", "Responsável", "Status"],
+      pdfRow: (a, idx) => `<tr style="background:${idx % 2 === 0 ? "#f9fafb" : "#ffffff"}"><td><strong>${a.code}</strong></td><td>${a.name}</td><td>${a.responsible ?? ""}</td><td>${a.active ? "Ativo" : "Inativo"}</td></tr>`,
+    }
+  );
+
+  const handleExportUnits = (format: "csv" | "pdf") => exportGeneric(
+    unitsList ?? [], format, setIsExportingUnits,
+    {
+      title: "Fazendas", filename: "fazendas",
+      csvHeaders: ["Código", "Nome", "Cidade", "Estado", "Endereço", "Responsável", "Telefone", "Ativo"],
+      csvRow: (a) => [a.code, a.name, a.city ?? "", a.state ?? "", a.address ?? "", a.responsibleName ?? "", a.responsiblePhone ?? "", a.active ? "Sim" : "Não"],
+      pdfHeaders: ["Código", "Nome", "Cidade/Estado", "Responsável", "Status"],
+      pdfRow: (a, idx) => `<tr style="background:${idx % 2 === 0 ? "#f9fafb" : "#ffffff"}"><td><strong>${a.code}</strong></td><td>${a.name}</td><td>${[a.city, a.state].filter(Boolean).join(" - ")}</td><td>${a.responsibleName ?? ""}</td><td>${a.active ? "Ativo" : "Inativo"}</td></tr>`,
+    }
+  );
+
+  const handleExportBU = (format: "csv" | "pdf") => exportGeneric(
+    businessUnitsList ?? [], format, setIsExportingBU,
+    {
+      title: "Unidades de Negócio", filename: "unidades",
+      csvHeaders: ["Código", "Nome", "Tipo", "Cidade", "Estado", "Responsável", "Ativo"],
+      csvRow: (a) => [a.code, a.name, a.type ?? "", a.city ?? "", a.state ?? "", a.responsibleName ?? "", a.active ? "Sim" : "Não"],
+      pdfHeaders: ["Código", "Nome", "Tipo", "Cidade/Estado", "Responsável", "Status"],
+      pdfRow: (a, idx) => `<tr style="background:${idx % 2 === 0 ? "#f9fafb" : "#ffffff"}"><td><strong>${a.code}</strong></td><td>${a.name}</td><td>${a.type ?? ""}</td><td>${[a.city, a.state].filter(Boolean).join(" - ")}</td><td>${a.responsibleName ?? ""}</td><td>${a.active ? "Ativo" : "Inativo"}</td></tr>`,
+    }
+  );
+
+  const handleExportDepts = (format: "csv" | "pdf") => exportGeneric(
+    departmentsList ?? [], format, setIsExportingDepts,
+    {
+      title: "Departamentos", filename: "departamentos",
+      csvHeaders: ["Código", "Nome", "Responsável", "Ativo"],
+      csvRow: (a) => [a.code, a.name, a.responsible ?? "", a.active ? "Sim" : "Não"],
+      pdfHeaders: ["Código", "Nome", "Responsável", "Status"],
+      pdfRow: (a, idx) => `<tr style="background:${idx % 2 === 0 ? "#f9fafb" : "#ffffff"}"><td><strong>${a.code}</strong></td><td>${a.name}</td><td>${a.responsible ?? ""}</td><td>${a.active ? "Ativo" : "Inativo"}</td></tr>`,
+    }
+  );
+
+  const handleExportHarvests = (format: "csv" | "pdf") => exportGeneric(
+    harvestsList ?? [], format, setIsExportingHarvests,
+    {
+      title: "Safras", filename: "safras",
+      csvHeaders: ["Nome", "Ano", "Início", "Fim", "Ativa"],
+      csvRow: (a) => [a.name, String(a.year ?? ""), a.startDate ?? "", a.endDate ?? "", a.active ? "Sim" : "Não"],
+      pdfHeaders: ["Nome", "Ano", "Início", "Fim", "Status"],
+      pdfRow: (a, idx) => `<tr style="background:${idx % 2 === 0 ? "#f9fafb" : "#ffffff"}"><td><strong>${a.name}</strong></td><td>${a.year ?? ""}</td><td>${a.startDate ?? ""}</td><td>${a.endDate ?? ""}</td><td>${a.active ? "Ativa" : "Inativa"}</td></tr>`,
+    }
+  );
 
   const saveUser = trpc.users.upsertByAdmin.useMutation({
     onSuccess: () => {
@@ -3393,19 +3513,37 @@ export default function RegistersScreen() {
       {activeTab === "costcenters" && (
         <View style={{ flex: 1 }}>
           {canCreateCostCenter && (
-            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => setShowCCModal(true)}
-                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
-              >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Novo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleImportCSV("costcenters")}
-                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar Arquivo</Text>
-              </TouchableOpacity>
+            <View style={{ padding: 12, gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setShowCCModal(true)}
+                  style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Novo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleImportCSV("costcenters")}
+                  style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => handleExportCC("csv")}
+                  disabled={isExportingCC}
+                  style={{ flex: 1, backgroundColor: "#059669", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+                >
+                  {isExportingCC ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar CSV</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleExportCC("pdf")}
+                  disabled={isExportingCC}
+                  style={{ flex: 1, backgroundColor: "#34D399", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+                >
+                  {isExportingCC ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar PDF</Text>}
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           <FlatList
@@ -3763,19 +3901,37 @@ export default function RegistersScreen() {
       {activeTab === "units" && (
         <View style={{ flex: 1 }}>
           {canCreateUnit && (
-            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => { setEditingUnit(null); setShowUnitModal(true); }}
-                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
-              >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleImportCSV("units")}
-                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar Arquivo</Text>
-              </TouchableOpacity>
+            <View style={{ padding: 12, gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => { setEditingUnit(null); setShowUnitModal(true); }}
+                  style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleImportCSV("units")}
+                  style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => handleExportUnits("csv")}
+                  disabled={isExportingUnits}
+                  style={{ flex: 1, backgroundColor: "#059669", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+                >
+                  {isExportingUnits ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar CSV</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleExportUnits("pdf")}
+                  disabled={isExportingUnits}
+                  style={{ flex: 1, backgroundColor: "#34D399", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+                >
+                  {isExportingUnits ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar PDF</Text>}
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           <FlatList
@@ -3826,19 +3982,37 @@ export default function RegistersScreen() {
       {activeTab === "businessunits" && (
         <View style={{ flex: 1 }}>
           {canCreateBU && (
-            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => { setEditingBU(null); setShowBUModal(true); }}
-                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
-              >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleImportCSV("businessunits")}
-                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar Arquivo</Text>
-              </TouchableOpacity>
+            <View style={{ padding: 12, gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => { setEditingBU(null); setShowBUModal(true); }}
+                  style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleImportCSV("businessunits")}
+                  style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => handleExportBU("csv")}
+                  disabled={isExportingBU}
+                  style={{ flex: 1, backgroundColor: "#059669", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+                >
+                  {isExportingBU ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar CSV</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleExportBU("pdf")}
+                  disabled={isExportingBU}
+                  style={{ flex: 1, backgroundColor: "#34D399", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+                >
+                  {isExportingBU ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar PDF</Text>}
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           <FlatList
@@ -3900,19 +4074,37 @@ export default function RegistersScreen() {
       {activeTab === "departments" && (
         <View style={{ flex: 1 }}>
           {canCreateDept && (
-            <View style={{ padding: 12, flexDirection: "row", gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => { setEditingDept(null); setShowDeptModal(true); }}
-                style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
-              >
-                <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Novo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleImportCSV("departments")}
-                style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
-              >
-                <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar Arquivo</Text>
-              </TouchableOpacity>
+            <View style={{ padding: 12, gap: 8 }}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => { setEditingDept(null); setShowDeptModal(true); }}
+                  style={{ flex: 1, backgroundColor: colors.primary, borderRadius: 12, paddingVertical: 12, alignItems: "center" }}
+                >
+                  <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Novo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleImportCSV("departments")}
+                  style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 12, paddingVertical: 12, alignItems: "center", borderWidth: 1, borderColor: colors.border }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "700", fontSize: 14 }}>📥 Importar</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => handleExportDepts("csv")}
+                  disabled={isExportingDepts}
+                  style={{ flex: 1, backgroundColor: "#059669", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+                >
+                  {isExportingDepts ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar CSV</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleExportDepts("pdf")}
+                  disabled={isExportingDepts}
+                  style={{ flex: 1, backgroundColor: "#34D399", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+                >
+                  {isExportingDepts ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar PDF</Text>}
+                </TouchableOpacity>
+              </View>
             </View>
           )}
           <FlatList
@@ -3979,7 +4171,7 @@ export default function RegistersScreen() {
       {/* ── Harvests (Safras) Tab ── */}
       {activeTab === "harvests" && (
         <View style={{ flex: 1 }}>
-          <View style={{ padding: 12 }}>
+          <View style={{ padding: 12, gap: 8 }}>
             {(isAdmin || isMaster) && (
               <TouchableOpacity
                 onPress={() => { setEditingHarvest(null); setShowHarvestModal(true); }}
@@ -3988,6 +4180,22 @@ export default function RegistersScreen() {
                 <Text style={{ color: "white", fontWeight: "700", fontSize: 14 }}>+ Nova Safra</Text>
               </TouchableOpacity>
             )}
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => handleExportHarvests("csv")}
+                disabled={isExportingHarvests}
+                style={{ flex: 1, backgroundColor: "#059669", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+              >
+                {isExportingHarvests ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar CSV</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleExportHarvests("pdf")}
+                disabled={isExportingHarvests}
+                style={{ flex: 1, backgroundColor: "#34D399", borderRadius: 12, paddingVertical: 10, alignItems: "center", justifyContent: "center" }}
+              >
+                {isExportingHarvests ? <ActivityIndicator size="small" color="white" /> : <Text style={{ color: "white", fontWeight: "700", fontSize: 13 }}>📄 Exportar PDF</Text>}
+              </TouchableOpacity>
+            </View>
           </View>
           <FlatList
             data={harvestsList ?? []}
