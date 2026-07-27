@@ -1824,8 +1824,9 @@ function PorCustoCenterTab({
       <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 12, borderWidth: 1, borderColor: colors.border }}>
         <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8 }}>PERÍODO</Text>
         {/* Fazenda */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-          <View style={{ flexDirection: "row", gap: 6 }}>
+        <Text style={{ fontSize: 11, fontWeight: "600", color: colors.muted, marginBottom: 4 }}>FAZENDA</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={true} style={{ marginBottom: 12 }} indicatorStyle="black">
+          <View style={{ flexDirection: "row", gap: 6, paddingBottom: 6 }}>
             <TouchableOpacity
               style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: !selectedFarmId ? colors.primary : colors.surface, borderWidth: 1, borderColor: !selectedFarmId ? colors.primary : colors.border }}
               onPress={() => setSelectedFarmId(null)}
