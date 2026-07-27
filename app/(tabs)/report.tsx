@@ -1795,18 +1795,7 @@ function PorCustoCenterTab({
     });
   }, [ccReport, selectedYear, selectedMonth]);
 
-  const periodSummary = React.useMemo(() => {
-    const totalGasto = periodFilteredRequests.reduce(
-      (sum: number, r: any) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"),
-      0
-    );
-    return {
-      totalSolicitacoes: periodFilteredRequests.length,
-      totalGasto: Math.round(totalGasto * 100) / 100,
-    };
-  }, [periodFilteredRequests]);
-
-  // Solicitações filtradas para a lista
+  // Solicitações filtradas para a lista (período + subtipo)
   const filteredRequests = React.useMemo(() => {
     let result = periodFilteredRequests;
     if (activeMaintenanceFilters.length > 0) {
@@ -1817,6 +1806,18 @@ function PorCustoCenterTab({
     }
     return result;
   }, [periodFilteredRequests, activeMaintenanceFilters, activeFuelFilters]);
+
+  // Resumo reflete o filtro de subtipo ativo
+  const periodSummary = React.useMemo(() => {
+    const totalGasto = filteredRequests.reduce(
+      (sum: number, r: any) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"),
+      0
+    );
+    return {
+      totalSolicitacoes: filteredRequests.length,
+      totalGasto: Math.round(totalGasto * 100) / 100,
+    };
+  }, [filteredRequests]);
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
