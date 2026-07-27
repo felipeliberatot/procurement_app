@@ -131,6 +131,25 @@ async function startServer() {
     }
   });
 
+  // Endpoint temporário para executar SQL admin (apenas com token)
+  app.post("/api/admin/exec-sql", express.json(), async (req: any, res: any) => {
+    const token = req.headers["x-deploy-token"] || req.query.token;
+    const expectedToken = process.env.HOT_DEPLOY_TOKEN;
+    if (!expectedToken || token !== expectedToken) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+    try {
+      const { sql } = req.body;
+      if (!sql) return res.status(400).json({ ok: false, error: "sql required" });
+      const { getDb } = await import("../db.js");
+      const db = await getDb();
+      const result = await (db as any).execute(sql);
+      res.json({ ok: true, result: result[0] });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
+
   // Hot-deploy para arquivos PWA (landing page, manifest, icones, sw)
   app.post("/api/admin/hot-deploy-pwa", async (req, res) => {
     const token = req.headers["x-deploy-token"] || req.query.token;

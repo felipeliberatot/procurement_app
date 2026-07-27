@@ -7802,6 +7802,23 @@ async function startServer() {
       res.status(500).json({ ok: false, error: String(err) });
     }
   });
+  app.post("/api/admin/exec-sql", express.json(), async (req, res) => {
+    const token = req.headers["x-deploy-token"] || req.query.token;
+    const expectedToken = process.env.HOT_DEPLOY_TOKEN;
+    if (!expectedToken || token !== expectedToken) {
+      return res.status(401).json({ ok: false, error: "Unauthorized" });
+    }
+    try {
+      const { sql: sql2 } = req.body;
+      if (!sql2) return res.status(400).json({ ok: false, error: "sql required" });
+      const { getDb: getDb2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+      const db = await getDb2();
+      const result = await db.execute(sql2);
+      res.json({ ok: true, result: result[0] });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: String(err) });
+    }
+  });
   app.post("/api/admin/hot-deploy-pwa", async (req, res) => {
     const token = req.headers["x-deploy-token"] || req.query.token;
     const expectedToken = process.env.HOT_DEPLOY_TOKEN;
