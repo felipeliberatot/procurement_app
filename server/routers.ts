@@ -388,8 +388,10 @@ export const appRouter = router({
       .input(z.object({ applications: z.array(z.string()).min(1), year: z.number().optional(), month: z.number().optional() }))
       .query(({ input }) => Promise.all(input.applications.map(app => db.getRequestsByAsset(app, input.year, input.month).then(r => ({ application: app, ...r }))))),
     requestsByCostCenter: protectedProcedure
-      .input(z.object({ costCenterCode: z.string().min(1), year: z.number().optional(), month: z.number().optional(), farmId: z.number().optional() }))
-      .query(({ input }) => db.getRequestsByCostCenter(input.costCenterCode, input.year, input.month, input.farmId)),
+      .input(z.object({ costCenterCode: z.string().min(1), farmId: z.number().optional().nullable() }))
+      .query(({ input }) => {
+        return db.getRequestsByCostCenter(input.costCenterCode, undefined, undefined, input.farmId ?? undefined);
+      }),
     updateItemFulfillment: protectedProcedure
       .input(z.object({ itemId: z.number(), fulfilledQty: z.number().min(0) }))
       .mutation(({ input, ctx }) => db.updateItemFulfillment(input.itemId, input.fulfilledQty, ctx.user.id)),
@@ -620,6 +622,8 @@ export const appRouter = router({
         farmName: z.string().optional(),
         harvestId: z.number().optional(),
         harvestName: z.string().optional(),
+        fuelType: z.string().optional(),
+        maintenanceType: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user as any;

@@ -864,6 +864,10 @@ export default function RequestDetailScreen() {
   const [editFarmName, setEditFarmName] = useState("");
   const [editHarvestId, setEditHarvestId] = useState<number | null>(null);
   const [editHarvestName, setEditHarvestName] = useState("");
+  const [editFuelType, setEditFuelType] = useState<string | null>(null);
+  const [editMaintenanceType, setEditMaintenanceType] = useState<string | null>(null);
+  const EDIT_FUEL_CC_CODE = "OP-001";
+  const EDIT_MAINTENANCE_CC_CODES = ["CC-013", "CC-015"];
   const { data: costCentersForEdit } = trpc.costCenters.list.useQuery(undefined, { enabled: isAuthenticated });
   const { data: unitsForEdit } = trpc.units.list.useQuery(undefined, { enabled: isAuthenticated });
   const { data: harvestsForEdit } = trpc.harvests.list.useQuery(undefined, { enabled: isAuthenticated });
@@ -1517,6 +1521,8 @@ export default function RequestDetailScreen() {
                         setEditFarmName((request as any).farmName ?? "");
                         setEditHarvestId((request as any).harvestId ?? null);
                         setEditHarvestName((request as any).harvestName ?? "");
+                        setEditFuelType((request as any).fuelType ?? null);
+                        setEditMaintenanceType((request as any).maintenanceType ?? null);
                         setShowEditMetadata(true);
                       }}
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -4135,21 +4141,27 @@ export default function RequestDetailScreen() {
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: "row" }}>
                     <View style={{ flexDirection: "row", gap: 8, paddingBottom: 4 }}>
                       {(costCentersForEdit ?? []).map((cc: any) => (
-                        <Pressable
+                        <TouchableOpacity
                           key={cc.id}
-                          onPress={() => { setEditCostCenterCode(cc.code); setEditCostCenterName(cc.name ?? cc.code); }}
-                          style={({ pressed }) => ({
-                            opacity: pressed ? 0.7 : 1,
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            setEditCostCenterCode(cc.code);
+                            setEditCostCenterName(cc.name ?? cc.code);
+                            // Resetar tipos ao trocar CC
+                            if (cc.code !== EDIT_FUEL_CC_CODE) setEditFuelType(null);
+                            if (!EDIT_MAINTENANCE_CC_CODES.includes(cc.code)) setEditMaintenanceType(null);
+                          }}
+                          style={{
                             backgroundColor: editCostCenterCode === cc.code ? colors.primary : colors.surface,
                             borderWidth: 1,
                             borderColor: editCostCenterCode === cc.code ? colors.primary : colors.border,
                             borderRadius: 20,
                             paddingHorizontal: 14,
                             paddingVertical: 8,
-                          })}
+                          }}
                         >
                           <Text style={{ fontSize: 13, color: editCostCenterCode === cc.code ? "#fff" : colors.foreground, fontWeight: "600" }}>{cc.code}</Text>
-                        </Pressable>
+                        </TouchableOpacity>
                       ))}
                     </View>
                   </ScrollView>
@@ -4157,6 +4169,67 @@ export default function RequestDetailScreen() {
                     <Text style={{ fontSize: 12, color: colors.muted, marginTop: 4 }}>Selecionado: {editCostCenterCode}</Text>
                   ) : null}
                 </View>
+
+                {/* Tipo de Combustível/Lubrificante — visível apenas quando CC = OP-001 */}
+                {editCostCenterCode === EDIT_FUEL_CC_CODE && (
+                  <View>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, marginBottom: 8 }}>Tipo de Combustível/Lubrificante</Text>
+                    <View style={{ gap: 8 }}>
+                      {([
+                        { value: "diesel", label: "⛽ Diesel" },
+                        { value: "diesel_s10", label: "⛽ Diesel S-10" },
+                        { value: "alcool_gasolina_fazenda", label: "🌾 Álcool/Gasolina – Fazenda" },
+                        { value: "alcool_gasolina_administrativo", label: "🏢 Álcool/Gasolina – Adm." },
+                        { value: "lubrificantes", label: "🔧 Lubrificantes" },
+                      ] as { value: string; label: string }[]).map((opt) => (
+                        <TouchableOpacity
+                          key={opt.value}
+                          activeOpacity={0.7}
+                          onPress={() => setEditFuelType(opt.value)}
+                          style={{
+                            backgroundColor: editFuelType === opt.value ? colors.primary : colors.surface,
+                            borderWidth: 1,
+                            borderColor: editFuelType === opt.value ? colors.primary : colors.border,
+                            borderRadius: 12,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                          }}
+                        >
+                          <Text style={{ fontSize: 14, color: editFuelType === opt.value ? "#fff" : colors.foreground, fontWeight: editFuelType === opt.value ? "700" : "400" }}>{opt.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* Tipo de Manutenção — visível apenas quando CC = CC-013 */}
+                {EDIT_MAINTENANCE_CC_CODES.includes(editCostCenterCode) && (
+                  <View>
+                    <Text style={{ fontSize: 13, fontWeight: "600", color: colors.muted, marginBottom: 8 }}>Tipo de Manutenção</Text>
+                    <View style={{ gap: 8 }}>
+                      {([
+                        { value: "preventiva", label: "🛡️ Preventiva" },
+                        { value: "corretiva", label: "🔧 Corretiva" },
+                      ] as { value: string; label: string }[]).map((opt) => (
+                        <TouchableOpacity
+                          key={opt.value}
+                          activeOpacity={0.7}
+                          onPress={() => setEditMaintenanceType(opt.value)}
+                          style={{
+                            backgroundColor: editMaintenanceType === opt.value ? colors.primary : colors.surface,
+                            borderWidth: 1,
+                            borderColor: editMaintenanceType === opt.value ? colors.primary : colors.border,
+                            borderRadius: 12,
+                            paddingHorizontal: 16,
+                            paddingVertical: 12,
+                          }}
+                        >
+                          <Text style={{ fontSize: 14, color: editMaintenanceType === opt.value ? "#fff" : colors.foreground, fontWeight: editMaintenanceType === opt.value ? "700" : "400" }}>{opt.label}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
 
                 {/* Fazenda */}
                 <View>
@@ -4217,6 +4290,8 @@ export default function RequestDetailScreen() {
                     if (editCostCenterCode) { payload.costCenterCode = editCostCenterCode; payload.costCenterName = editCostCenterName; }
                     if (editFarmId) { payload.farmId = editFarmId; payload.farmName = editFarmName; }
                     if (editHarvestId) { payload.harvestId = editHarvestId; payload.harvestName = editHarvestName; }
+                    if (editCostCenterCode === EDIT_FUEL_CC_CODE && editFuelType) { payload.fuelType = editFuelType; }
+                    if (EDIT_MAINTENANCE_CC_CODES.includes(editCostCenterCode) && editMaintenanceType) { payload.maintenanceType = editMaintenanceType; }
                     updateMetadataMutation.mutate(payload);
                   }}
                   disabled={updateMetadataMutation.isPending}

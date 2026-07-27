@@ -3038,6 +3038,8 @@ export async function updateMetadataConcluida(
     farmName?: string;
     harvestId?: number;
     harvestName?: string;
+    fuelType?: string;
+    maintenanceType?: string;
   },
 ): Promise<{ success: boolean; error?: string }> {
   const db = await getDb();
@@ -3057,6 +3059,8 @@ export async function updateMetadataConcluida(
   if (data.farmName !== undefined) updateSet.farmName = data.farmName;
   if (data.harvestId !== undefined) updateSet.harvestId = data.harvestId;
   if (data.harvestName !== undefined) updateSet.harvestName = data.harvestName;
+  if (data.fuelType !== undefined) updateSet.fuelType = data.fuelType;
+  if (data.maintenanceType !== undefined) updateSet.maintenanceType = data.maintenanceType;
 
   await db.update(purchaseRequests).set(updateSet).where(eq(purchaseRequests.id, requestId));
 
@@ -3064,6 +3068,8 @@ export async function updateMetadataConcluida(
   if (data.costCenterCode) changes.push(`Centro de Custo: "${data.costCenterCode}"`);
   if (data.farmName) changes.push(`Fazenda: "${data.farmName}"`);
   if (data.harvestName) changes.push(`Safra: "${data.harvestName}"`);
+  if (data.fuelType) changes.push(`Combustível: "${data.fuelType}"`);
+  if (data.maintenanceType) changes.push(`Manutenção: "${data.maintenanceType}"`);
 
   await db.insert(approvalHistory).values({
     requestId,
@@ -4047,15 +4053,15 @@ export async function getRequestsByCostCenter(costCenterCode: string, year?: num
         ...(year && month ? [
           gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
           lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0)),
-        ] : year && !month ? [
+        ] : year ? [
           gte(purchaseRequests.completedAt, new Date(year, 0, 1, 0, 0, 0, 0)),
           lt(purchaseRequests.completedAt, new Date(year + 1, 0, 1, 0, 0, 0, 0)),
-        ] : !year && month ? [
+        ] : month ? [
           sql`MONTH(${purchaseRequests.completedAt}) = ${month}`,
         ] : [])
       )
     )
-    .orderBy(desc(purchaseRequests.completedAt));
+    .orderBy(desc(sql`COALESCE(${purchaseRequests.completedAt}, ${purchaseRequests.createdAt})`));
   const totalGasto = rows.reduce((sum, r) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
   return {
     requests: rows,

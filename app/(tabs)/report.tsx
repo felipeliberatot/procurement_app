@@ -90,8 +90,8 @@ export default function ReportScreen() {
   const { data: assetsList } = trpc.assets.list.useQuery();
   const { data: costCentersList } = trpc.costCenters.list.useQuery();
   const { data: unitsList } = trpc.units.list.useQuery();
-  const { data: ccReport, isLoading: loadingCcReport } = trpc.requests.requestsByCostCenter.useQuery(
-    { costCenterCode: selectedCostCenter ?? "", year: porCustoYear ?? undefined, month: porCustoMonth ?? undefined, farmId: porCustoFarmId ?? undefined },
+  const { data: ccReport, isLoading: loadingCcReport, isFetching: fetchingCcReport } = trpc.requests.requestsByCostCenter.useQuery(
+    { costCenterCode: selectedCostCenter ?? "", farmId: porCustoFarmId ?? undefined },
     { enabled: !!selectedCostCenter, placeholderData: (prev: any) => prev }
   );
   const filteredCostCenters = (costCentersList ?? []).filter((c: any) =>
@@ -120,7 +120,14 @@ export default function ReportScreen() {
 
       if (activeTab === "porcusto" && selectedCostCenter && ccReport) {
         const header = "Centro de Custo;N\u00ba Solicita\u00e7\u00e3o;Solicitante;Departamento;Aplica\u00e7\u00e3o;Urg\u00eancia;Valor Total;Data Cria\u00e7\u00e3o;Data Conclus\u00e3o\n";
-        const allRows = (ccReport.requests ?? []).map((r: any) => [
+        const allRows = (ccReport.requests ?? []).filter((r: any) => {
+          const baseDate = r.completedAt ?? r.createdAt;
+          if (!baseDate) return false;
+          const date = new Date(baseDate);
+          if (porCustoYear && date.getFullYear() !== porCustoYear) return false;
+          if (porCustoMonth && date.getMonth() + 1 !== porCustoMonth) return false;
+          return true;
+        }).map((r: any) => [
           `"${selectedCostCenter}"`,
           r.requestNumber ?? r.id,
           `"${r.requesterName ?? ""}"`,
@@ -371,6 +378,7 @@ export default function ReportScreen() {
           filteredCostCenters={filteredCostCenters}
           ccReport={ccReport}
           loading={loadingCcReport}
+          fetching={fetchingCcReport}
           selectedYear={porCustoYear}
           setSelectedYear={setPorCustoYear}
           selectedMonth={porCustoMonth}
@@ -1744,7 +1752,7 @@ ${sections || '<p style="color:#999;text-align:center">Nenhum bem com movimenta�
 function PorCustoCenterTab({
   costCentersList, selectedCostCenter, setSelectedCostCenter,
   ccSearch, setCcSearch, showCcPicker, setShowCcPicker,
-  filteredCostCenters, ccReport, loading, colors, styles,
+  filteredCostCenters, ccReport, loading, fetching, colors, styles,
   selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, years,
   selectedFarmId, setSelectedFarmId, unitsList,
 }: any) {
@@ -1757,13 +1765,12 @@ function PorCustoCenterTab({
     : "Histórico completo";
   const fmtCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
   const selectedCC = (costCentersList ?? []).find((c: any) => c.code === selectedCostCenter);
-
   // ── Filtros de sub-tipo ──────────────────────────────────────────────────────
   const [activeMaintenanceFilters, setActiveMaintenanceFilters] = React.useState<string[]>([]);
   const [activeFuelFilters, setActiveFuelFilters] = React.useState<string[]>([]);
 
-  // Reset filtros ao trocar de CC ou período
-  React.useEffect(() => { setActiveMaintenanceFilters([]); setActiveFuelFilters([]); }, [selectedCostCenter, selectedYear, selectedMonth]);
+  // Reset filtros ao trocar de CC, fazenda ou período
+  React.useEffect(() => { setActiveMaintenanceFilters([]); setActiveFuelFilters([]); }, [selectedCostCenter, selectedFarmId, selectedYear, selectedMonth]);
 
   const toggleMaintenanceFilter = (type: string) => {
     setActiveMaintenanceFilters(prev =>
@@ -1776,10 +1783,32 @@ function PorCustoCenterTab({
     );
   };
 
+  const periodFilteredRequests = React.useMemo(() => {
+    const reqs: any[] = ccReport?.requests ?? [];
+    return reqs.filter((r: any) => {
+      const baseDate = r.completedAt ?? r.createdAt;
+      if (!baseDate) return false;
+      const date = new Date(baseDate);
+      if (selectedYear && date.getFullYear() !== selectedYear) return false;
+      if (selectedMonth && date.getMonth() + 1 !== selectedMonth) return false;
+      return true;
+    });
+  }, [ccReport, selectedYear, selectedMonth]);
+
+  const periodSummary = React.useMemo(() => {
+    const totalGasto = periodFilteredRequests.reduce(
+      (sum: number, r: any) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"),
+      0
+    );
+    return {
+      totalSolicitacoes: periodFilteredRequests.length,
+      totalGasto: Math.round(totalGasto * 100) / 100,
+    };
+  }, [periodFilteredRequests]);
+
   // Solicitações filtradas para a lista
   const filteredRequests = React.useMemo(() => {
-    const reqs: any[] = ccReport?.requests ?? [];
-    let result = reqs;
+    let result = periodFilteredRequests;
     if (activeMaintenanceFilters.length > 0) {
       result = result.filter((r: any) => activeMaintenanceFilters.includes(r.maintenanceType));
     }
@@ -1787,7 +1816,7 @@ function PorCustoCenterTab({
       result = result.filter((r: any) => activeFuelFilters.includes(r.fuelType));
     }
     return result;
-  }, [ccReport, activeMaintenanceFilters, activeFuelFilters]);
+  }, [periodFilteredRequests, activeMaintenanceFilters, activeFuelFilters]);
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -1875,6 +1904,39 @@ function PorCustoCenterTab({
         <Text style={{ fontSize: 18, color: colors.muted }}>›</Text>
       </TouchableOpacity>
 
+      {/* Filtro de Tipo de Combustível — aparece para CC OP-001 */}
+      {selectedCostCenter === "OP-001" && (
+        <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border }}>
+          <Text style={{ fontSize: 12, fontWeight: "700", color: colors.muted, marginBottom: 8 }}>TIPO DE COMBUSTÍVEL / LUBRIFICANTE</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+            <TouchableOpacity
+              style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, borderWidth: activeFuelFilters.length === 0 ? 2 : 1, borderColor: activeFuelFilters.length === 0 ? colors.primary : colors.border, backgroundColor: activeFuelFilters.length === 0 ? colors.primary + "18" : colors.surface, alignItems: "center" }}
+              onPress={() => setActiveFuelFilters([])}
+            >
+              <Text style={{ fontSize: 12, fontWeight: "700", color: activeFuelFilters.length === 0 ? colors.primary : colors.muted }}>Todos</Text>
+            </TouchableOpacity>
+            {([
+              { value: "diesel", label: "⛽ Diesel", color: "#1D4ED8" },
+              { value: "diesel_s10", label: "⛽ Diesel S-10", color: "#2563EB" },
+              { value: "alcool_gasolina_fazenda", label: "🌾 Álcool/Gasolina Fazenda", color: "#16A34A" },
+              { value: "alcool_gasolina_administrativo", label: "🏢 Álcool/Gasolina Adm.", color: "#7C3AED" },
+              { value: "lubrificantes", label: "🛢️ Lubrificantes", color: "#B45309" },
+            ] as { value: string; label: string; color: string }[]).map(opt => {
+              const isActive = activeFuelFilters.includes(opt.value);
+              return (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={{ paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, borderWidth: isActive ? 2 : 1, borderColor: opt.color, backgroundColor: isActive ? opt.color : colors.surface, alignItems: "center" }}
+                  onPress={() => setActiveFuelFilters(isActive ? activeFuelFilters.filter(f => f !== opt.value) : [...activeFuelFilters, opt.value])}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: "700", color: isActive ? "#fff" : opt.color }}>{opt.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      )}
+
       {/* Filtro de Tipo de Manutenção — aparece para CCs de manutenção */}
       {(selectedCostCenter === "CC-013" || selectedCostCenter === "CC-015") && (
         <View style={{ backgroundColor: colors.surface, borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: colors.border }}>
@@ -1908,7 +1970,7 @@ function PorCustoCenterTab({
       <View style={{ backgroundColor: colors.surface, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7, marginBottom: 14, borderWidth: 1, borderColor: colors.border, flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Text style={{ fontSize: 12, color: colors.muted }}>Competência:</Text>
         <Text style={{ fontSize: 12, fontWeight: "700", color: colors.primary }}>{periodoLabel}</Text>
-        {loading && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 4 }} />}
+        {(loading || fetching) && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 4 }} />}
       </View>
 
       {/* Conteúdo */}
@@ -1917,12 +1979,12 @@ function PorCustoCenterTab({
           <Text style={{ fontSize: 40, marginBottom: 8 }}>🔍</Text>
           <Text style={[styles.emptyText, { textAlign: "center" }]}>Selecione um centro de custo para ver o histórico de compras.</Text>
         </View>
-      ) : loading ? (
+      ) : loading && !ccReport ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Text style={[styles.emptyText, { marginTop: 12 }]}>Carregando...</Text>
         </View>
-      ) : !ccReport || (ccReport.requests ?? []).length === 0 ? (
+      ) : !fetching && periodFilteredRequests.length === 0 ? (
         <View style={styles.centered}>
           <Text style={{ fontSize: 40, marginBottom: 8 }}>📭</Text>
           <Text style={[styles.emptyText, { textAlign: "center" }]}>
@@ -1934,18 +1996,18 @@ function PorCustoCenterTab({
           {/* Cards de resumo */}
           <View style={{ flexDirection: "row", gap: 10, marginBottom: 12 }}>
             <View style={{ flex: 1, backgroundColor: colors.primary + "18", borderRadius: 10, padding: 14, borderWidth: 1, borderColor: colors.primary + "44", alignItems: "center" }}>
-              <Text style={{ fontSize: 28, fontWeight: "800", color: colors.primary }}>{ccReport.summary?.totalSolicitacoes ?? 0}</Text>
+              <Text style={{ fontSize: 28, fontWeight: "800", color: colors.primary }}>{periodSummary.totalSolicitacoes}</Text>
               <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2, textAlign: "center" }}>Solicitações Concluídas</Text>
             </View>
             <View style={{ flex: 1, backgroundColor: colors.success + "18", borderRadius: 10, padding: 14, borderWidth: 1, borderColor: colors.success + "44", alignItems: "center" }}>
-              <Text style={{ fontSize: 18, fontWeight: "800", color: colors.success }}>{fmtCurrency(ccReport.summary?.totalGasto ?? 0)}</Text>
+              <Text style={{ fontSize: 18, fontWeight: "800", color: colors.success }}>{fmtCurrency(periodSummary.totalGasto)}</Text>
               <Text style={{ fontSize: 11, color: colors.muted, marginTop: 2, textAlign: "center" }}>Total Gasto</Text>
             </View>
           </View>
 
           {/* Cards Preventiva / Corretiva clicáveis para filtrar */}
           {(() => {
-            const reqs = ccReport.requests ?? [];
+            const reqs = periodFilteredRequests;
             const preventiva = reqs.filter((r: any) => r.maintenanceType === "preventiva");
             const corretiva = reqs.filter((r: any) => r.maintenanceType === "corretiva");
             if (preventiva.length === 0 && corretiva.length === 0) return null;
@@ -1989,7 +2051,7 @@ function PorCustoCenterTab({
 
           {/* Cards por Tipo de Combustível clicáveis para filtrar */}
           {(() => {
-            const reqs = ccReport.requests ?? [];
+            const reqs = periodFilteredRequests;
             const fuelLabels: Record<string, { label: string; icon: string; color: string }> = {
               diesel: { label: "Diesel", icon: "⛽", color: "#1D4ED8" },
               diesel_s10: { label: "Diesel S-10", icon: "⛽", color: "#2563EB" },
