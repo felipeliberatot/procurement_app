@@ -2183,7 +2183,20 @@ export async function getMaloteStats(): Promise<{ abertos: number; enviados: num
 export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; requestNumber: string; requesterName: string; application: string; department: string; status: string }>> {
   const db = await getDb();
   if (!db) return [];
-  const inMalote = await db.select({ requestId: maloteItems.requestId }).from(maloteItems);
+  // Excluir apenas solicitações que estão em malotes ATIVOS (aberto ou enviado)
+  // com sentStatus = 'enviado' OU em malotes abertos (ainda não enviadas mas reservadas).
+  // Solicitações em malotes já recebidos/devolvidos com sentStatus = 'pendente'
+  // (nunca chegaram a ser enviadas) devem voltar a aparecer na busca.
+  const inMalote = await db
+    .select({ requestId: maloteItems.requestId })
+    .from(maloteItems)
+    .innerJoin(malotes, eq(maloteItems.maloteId, malotes.id))
+    .where(
+      sql`(
+        ${malotes.status} IN ('aberto', 'enviado')
+        OR ${maloteItems.sentStatus} = 'enviado'
+      )`
+    );
   const inMaloteIds = new Set(inMalote.map(i => i.requestId));
   const concluded = await db
     .select({
@@ -2198,7 +2211,7 @@ export async function getRequestsReadyForMalote(): Promise<Array<{ id: number; r
     .where(
       sql`${purchaseRequests.status} IN ('concluida', 'parcialmente_concluida')`
     );
-  return concluded.filter(r => !inMaloteIds.has(r.id));
+    return concluded.filter(r => !inMaloteIds.has(r.id));
 }
 
 // ─── Units / Unidades ─────────────────────────────────────────────────────────
