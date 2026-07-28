@@ -1614,6 +1614,12 @@ export async function attachInvoice(requestId: number, fileUrl: string): Promise
   await db.update(purchaseRequests).set({ invoiceUrl: fileUrl }).where(eq(purchaseRequests.id, requestId));
 }
 
+export async function attachInvoice2(requestId: number, fileUrl: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(purchaseRequests).set({ invoice2Url: fileUrl }).where(eq(purchaseRequests.id, requestId));
+}
+
 export async function attachOCSiagri(requestId: number, fileUrl: string): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -1990,6 +1996,34 @@ export async function removeRequestFromMalote(maloteItemId: number): Promise<voi
   await db.delete(maloteItems).where(eq(maloteItems.id, maloteItemId));
 }
 
+export async function addRemessaManualToMalote(opts: {
+  maloteId: number;
+  description: string;
+  qty: string;
+  observations: string | null;
+  addedById: number;
+  addedByName: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // Gerar um código de referência para a remessa manual
+  const remessaCode = `REM-${Date.now().toString().slice(-6)}`;
+  await db.insert(maloteItems).values({
+    maloteId: opts.maloteId,
+    requestId: null,
+    requestCode: remessaCode,
+    requesterName: opts.addedByName,
+    application: opts.description,
+    addedById: opts.addedById,
+    addedByName: opts.addedByName,
+    isRemessaManual: true,
+    remessaDescription: opts.description,
+    remessaQty: opts.qty,
+    remessaObservations: opts.observations,
+    receiptStatus: "pendente",
+  });
+}
+
 export async function sendMalote(opts: {
   maloteId: number;
   sentById: number;
@@ -2093,7 +2127,7 @@ export async function receiveMalote(opts: {
 
     if (item.receiptStatus === "devolvido") {
       const [mi] = await db.select().from(maloteItems).where(eq(maloteItems.id, item.itemId)).limit(1);
-      if (mi) {
+      if (mi && mi.requestId) {
         await db.update(purchaseRequests).set({
           status: "aguardando_gerente",
           stepDeadlineAt: new Date(Date.now() + 48 * 60 * 60 * 1000),

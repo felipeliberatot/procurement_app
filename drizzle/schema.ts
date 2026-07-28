@@ -152,6 +152,7 @@ export const purchaseRequests = mysqlTable("purchaseRequests", {
   paymentObservations: text("paymentObservations"), // Observações de pagamento (boleto/cartão)
   paymentInstallments: int("paymentInstallments"),   // Número de parcelas (cartão parcelado)
   invoiceUrl: text("invoiceUrl"),           // PDF nota fiscal (Compras na verificação final)
+  invoice2Url: text("invoice2Url"),         // PDF nota fiscal adicional opcional (Compras na verificação final)
   ocSiagriUrl: text("ocSiagriUrl"),          // PDF OC Siagri (Compras na emissão de OC)
 
   // Valor da Ordem de Compra (definido na etapa de orçamento)
@@ -331,12 +332,17 @@ export type InsertMalote = typeof malotes.$inferInsert;
 export const maloteItems = mysqlTable("maloteItems", {
   id: int("id").autoincrement().primaryKey(),
   maloteId: int("maloteId").notNull(),
-  requestId: int("requestId").notNull(),
+  requestId: int("requestId"),             // null para Remessas Manuais
   requestCode: varchar("requestCode", { length: 20 }).notNull(),
   requesterName: varchar("requesterName", { length: 255 }).notNull(),
   application: varchar("application", { length: 255 }).notNull(),
   addedById: int("addedById").notNull(),
   addedByName: varchar("addedByName", { length: 255 }).notNull(),
+  // Remessa Manual — itens físicos sem OC vinculada
+  isRemessaManual: boolean("isRemessaManual").default(false).notNull(),
+  remessaDescription: varchar("remessaDescription", { length: 500 }),
+  remessaQty: varchar("remessaQty", { length: 50 }),
+  remessaObservations: text("remessaObservations"),
   sentStatus: mysqlEnum("sentStatus", ["pendente", "enviado"])
     .default("pendente")
     .notNull(),

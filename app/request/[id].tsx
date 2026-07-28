@@ -569,6 +569,9 @@ export default function RequestDetailScreen() {
   const [paymentProofLocalUri, setPaymentProofLocalUri] = useState<string | null>(null); // URI local para pré-visualização antes do upload
   const [invoiceFileName, setInvoiceFileName] = useState<string | null>(null);
   const [invoiceLocalUri, setInvoiceLocalUri] = useState<string | null>(null); // URI local para pré-visualização da nota fiscal
+  const [invoice2FileName, setInvoice2FileName] = useState<string | null>(null);
+  const [invoice2LocalUri, setInvoice2LocalUri] = useState<string | null>(null); // URI local para pré-visualização da NF adicional
+  const [showInvoice2Viewer, setShowInvoice2Viewer] = useState(false);
   const [ocSiagriFileName, setOcSiagriFileName] = useState<string | null>(null);
   const [showOCViewer, setShowOCViewer] = useState(false);
   // Estado para controle de itens comprados/pendentes na etapa de Emissão de OC
@@ -783,6 +786,20 @@ export default function RequestDetailScreen() {
     onError: (e) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert("Erro ao anexar nota fiscal", e.message);
+    },
+  });
+
+  const uploadInvoice2Mutation = trpc.requests.uploadInvoice2.useMutation({
+    onSuccess: () => {
+      invalidateAll();
+      setInvoice2LocalUri(null);
+      setInvoice2FileName(null);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("✅ NF adicional anexada!", "A nota fiscal adicional foi registrada com sucesso.");
+    },
+    onError: (e) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Erro ao anexar NF adicional", e.message);
     },
   });
 
@@ -1356,6 +1373,50 @@ export default function RequestDetailScreen() {
       setInvoiceLocalUri(asset.uri);
       const base64 = await readFileAsBase64(asset.uri);
       uploadInvoiceMutation.mutate({ requestId: request.id, fileName, base64, mimeType: "image/jpeg" });
+    } catch (err) {
+      Alert.alert("Erro", "Não foi possível capturar a foto.");
+    }
+  };
+
+  // Seleciona NF adicional (opcional)
+  const handlePickInvoice2 = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp", "image/heic", "image/heif"],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const file = result.assets[0];
+      setInvoice2FileName(file.name);
+      const isImage = file.mimeType?.startsWith("image/") ?? false;
+      setInvoice2LocalUri(isImage ? file.uri : null);
+      const base64 = await readFileAsBase64(file.uri);
+      uploadInvoice2Mutation.mutate({ requestId: request.id, fileName: file.name, base64, mimeType: file.mimeType ?? "application/pdf" });
+    } catch (err) {
+      Alert.alert("Erro", "Não foi possível selecionar o arquivo.");
+    }
+  };
+
+  // Captura NF adicional pela câmera (apenas mobile)
+  const handleCameraInvoice2 = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permissão Negada", "É necessário permitir o acesso à câmera para fotografar a nota fiscal adicional.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.85,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      const fileName = `nota_fiscal_2_${Date.now()}.jpg`;
+      setInvoice2FileName(fileName);
+      setInvoice2LocalUri(asset.uri);
+      const base64 = await readFileAsBase64(asset.uri);
+      uploadInvoice2Mutation.mutate({ requestId: request.id, fileName, base64, mimeType: "image/jpeg" });
     } catch (err) {
       Alert.alert("Erro", "Não foi possível capturar a foto.");
     }
@@ -3303,6 +3364,72 @@ export default function RequestDetailScreen() {
                     </View>
                   )}
 
+                  {/* Nota Fiscal Adicional (opcional) */}
+                  <View style={{ marginBottom: 12 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+                      Nota Fiscal Adicional <Text style={{ color: colors.muted, fontWeight: "400" }}>(opcional)</Text>
+                    </Text>
+                    {(request as any).invoice2Url ? (
+                      <Pressable onPress={() => setShowInvoice2Viewer(true)} style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}>
+                        {(request as any).invoice2Url?.match(/\.(jpg|jpeg|png|webp|heic|heif)(\?|$)/i) ? (
+                          <View style={{ borderRadius: 10, overflow: "hidden", marginBottom: 4, borderWidth: 2, borderColor: colors.success }}>
+                            <Image source={{ uri: (request as any).invoice2Url }} style={{ width: "100%", height: 120, resizeMode: "cover" }} />
+                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", backgroundColor: `${colors.success}20`, paddingHorizontal: 12, paddingVertical: 6 }}>
+                              <Text style={{ color: colors.success, fontWeight: "700", fontSize: 12 }}>🖼️ NF Adicional Anexada</Text>
+                              <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>👁 Ampliar</Text>
+                            </View>
+                          </View>
+                        ) : (
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: `${colors.success}15`, borderRadius: 10, padding: 10, marginBottom: 4 }}>
+                            <Text style={{ fontSize: 18 }}>🧾</Text>
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: colors.success, fontWeight: "700", fontSize: 12 }}>NF Adicional Anexada</Text>
+                              <Text style={{ color: colors.muted, fontSize: 11 }}>Toque para visualizar</Text>
+                            </View>
+                            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: "600" }}>👁 Ver</Text>
+                          </View>
+                        )}
+                      </Pressable>
+                    ) : (
+                      <View>
+                        <TouchableOpacity
+                          onPress={handlePickInvoice2}
+                          disabled={uploadInvoice2Mutation.isPending}
+                          style={{ borderWidth: 1.5, borderStyle: "dashed", borderColor: `${colors.muted}60`, borderRadius: 10, overflow: "hidden", opacity: uploadInvoice2Mutation.isPending ? 0.6 : 1 }}
+                        >
+                          {uploadInvoice2Mutation.isPending ? (
+                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 }}>
+                              <ActivityIndicator size="small" />
+                              <Text style={{ color: colors.muted, fontSize: 13, marginLeft: 8 }}>Enviando...</Text>
+                            </View>
+                          ) : invoice2LocalUri ? (
+                            <View>
+                              <Image source={{ uri: invoice2LocalUri }} style={{ width: "100%", height: 100, resizeMode: "cover" }} />
+                              <View style={{ flexDirection: "row", alignItems: "center", gap: 8, padding: 8, backgroundColor: `${colors.warning}15` }}>
+                                <Text style={{ fontSize: 12 }}>⏳</Text>
+                                <Text style={{ color: colors.warning, fontSize: 11, fontWeight: "600" }}>{invoice2FileName} — Enviando...</Text>
+                              </View>
+                            </View>
+                          ) : (
+                            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingVertical: 16 }}>
+                              <Text style={{ fontSize: 20 }}>🧾</Text>
+                              <Text style={{ color: colors.muted, fontWeight: "600", fontSize: 13 }}>{invoice2FileName ?? "Anexar NF Adicional (PDF/Imagem)"}</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                        {Platform.OS !== "web" && !uploadInvoice2Mutation.isPending && (
+                          <TouchableOpacity
+                            onPress={handleCameraInvoice2}
+                            style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8, marginTop: 6, borderRadius: 8, backgroundColor: `${colors.muted}10`, borderWidth: 1, borderColor: `${colors.muted}30` }}
+                          >
+                            <Text style={{ fontSize: 16 }}>📷</Text>
+                            <Text style={{ color: colors.muted, fontWeight: "600", fontSize: 12 }}>Fotografar NF Adicional</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+                  </View>
+
                   {/* Campo obrigatório: Valor da Ordem de Compra */}
                   <View style={{ marginBottom: 14 }}>
                     <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
@@ -3865,6 +3992,15 @@ export default function RequestDetailScreen() {
           url={(request as any).invoiceUrl}
           title="Nota Fiscal"
           onClose={() => setShowInvoiceViewer(false)}
+        />
+      )}
+
+      {(request as any)?.invoice2Url && (
+        <PdfViewerModal
+          visible={showInvoice2Viewer}
+          url={(request as any).invoice2Url}
+          title="NF Adicional"
+          onClose={() => setShowInvoice2Viewer(false)}
         />
       )}
 

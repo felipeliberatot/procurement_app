@@ -464,6 +464,23 @@ export const appRouter = router({
         return { url };
       }),
 
+    uploadInvoice2: protectedProcedure
+      .input(z.object({
+        requestId: z.number(),
+        fileName: z.string(),
+        base64: z.string(),
+        mimeType: z.string().default("application/pdf"),
+      }))
+      .mutation(async ({ input }) => {
+        const { storagePut } = await import("./storage");
+        const buffer = Buffer.from(input.base64, "base64");
+        const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const key = `invoices/${input.requestId}/nf2_${Date.now()}_${safeName}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        await db.attachInvoice2(input.requestId, url);
+        return { url };
+      }),
+
     uploadOCSiagri: protectedProcedure
       .input(z.object({
         requestId: z.number(),
@@ -1256,6 +1273,23 @@ Retorne JSON:
         notes: z.string().nullable().optional(),
       }))
       .mutation(({ input }) => db.updateMalote(input)),
+    addRemessaManual: protectedProcedure
+      .input(z.object({
+        maloteId: z.number(),
+        description: z.string().min(1, "Descrição obrigatória"),
+        qty: z.string().min(1, "Quantidade obrigatória"),
+        observations: z.string().optional(),
+      }))
+      .mutation(({ ctx, input }) =>
+        db.addRemessaManualToMalote({
+          maloteId: input.maloteId,
+          description: input.description,
+          qty: input.qty,
+          observations: input.observations ?? null,
+          addedById: ctx.user.id,
+          addedByName: ctx.user.name ?? "Usuário",
+        })
+      ),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteMalote(input.id)),

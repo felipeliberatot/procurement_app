@@ -250,6 +250,17 @@ export default function MalotesScreen() {
   const deleteMutation = trpc.malotes.delete.useMutation({
     onSuccess: () => { utils.malotes.list.invalidate(); utils.malotes.stats.invalidate(); },
   });
+  const addRemessaMutation = trpc.malotes.addRemessaManual.useMutation({
+    onSuccess: () => {
+      setShowRemessa(false);
+      setRemessaDesc("");
+      setRemessaQty("");
+      setRemessaObs("");
+      if (selectedMalote) utils.malotes.getById.invalidate({ id: selectedMalote.id });
+      utils.malotes.list.invalidate();
+    },
+    onError: (e) => Alert.alert("Erro", e.message),
+  });
 
   const [showCreate, setShowCreate] = useState(false);
   const [originUnit, setOriginUnit] = useState("");
@@ -259,6 +270,10 @@ export default function MalotesScreen() {
   const [showDetail, setShowDetail] = useState(false);
   const [showAddRequest, setShowAddRequest] = useState(false);
   const [addSearchQuery, setAddSearchQuery] = useState("");
+  const [showRemessa, setShowRemessa] = useState(false);
+  const [remessaDesc, setRemessaDesc] = useState("");
+  const [remessaQty, setRemessaQty] = useState("");
+  const [remessaObs, setRemessaObs] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterUnit, setFilterUnit] = useState<string>("todas");
   const [showUnitPicker, setShowUnitPicker] = useState<"filter" | null>(null);
@@ -684,10 +699,16 @@ export default function MalotesScreen() {
                   Solicitações ({(maloteDetail?.items ?? []).length})
                 </Text>
                 {selectedMalote?.status === "aberto" && (
-                  <TouchableOpacity onPress={() => setShowAddRequest(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }} activeOpacity={0.7}>
-                    <IconSymbol name="plus" size={16} color={colors.primary} />
-                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>Adicionar</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                    <TouchableOpacity onPress={() => setShowRemessa(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }} activeOpacity={0.7}>
+                      <Text style={{ fontSize: 14 }}>📦</Text>
+                      <Text style={{ color: colors.warning, fontSize: 13, fontWeight: "600" }}>Remessa</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => setShowAddRequest(true)} style={{ flexDirection: "row", alignItems: "center", gap: 4 }} activeOpacity={0.7}>
+                      <IconSymbol name="plus" size={16} color={colors.primary} />
+                      <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>Adicionar</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
               {maloteDetail?.items && maloteDetail.items.length > 0 ? (
@@ -726,16 +747,35 @@ export default function MalotesScreen() {
                           </View>
                         )}
                         <View style={{ flex: 1 }}>
-                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                            <Text style={[styles.itemCode, { color: colors.foreground }]}>{item.requestCode}</Text>
+                          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                            <Text style={[styles.itemCode, { color: (item as any).isRemessaManual ? colors.warning : colors.foreground }]}>
+                              {(item as any).isRemessaManual ? "📦 Remessa Manual" : item.requestCode}
+                            </Text>
+                            {(item as any).isRemessaManual && (
+                              <View style={{ backgroundColor: `${colors.warning}20`, borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
+                                <Text style={{ fontSize: 9, fontWeight: "800", color: colors.warning }}>REMESSA</Text>
+                              </View>
+                            )}
                             {alreadySent && (
                               <View style={{ backgroundColor: "#F59E0B20", borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1 }}>
                                 <Text style={{ fontSize: 9, fontWeight: "800", color: "#F59E0B" }}>ENVIADO</Text>
                               </View>
                             )}
                           </View>
-                          <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={2}>{item.application}</Text>
-                          <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>Solicitante: {item.requesterName}</Text>
+                          {(item as any).isRemessaManual ? (
+                            <View style={{ marginTop: 2 }}>
+                              <Text style={{ fontSize: 13, color: colors.foreground, fontWeight: "500" }}>{(item as any).remessaDescription}</Text>
+                              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>Qtd: {(item as any).remessaQty}</Text>
+                              {(item as any).remessaObservations ? (
+                                <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1, fontStyle: "italic" }}>{(item as any).remessaObservations}</Text>
+                              ) : null}
+                            </View>
+                          ) : (
+                            <>
+                              <Text style={[styles.itemApp, { color: colors.muted }]} numberOfLines={2}>{item.application}</Text>
+                              <Text style={{ fontSize: 11, color: colors.muted, marginTop: 1 }}>Solicitante: {item.requesterName}</Text>
+                            </>
+                          )}
                         </View>
                         {selectedMalote?.status === "aberto" && !partialSendMode && (
                           <TouchableOpacity onPress={() => handleRemoveItem(item.id)} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -1016,6 +1056,80 @@ export default function MalotesScreen() {
                 </TouchableOpacity>
               )}
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ─── Modal: Remessa Manual ─── */}
+      <Modal visible={showRemessa} transparent animationType="slide" onRequestClose={() => setShowRemessa(false)}>
+        <View style={styles.overlay}>
+          <View style={[styles.modal, { backgroundColor: colors.surface }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>📦 Nova Remessa Manual</Text>
+              <TouchableOpacity onPress={() => setShowRemessa(false)}>
+                <IconSymbol name="xmark" size={22} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 12, color: colors.muted, marginBottom: 14, lineHeight: 18 }}>
+              Adicione um item físico ao malote sem vínculo com uma solicitação de compra.
+            </Text>
+            {/* Descrição */}
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+              Descrição <Text style={{ color: colors.error }}>*</Text>
+            </Text>
+            <TextInput
+              value={remessaDesc}
+              onChangeText={setRemessaDesc}
+              placeholder="Ex: Peça de reposición do trator, documento fiscal..."
+              placeholderTextColor={colors.muted}
+              style={{ borderWidth: 1.5, borderColor: remessaDesc.trim() ? colors.primary : colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.foreground, backgroundColor: colors.background, marginBottom: 12 }}
+              returnKeyType="next"
+            />
+            {/* Quantidade */}
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+              Quantidade <Text style={{ color: colors.error }}>*</Text>
+            </Text>
+            <TextInput
+              value={remessaQty}
+              onChangeText={setRemessaQty}
+              placeholder="Ex: 1 peça, 2 caixas, 1 envelope..."
+              placeholderTextColor={colors.muted}
+              style={{ borderWidth: 1.5, borderColor: remessaQty.trim() ? colors.primary : colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.foreground, backgroundColor: colors.background, marginBottom: 12 }}
+              returnKeyType="next"
+            />
+            {/* Observações */}
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.foreground, marginBottom: 6 }}>
+              Observações <Text style={{ color: colors.muted, fontWeight: "400" }}>(opcional)</Text>
+            </Text>
+            <TextInput
+              value={remessaObs}
+              onChangeText={setRemessaObs}
+              placeholder="Informações adicionais..."
+              placeholderTextColor={colors.muted}
+              multiline
+              numberOfLines={3}
+              style={{ borderWidth: 1.5, borderColor: colors.border, borderRadius: 10, padding: 12, fontSize: 14, color: colors.foreground, backgroundColor: colors.background, marginBottom: 16, minHeight: 72, textAlignVertical: "top" }}
+              returnKeyType="done"
+            />
+            <TouchableOpacity
+              onPress={() => {
+                if (!remessaDesc.trim()) return Alert.alert("Atenção", "Informe a descrição do item.");
+                if (!remessaQty.trim()) return Alert.alert("Atenção", "Informe a quantidade.");
+                if (!selectedMalote) return;
+                addRemessaMutation.mutate({
+                  maloteId: selectedMalote.id,
+                  description: remessaDesc.trim(),
+                  qty: remessaQty.trim(),
+                  observations: remessaObs.trim() || undefined,
+                });
+              }}
+              disabled={addRemessaMutation.isPending}
+              style={{ backgroundColor: remessaDesc.trim() && remessaQty.trim() ? colors.warning : colors.border, borderRadius: 12, paddingVertical: 14, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8, opacity: addRemessaMutation.isPending ? 0.7 : 1 }}
+            >
+              {addRemessaMutation.isPending
+                ? <ActivityIndicator color="white" />
+                : <><Text style={{ fontSize: 16 }}>📦</Text><Text style={{ color: "white", fontWeight: "700", fontSize: 15 }}>Adicionar Remessa</Text></>}
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
