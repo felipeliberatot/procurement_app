@@ -243,6 +243,7 @@ export const approvalHistory = mysqlTable("approvalHistory", {
     "controladoria",
     "diretoria",
     "ordem_compra",
+    "ceo",
     "aprovacao_compra",
     "financeiro",
     "verificacao_compras",
