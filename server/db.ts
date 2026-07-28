@@ -1094,6 +1094,7 @@ const REJECT_FLOW_NORMAL: Record<string, string> = {
   aguardando_controladoria:        "aguardando_orcamento",
   aguardando_diretoria:            "aguardando_controladoria",
   aguardando_ordem_compra:         "aguardando_diretoria",
+  aguardando_aprovacao_ceo:        "aguardando_ordem_compra",
   aguardando_aprovacao_compra:     "aguardando_ordem_compra",
   aguardando_comprovante_pagamento:"rejeitada",
 };
@@ -1105,6 +1106,7 @@ const REJECT_FLOW_URGENT: Record<string, string> = {
   aguardando_diretoria:            "aguardando_orcamento",
   aguardando_controladoria:        "aguardando_diretoria",
   aguardando_ordem_compra:         "aguardando_controladoria",
+  aguardando_aprovacao_ceo:        "aguardando_ordem_compra",
   aguardando_aprovacao_compra:     "aguardando_ordem_compra",
   aguardando_comprovante_pagamento:"rejeitada",
 };
@@ -1554,6 +1556,7 @@ export async function rejectRequest(requestId: number, user: User, comment: stri
           // aguardando_orcamento: removido intencionalmente para evitar looping
           aguardando_controladoria: "controladoria",
           aguardando_diretoria:     "diretoria",
+          aguardando_ordem_compra:  "compras",
         };
         const prevRole = prevRoleMap[prevStatus];
         if (prevRole && req) {
