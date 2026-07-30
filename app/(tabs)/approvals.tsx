@@ -8,10 +8,11 @@ import { trpc } from "@/lib/trpc";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -22,6 +23,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import type { ProcurementRole, RequestStatus } from "@/shared/types";
 import { ROLE_LABELS } from "@/shared/types";
 
@@ -189,7 +191,31 @@ export default function ApprovalsScreen() {
 
   const { data: pending, isLoading, refetch, isRefetching } = trpc.requests.pendingForMe.useQuery(undefined, {
     enabled: isAuthenticated,
+    // Atualiza automaticamente a cada 30 segundos enquanto a tela está visível
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
+
+  // Atualiza ao retornar ao app (sair e voltar)
+  const appState = useRef(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (nextState) => {
+      if (appState.current.match(/inactive|background/) && nextState === "active") {
+        refetch();
+      }
+      appState.current = nextState;
+    });
+    return () => sub.remove();
+  }, [refetch]);
+
+  // Atualiza ao navegar de volta para esta aba
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   const invalidateAll = () => {
     utils.requests.pendingForMe.invalidate();
