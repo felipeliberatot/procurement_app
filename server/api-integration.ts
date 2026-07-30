@@ -198,6 +198,67 @@ export function registerApiIntegration(app: Express) {
   });
 
   /**
+   * GET /api/integration/departments
+   * Lista todos os departamentos ativos.
+   */
+  app.get("/api/integration/departments", async (req: Request, res: Response) => {
+    const keyData = await requireApiKey(req, res);
+    if (!keyData) return;
+    try {
+      const data = await db.listDepartments();
+      res.json(data.map((d: any) => ({ id: d.id, code: d.code, name: d.name })));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Erro interno." });
+    }
+  });
+
+  /**
+   * GET /api/integration/farms
+   * Lista todas as fazendas/unidades ativas.
+   */
+  app.get("/api/integration/farms", async (req: Request, res: Response) => {
+    const keyData = await requireApiKey(req, res);
+    if (!keyData) return;
+    try {
+      const data = await db.listUnits();
+      res.json(data.map((u: any) => ({ id: u.id, code: u.code, name: u.name, city: u.city ?? null, state: u.state ?? null })));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Erro interno." });
+    }
+  });
+
+  /**
+   * GET /api/integration/harvests
+   * Lista todas as safras cadastradas.
+   */
+  app.get("/api/integration/harvests", async (req: Request, res: Response) => {
+    const keyData = await requireApiKey(req, res);
+    if (!keyData) return;
+    try {
+      const data = await db.listHarvests();
+      res.json(data.map((h: any) => ({ id: h.id, name: h.name, year: h.year, active: h.active ?? true })));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Erro interno." });
+    }
+  });
+
+  /**
+   * GET /api/integration/cost-centers
+   * Lista todos os centros de custo ativos.
+   */
+  app.get("/api/integration/cost-centers", async (req: Request, res: Response) => {
+    const keyData = await requireApiKey(req, res);
+    if (!keyData) return;
+    try {
+      const data = await db.listAllCostCenters();
+      const active = data.filter((c: any) => c.active !== false);
+      res.json(active.map((c: any) => ({ id: c.id, code: c.code, name: c.name, responsible: c.responsible ?? null })));
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Erro interno." });
+    }
+  });
+
+  /**
    * GET /api/integration/health
    * Verifica se a API Key está válida e a integração está funcionando.
    */
