@@ -59,6 +59,10 @@ export default function ReportScreen() {
   const [porCustoYear, setPorCustoYear] = useState<number | null>(null);
   const [porCustoMonth, setPorCustoMonth] = useState<number | null>(null);
   const [porCustoFarmId, setPorCustoFarmId] = useState<number | null>(null);
+  // Estado elevado para exportação do PDF/CSV com filtros de subtipo aplicados
+  const [ccFilteredRequestsForExport, setCcFilteredRequestsForExport] = useState<any[]>([]);
+  const [ccPeriodSummaryForExport, setCcPeriodSummaryForExport] = useState<{ totalSolicitacoes: number; totalGasto: number } | null>(null);
+  const [ccActiveSubtypeLabel, setCcActiveSubtypeLabel] = useState<string>("");
   const { isDesktop } = useBreakpoint();
 
   const { data, isLoading, isFetching } = trpc.requests.monthlyReport.useQuery(
@@ -226,7 +230,13 @@ export default function ReportScreen() {
       let html: string;
       if (activeTab === "porcusto") {
         if (!selectedCostCenter || !ccReport) { setExporting(false); return; }
-        html = generateCostCenterPDFHtml(ccReport, selectedCostCenter, porCustoYear ?? undefined, porCustoMonth ?? undefined);
+        html = generateCostCenterPDFHtml(
+          { ...ccReport, requests: ccFilteredRequestsForExport, summary: ccPeriodSummaryForExport ?? ccReport.summary },
+          selectedCostCenter,
+          porCustoYear ?? undefined,
+          porCustoMonth ?? undefined,
+          ccActiveSubtypeLabel
+        );
       } else if (activeTab === "porbem") {
         // Multi-asset: use assetsReports when multiple bens selected
         if (selectedAssets.length > 1 && assetsReports && assetsReports.length > 0) {
@@ -389,6 +399,11 @@ export default function ReportScreen() {
           colors={colors}
           styles={styles}
           years={years}
+          onFilteredDataChange={(requests: any[], summary: any, subtypeLabel: string) => {
+            setCcFilteredRequestsForExport(requests);
+            setCcPeriodSummaryForExport(summary);
+            setCcActiveSubtypeLabel(subtypeLabel);
+          }}
         />
       ) : activeTab === "porbem" ? (
         <PorBemTab
@@ -1755,6 +1770,7 @@ function PorCustoCenterTab({
   filteredCostCenters, ccReport, loading, fetching, colors, styles,
   selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, years,
   selectedFarmId, setSelectedFarmId, unitsList,
+  onFilteredDataChange,
 }: any) {
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -1818,6 +1834,19 @@ function PorCustoCenterTab({
       totalGasto: Math.round(totalGasto * 100) / 100,
     };
   }, [filteredRequests]);
+
+  // Notifica o pai sempre que os dados filtrados mudam (para exportação de PDF/CSV)
+  React.useEffect(() => {
+    if (!onFilteredDataChange) return;
+    const maintenanceLabel = activeMaintenanceFilters.length > 0
+      ? activeMaintenanceFilters.map((f: string) => f === "preventiva" ? "Preventiva" : "Corretiva").join(" + ")
+      : "";
+    const fuelLabel = activeFuelFilters.length > 0
+      ? activeFuelFilters.map((f: string) => f === "diesel" ? "Diesel" : f === "arla" ? "Arla" : f === "gasolina" ? "Gasolina" : f === "etanol" ? "Etanol" : f).join(" + ")
+      : "";
+    const subtypeLabel = maintenanceLabel || fuelLabel;
+    onFilteredDataChange(filteredRequests, periodSummary, subtypeLabel);
+  }, [filteredRequests, periodSummary, activeMaintenanceFilters, activeFuelFilters]);
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -2222,7 +2251,7 @@ function PorCustoCenterTab({
 }
 
 // ── HTML para PDF por Centro de Custo ─────────────────────────────────────────
-function generateCostCenterPDFHtml(ccReport: any, costCenterCode: string, year?: number, month?: number): string {
+function generateCostCenterPDFHtml(ccReport: any, costCenterCode: string, year?: number, month?: number, subtypeLabel?: string): string {
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const periodoLabel = year && month ? `${MONTH_NAMES[month - 1]} de ${year}` : year ? `Ano ${year}` : month ? `${MONTH_NAMES[month - 1]} (todos os anos)` : "Histórico completo";
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v ?? 0);
@@ -2261,7 +2290,7 @@ function generateCostCenterPDFHtml(ccReport: any, costCenterCode: string, year?:
 </head>
 <body>
 <h1>Relatório por Centro de Custo</h1>
-<div class="subtitle">Período: ${periodoLabel} &nbsp;|&nbsp; Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+<div class="subtitle">Período: ${periodoLabel}${subtypeLabel ? ` &nbsp;|&nbsp; Filtro: ${subtypeLabel}` : ""} &nbsp;|&nbsp; Gerado em ${new Date().toLocaleString("pt-BR")}</div>
 <div style="margin-bottom:16px">
   <span class="cc-code">${costCenterCode}</span>
   <strong>${ccReport.costCenter?.name ?? costCenterCode}</strong>
