@@ -1,7 +1,7 @@
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -59,10 +59,9 @@ export default function ReportScreen() {
   const [porCustoYear, setPorCustoYear] = useState<number | null>(null);
   const [porCustoMonth, setPorCustoMonth] = useState<number | null>(null);
   const [porCustoFarmId, setPorCustoFarmId] = useState<number | null>(null);
-  // Estado elevado para exportação do PDF/CSV com filtros de subtipo aplicados
-  const [ccFilteredRequestsForExport, setCcFilteredRequestsForExport] = useState<any[]>([]);
-  const [ccPeriodSummaryForExport, setCcPeriodSummaryForExport] = useState<{ totalSolicitacoes: number; totalGasto: number } | null>(null);
-  const [ccActiveSubtypeLabel, setCcActiveSubtypeLabel] = useState<string>("");
+  // Ref para exportação direta do PDF/CSV com filtros de subtipo aplicados (evita timing assíncrono)
+  const ccExportPDFRef = useRef<(() => Promise<void>) | null>(null);
+  const ccExportCSVRef = useRef<(() => string) | null>(null);
   const { isDesktop } = useBreakpoint();
 
   const { data, isLoading, isFetching } = trpc.requests.monthlyReport.useQuery(
@@ -123,26 +122,12 @@ export default function ReportScreen() {
       let fileName: string;
 
       if (activeTab === "porcusto" && selectedCostCenter && ccReport) {
-        const header = "Centro de Custo;N\u00ba Solicita\u00e7\u00e3o;Solicitante;Departamento;Aplica\u00e7\u00e3o;Urg\u00eancia;Valor Total;Data Cria\u00e7\u00e3o;Data Conclus\u00e3o\n";
-        const allRows = (ccReport.requests ?? []).filter((r: any) => {
-          const baseDate = r.completedAt ?? r.createdAt;
-          if (!baseDate) return false;
-          const date = new Date(baseDate);
-          if (porCustoYear && date.getFullYear() !== porCustoYear) return false;
-          if (porCustoMonth && date.getMonth() + 1 !== porCustoMonth) return false;
-          return true;
-        }).map((r: any) => [
-          `"${selectedCostCenter}"`,
-          r.requestNumber ?? r.id,
-          `"${r.requesterName ?? ""}"`,
-          `"${r.department ?? ""}"`,
-          `"${r.application ?? ""}"`,
-          r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal",
-          (r.orderValue || r.totalEstimatedValue) ? parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ",") : "",
-          r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
-          r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : "",
-        ].join(";"));
-        csvContent = header + allRows.join("\n");
+        // Usa o ref para obter o CSV diretamente do filho com filtros aplicados
+        if (ccExportCSVRef.current) {
+          csvContent = ccExportCSVRef.current();
+        } else {
+          setExporting(false); return;
+        }
         const periodStr = porCustoYear && porCustoMonth
           ? `${porCustoYear}_${String(porCustoMonth).padStart(2, "0")}`
           : porCustoYear ? `${porCustoYear}_todos_meses`
@@ -230,12 +215,18 @@ export default function ReportScreen() {
       let html: string;
       if (activeTab === "porcusto") {
         if (!selectedCostCenter || !ccReport) { setExporting(false); return; }
+        // Usa o ref para gerar o PDF diretamente do filho com filtros aplicados
+        if (ccExportPDFRef.current) {
+          try { await ccExportPDFRef.current(); } finally { setExporting(false); }
+          return;
+        }
+        // Fallback: sem filtro de subtipo
         html = generateCostCenterPDFHtml(
-          { ...ccReport, requests: ccFilteredRequestsForExport, summary: ccPeriodSummaryForExport ?? ccReport.summary },
+          ccReport,
           selectedCostCenter,
           porCustoYear ?? undefined,
           porCustoMonth ?? undefined,
-          ccActiveSubtypeLabel
+          ""
         );
       } else if (activeTab === "porbem") {
         // Multi-asset: use assetsReports when multiple bens selected
@@ -399,10 +390,9 @@ export default function ReportScreen() {
           colors={colors}
           styles={styles}
           years={years}
-          onFilteredDataChange={(requests: any[], summary: any, subtypeLabel: string) => {
-            setCcFilteredRequestsForExport(requests);
-            setCcPeriodSummaryForExport(summary);
-            setCcActiveSubtypeLabel(subtypeLabel);
+          registerExportFns={(exportPDFFn: () => Promise<void>, exportCSVFn: () => string) => {
+            ccExportPDFRef.current = exportPDFFn;
+            ccExportCSVRef.current = exportCSVFn;
           }}
         />
       ) : activeTab === "porbem" ? (
@@ -1770,7 +1760,7 @@ function PorCustoCenterTab({
   filteredCostCenters, ccReport, loading, fetching, colors, styles,
   selectedYear, setSelectedYear, selectedMonth, setSelectedMonth, years,
   selectedFarmId, setSelectedFarmId, unitsList,
-  onFilteredDataChange,
+  registerExportFns,
 }: any) {
   const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const MONTH_SHORT = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
@@ -1835,18 +1825,58 @@ function PorCustoCenterTab({
     };
   }, [filteredRequests]);
 
-  // Notifica o pai sempre que os dados filtrados mudam (para exportação de PDF/CSV)
+  // Registra as funções de exportação no pai via ref (sem timing assíncrono)
   React.useEffect(() => {
-    if (!onFilteredDataChange) return;
-    const maintenanceLabel = activeMaintenanceFilters.length > 0
-      ? activeMaintenanceFilters.map((f: string) => f === "preventiva" ? "Preventiva" : "Corretiva").join(" + ")
-      : "";
-    const fuelLabel = activeFuelFilters.length > 0
-      ? activeFuelFilters.map((f: string) => f === "diesel" ? "Diesel" : f === "arla" ? "Arla" : f === "gasolina" ? "Gasolina" : f === "etanol" ? "Etanol" : f).join(" + ")
-      : "";
-    const subtypeLabel = maintenanceLabel || fuelLabel;
-    onFilteredDataChange(filteredRequests, periodSummary, subtypeLabel);
-  }, [filteredRequests, periodSummary, activeMaintenanceFilters, activeFuelFilters]);
+    if (!registerExportFns || !selectedCostCenter || !ccReport) return;
+
+    const getSubtypeLabel = () => {
+      const maintenanceLabel = activeMaintenanceFilters.length > 0
+        ? activeMaintenanceFilters.map((f: string) => f === "preventiva" ? "Preventiva" : "Corretiva").join(" + ")
+        : "";
+      const fuelLabel = activeFuelFilters.length > 0
+        ? activeFuelFilters.map((f: string) => f === "diesel" ? "Diesel" : f === "arla" ? "Arla" : f === "gasolina" ? "Gasolina" : f === "etanol" ? "Etanol" : f).join(" + ")
+        : "";
+      return maintenanceLabel || fuelLabel;
+    };
+
+    const exportPDFFn = async () => {
+      const subtypeLabel = getSubtypeLabel();
+      const html = generateCostCenterPDFHtml(
+        { ...ccReport, requests: filteredRequests, summary: periodSummary },
+        selectedCostCenter,
+        selectedYear ?? undefined,
+        selectedMonth ?? undefined,
+        subtypeLabel
+      );
+      if (Platform.OS === "web") {
+        const win = window.open("", "_blank");
+        if (win) { win.document.write(html); win.document.close(); win.print(); }
+      } else {
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, { mimeType: "application/pdf", dialogTitle: "Exportar PDF" });
+        }
+      }
+    };
+
+    const exportCSVFn = () => {
+      const header = "Centro de Custo;Nº Solicitação;Solicitante;Departamento;Aplicação;Urgência;Valor Total;Data Criação;Data Conclusão\n";
+      const rows = filteredRequests.map((r: any) => [
+        `"${selectedCostCenter}"`,
+        r.requestNumber ?? r.id,
+        `"${r.requesterName ?? ""}"`,
+        `"${r.department ?? ""}"`,
+        `"${r.application ?? ""}"`,
+        r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal",
+        (r.orderValue || r.totalEstimatedValue) ? parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ",") : "",
+        r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
+        r.completedAt ? new Date(r.completedAt).toLocaleDateString("pt-BR") : "",
+      ].join(";"));
+      return header + rows.join("\n");
+    };
+
+    registerExportFns(exportPDFFn, exportCSVFn);
+  }, [filteredRequests, periodSummary, activeMaintenanceFilters, activeFuelFilters, selectedCostCenter, ccReport, selectedYear, selectedMonth]);
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
