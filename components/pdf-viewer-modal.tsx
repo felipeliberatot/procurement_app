@@ -1,21 +1,28 @@
+import * as Linking from "expo-linking";
+import * as WebBrowser from "expo-web-browser";
 import React from "react";
 import {
+  ActivityIndicator,
   Modal,
-  View,
+  Platform,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  Platform,
-  ActivityIndicator,
-  StyleSheet,
+  View,
 } from "react-native";
-import { useColors } from "@/hooks/use-colors";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// WebView só existe no nativo — no web usamos iframe
+import { useColors } from "@/hooks/use-colors";
+
+// WebView só existe no nativo — importado dinamicamente para evitar problemas no web
 let WebView: any = null;
 if (Platform.OS !== "web") {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  WebView = require("react-native-webview").WebView;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    WebView = require("react-native-webview").WebView;
+  } catch {
+    WebView = null;
+  }
 }
 
 interface PdfViewerModalProps {
@@ -29,17 +36,60 @@ export function PdfViewerModal({ visible, url, title = "Visualizar PDF", onClose
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = React.useState(true);
+  const [loadError, setLoadError] = React.useState(false);
+  const [useDirectUrl, setUseDirectUrl] = React.useState(false);
+  const loadTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset loading state when URL changes or modal opens
+  // Reset state when URL changes or modal opens
   React.useEffect(() => {
-    if (visible) setLoading(true);
+    if (visible) {
+      setLoading(true);
+      setLoadError(false);
+      setUseDirectUrl(false);
+    }
   }, [visible, url]);
 
-  // Para web: usa Google Docs Viewer para renderizar o PDF no iframe
-  const viewerUrl =
-    Platform.OS === "web"
-      ? `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`
-      : url;
+  // Se WebView não está disponível no nativo, abre externamente
+  React.useEffect(() => {
+    if (visible && Platform.OS !== "web" && !WebView) {
+      WebBrowser.openBrowserAsync(url).then(() => onClose());
+    }
+  }, [visible, url, onClose]);
+
+  // Para web: tenta Google Docs Viewer primeiro; se falhar, tenta URL direta
+  const viewerUrl = Platform.OS === "web"
+    ? (useDirectUrl ? url : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`)
+    : `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+
+  const handleLoadError = () => {
+    if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    setLoading(false);
+    if (!useDirectUrl) {
+      setUseDirectUrl(true);
+      setLoading(true);
+      setLoadError(false);
+    } else {
+      setLoadError(true);
+    }
+  };
+
+  // Timeout para detectar falha silenciosa do Google Docs Viewer
+  React.useEffect(() => {
+    if (visible && loading && !useDirectUrl) {
+      loadTimeoutRef.current = setTimeout(() => {
+        setUseDirectUrl(true);
+        setLoading(true);
+      }, 10000);
+    }
+    return () => {
+      if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+    };
+  }, [visible, loading, useDirectUrl]);
+
+  // Se WebView não disponível no nativo, não renderiza modal (já abriu externamente)
+  if (Platform.OS !== "web" && !WebView) {
+    return null;
+  }
 
   return (
     <Modal
@@ -51,7 +101,18 @@ export function PdfViewerModal({ visible, url, title = "Visualizar PDF", onClose
       <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <View style={{ width: 60 }} />
+          <TouchableOpacity
+            onPress={() => {
+              if (Platform.OS !== "web") {
+                WebBrowser.openBrowserAsync(url);
+              } else {
+                Linking.openURL(url);
+              }
+            }}
+            style={styles.openButton}
+          >
+            <Text style={[styles.openText, { color: colors.primary }]}>↗ Abrir</Text>
+          </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.foreground }]} numberOfLines={1}>
             {title}
           </Text>
@@ -62,35 +123,62 @@ export function PdfViewerModal({ visible, url, title = "Visualizar PDF", onClose
 
         {/* Conteúdo */}
         <View style={styles.content}>
-          {loading && (
+          {loading && !loadError && (
             <View style={styles.loadingOverlay}>
               <ActivityIndicator size="large" color={colors.primary} />
               <Text style={[styles.loadingText, { color: colors.muted }]}>Carregando PDF...</Text>
             </View>
           )}
 
-          {Platform.OS === "web" ? (
-            // Web: iframe com Google Docs Viewer
+          {loadError ? (
+            // Fallback: botão para abrir externamente
+            <View style={styles.errorContainer}>
+              <Text style={{ fontSize: 40, marginBottom: 16 }}>📄</Text>
+              <Text style={[styles.errorTitle, { color: colors.foreground }]}>
+                Não foi possível exibir o PDF aqui
+              </Text>
+              <Text style={[styles.errorSubtitle, { color: colors.muted }]}>
+                Toque no botão abaixo para abrir o arquivo no seu navegador ou aplicativo de PDF.
+              </Text>
+              <TouchableOpacity
+                style={[styles.openExternalBtn, { backgroundColor: colors.primary }]}
+                onPress={() => {
+                  if (Platform.OS !== "web") {
+                    WebBrowser.openBrowserAsync(url);
+                  } else {
+                    Linking.openURL(url);
+                  }
+                }}
+              >
+                <Text style={styles.openExternalText}>↗ Abrir PDF externamente</Text>
+              </TouchableOpacity>
+            </View>
+          ) : Platform.OS === "web" ? (
+            // Web: iframe (Google Docs Viewer ou URL direta)
             <iframe
+              key={viewerUrl}
               src={viewerUrl}
               style={{ width: "100%", height: "100%", border: "none" }}
-              onLoad={() => setLoading(false)}
+              onLoad={() => {
+                if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+                setLoading(false);
+              }}
+              onError={handleLoadError}
               title={title}
             />
           ) : (
-            // Nativo: WebView
-            WebView && (
-              <WebView
-                source={{ uri: viewerUrl }}
-                style={styles.webview}
-                onLoad={() => setLoading(false)}
-                onError={() => setLoading(false)}
-                startInLoadingState={false}
-                scalesPageToFit
-                javaScriptEnabled
-                domStorageEnabled
-              />
-            )
+            // Nativo: WebView com Google Docs Viewer
+            <WebView
+              source={{ uri: viewerUrl }}
+              style={styles.webview}
+              onLoad={() => setLoading(false)}
+              onError={handleLoadError}
+              startInLoadingState={false}
+              scalesPageToFit
+              javaScriptEnabled
+              domStorageEnabled
+              allowsInlineMediaPlayback
+            />
           )}
         </View>
       </View>
@@ -117,6 +205,14 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginHorizontal: 8,
   },
+  openButton: {
+    width: 60,
+    alignItems: "flex-start",
+  },
+  openText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
   closeButton: {
     width: 60,
     alignItems: "flex-end",
@@ -141,5 +237,33 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+    gap: 12,
+  },
+  errorTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  errorSubtitle: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  openExternalBtn: {
+    marginTop: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  openExternalText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });
