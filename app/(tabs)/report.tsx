@@ -1829,12 +1829,21 @@ function PorCustoCenterTab({
   React.useEffect(() => {
     if (!registerExportFns || !selectedCostCenter || !ccReport) return;
 
+    const FUEL_LABELS: Record<string, string> = {
+      diesel: "Diesel",
+      diesel_s10: "Diesel S-10",
+      alcool_gasolina_fazenda: "Álcool/Gasolina Fazenda",
+      alcool_gasolina_administrativo: "Álcool/Gasolina Adm.",
+      lubrificantes: "Lubrificantes",
+    };
+    const getFuelLabel = (key: string) => FUEL_LABELS[key] ?? key;
+
     const getSubtypeLabel = () => {
       const maintenanceLabel = activeMaintenanceFilters.length > 0
         ? activeMaintenanceFilters.map((f: string) => f === "preventiva" ? "Preventiva" : "Corretiva").join(" + ")
         : "";
       const fuelLabel = activeFuelFilters.length > 0
-        ? activeFuelFilters.map((f: string) => f === "diesel" ? "Diesel" : f === "arla" ? "Arla" : f === "gasolina" ? "Gasolina" : f === "etanol" ? "Etanol" : f).join(" + ")
+        ? activeFuelFilters.map(getFuelLabel).join(" + ")
         : "";
       return maintenanceLabel || fuelLabel;
     };
@@ -1860,13 +1869,14 @@ function PorCustoCenterTab({
     };
 
     const exportCSVFn = () => {
-      const header = "Centro de Custo;Nº Solicitação;Solicitante;Departamento;Aplicação;Urgência;Valor Total;Data Criação;Data Conclusão\n";
+      const header = "Centro de Custo;N\u00ba Solicita\u00e7\u00e3o;Solicitante;Departamento;Aplica\u00e7\u00e3o;Tipo;Urg\u00eancia;Valor Total;Data Cria\u00e7\u00e3o;Data Conclus\u00e3o\n";
       const rows = filteredRequests.map((r: any) => [
         `"${selectedCostCenter}"`,
         r.requestNumber ?? r.id,
         `"${r.requesterName ?? ""}"`,
         `"${r.department ?? ""}"`,
         `"${r.application ?? ""}"`,
+        r.fuelType ? getFuelLabel(r.fuelType) : r.maintenanceType ? (r.maintenanceType === "preventiva" ? "Preventiva" : "Corretiva") : "",
         r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal",
         (r.orderValue || r.totalEstimatedValue) ? parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0").toFixed(2).replace(".", ",") : "",
         r.createdAt ? new Date(r.createdAt).toLocaleDateString("pt-BR") : "",
@@ -2282,18 +2292,31 @@ function PorCustoCenterTab({
 
 // ── HTML para PDF por Centro de Custo ─────────────────────────────────────────
 function generateCostCenterPDFHtml(ccReport: any, costCenterCode: string, year?: number, month?: number, subtypeLabel?: string): string {
-  const MONTH_NAMES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const periodoLabel = year && month ? `${MONTH_NAMES[month - 1]} de ${year}` : year ? `Ano ${year}` : month ? `${MONTH_NAMES[month - 1]} (todos os anos)` : "Histórico completo";
+  const MONTH_NAMES = ["Janeiro","Fevereiro","Mar\u00e7o","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const periodoLabel = year && month ? `${MONTH_NAMES[month - 1]} de ${year}` : year ? `Ano ${year}` : month ? `${MONTH_NAMES[month - 1]} (todos os anos)` : "Hist\u00f3rico completo";
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v ?? 0);
   const fmtDate = (d: string | Date) => d ? new Date(d).toLocaleDateString("pt-BR") : "-";
+  const FUEL_LABELS_PDF: Record<string, string> = {
+    diesel: "Diesel",
+    diesel_s10: "Diesel S-10",
+    alcool_gasolina_fazenda: "\u00c1lcool/Gasolina Fazenda",
+    alcool_gasolina_administrativo: "\u00c1lcool/Gasolina Adm.",
+    lubrificantes: "Lubrificantes",
+  };
+  const getTipoLabel = (r: any) => {
+    if (r.fuelType) return FUEL_LABELS_PDF[r.fuelType] ?? r.fuelType;
+    if (r.maintenanceType) return r.maintenanceType === "preventiva" ? "Preventiva" : "Corretiva";
+    return "";
+  };
   const rows = (ccReport.requests ?? []).map((r: any) => `
     <tr>
       <td>${r.requestNumber ?? "-"}</td>
       <td>${r.requesterName ?? "-"}</td>
       <td>${r.department ?? "-"}</td>
       <td>${r.application ?? "-"}</td>
+      <td>${getTipoLabel(r) ? `<span style="background:#e6f4ea;border-radius:3px;padding:1px 5px;font-size:10px">${getTipoLabel(r)}</span>` : "-"}</td>
       <td>${r.urgencyLevel === "emergencial" ? "Emergencial" : r.urgencyLevel === "urgente" ? "Urgente" : "Normal"}</td>
-      <td style="text-align:right">${(r.orderValue || r.totalEstimatedValue) ? fmt(parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0")) : "—"}</td>
+      <td style="text-align:right">${(r.orderValue || r.totalEstimatedValue) ? fmt(parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0")) : "\u2014"}</td>
       <td>${fmtDate(r.createdAt)}</td>
       <td>${r.completedAt ? fmtDate(r.completedAt) : "-"}</td>
     </tr>
@@ -2343,6 +2366,7 @@ function generateCostCenterPDFHtml(ccReport: any, costCenterCode: string, year?:
       <th>Solicitante</th>
       <th>Departamento</th>
       <th>Aplicação/Bem</th>
+      <th>Tipo</th>
       <th>Urgência</th>
       <th style="text-align:right">Valor</th>
       <th>Criado em</th>
@@ -2350,7 +2374,7 @@ function generateCostCenterPDFHtml(ccReport: any, costCenterCode: string, year?:
     </tr>
   </thead>
   <tbody>
-    ${rows || '<tr><td colspan="8" style="text-align:center;color:#999">Nenhuma solicitação encontrada</td></tr>'}
+    ${rows || '<tr><td colspan="9" style="text-align:center;color:#999">Nenhuma solicitação encontrada</td></tr>'}
   </tbody>
 </table>
 </body>
