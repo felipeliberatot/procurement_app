@@ -1775,6 +1775,15 @@ function PorCustoCenterTab({
   const [activeMaintenanceFilters, setActiveMaintenanceFilters] = React.useState<string[]>([]);
   const [activeFuelFilters, setActiveFuelFilters] = React.useState<string[]>([]);
 
+  // Refs que sempre apontam para os valores mais recentes (evita closure stale)
+  const filteredRequestsRef = React.useRef<any[]>([]);
+  const activeMaintenanceFiltersRef = React.useRef<string[]>([]);
+  const activeFuelFiltersRef = React.useRef<string[]>([]);
+  const selectedCostCenterRef = React.useRef<string | null>(selectedCostCenter);
+  const selectedYearRef = React.useRef<number | null>(selectedYear);
+  const selectedMonthRef = React.useRef<number | null>(selectedMonth);
+  const ccReportRef = React.useRef<any>(ccReport);
+
   // Reset filtros ao trocar de CC, fazenda ou período
   React.useEffect(() => { setActiveMaintenanceFilters([]); setActiveFuelFilters([]); }, [selectedCostCenter, selectedFarmId, selectedYear, selectedMonth]);
 
@@ -1788,6 +1797,29 @@ function PorCustoCenterTab({
       prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
     );
   };
+
+  // Atualiza os refs a cada render — sempre refletem o estado mais recente
+  filteredRequestsRef.current = React.useMemo(() => {
+    const reqs: any[] = ccReport?.requests ?? [];
+    const period = reqs.filter((r: any) => {
+      const baseDate = r.completedAt ?? r.createdAt;
+      if (!baseDate) return false;
+      const date = new Date(baseDate);
+      if (selectedYear && date.getFullYear() !== selectedYear) return false;
+      if (selectedMonth && date.getMonth() + 1 !== selectedMonth) return false;
+      return true;
+    });
+    let result = period;
+    if (activeMaintenanceFilters.length > 0) result = result.filter((r: any) => activeMaintenanceFilters.includes(r.maintenanceType));
+    if (activeFuelFilters.length > 0) result = result.filter((r: any) => activeFuelFilters.includes(r.fuelType));
+    return result;
+  }, [ccReport, selectedYear, selectedMonth, activeMaintenanceFilters, activeFuelFilters]);
+  activeMaintenanceFiltersRef.current = activeMaintenanceFilters;
+  activeFuelFiltersRef.current = activeFuelFilters;
+  selectedCostCenterRef.current = selectedCostCenter;
+  selectedYearRef.current = selectedYear;
+  selectedMonthRef.current = selectedMonth;
+  ccReportRef.current = ccReport;
 
   const periodFilteredRequests = React.useMemo(() => {
     const reqs: any[] = ccReport?.requests ?? [];
@@ -1825,9 +1857,11 @@ function PorCustoCenterTab({
     };
   }, [filteredRequests]);
 
-  // Registra as funções de exportação no pai via ref (sem timing assíncrono)
+  // Registra as funções de exportação no pai via ref.
+  // IMPORTANTE: as funções leem dos refs internos no momento da execução,
+  // não do closure — isso garante que sempre usam os dados mais recentes.
   React.useEffect(() => {
-    if (!registerExportFns || !selectedCostCenter || !ccReport) return;
+    if (!registerExportFns) return;
 
     const FUEL_LABELS: Record<string, string> = {
       diesel: "Diesel",
@@ -1838,23 +1872,36 @@ function PorCustoCenterTab({
     };
     const getFuelLabel = (key: string) => FUEL_LABELS[key] ?? key;
 
-    const getSubtypeLabel = () => {
-      const maintenanceLabel = activeMaintenanceFilters.length > 0
-        ? activeMaintenanceFilters.map((f: string) => f === "preventiva" ? "Preventiva" : "Corretiva").join(" + ")
-        : "";
-      const fuelLabel = activeFuelFilters.length > 0
-        ? activeFuelFilters.map(getFuelLabel).join(" + ")
-        : "";
-      return maintenanceLabel || fuelLabel;
-    };
-
     const exportPDFFn = async () => {
-      const subtypeLabel = getSubtypeLabel();
+      // Lê dos refs — sempre têm o valor mais recente no momento do clique
+      const currentFiltered = filteredRequestsRef.current;
+      const currentCC = selectedCostCenterRef.current;
+      const currentYear = selectedYearRef.current;
+      const currentMonth = selectedMonthRef.current;
+      const currentReport = ccReportRef.current;
+      const currentMaintFilters = activeMaintenanceFiltersRef.current;
+      const currentFuelFilters = activeFuelFiltersRef.current;
+
+      if (!currentCC || !currentReport) return;
+
+      const maintenanceLabel = currentMaintFilters.length > 0
+        ? currentMaintFilters.map((f: string) => f === "preventiva" ? "Preventiva" : "Corretiva").join(" + ")
+        : "";
+      const fuelLabel = currentFuelFilters.length > 0
+        ? currentFuelFilters.map(getFuelLabel).join(" + ")
+        : "";
+      const subtypeLabel = maintenanceLabel || fuelLabel;
+
+      const totalGasto = currentFiltered.reduce(
+        (sum: number, r: any) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0
+      );
+      const summary = { totalSolicitacoes: currentFiltered.length, totalGasto: Math.round(totalGasto * 100) / 100 };
+
       const html = generateCostCenterPDFHtml(
-        { ...ccReport, requests: filteredRequests, summary: periodSummary },
-        selectedCostCenter,
-        selectedYear ?? undefined,
-        selectedMonth ?? undefined,
+        { ...currentReport, requests: currentFiltered, summary },
+        currentCC,
+        currentYear ?? undefined,
+        currentMonth ?? undefined,
         subtypeLabel
       );
       if (Platform.OS === "web") {
@@ -1869,9 +1916,13 @@ function PorCustoCenterTab({
     };
 
     const exportCSVFn = () => {
-      const header = "Centro de Custo;N\u00ba Solicita\u00e7\u00e3o;Solicitante;Departamento;Aplica\u00e7\u00e3o;Tipo;Urg\u00eancia;Valor Total;Data Cria\u00e7\u00e3o;Data Conclus\u00e3o\n";
-      const rows = filteredRequests.map((r: any) => [
-        `"${selectedCostCenter}"`,
+      // Lê dos refs — sempre têm o valor mais recente no momento do clique
+      const currentFiltered = filteredRequestsRef.current;
+      const currentCC = selectedCostCenterRef.current ?? "";
+
+      const header = "Centro de Custo;Nº Solicitação;Solicitante;Departamento;Aplicação;Tipo;Urgência;Valor Total;Data Criação;Data Conclusão\n";
+      const rows = currentFiltered.map((r: any) => [
+        `"${currentCC}"`,
         r.requestNumber ?? r.id,
         `"${r.requesterName ?? ""}"`,
         `"${r.department ?? ""}"`,
@@ -1885,8 +1936,10 @@ function PorCustoCenterTab({
       return header + rows.join("\n");
     };
 
+    // Registra UMA única vez — as funções sempre leem dos refs, não precisam ser re-registradas
     registerExportFns(exportPDFFn, exportCSVFn);
-  }, [filteredRequests, periodSummary, activeMaintenanceFilters, activeFuelFilters, selectedCostCenter, ccReport, selectedYear, selectedMonth]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registerExportFns]);
 
   return (
     <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
