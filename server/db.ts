@@ -471,6 +471,8 @@ export async function createAsset(data: { code: string; description: string; cat
 export async function updateAsset(id: number, data: Partial<{ code: string; description: string; category: string; location: string; active: boolean; value: string; hasChassi: boolean; chassiNumber: string; licensePlate: string }>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  // O identificador é usado exclusivamente no WHERE. Nunca deve compor o SET,
+  // pois alterar a chave primária do ativo torna a atualização inválida.
   await db.update(assets).set(data).where(eq(assets.id, id));
 }
 

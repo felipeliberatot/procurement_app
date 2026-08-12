@@ -588,6 +588,7 @@
 ## Correções Importação e Exportação de Bens (Lote 2)
 - [x] Corrigir importação: usar FileReader (web) em vez de FileSystem para ler o arquivo selecionado
 - [x] Alterar cor do botão Exportar PDF para verde esmeralda claro (#34D399), mais claro que o CSV (#059669)
+- [x] Corrigir erro ao atualizar bem patrimonial no cadastro de Bens
 
 ## Feature: Safras, Centro de Custo em Bens, Aba Orçamentos e Dashboard
 - [ ] Schema: tabela harvests (safras) com campos nome, ano, dataInicio, dataFim, ativo

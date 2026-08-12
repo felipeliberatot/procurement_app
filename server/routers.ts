@@ -5,6 +5,7 @@ import { invokeLLM, type Message } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { ENV } from "./_core/env";
+import { splitAssetUpdateInput } from "./asset-update";
 import * as db from "./db";
 
 export const appRouter = router({
@@ -259,7 +260,10 @@ export const appRouter = router({
         chassiNumber: z.string().optional(),
         licensePlate: z.string().optional(),
       }))
-      .mutation(({ input }) => db.updateAsset(input.id, input)),
+      .mutation(({ input }) => {
+        const { id, data } = splitAssetUpdateInput(input);
+        return db.updateAsset(id, data);
+      }),
     delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(({ input }) => db.deleteAsset(input.id)),
