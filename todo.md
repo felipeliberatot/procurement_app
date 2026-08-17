@@ -589,6 +589,8 @@
 - [x] Corrigir importação: usar FileReader (web) em vez de FileSystem para ler o arquivo selecionado
 - [x] Alterar cor do botão Exportar PDF para verde esmeralda claro (#34D399), mais claro que o CSV (#059669)
 - [x] Corrigir erro ao atualizar bem patrimonial no cadastro de Bens
+- [ ] Diagnosticar compilação do app bloqueada em 1% e disponibilizar checkpoint compilável
+- [x] Atualizar Valor da OC das SOL-2026-0593 e SOL-2026-0594 para R$ 29.250,00
 
 ## Feature: Safras, Centro de Custo em Bens, Aba Orçamentos e Dashboard
 - [ ] Schema: tabela harvests (safras) com campos nome, ano, dataInicio, dataFim, ativo

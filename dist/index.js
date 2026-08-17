@@ -178,6 +178,8 @@ var init_schema = __esm({
       // Número de parcelas (cartão parcelado)
       invoiceUrl: text("invoiceUrl"),
       // PDF nota fiscal (Compras na verificação final)
+      invoice2Url: text("invoice2Url"),
+      // PDF nota fiscal adicional opcional (Compras na verificação final)
       ocSiagriUrl: text("ocSiagriUrl"),
       // PDF OC Siagri (Compras na emissão de OC)
       // Valor da Ordem de Compra (definido na etapa de orçamento)
@@ -261,6 +263,7 @@ var init_schema = __esm({
         "controladoria",
         "diretoria",
         "ordem_compra",
+        "ceo",
         "aprovacao_compra",
         "financeiro",
         "verificacao_compras",
@@ -328,12 +331,18 @@ var init_schema = __esm({
     maloteItems = mysqlTable("maloteItems", {
       id: int("id").autoincrement().primaryKey(),
       maloteId: int("maloteId").notNull(),
-      requestId: int("requestId").notNull(),
+      requestId: int("requestId"),
+      // null para Remessas Manuais
       requestCode: varchar("requestCode", { length: 20 }).notNull(),
       requesterName: varchar("requesterName", { length: 255 }).notNull(),
       application: varchar("application", { length: 255 }).notNull(),
       addedById: int("addedById").notNull(),
       addedByName: varchar("addedByName", { length: 255 }).notNull(),
+      // Remessa Manual — itens físicos sem OC vinculada
+      isRemessaManual: boolean("isRemessaManual").default(false).notNull(),
+      remessaDescription: varchar("remessaDescription", { length: 500 }),
+      remessaQty: varchar("remessaQty", { length: 50 }),
+      remessaObservations: text("remessaObservations"),
       sentStatus: mysqlEnum("sentStatus", ["pendente", "enviado"]).default("pendente").notNull(),
       receiptStatus: mysqlEnum("receiptStatus", ["pendente", "recebido", "devolvido"]).default("pendente").notNull(),
       receiptNotes: text("receiptNotes"),
@@ -1050,11 +1059,13 @@ var init_whatsapp = __esm({
 // server/db.ts
 var db_exports = {};
 __export(db_exports, {
+  addRemessaManualToMalote: () => addRemessaManualToMalote,
   addRequestToMalote: () => addRequestToMalote,
   approveQuotationAndAdvance: () => approveQuotationAndAdvance,
   approveRequest: () => approveRequest,
   attachBudget: () => attachBudget,
   attachInvoice: () => attachInvoice,
+  attachInvoice2: () => attachInvoice2,
   attachOCSiagri: () => attachOCSiagri,
   attachPaymentProof: () => attachPaymentProof,
   canSetPriority: () => canSetPriority,
@@ -2285,7 +2296,8 @@ async function rejectRequest(requestId, user, comment) {
         const prevRoleMap = {
           // aguardando_orcamento: removido intencionalmente para evitar looping
           aguardando_controladoria: "controladoria",
-          aguardando_diretoria: "diretoria"
+          aguardando_diretoria: "diretoria",
+          aguardando_ordem_compra: "compras"
         };
         const prevRole = prevRoleMap[prevStatus];
         if (prevRole && req) {
@@ -2337,6 +2349,11 @@ async function attachInvoice(requestId, fileUrl) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(purchaseRequests).set({ invoiceUrl: fileUrl }).where(eq2(purchaseRequests.id, requestId));
+}
+async function attachInvoice2(requestId, fileUrl) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(purchaseRequests).set({ invoice2Url: fileUrl }).where(eq2(purchaseRequests.id, requestId));
 }
 async function attachOCSiagri(requestId, fileUrl) {
   const db = await getDb();
@@ -2590,6 +2607,25 @@ async function removeRequestFromMalote(maloteItemId) {
   if (!db) throw new Error("Database not available");
   await db.delete(maloteItems).where(eq2(maloteItems.id, maloteItemId));
 }
+async function addRemessaManualToMalote(opts) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const remessaCode = `REM-${Date.now().toString().slice(-6)}`;
+  await db.insert(maloteItems).values({
+    maloteId: opts.maloteId,
+    requestId: null,
+    requestCode: remessaCode,
+    requesterName: opts.addedByName,
+    application: opts.description,
+    addedById: opts.addedById,
+    addedByName: opts.addedByName,
+    isRemessaManual: true,
+    remessaDescription: opts.description,
+    remessaQty: opts.qty,
+    remessaObservations: opts.observations,
+    receiptStatus: "pendente"
+  });
+}
 async function sendMalote(opts) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -2684,7 +2720,7 @@ async function receiveMalote(opts) {
     }).where(eq2(maloteItems.id, item.itemId));
     if (item.receiptStatus === "devolvido") {
       const [mi] = await db.select().from(maloteItems).where(eq2(maloteItems.id, item.itemId)).limit(1);
-      if (mi) {
+      if (mi && mi.requestId) {
         await db.update(purchaseRequests).set({
           status: "aguardando_gerente",
           stepDeadlineAt: new Date(Date.now() + 48 * 60 * 60 * 1e3)
@@ -2773,7 +2809,12 @@ async function getMaloteStats() {
 async function getRequestsReadyForMalote() {
   const db = await getDb();
   if (!db) return [];
-  const inMalote = await db.select({ requestId: maloteItems.requestId }).from(maloteItems);
+  const inMalote = await db.select({ requestId: maloteItems.requestId }).from(maloteItems).innerJoin(malotes, eq2(maloteItems.maloteId, malotes.id)).where(
+    sql`(
+        ${malotes.status} IN ('aberto', 'enviado')
+        OR ${maloteItems.sentStatus} = 'enviado'
+      )`
+  );
   const inMaloteIds = new Set(inMalote.map((i) => i.requestId));
   const concluded = await db.select({
     id: purchaseRequests.id,
@@ -3366,11 +3407,15 @@ async function updateMetadataConcluida(requestId, editorId, editorName, data) {
   if (data.farmName !== void 0) updateSet.farmName = data.farmName;
   if (data.harvestId !== void 0) updateSet.harvestId = data.harvestId;
   if (data.harvestName !== void 0) updateSet.harvestName = data.harvestName;
+  if (data.fuelType !== void 0) updateSet.fuelType = data.fuelType;
+  if (data.maintenanceType !== void 0) updateSet.maintenanceType = data.maintenanceType;
   await db.update(purchaseRequests).set(updateSet).where(eq2(purchaseRequests.id, requestId));
   const changes = [];
   if (data.costCenterCode) changes.push(`Centro de Custo: "${data.costCenterCode}"`);
   if (data.farmName) changes.push(`Fazenda: "${data.farmName}"`);
   if (data.harvestName) changes.push(`Safra: "${data.harvestName}"`);
+  if (data.fuelType) changes.push(`Combust\xEDvel: "${data.fuelType}"`);
+  if (data.maintenanceType) changes.push(`Manuten\xE7\xE3o: "${data.maintenanceType}"`);
   await db.insert(approvalHistory).values({
     requestId,
     userId: editorId,
@@ -4024,14 +4069,14 @@ async function getRequestsByCostCenter(costCenterCode, year, month, farmId) {
       ...year && month ? [
         gte(purchaseRequests.completedAt, new Date(year, month - 1, 1, 0, 0, 0, 0)),
         lt(purchaseRequests.completedAt, new Date(year, month, 1, 0, 0, 0, 0))
-      ] : year && !month ? [
+      ] : year ? [
         gte(purchaseRequests.completedAt, new Date(year, 0, 1, 0, 0, 0, 0)),
         lt(purchaseRequests.completedAt, new Date(year + 1, 0, 1, 0, 0, 0, 0))
-      ] : !year && month ? [
+      ] : month ? [
         sql`MONTH(${purchaseRequests.completedAt}) = ${month}`
       ] : []
     )
-  ).orderBy(desc(purchaseRequests.completedAt));
+  ).orderBy(desc(sql`COALESCE(${purchaseRequests.completedAt}, ${purchaseRequests.createdAt})`));
   const totalGasto = rows.reduce((sum, r) => sum + parseFloat(r.orderValue ?? r.totalEstimatedValue ?? "0"), 0);
   return {
     requests: rows,
@@ -4091,6 +4136,7 @@ var init_db = __esm({
       aguardando_controladoria: "aguardando_orcamento",
       aguardando_diretoria: "aguardando_controladoria",
       aguardando_ordem_compra: "aguardando_diretoria",
+      aguardando_aprovacao_ceo: "aguardando_ordem_compra",
       aguardando_aprovacao_compra: "aguardando_ordem_compra",
       aguardando_comprovante_pagamento: "rejeitada"
     };
@@ -4100,6 +4146,7 @@ var init_db = __esm({
       aguardando_diretoria: "aguardando_orcamento",
       aguardando_controladoria: "aguardando_diretoria",
       aguardando_ordem_compra: "aguardando_controladoria",
+      aguardando_aprovacao_ceo: "aguardando_ordem_compra",
       aguardando_aprovacao_compra: "aguardando_ordem_compra",
       aguardando_comprovante_pagamento: "rejeitada"
     };
@@ -5394,6 +5441,14 @@ var systemRouter = router({
 
 // server/routers.ts
 init_env();
+
+// server/asset-update.ts
+function splitAssetUpdateInput(input) {
+  const { id, ...data } = input;
+  return { id, data };
+}
+
+// server/routers.ts
 init_db();
 var appRouter = router({
   system: systemRouter,
@@ -5599,7 +5654,10 @@ var appRouter = router({
       hasChassi: z2.boolean().optional(),
       chassiNumber: z2.string().optional(),
       licensePlate: z2.string().optional()
-    })).mutation(({ input }) => updateAsset(input.id, input)),
+    })).mutation(({ input }) => {
+      const { id, data } = splitAssetUpdateInput(input);
+      return updateAsset(id, data);
+    }),
     delete: protectedProcedure.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteAsset(input.id)),
     importBatch: protectedProcedure.input(z2.object({
       rows: z2.array(z2.object({
@@ -5696,7 +5754,9 @@ var appRouter = router({
     partialFulfillmentStats: protectedProcedure.query(() => getPartialFulfillmentStats()),
     requestsByAsset: protectedProcedure.input(z2.object({ application: z2.string().min(1), year: z2.number().optional(), month: z2.number().optional() })).query(({ input }) => getRequestsByAsset(input.application, input.year, input.month)),
     requestsByAssets: protectedProcedure.input(z2.object({ applications: z2.array(z2.string()).min(1), year: z2.number().optional(), month: z2.number().optional() })).query(({ input }) => Promise.all(input.applications.map((app) => getRequestsByAsset(app, input.year, input.month).then((r) => ({ application: app, ...r }))))),
-    requestsByCostCenter: protectedProcedure.input(z2.object({ costCenterCode: z2.string().min(1), year: z2.number().optional(), month: z2.number().optional(), farmId: z2.number().optional() })).query(({ input }) => getRequestsByCostCenter(input.costCenterCode, input.year, input.month, input.farmId)),
+    requestsByCostCenter: protectedProcedure.input(z2.object({ costCenterCode: z2.string().min(1), farmId: z2.number().optional().nullable() })).query(({ input }) => {
+      return getRequestsByCostCenter(input.costCenterCode, void 0, void 0, input.farmId ?? void 0);
+    }),
     updateItemFulfillment: protectedProcedure.input(z2.object({ itemId: z2.number(), fulfilledQty: z2.number().min(0) })).mutation(({ input, ctx }) => updateItemFulfillment(input.itemId, input.fulfilledQty, ctx.user.id)),
     history: protectedProcedure.input(z2.object({ requestId: z2.number() })).query(({ input }) => getApprovalHistory(input.requestId)),
     uploadBudget: protectedProcedure.input(z2.object({
@@ -5749,6 +5809,20 @@ var appRouter = router({
       const key = `invoices/${input.requestId}/${Date.now()}_${safeName}`;
       const { url } = await storagePut2(key, buffer, input.mimeType);
       await attachInvoice(input.requestId, url);
+      return { url };
+    }),
+    uploadInvoice2: protectedProcedure.input(z2.object({
+      requestId: z2.number(),
+      fileName: z2.string(),
+      base64: z2.string(),
+      mimeType: z2.string().default("application/pdf")
+    })).mutation(async ({ input }) => {
+      const { storagePut: storagePut2 } = await Promise.resolve().then(() => (init_storage(), storage_exports));
+      const buffer = Buffer.from(input.base64, "base64");
+      const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const key = `invoices/${input.requestId}/nf2_${Date.now()}_${safeName}`;
+      const { url } = await storagePut2(key, buffer, input.mimeType);
+      await attachInvoice2(input.requestId, url);
       return { url };
     }),
     uploadOCSiagri: protectedProcedure.input(z2.object({
@@ -5879,7 +5953,9 @@ var appRouter = router({
       farmId: z2.number().optional(),
       farmName: z2.string().optional(),
       harvestId: z2.number().optional(),
-      harvestName: z2.string().optional()
+      harvestName: z2.string().optional(),
+      fuelType: z2.string().optional(),
+      maintenanceType: z2.string().optional()
     })).mutation(async ({ ctx, input }) => {
       const user = ctx.user;
       const allRoles = [user.procurementRole, ...user.extraRoles ? JSON.parse(user.extraRoles) : []];
@@ -6419,6 +6495,21 @@ Itens de exemplo: ${c.sampleItems.join("; ")}`
       destinationUnit: z2.string().min(1).optional(),
       notes: z2.string().nullable().optional()
     })).mutation(({ input }) => updateMalote(input)),
+    addRemessaManual: protectedProcedure.input(z2.object({
+      maloteId: z2.number(),
+      description: z2.string().min(1, "Descri\xE7\xE3o obrigat\xF3ria"),
+      qty: z2.string().min(1, "Quantidade obrigat\xF3ria"),
+      observations: z2.string().optional()
+    })).mutation(
+      ({ ctx, input }) => addRemessaManualToMalote({
+        maloteId: input.maloteId,
+        description: input.description,
+        qty: input.qty,
+        observations: input.observations ?? null,
+        addedById: ctx.user.id,
+        addedByName: ctx.user.name ?? "Usu\xE1rio"
+      })
+    ),
     delete: protectedProcedure.input(z2.object({ id: z2.number() })).mutation(({ input }) => deleteMalote(input.id))
   }),
   // ─── Safras (Harvests) ────────────────────────────────────────────────────────────────────────────────
@@ -7326,6 +7417,47 @@ function registerApiIntegration(app) {
       });
     } catch (err) {
       console.error("[Integration] Erro ao consultar solicita\xE7\xE3o:", err);
+      res.status(500).json({ error: err.message || "Erro interno." });
+    }
+  });
+  app.get("/api/integration/departments", async (req, res) => {
+    const keyData = await requireApiKey(req, res);
+    if (!keyData) return;
+    try {
+      const data = await listDepartments();
+      res.json(data.map((d) => ({ id: d.id, code: d.code, name: d.name })));
+    } catch (err) {
+      res.status(500).json({ error: err.message || "Erro interno." });
+    }
+  });
+  app.get("/api/integration/farms", async (req, res) => {
+    const keyData = await requireApiKey(req, res);
+    if (!keyData) return;
+    try {
+      const data = await listUnits();
+      res.json(data.map((u) => ({ id: u.id, code: u.code, name: u.name, city: u.city ?? null, state: u.state ?? null })));
+    } catch (err) {
+      res.status(500).json({ error: err.message || "Erro interno." });
+    }
+  });
+  app.get("/api/integration/harvests", async (req, res) => {
+    const keyData = await requireApiKey(req, res);
+    if (!keyData) return;
+    try {
+      const data = await listHarvests();
+      res.json(data.map((h) => ({ id: h.id, name: h.name, year: h.year, active: h.active ?? true })));
+    } catch (err) {
+      res.status(500).json({ error: err.message || "Erro interno." });
+    }
+  });
+  app.get("/api/integration/cost-centers", async (req, res) => {
+    const keyData = await requireApiKey(req, res);
+    if (!keyData) return;
+    try {
+      const data = await listAllCostCenters();
+      const active = data.filter((c) => c.active !== false);
+      res.json(active.map((c) => ({ id: c.id, code: c.code, name: c.name, responsible: c.responsible ?? null })));
+    } catch (err) {
       res.status(500).json({ error: err.message || "Erro interno." });
     }
   });
