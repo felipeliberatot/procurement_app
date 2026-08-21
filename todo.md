@@ -593,6 +593,10 @@
 - [x] Atualizar Valor da OC das SOL-2026-0593 e SOL-2026-0594 para R$ 29.250,00
 - [x] Atualizar Valor da OC da SOL-2026-0644 para R$ 555,06
 - [x] Marcar item da SOL-2026-0552 como comprado para envio no malote
+- [x] Preparar migração completa do código e banco para o repositório Git remoto
+- [x] Criar template de ambiente sem segredos e MIGRATION.md com restauração e nota sobre autenticação
+- [x] Gerar backup restaurável do banco e validar conteúdo antes de commit
+- [x] Criar commit de migração e enviar à branch principal após confirmação final
 
 ## Feature: Safras, Centro de Custo em Bens, Aba Orçamentos e Dashboard
 - [ ] Schema: tabela harvests (safras) com campos nome, ano, dataInicio, dataFim, ativo

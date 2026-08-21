@@ -36,6 +36,12 @@ yarn-error.*
 
 # local env files
 .env*.local
+.env
+
+# Backups ad hoc ficam locais. O snapshot versionado para migração é o único
+# arquivo SQL permitido nesta pasta.
+/database/*.sql
+!/database/backup.sql
 
 # typescript
 *.tsbuildinfo

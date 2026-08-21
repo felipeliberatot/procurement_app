@@ -1,0 +1,50 @@
+# Copie este arquivo para .env no novo servidor e substitua todos os valores.
+# Não versione o arquivo .env preenchido.
+
+NODE_ENV=production
+PORT=3000
+APP_BASE_URL=https://compras.exemplo.com.br
+APP_URL=https://compras.exemplo.com.br
+WEBHOOK_BASE_URL=https://compras.exemplo.com.br
+
+# MySQL/TiDB — mysql://USUARIO:SENHA@HOST:3306/NOME_DO_BANCO
+DATABASE_URL=mysql://USUARIO:SENHA@HOST:3306/compras_cgs
+
+# Autenticação e segurança
+JWT_SECRET=SUBSTITUA_POR_UMA_CHAVE_ALEATORIA_LONGA
+VITE_APP_ID=IDENTIFICADOR_DA_APLICACAO
+OAUTH_SERVER_URL=https://oauth.exemplo.com.br
+OWNER_OPEN_ID=IDENTIFICADOR_DO_PROPRIETARIO
+
+# Desenvolvimento Expo (normalmente não usados em produção)
+EXPO_PORT=8081
+EXPO_WEB_PREVIEW_URL=http://localhost:8081
+EXPO_PACKAGER_PROXY_URL=
+
+# IA e integração externa (preencha apenas se utilizar)
+BUILT_IN_FORGE_API_URL=
+BUILT_IN_FORGE_API_KEY=
+SERPER_API_KEY=
+CGS_MAINTENANCE_API_KEY=
+
+# E-mail SMTP
+SMTP_HOST=smtp.exemplo.com.br
+SMTP_PORT=587
+SMTP_USER=usuario_smtp
+SMTP_PASS=senha_smtp
+SMTP_FROM_NAME=CGS Agrícola
+
+# WhatsApp genérico
+WHATSAPP_PROVIDER=
+WHATSAPP_API_URL=
+WHATSAPP_API_TOKEN=
+WHATSAPP_FROM=
+WHATSAPP_VERIFY_TOKEN=
+
+# Z-API (preencha somente quando aplicável)
+ZAPI_INSTANCE_ID=
+ZAPI_TOKEN=
+ZAPI_CLIENT_TOKEN=
+
+# Operações internas opcionais
+HOT_DEPLOY_TOKEN=
