@@ -592,6 +592,7 @@
 - [ ] Diagnosticar compilação do app bloqueada em 1% e disponibilizar checkpoint compilável
 - [x] Atualizar Valor da OC das SOL-2026-0593 e SOL-2026-0594 para R$ 29.250,00
 - [x] Atualizar Valor da OC da SOL-2026-0644 para R$ 555,06
+- [x] Marcar item da SOL-2026-0552 como comprado para envio no malote
 
 ## Feature: Safras, Centro de Custo em Bens, Aba Orçamentos e Dashboard
 - [ ] Schema: tabela harvests (safras) com campos nome, ano, dataInicio, dataFim, ativo
