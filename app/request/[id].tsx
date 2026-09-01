@@ -1594,9 +1594,24 @@ export default function RequestDetailScreen() {
                 </View>
               )}
               <Text className="text-sm text-muted">Criado em: <Text className="text-foreground font-medium">{formatDate(request.createdAt)}</Text></Text>
-              {request.totalEstimatedValue ? (
-                <Text className="text-sm text-muted">{isAfterOC ? "Valor da OC" : "Valor Estimado"}: <Text style={{ color: isAfterOC ? colors.success : colors.warning, fontWeight: "700" }}>{formatCurrency(request.totalEstimatedValue)}</Text></Text>
-              ) : null}
+              {(() => {
+                const estimated = Number.parseFloat(request.totalEstimatedValue ?? "");
+                const order = Number.parseFloat(request.orderValue ?? "");
+                const hasEstimated = Number.isFinite(estimated) && estimated > 0;
+                const hasOrder = Number.isFinite(order) && order > 0;
+                const displayValue = isAfterOC
+                  ? (hasOrder ? request.orderValue : hasEstimated ? request.totalEstimatedValue : null)
+                  : (hasEstimated ? request.totalEstimatedValue : hasOrder ? request.orderValue : null);
+                if (!displayValue) return null;
+                const valueLabel = isAfterOC
+                  ? "Valor da OC"
+                  : !hasEstimated && hasOrder
+                    ? "Valor da Cotação"
+                    : "Valor Estimado";
+                return (
+                  <Text className="text-sm text-muted">{valueLabel}: <Text style={{ color: isAfterOC ? colors.success : colors.warning, fontWeight: "700" }}>{formatCurrency(displayValue)}</Text></Text>
+                );
+              })()}
               {request.purchaseOrderNumber && (
                 <Text className="text-sm text-muted">Ordem de Compra: <Text className="text-foreground font-bold">{request.purchaseOrderNumber}</Text></Text>
               )}
@@ -2862,16 +2877,31 @@ export default function RequestDetailScreen() {
                     </View>
                   )}
 
-                  {/* Valor da OC (a partir do Fluxo 06) ou Valor Estimado (antes) */}
-                  {request.totalEstimatedValue && (
-                    <View style={{ backgroundColor: isAfterOC ? `${colors.success}10` : `${colors.warning}10`, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
-                      <Text style={{ fontSize: 18 }}>{isAfterOC ? "💰" : "💵"}</Text>
-                      <View>
-                        <Text style={{ color: colors.muted, fontSize: 11 }}>{isAfterOC ? "Valor da OC" : "Valor Estimado"}</Text>
-                        <Text style={{ color: isAfterOC ? colors.success : colors.warning, fontWeight: "700", fontSize: 16 }}>{formatCurrency(request.totalEstimatedValue)}</Text>
+                  {/* Valor da OC (a partir do Fluxo 06), estimativa ou cotação selecionada */}
+                  {(() => {
+                    const estimated = Number.parseFloat(request.totalEstimatedValue ?? "");
+                    const order = Number.parseFloat(request.orderValue ?? "");
+                    const hasEstimated = Number.isFinite(estimated) && estimated > 0;
+                    const hasOrder = Number.isFinite(order) && order > 0;
+                    const displayValue = isAfterOC
+                      ? (hasOrder ? request.orderValue : hasEstimated ? request.totalEstimatedValue : null)
+                      : (hasEstimated ? request.totalEstimatedValue : hasOrder ? request.orderValue : null);
+                    if (!displayValue) return null;
+                    const valueLabel = isAfterOC
+                      ? "Valor da OC"
+                      : !hasEstimated && hasOrder
+                        ? "Valor da Cotação"
+                        : "Valor Estimado";
+                    return (
+                      <View style={{ backgroundColor: isAfterOC ? `${colors.success}10` : `${colors.warning}10`, borderRadius: 12, padding: 12, marginBottom: 16, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                        <Text style={{ fontSize: 18 }}>{isAfterOC ? "💰" : "💵"}</Text>
+                        <View>
+                          <Text style={{ color: colors.muted, fontSize: 11 }}>{valueLabel}</Text>
+                          <Text style={{ color: isAfterOC ? colors.success : colors.warning, fontWeight: "700", fontSize: 16 }}>{formatCurrency(displayValue)}</Text>
+                        </View>
                       </View>
-                    </View>
-                  )}
+                    );
+                  })()}
 
                   {/* Indicador de campos obrigatórios */}
                   {(!selectedPaymentMethod || !paymentInfo.trim() || (selectedPaymentMethod === "cartao_parcelado" && !paymentInstallments.trim())) && (
