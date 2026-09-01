@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from "react-native";
 import { StatusBadge, UrgencyBadge, DeadlineTimer } from "./Badges";
 import { useColors } from "@/hooks/use-colors";
+import { resolveCardFinancialValue } from "@/lib/request-card-value";
 import type { RequestStatus, UrgencyLevel } from "@/shared/types";
 import { WORKFLOW_STEPS, WORKFLOW_STEPS_URGENT } from "@/shared/types";
 
@@ -293,21 +294,18 @@ export function RequestCard({
             </View>
             <View style={{ alignItems: "flex-end" }}>
               {(() => {
-                    const afterOC = ["aguardando_aprovacao_ceo", "aguardando_aprovacao_compra", "aguardando_comprovante_pagamento", "aguardando_verificacao_compras", "parcialmente_concluida", "concluida"].includes(request.status ?? "");
-                    const displayValue = afterOC
-                      ? (request.orderValue ?? request.totalEstimatedValue)
-                      : request.totalEstimatedValue;
-                    if (displayValue) {
+                    const financialValue = resolveCardFinancialValue(request);
+                    if (financialValue.value != null) {
                       return (
                         <View style={{ alignItems: "flex-end" }}>
-                          <Text style={{ fontSize: 11, color: afterOC ? colors.success : colors.warning, fontWeight: "600" }}>{afterOC ? "Valor da OC" : "Valor Estimado"}</Text>
-                          <Text style={{ fontSize: 13, fontWeight: "700", color: afterOC ? colors.success : colors.foreground }}>
-                            {formatCurrency(displayValue)}
+                          <Text style={{ fontSize: 11, color: financialValue.afterOC ? colors.success : colors.warning, fontWeight: "600" }}>{financialValue.label}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: "700", color: financialValue.afterOC ? colors.success : colors.foreground }}>
+                            {formatCurrency(financialValue.value)}
                           </Text>
                         </View>
                       );
                     }
-                    if (afterOC) {
+                    if (financialValue.afterOC) {
                       return (
                         <View style={{ alignItems: "flex-end" }}>
                           <Text style={{ fontSize: 11, color: colors.muted, fontWeight: "600" }}>Valor da OC</Text>
